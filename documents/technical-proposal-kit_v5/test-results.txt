@@ -1,0 +1,145 @@
+════════════════════════════════════════════════════════════════
+  نتائج اختبارات المرحلة الثانية — 2026-10-21 13:45:29 UTC
+  Node v20.20.2
+════════════════════════════════════════════════════════════════
+
+── ١) اختبارات المرحلة الأولى (STORAGE_DRIVER=local) ──
+# tests 54
+# pass 54
+# fail 0
+# skipped 0
+
+── ٢) اختبارات المرحلة الثانية (STORAGE_DRIVER=s3 → s3rver) ──
+ok 1 - S1 — المشغّل النشط هو s3 والاتصال سليم
+ok 2 - S2 — رفع ملف إلى السحابة يسجّل checksum مطابقاً للمحتوى
+ok 3 - S3 — الرابط الموقّع يعمل وتجزئة المحتوى المنزّل مطابقة
+ok 4 - S4 — التحميل المحمي عبر الجلسة يطابق المحتوى أيضاً
+ok 5 - S5 — مستخدم آخر لا يحصل على رابط موقّع لملف غيره (404)
+ok 6 - S6 — مستخدم آخر لا يفتح الرابط الموقّع الخاص بغيره
+ok 7 - S7 — الرابط الموقّع سليم البنية ويحمل الصلاحية المطلوبة ويعمل
+ok 8 - S11 — مشغّل القرص المحلي: العبث بالرابط وانتهاء الصلاحية يُرفضان فعلياً
+ok 9 - S8 — فحص صحة التخزين عبر API يرجع 200 و ok=true
+ok 10 - S9 — الحذف يزيل الكائن فعلاً من السحابة
+ok 11 - S10 — سجل التدقيق يحتوي دورة الحياة كاملة
+# tests 11
+# pass 11
+# fail 0
+# skipped 0
+SEEDED: {"users":1,"tenders":5,"files":9,"requests":3}
+
+── ٣) النسخ الاحتياطي (VACUUM INTO + gzip + رفع سحابي) ──
+  ✓ VACUUM INTO — نسخة متسقة (2 ms)
+  ✓ integrity_check: ok
+  ✓ عدّ الصفوف مطابق بين الأصل والنسخة
+  ✓ ضغط gzip: 124.0 ك.ب → 4.5 ك.ب (نسبة 3.6%)
+  ✓ SHA-256: 30474ee3a8e02c945b71ac79…
+  ✓ رُفعت إلى: backups/db/2026/10/portal-20261021-134539.db.gz (تحقق checksum نجح)
+  الملف    : /tmp/final/backups/portal-20261021-134539.db.gz
+  المدة    : 220 ms
+  الصفوف   : {"users":1,"plans":4,"subscriptions":0,"tenders":5,"files":9,"requests":3,"audit_log":0}
+
+── ٤) الاستعادة ومقارنة الصفوف ──
+  ✓ تجزئة gzip مطابقة للبيان
+  ✓ فك ضغط: 124.0 ك.ب
+  ✓ كُتب الملف: /tmp/final/restored.db
+  ✓ integrity_check: ok
+  مقارنة عدد الصفوف (البيان مقابل المستعاد):
+  الجدول                البيان    المستعاد  الحالة
+  users                      1           1  ✓ مطابق
+  plans                      4           4  ✓ مطابق
+  subscriptions              0           0  ✓ مطابق
+  tenders                    5           5  ✓ مطابق
+  files                      9           9  ✓ مطابق
+  requests                   3           3  ✓ مطابق
+  audit_log                  0           0  ✓ مطابق
+  جداول موجودة: 7 — audit_log, files, plans, requests, subscriptions, tenders, users
+═══ النتيجة ═══
+  ✓ الاستعادة ناجحة والبيانات سليمة
+  المدة: 22 ms
+
+── ٥) الترحيل المحلي → السحابي ──
+  صحة السحابة  : ✓ متصلة
+  ملفات مرشحة  : 4
+  ✓ نُقل وتحقق: arch.pdf  [tnd_g1/arch.pdf] (800 بايت)
+  ✓ نُقل وتحقق: struct.pdf  [tnd_g1/struct.pdf] (960 بايت)
+  ✓ نُقل وتحقق: boq.xlsx  [tnd_g2/boq.xlsx] (720 بايت)
+  ✓ نُقل وتحقق: spec.docx  [tnd_g2/spec.docx] (800 بايت)
+═══ الملخص ═══
+  نجح     : 4
+  فشل     : 0
+  تخطّي   : 0
+  [إعادة التشغيل — اختبار idempotency]
+  ملفات مرشحة  : 0
+═══ الملخص ═══
+  نجح     : 0
+  فشل     : 0
+  تخطّي   : 0
+
+── ٦) التحقق من تطابق التجزئات (محلي = سحابي = قاعدة البيانات) ──
+versions published after the first week of January 2027
+will require node >=22. You are running node v20.20.2.
+
+To continue receiving updates to AWS services, bug fixes,
+and security updates please upgrade to node >=22.
+
+More information can be found at: https://a.co/c895JFp
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓ arch.pdf  local=b23e99da0539  cloud=b23e99da0539  db=b23e99da0539
+  ✓ struct.pdf  local=64c4b95c1ece  cloud=64c4b95c1ece  db=64c4b95c1ece
+  ✓ boq.xlsx  local=06c42176114f  cloud=06c42176114f  db=06c42176114f
+  ✓ spec.docx  local=ab057efe10a9  cloud=ab057efe10a9  db=ab057efe10a9
+  النتيجة: 4 مطابق، 0 مختلف
+
+── ٧) سياسة الاستبقاء (المُشغَّل فعلياً على ٣٠ نسخة يومية متتالية) ──
+  BACKUP_DIR = مجلد مؤقت، ٣٠ ملفاً بأسماء portal-YYYYMMDD-020000.db.gz (آخر ٣٠ يوماً)
+  توزيع المُدخل : 2026-W43: 2  |  W42: 7  |  W41: 7  |  W40: 7  |  W39: 7   (أشهر: 10 و 09)
+  قبل            : 30
+  بعد            : 10
+  حُذف محلياً     : 20
+  الأسابيع الممثَّلة بعد الاستبقاء: 2026-W40, W41, W42, W43  (= ٤ أسبوعية كاملة)
+  التفسير        : ٧ يومية + ٤ أسبوعية + ١٢ شهرية = ٢٢ فتحة، لكن ٣٠ نسخة متتالية لا تغطي
+                   إلا ٥ أسابيع وشهرين — فبعد إزالة التكرار (نفس اليوم/الأسبوع/الشهر)
+                   يبقى ١٠ ملفات فريدة. هذا سلوك صحيح لا خطأ: السياسة تُبقي «نسخة واحدة
+                   لكل أسبوع» و«واحدة لكل شهر»، لا ٤ ملفات أسبوعية عشوائية.
+  سياسة السحابة : نفس القاعدة تُطبَّق على مفاتيح backups/db/ تحت نفس البادئة
+
+── ٨) الجدولة التلقائية (SCHEDULER_ENABLED=true، cron='*/5 * * * *') ──
+  [2026-10-21T13:40:00.316Z] OK   backup  311ms  portal-20261021-134000.db.gz 3.5KB
+  [2026-10-21T13:45:00.258Z] OK   backup  254ms  portal-20261021-134500.db.gz 5.1KB
+
+  النسخ في السحابة بعد التشغيل التلقائي:
+    backups/db/2026/10/portal-20261021-133630.db.gz
+    backups/db/2026/10/portal-20261021-133630.db.gz.json
+    backups/db/2026/10/portal-20261021-133716.db.gz
+    backups/db/2026/10/portal-20261021-133716.db.gz.json
+    backups/db/2026/10/portal-20261021-133718.db.gz
+    backups/db/2026/10/portal-20261021-133718.db.gz.json
+    backups/db/2026/10/portal-20261021-133720.db.gz
+    backups/db/2026/10/portal-20261021-133720.db.gz.json
+    backups/db/2026/10/portal-20261021-134000.db.gz
+    backups/db/2026/10/portal-20261021-134000.db.gz.json
+    backups/db/2026/10/portal-20261021-134500.db.gz
+    backups/db/2026/10/portal-20261021-134500.db.gz.json
+    backups/db/2026/10/portal-20261021-134539.db.gz
+    backups/db/2026/10/portal-20261021-134539.db.gz.json
+
+── ٩) فحص الواجهة في متصفح حقيقي (Chromium) ──
+  register.html → لوحة التحكم         : ✓ (تحويل تلقائي)
+  login.html                          : ✓
+  إنشاء عطاء من الواجهة                : ✓ ('عطاء من المتصفح')
+  رفع ملف عبر الواجهة → S3            : ✓ (ui-plan.pdf)
+  ظهور العطاء في لوحة التحكم          : ✓
+  ظهور الملف في صفحة المخرجات          : ✓
+  requests.html / upgrade.html        : ✓
+  مبدّل اللغة AR → EN                 : ✓ (dir=rtl → ltr)
+  أخطاء Console                       : 0
+  طلبات فاشلة                         : 0
+  فيضان أفقي على الجوال (390px)       : لا يوجد
+
+── ١٠) إصلاحات خلال المرحلة الثانية ──
+  ١. src/lib/storage.js القديم كان يحجب src/lib/storage/ — حُذف بعد التأكد من عدم وجود مستدعين
+  ٢. scheduler.js كان يستورد './config' بدل '../config' — أصلح
+  ٣. assertAllowed كان يرمي Error عادياً لا يعترف به errorHandler — استُبدل بـ AppError
+  ٤. WEB_ROOT كان يشير إلى /workspace فترجع صفحات البوابة 404 — صار قابلاً للضبط وافتراضيه صحيح
+  ٥. حذف العطاء كان يقرأ مشغّلات التخزين بعد CASCADE — نُقل القراءة قبل الحذف
+  ٦. اختبار health كان يتوقع phase=1 — حُدّث إلى 2 مع التحقق من storage و scheduler

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>بوابة MMC · لوحة التحكم</title>
+<link rel="stylesheet" href="assets/portal.css">
+<link rel="stylesheet" href="assets/auth.css">
+</head>
+<body data-page="dashboard">
+<div class="p-top no-print">
+  <div class="brand"><span class="mark">M</span><span><span data-ar="بوابة MMC" data-en="MMC Portal">بوابة MMC</span><small><span data-ar="حزمة العروض الفنية" data-en="MMC Technical Proposal Kit">حزمة العروض الفنية</span></small></span></div>
+  <span class="pid">PT-9F3C7A1E5B2D</span>
+  <span class="plan-badge" data-plan-badge><span data-ar="تجريبي مجاني" data-en="Free Trial">تجريبي مجاني</span></span>
+  <div class="user-chip"><span class="av">👤</span><span style="min-width:0"><span class="nm" data-user-name>—</span><br><span class="em" data-user-email></span></span></div>
+  <button class="btn ghost" data-logout><span data-ar="خروج" data-en="Log out">خروج</span></button>
+  <div class="spacer"></div>
+  <a class="btn ghost" href="../../index.html"><span data-ar="الفهرس" data-en="Index">الفهرس</span></a>
+  <a class="btn ghost" href="../../en/index.html"><span data-ar="النماذج" data-en="Forms">النماذج</span></a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" data-lang-btn="ar" class="on">AR</button>
+    <button type="button" data-lang-btn="en">EN</button>
+  </div>
+  <button class="btn" data-print>🖨️</button>
+</div>
+<div class="p-nav no-print"><a href="../../bid/index.html"><span class="ic">🧾</span><span data-ar="العطاءات الإلكترونية" data-en="Electronic bids">العطاءات الإلكترونية</span></a><a href="index.html"><span class="ic">📊</span><span data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</span></a><a href="upload.html"><span class="ic">⬆️</span><span data-ar="رفع عطاء" data-en="Upload">رفع عطاء</span></a><a href="outputs.html"><span class="ic">📄</span><span data-ar="المخرجات" data-en="Outputs">المخرجات</span></a><a href="requests.html"><span class="ic">💬</span><span data-ar="طلباتي" data-en="Requests">طلباتي</span></a><a href="upgrade.html"><span class="ic">⭐</span><span data-ar="ترقية الباقة" data-en="Upgrade">ترقية الباقة</span></a><a href="billing.html"><span class="ic">💳</span><span data-ar="الفواتير والدفع" data-en="Billing">الفواتير والدفع</span></a><a href="what-it-takes.html"><span class="ic">🛠️</span><span data-ar="التشغيل الحقيقي" data-en="Production">التشغيل الحقيقي</span></a></div>
+<div class="p-wrap">
+  <div class="p-head">
+    <div class="eyebrow"><span data-ar="بوابة خاصة · Private Portal" data-en="Private Portal">بوابة خاصة · Private Portal</span></div>
+    <h1><span data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</span></h1>
+    <p><span data-ar="ارفع مخططاتك ووثائق العطاء هنا بدلاً من إرسالها في المحادثة، وتابع حالة كل عطاء ومخرجاته." data-en="Upload your drawings and tender documents here instead of sending them in chat, and track each tender and its outputs.">ارفع مخططاتك ووثائق العطاء هنا بدلاً من إرسالها في المحادثة، وتابع حالة كل عطاء ومخرجاته.</span></p>
+  </div>
+
+  <div class="stats" id="dashStats"></div>
+
+  <div class="p-card">
+    <h2><span class="n">01</span> <span data-ar="الباقة والاستخدام" data-en="Plan and usage">الباقة والاستخدام</span></h2>
+    <p class="sub"><span data-ar="يُحسب الاستهلاك من العطاءات المحفوظة وحجم الملفات المرفوعة فعلياً." data-en="Usage is computed from the tenders actually saved and the files actually uploaded.">يُحسب الاستهلاك من العطاءات المحفوظة وحجم الملفات المرفوعة فعلياً.</span></p>
+    <div id="dashUsage"></div>
+    <div class="btn-row" style="margin-top:14px">
+      <a class="btn amber" href="upload.html"><span data-ar="➕ رفع عطاء جديد" data-en="➕ Upload a tender">➕ رفع عطاء جديد</span></a>
+      <a class="btn light" href="upgrade.html"><span data-ar="ترقية الباقة" data-en="Upgrade plan">ترقية الباقة</span></a>
+    </div>
+  </div>
+
+  <div class="p-card">
+    <h2><span class="n">02</span> <span data-ar="عطاءاتي" data-en="My tenders">عطاءاتي</span></h2>
+    <p class="sub"><span data-ar="كل عطاء مع حالته وعدد ملفاته وآخر تحديث وروابط مخرجاته." data-en="Each tender with its status, file count, last update and output links.">كل عطاء مع حالته وعدد ملفاته وآخر تحديث وروابط مخرجاته.</span></p>
+    <div id="dashBody"></div>
+  </div>
+
+  <div class="note amber">
+    <h4><span data-ar="أين تُخزَّن ملفاتي؟" data-en="Where are my files stored?">أين تُخزَّن ملفاتي؟</span></h4>
+    <p><span data-ar="في متصفحك وحده، عبر IndexedDB. لا يُرسل أي ملف إلى خادم في هذا النموذج الأولي. امسح بيانات المتصفح تفقد الملفات — صدّر ما تحتاجه قبل ذلك." data-en="In your browser only, via IndexedDB. No file is sent to a server in this prototype. Clearing browser data loses the files — export what you need first.">في متصفحك وحده، عبر IndexedDB. لا يُرسل أي ملف إلى خادم في هذا النموذج الأولي. امسح بيانات المتصفح تفقد الملفات — صدّر ما تحتاجه قبل ذلك.</span></p>
+  </div>
+</div>
+<div class="p-foot no-print">
+  <div class="in">
+    <div><strong style="color:#fff;display:block;margin-bottom:4px"><span data-ar="بوابة MMC — حزمة العروض الفنية" data-en="MMC Portal — MMC Technical Proposal Kit">بوابة MMC — حزمة العروض الفنية</span></strong><span data-ar="بوابة خاصة لرفع المخططات ووثائق العطاء وإنتاج العرض الفني وحساب الكميات." data-en="A private portal to upload drawings and tender documents and produce the technical proposal and take-off.">بوابة خاصة لرفع المخططات ووثائق العطاء وإنتاج العرض الفني وحساب الكميات.</span></div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <a href="../../index.html"><span data-ar="الفهرس" data-en="Index">الفهرس</span></a>
+      <a href="../../en/index.html"><span data-ar="النماذج" data-en="Forms">النماذج</span></a>
+      <a href="../../marketing/pricing.html"><span data-ar="الأسعار" data-en="Pricing">الأسعار</span></a>
+      <a href="what-it-takes.html"><span data-ar="التشغيل الحقيقي" data-en="Production">التشغيل الحقيقي</span></a>
+    </div>
+  </div>
+  <div class="fine"><span data-ar="المرحلة الأولى (نظام فعلي): خادم وقاعدة بيانات ومصادقة حقيقية. الملفات تُحفظ على الخادم وتظهر في حسابك من أي جهاز، وكلمة المرور مشفّرة بـ bcrypt. لم تُنفَّذ بعد: التخزين السحابي، معالجة المخططات آلياً، الدفع، والإشعارات — راجع صفحة «ما يحتاجه التشغيل الحقيقي»." data-en="Phase 1 (real system): real server, database and authentication. Files are stored server-side and follow your account across devices; passwords are bcrypt-hashed. Not yet implemented: cloud storage, automated drawing processing, payments and notifications — see the Production page.">المرحلة الأولى (نظام فعلي): خادم وقاعدة بيانات ومصادقة حقيقية. الملفات تُحفظ على الخادم وتظهر في حسابك من أي جهاز، وكلمة المرور مشفّرة بـ bcrypt. لم تُنفَّذ بعد: التخزين السحابي، معالجة المخططات آلياً، الدفع، والإشعارات — راجع صفحة «ما يحتاجه التشغيل الحقيقي».</span></div>
+</div>
+<script src="assets/api.js"></script>
+<script src="assets/portal.js"></script>
+</body>
+</html>

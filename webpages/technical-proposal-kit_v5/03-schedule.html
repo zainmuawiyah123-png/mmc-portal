@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TP-03 · البرنامج الزمني والمراحل والدفعات</title>
+<link rel="stylesheet" href="assets/kit.css">
+
+<style>
+  .topbar .switch{display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;flex:0 0 auto}
+  .topbar .switch a,.topbar .switch span{font-size:11px;font-weight:800;padding:5px 9px;letter-spacing:.4px;
+    color:#9fb0c2;text-decoration:none;line-height:1.4}
+  .topbar .switch a:hover{background:#1d3a58;color:#fff}
+  .topbar .switch .on{background:#b45309;color:#fff}
+</style>
+</head>
+<body data-doc="tp03">
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> حزمة العروض الفنية</div>
+  <span class="code">FORM TP-03</span>
+  <div class="spacer"></div>
+  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="بوابة MMC — رفع المخططات وإنتاج العرض">🔓 بوابة MMC</a>
+  <a class="btn ghost" href="index-ar.html">الفهرس</a>
+  <button class="btn" data-print>🖨️ طباعة / PDF</button>
+  <button class="btn ghost" data-reset>مسح</button>
+  <div class="switch" role="group" aria-label="اللغة"><span class="on" aria-current="true">AR</span><a href="en/03-schedule.html" title="English edition">EN</a></div>
+  </div>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">Form TP-03 · Time Schedule &amp; Payment Milestones</div>
+    <h1>البرنامج الزمني وخطة المراحل والدفعات</h1>
+    <p class="sub">Bar Chart زمني + جدول الدفعات المرتبط بنسب الإنجاز الفعلية</p>
+    <div class="doc-meta">
+      <div><span>مدة العقد</span><b>— شهر</b></div>
+      <div><span>تاريخ البدء</span><b>—</b></div>
+      <div><span>تاريخ الإنجاز</span><b>—</b></div>
+      <div><span>أيام العمل</span><b>6 أيام/أسبوع</b></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>قاعدة الاتساق:</strong> البرنامج الزمني ليس رسماً للزينة — لجنة التقييم تقارنه بالموارد وبالدفعات. إذا كانت مدة الهيكل ٤ أشهر فعدد الأعمدة والصبّات يجب أن يكون واقعياً؛ وإذا كانت الدفعة الأولى ٢٠٪ فيجب أن تقابلها أعمال منجزة فعلاً بنفس القيمة. أي تناقض هنا يُخصم من التقييم.
+  </div>
+
+  <h2 class="sec"><span class="num">1</span> بيانات البرنامج</h2>
+  <div class="grid3">
+    <div class="field"><label>مدة التنفيذ (شهر)</label><input class="fi" placeholder="12"></div>
+    <div class="field"><label>تاريخ البدء المتوقع</label><input class="fi" placeholder="من تاريخ تسليم الموقع"></div>
+    <div class="field"><label>تاريخ الإنجاز المتوقع</label><input class="fi" placeholder=""></div>
+    <div class="field"><label>أيام العمل الأسبوعية</label><input class="fi" placeholder="6"></div>
+    <div class="field"><label>ساعات العمل اليومية</label><input class="fi" placeholder="8 + وردية عند الحاجة"></div>
+    <div class="field"><label>فترات التوقف المتوقعة</label><input class="fi" placeholder="أعياد / شتاء / مواسم"></div>
+  </div>
+
+  <h2 class="sec"><span class="num">2</span> مخطط الأعمدة الزمني (Gantt / Bar Chart)</h2>
+  <p class="small">المؤشرات: ▮ نشاط رئيسي · ▮ نشاط حرج (Critical Path) · ▮ نشاط ذو احتياطي (Float). خانات الشهر تعني أن النشاط ممتد خلاله.</p>
+
+  <table class="gantt">
+    <thead>
+      <tr>
+        <th class="act">النشاط / Activity</th>
+        <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+        <th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="lbl">التعبئة وتجهيز الموقع<small>Mobilization &amp; Site Setup</small></td>
+        <td class="cell"><div class="bar hi"></div></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">الحفر والردم والإحلال<small>Excavation &amp; Backfilling</small></td>
+        <td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">الأساسات والقواعد والميدات<small>Foundations &amp; Tie Beams</small></td>
+        <td></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">الهيكل الخرساني (أعمدة/جسور/بلاطات)<small>R.C. Frame</small></td>
+        <td></td><td></td><td class="cell"><div class="bar hi"></div></td><td class="cell"><div class="bar hi"></div></td><td class="cell"><div class="bar hi"></div></td><td class="cell"><div class="bar hi"></div></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">البناء والبلوك<small>Blockwork</small></td>
+        <td></td><td></td><td></td><td></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td>
+        <td class="cell"><div class="bar"></div></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">تمديدات كهروميكانيكية (تأسيس)<small>MEP First Fix</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td class="cell"><div class="bar"></div></td>
+        <td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">العزل والبياض<small>Waterproofing &amp; Plastering</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">البلاط والأرضيات والوزرات<small>Tiling &amp; Flooring</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">الألمنيوم والنجارة والأبواب<small>Aluminium, Carpentry &amp; Doors</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td class="cell"><div class="bar lo"></div></td><td class="cell"><div class="bar lo"></div></td><td class="cell"><div class="bar lo"></div></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">الدهانات والتشطيبات النهائية<small>Painting &amp; Final Finishes</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">الأعمال الكهروميكانيكية النهائية<small>MEP Second Fix &amp; Fixtures</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td class="cell"><div class="bar"></div></td><td class="cell"><div class="bar"></div></td><td></td>
+      </tr>
+      <tr>
+        <td class="lbl">الاختبارات والتشغيل والتسليم<small>Testing, Commissioning &amp; Handover</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td class="cell"><div class="bar hi"></div></td><td class="cell"><div class="bar hi"></div></td>
+      </tr>
+      <tr>
+        <td class="lbl">فترة إغلاق الملاحظات (Snag)<small>Defects Clearance</small></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td class="cell"><div class="bar lo"></div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box amber">
+    <h4>ملاحظات على المخطط</h4>
+    <ul style="margin-bottom:0">
+      <li><strong>المسار الحرج (Critical Path):</strong> التعبئة ← الحفر ← الأساسات ← الهيكل ← البياض ← التشطيبات ← التسليم. أي تأخير في الهيكل ينتقل مباشرة إلى تاريخ التسليم.</li>
+      <li><strong>الأنشطة المتوازية:</strong> البناء والتمديدات الكهروميكانيكية تسير بالتوازي بعد إنجاز الطابق الأول — وهذا يوفّر ٤–٦ أسابيع مقابل التنفيذ المتسلسل.</li>
+      <li><strong>الاحتياطي:</strong> يخصَّص أسبوعان كاحتياطي غير مسجَّل في المسار (Float) لمواجهة تأخر اعتماد المواد.</li>
+    </ul>
+  </div>
+
+  <div class="page-break"></div>
+
+  <h2 class="sec"><span class="num">3</span> نسب الإنجاز الشهرية المخطَّطة</h2>
+  <table class="t compact">
+    <thead>
+      <tr>
+        <th>الشهر</th><th class="c">1</th><th class="c">2</th><th class="c">3</th><th class="c">4</th><th class="c">5</th><th class="c">6</th>
+        <th class="c">7</th><th class="c">8</th><th class="c">9</th><th class="c">10</th><th class="c">11</th><th class="c">12</th><th class="c">المجموع</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>الإنجاز الشهري %</strong></td>
+        <td class="c n">4</td><td class="c n">8</td><td class="c n">11</td><td class="c n">12</td><td class="c n">10</td><td class="c n">9</td>
+        <td class="c n">10</td><td class="c n">10</td><td class="c n">10</td><td class="c n">8</td><td class="c n">6</td><td class="c n">2</td>
+        <td class="c n"><strong>100</strong></td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>الإنجاز التراكمي %</td>
+        <td class="c n">4</td><td class="c n">12</td><td class="c n">23</td><td class="c n">35</td><td class="c n">45</td><td class="c n">54</td>
+        <td class="c n">64</td><td class="c n">74</td><td class="c n">84</td><td class="c n">92</td><td class="c n">98</td><td class="c n">100</td>
+        <td class="c n">—</td>
+      </tr>
+    </tfoot>
+  </table>
+  <p class="small">هذه النسب نموذجية لمشروع مبنى ١٢ شهراً. عدّلها لتطابق برنامجك الفعلي، واحرص أن يكون مجموعها ١٠٠٪ وتراكميها النهائي ١٠٠٪ بالضبط.</p>
+
+  <h2 class="sec"><span class="num">4</span> جدول المراحل والدفعات (Milestones &amp; Payment Schedule)</h2>
+
+  <table class="t">
+    <thead>
+      <tr>
+        <th style="width:5%" class="c">م</th>
+        <th style="width:26%">المرحلة / الإنجاز المستحق</th>
+        <th style="width:12%" class="c">نسبة الدفعة</th>
+        <th style="width:13%" class="c">القيمة التقديرية</th>
+        <th style="width:11%" class="c">الاستحقاق الزمني</th>
+        <th>المستند المطلوب للصرف</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="c n">1</td><td>دفعة مقدمة (Advance Payment) مقابل ضمان بنكي</td><td class="c n">10%</td><td class="c n"><input class="fi sm" placeholder="—"></td><td class="c n">الشهر 1</td><td>كفالة حسن تنفيذ + ضمان دفعة مقدمة</td></tr>
+      <tr><td class="c n">2</td><td>إنجاز الأعمال الترابية والأساسات</td><td class="c n">10%</td><td class="c n"><input class="fi sm" placeholder=""></td><td class="c n">الشهر 3</td><td>محضر استلام أساسات + تقرير دمك</td></tr>
+      <tr><td class="c n">3</td><td>إنجاز الهيكل الخرساني حتى منسوب محدد</td><td class="c n">20%</td><td class="c n"><input class="fi sm" placeholder=""></td><td class="c n">الشهر 5</td><td>محاضر صب + نتائج مكعبات 28 يوم</td></tr>
+      <tr><td class="c n">4</td><td>إنجاز الهيكل بالكامل واعتماد البناء</td><td class="c n">15%</td><td class="c n"><input class="fi sm" placeholder=""></td><td class="c n">الشهر 7</td><td>محضر إنجاز هيكل + مخططات As-Built</td></tr>
+      <tr><td class="c n">5</td><td>إنجاز البياض والعزل والتمديدات التأسيسية</td><td class="c n">15%</td><td class="c n"><input class="fi sm" placeholder=""></td><td class="c n">الشهر 9</td><td>محاضر فحص العزل + اختبارات ضغط الشبكات</td></tr>
+      <tr><td class="c n">6</td><td>إنجاز التشطيبات والبلاط والدهانات</td><td class="c n">15%</td><td class="c n"><input class="fi sm" placeholder=""></td><td class="c n">الشهر 11</td><td>محضر فحص تشطيبات + غرفة نموذجية معتمدة</td></tr>
+      <tr><td class="c n">7</td><td>الاستلام الابتدائي وإغلاق الملاحظات</td><td class="c n">10%</td><td class="c n"><input class="fi sm" placeholder=""></td><td class="c n">الشهر 12</td><td>محضر استلام ابتدائي + ملف التسليم O&amp;M</td></tr>
+      <tr><td class="c n">8</td><td>الاستلام النهائي بعد فترة المسؤولية</td><td class="c n">5%</td><td class="c n"><input class="fi sm" placeholder=""></td><td class="c n">بعد 12 شهراً</td><td>محضر استلام نهائي + إبراء ذمة</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="2">الإجمالي</td><td class="c n">100%</td><td class="c n"><input class="fi sm" placeholder="قيمة العقد"></td><td colspan="2">—</td></tr>
+    </tfoot>
+  </table>
+
+  <div class="box teal">
+    <h4>سياسة الاحتفاظ (Retention)</h4>
+    <p>يُحتجز <strong>10%</strong> من كل دفعة مستحقة كضمان حتى الاستلام الابتدائي، ويُخفَّض إلى <strong>5%</strong> بعد الاستلام الابتدائي، ويُفرَج عنه بالكامل بعد الاستلام النهائي أو استبداله بضمان بنكي بنفس القيمة. تُحدَّد المدة النهائية لفترة المسؤولية عن العيوب في <input class="fi" style="width:90px;display:inline-block" placeholder="12"> شهراً من تاريخ الاستلام الابتدائي.</p>
+  </div>
+
+  <h2 class="sec"><span class="num">5</span> ضوابط تحديث البرنامج</h2>
+  <ul>
+    <li>يُحدَّث البرنامج الزمني شهرياً ويعاد إصداره مع تقرير التقدم (Updated Programme, Rev. n).</li>
+    <li>أي تأخير يتجاوز <strong>7 أيام</strong> في نشاط حرج يُبلَّغ عنه فوراً بطلب تمديد مدة (EOT) موثق.</li>
+    <li>تُحسب نسب الإنجاز بطريقة القيمة المكتسبة (Earned Value) لا بالتقدير اللفظي.</li>
+    <li>يُرفق مع كل تحديث تحليل مسار حرج محدَّث وشبكة علاقات الأنشطة (Network Diagram).</li>
+  </ul>
+
+  <div class="print-foot">
+    <span>FORM TP-03 · البرنامج الزمني والمراحل والدفعات</span>
+    <span>حزمة العروض الفنية للمقاولات — TP-KIT v1.0</span>
+  </div>
+</div>
+
+<script src="assets/kit.js"></script>
+
+<script>
+/* Portal prefill: ?p=<project>&a=<authority> */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var proj = q.get('p'), auth = q.get('a');
+  if (!proj && !auth) return;
+  var PROJ = /(project|المشروع|اسم المشروع|مشروع)/i;
+  var AUTH = /(authority|client|employer|owner|الجهة|صاحب العمل|المالك|الجهة صاحبة)/i;
+  function labelOf(el) {
+    var f = el.closest('.field, .fld, tr, div');
+    if (!f) return '';
+    var l = f.querySelector('label');
+    if (l) return l.textContent;
+    var td = el.closest('td');
+    if (td && td.previousElementSibling) return td.previousElementSibling.textContent;
+    return f.textContent.slice(0, 80);
+  }
+  function fill(re, val) {
+    if (!val) return false;
+    var nodes = document.querySelectorAll('input.fi, input[type="text"], textarea.fi');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].value) continue;
+      if (re.test(labelOf(nodes[i]))) { nodes[i].value = val; return true; }
+    }
+    return false;
+  }
+  function run() {
+    fill(PROJ, proj);
+    fill(AUTH, auth);
+    document.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+</body>
+</html>

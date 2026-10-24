@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GUIDE TP-G2 · دليل استخدام الحزمة</title>
+<link rel="stylesheet" href="assets/kit.css">
+
+<style>
+  .topbar .switch{display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;flex:0 0 auto}
+  .topbar .switch a,.topbar .switch span{font-size:11px;font-weight:800;padding:5px 9px;letter-spacing:.4px;
+    color:#9fb0c2;text-decoration:none;line-height:1.4}
+  .topbar .switch a:hover{background:#1d3a58;color:#fff}
+  .topbar .switch .on{background:#b45309;color:#fff}
+</style>
+</head>
+<body data-doc="guide-usage">
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> حزمة العروض الفنية</div>
+  <span class="code">GUIDE TP-G2</span>
+  <div class="spacer"></div>
+  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="بوابة MMC — رفع المخططات وإنتاج العرض">🔓 بوابة MMC</a>
+  <a class="btn ghost" href="index-ar.html">الفهرس</a>
+  <a class="btn ghost" href="11-drawings.html">قراءة المخططات</a>
+  <button class="btn" data-print>🖨️ طباعة / PDF</button>
+  <div class="switch" role="group" aria-label="اللغة"><span class="on" aria-current="true">AR</span><a href="en/13-usage-guide.html" title="English edition">EN</a></div>
+  </div>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">Guide TP-G2 · How to Use This Kit</div>
+    <h1>دليل الاستخدام — من المخطط إلى العرض المقدَّم</h1>
+    <p class="sub">خطوات عملية لملء النماذج، وربط الكميات بالأسعار، ومراجعة العرض قبل التقديم</p>
+    <div class="doc-meta">
+      <div><span>الأقسام</span><b>5</b></div>
+      <div><span>الوقت المتوقع</span><b>٦–١٠ ساعات</b></div>
+      <div><span>من يملأ</span><b>مهندس العروض</b></div>
+      <div><span>الإصدار</span><b>1.0</b></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>قبل أن تبدأ:</strong> هذه الحزمة ليست استمارة واحدة، بل مسار عمل. املأ الصفحات <em>بالترتيب الرقمي</em> — فكل صفحة تعتمد على أرقام الصفحة التي قبلها. القفز إلى الجدول السعري قبل إتمام الكميات هو أشهر سبب لرفض عرض فني أو لخسارة مالية في التنفيذ.
+  </div>
+
+  <h2 class="sec"><span class="num">1</span> خريطة الحزمة وترتيب التعبئة</h2>
+  <table class="t compact">
+    <thead><tr><th style="width:10%" class="c">الرمز</th><th style="width:26%">الصفحة</th><th style="width:12%" class="c">الدور</th><th>يعتمد على</th></tr></thead>
+    <tbody>
+      <tr><td class="c n">TP-00</td><td>الفهرس</td><td class="c">مرجع</td><td>—</td></tr>
+      <tr><td class="c n">TP-01</td><td>خطاب التقديم والإقرار</td><td class="c">تمثيلي</td><td>قيمة العرض من TP-09</td></tr>
+      <tr><td class="c n">TP-02</td><td>المنهجية وفهم النطاق</td><td class="c">فني</td><td>مخططات المشروع</td></tr>
+      <tr><td class="c n">TP-03</td><td>البرنامج الزمني والدفعات</td><td class="c">فني + مالي</td><td>مدة العقد + TP-14</td></tr>
+      <tr><td class="c n">TP-04</td><td>خطة الجودة QA/QC</td><td class="c">فني</td><td>مواصفات العطاء</td></tr>
+      <tr><td class="c n">TP-05</td><td>خطة السلامة HSE</td><td class="c">فني</td><td>طبيعة الموقع والمخاطر</td></tr>
+      <tr><td class="c n">TP-06</td><td>خطة الموارد والهيكل التنظيمي</td><td class="c">فني</td><td>حجم الأعمال من TP-14</td></tr>
+      <tr><td class="c n">TP-07</td><td>المشاريع المماثلة</td><td class="c">تمثيلي</td><td>سجل الشركة</td></tr>
+      <tr><td class="c n">TP-08</td><td>تحليل المخاطر</td><td class="c">فني</td><td>كل ما سبق</td></tr>
+      <tr><td class="c n">TP-09</td><td>الجدول السعري BOQ</td><td class="c">مالي</td><td>TP-14 (الكميات)</td></tr>
+      <tr><td class="c n">TP-10</td><td>النماذج المساندة</td><td class="c">إجرائي</td><td>مستندات العطاء</td></tr>
+      <tr><td class="c n">TP-11</td><td>دليل قراءة المخططات</td><td class="c">مرجع</td><td>—</td></tr>
+      <tr><td class="c n">TP-12</td><td>جدول الكميات التفاعلي</td><td class="c">حسابي</td><td>TP-11</td></tr>
+      <tr><td class="c n">TP-14</td><td>ملف Excel (quantity-takeoff.xlsx)</td><td class="c">حسابي</td><td>TP-12</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box amber">
+    <h4>المسار المختصر الصحيح</h4>
+    <p style="margin:0"><strong>TP-11</strong> (تعلّم القراءة) ← <strong>TP-12/TP-14</strong> (احسب الكميات) ← <strong>TP-09</strong> (سعّر البنود) ← <strong>TP-03</strong> (وزّع الدفعات) ← <strong>TP-02 و04 و05 و06</strong> (اكتب المنهجية والخطط) ← <strong>TP-08</strong> (حلّل المخاطر) ← <strong>TP-07 و10</strong> (أكمل التمثيلي والإجرائي) ← <strong>TP-01</strong> (اختم بالخطاب) ← راجع ← قدّم.</p>
+  </div>
+
+  <h2 class="sec"><span class="num">2</span> كيف تملأ النماذج</h2>
+
+  <h3 class="sub">2.1 تقنياً — الحقول والحفظ</h3>
+  <ol class="steps">
+    <li><b>اكتب داخل الحقول مباشرة</b><p>كل حقل قابل للتعبئة يظهر بخط منقّط أسفله. انقر واكتب. الحقول الرمادية باهتة هي نماذج إرشادية (Placeholder) تختفي عند الكتابة.</p></li>
+    <li><b>الحفظ تلقائي في المتصفح</b><p>ما تكتبه يُحفظ محلياً في نفس المتصفح على نفس الجهاز. إن أغلقت الصفحة وعدت لاحقاً تجد ما كتبته. زر «مسح» يفرّغ الحقول.</p></li>
+    <li><b>اطبع إلى PDF بعد الانتهاء</b><p>زر «طباعة / PDF» يفتح نافذة الطباعة. اختر «حفظ كـ PDF»، والمقاس A4، وهوامش افتراضية. الشريط العلوي والأزرار لا تُطبع.</p></li>
+    <li><b>للعمل الجماعي استخدم Word</b><p>إن كان فريقك يعمل على نسخة مشتركة، اطبع الصفحة إلى PDF ثم حوّلها، أو انسخ الجداول إلى Word. الحفظ في المتصفح لا ينتقل بين الأجهزة.</p></li>
+  </ol>
+
+  <div class="warn callout">
+    <strong>تحذير عملي:</strong> لا تعتمد على الحفظ التلقائي للعرض النهائي. اطبع نسخة PDF موقّعة/مؤرشفة عند كل إصدار (Rev.0، Rev.1...). المتصفح قد يُمسح، والجهاز قد يُستبدل — والملف المطبوع هو ما يبقى.
+  </div>
+
+  <h3 class="sub">2.2 تحريرياً — ماذا تكتب في كل قسم</h3>
+  <table class="t compact">
+    <thead><tr><th style="width:14%">الصفحة</th><th style="width:43%">ما يجب أن يكون موجوداً</th><th>ما يُسبب الرفض إن غاب</th></tr></thead>
+    <tbody>
+      <tr><td><strong>TP-01</strong></td><td>رقم العطاء، الجهة، قيمة العرض بالأرقام والحروف، مدة الصلاحية، التوقيع والختم</td><td>عدم تطابق القيمة بالأرقام مع الحروف — رفض إداري فوري</td></tr>
+      <tr><td><strong>TP-02</strong></td><td>فهم صريح لنطاق العمل، ما هو خارج النطاق، تسلسل التنفيذ، منهجية لكل نشاط رئيسي</td><td>منهجية عامة لا تذكر بنود المشروع الفعلية</td></tr>
+      <tr><td><strong>TP-03</strong></td><td>مدة بالأسابيع، أنشطة مرتبطة، مسار حرج، جدول دفعات مرتبط بالمراحل</td><td>مدة غير واقعية أو دفعات لا تغطي التدفق النقدي</td></tr>
+      <tr><td><strong>TP-04</strong></td><td>هيكل الجودة، مسؤوليات، نقاط الفحص (Hold Points)، نماذج الفحص، إجراء عدم المطابقة</td><td>ذكر «نطبق الجودة» دون نظام أو نماذج</td></tr>
+      <tr><td><strong>TP-05</strong></td><td>تقييم مخاطر الموقع، مسؤوليات السلامة، معدات الوقاية، إجراء الطوارئ، التدريب</td><td>خطة منسوخة لا تذكر مخاطر الموقع الفعلية</td></tr>
+      <tr><td><strong>TP-06</strong></td><td>هيكل تنظيمي بأسماء ومناصب، سير ذاتية للقياديين، جدول معدات بالموديل والسنة، مصادر مواد</td><td>أسماء بلا سير ذاتية أو معدات بلا إثبات ملكية/إيجار</td></tr>
+      <tr><td><strong>TP-07</strong></td><td>مشاريع مماثلة بالحجم والنوع، جهة الإشراف، سنة التنفيذ، شهادة إنجاز، جهة اتصال</td><td>مشاريع غير مماثلة أو بلا إثبات</td></tr>
+      <tr><td><strong>TP-08</strong></td><td>مخاطر مصنّفة باحتمالية وأثر، إجراء تخفيف، مسؤول، مراقبة</td><td>قائمة مخاطر عامة بلا أرقام أو إجراءات</td></tr>
+      <tr><td><strong>TP-09</strong></td><td>كل بنود BOQ بكميات وأسعار، مصاريف عامة، ربح، ضريبة، الإجمالي</td><td>بنود صفرية أو «حسب الاتفاق» — غير مقبول</td></tr>
+      <tr><td><strong>TP-10</strong></td><td>قائمة تحقق موقّعة، استفسارات مرسلة، انحرافات مبررة، نموذج تسليم جودة</td><td>تقديم دون التحقق من اكتمال المستندات</td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2 class="sec"><span class="num">3</span> ربط الكميات بالأسعار — الخطوة الحرجة</h2>
+
+  <p>هذه هي النقطة التي يخسر فيها معظم المقاولين. الكمية صحيحة، والسعر معقول، لكن الربط بينهما مكسور — إما بند مسعّر مرتين، أو بند سقط من الجدول السعري، أو هالك محسوب مرتين.</p>
+
+  <h3 class="sub">3.1 سلسلة الربط في أربع خطوات</h3>
+  <table class="t">
+    <thead><tr><th style="width:6%" class="c">#</th><th style="width:26%">الخطوة</th><th style="width:26%">المكان</th><th>ما تفعله بالضبط</th></tr></thead>
+    <tbody>
+      <tr><td class="c n">1</td><td>احسب الكميات</td><td>TP-12 أو ورقة <em>1-Take-off</em></td><td>أدخل الأبعاد. لا تكتب الإجمالي يدوياً — دعه يُحسب. تحقق من رقم واحد على الأقل يدوياً.</td></tr>
+      <tr><td class="c n">2</td><td>راجع الملخص</td><td>ورقة <em>2-Summary</em> / TP-12</td><td>تأكد أن كل مجموعة أعمال لها قيمة. أي مجموعة بصفر = بند منسي.</td></tr>
+      <tr><td class="c n">3</td><td>سعّر البنود</td><td>TP-09 / ورقة <em>3-BOQ-Pricing</em></td><td>انقل الكمية والوحدة. أدخل سعر الوحدة. تحقق أن مجموع البنود = إجمالي الملخص.</td></tr>
+      <tr><td class="c n">4</td><td>ابنِ قيمة العرض</td><td>TP-09 قسم الملخص المالي</td><td>مصاريف عامة ثم ربح ثم ضريبة. اقرأ القيمة النهائية وانقلها إلى TP-01.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">3.2 اختبار التوازن — ثلاثة أرقام يجب أن تتطابق</h3>
+  <table class="t compact">
+    <thead><tr><th style="width:44%">الرقم</th><th style="width:22%">مصدره</th><th class="c">القيمة الصحيحة</th></tr></thead>
+    <tbody>
+      <tr><td>إجمالي التكلفة المباشرة</td><td>ورقة Summary / ذيل جدول TP-12</td><td class="c n">82,966.02</td></tr>
+      <tr><td>إجمالي البنود في الجدول السعري</td><td>TP-09 مجموع البنود</td><td class="c n">82,966.02</td></tr>
+      <tr><td>قبل المصاريف العامة</td><td>TP-09 سطر «التكلفة المباشرة»</td><td class="c n">82,966.02</td></tr>
+      <tr><td>قيمة العرض النهائية</td><td>TP-09 الإجمالي ← TP-01</td><td class="c n">100,355.69</td></tr>
+    </tbody>
+  </table>
+  <p class="small">هذه أرقام <strong>مثال المبنى ١٢×١٠ م</strong> المرفق في الحزمة. عند استبدالها بمشروعك، يجب أن تتطابق الثلاثة الأولى معاً — وإن اختلفت، فالبند الذي سبب الفرق هو الخطأ، لا المعادلة.</p>
+
+  <h3 class="sub">3.3 أخطاء الربط الأربعة الأكثر تكراراً</h3>
+  <table class="t compact">
+    <thead><tr><th style="width:30%">الخطأ</th><th style="width:26%">كيف تكتشفه</th><th>الإصلاح</th></tr></thead>
+    <tbody>
+      <tr><td>هالك محسوب مرتين</td><td>الكمية في الجدول السعري أكبر من «مع الهالك» في Take-off</td><td>أدخل <em>الكمية مع الهالك</em> في السعر، ولا تُضف هالكاً في سعر الوحدة</td></tr>
+      <tr><td>بند محسوب بلا سعر</td><td>كمية موجودة، خلية السعر فارغة أو صفر</td><td>سعّر كل بند ولو برقم رمزي، ثم راجع</td></tr>
+      <tr><td>بند مسعّر مرتين باسمين</td><td>مجموع البنود > مجموع الملخص</td><td>وحّد التسمية بالكود (07-01 لا «بلاط أرضي» و«أرضيات» معاً)</td></tr>
+      <tr><td>وحدة قياس مختلفة</td><td>الكمية بالمتر المربع والسعر بالمتر المكعب</td><td>راجع عمود الوحدة قبل إدخال السعر — خطأ ×١٠٠ بسهولة</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box teal">
+    <h4>قاعدة الفحص السريع</h4>
+    <p style="margin:0">بعد إتمام TP-09، اقسم التكلفة المباشرة على مساحة المشروع. الناتج (د.أ/م²) يجب أن يقع في نطاق معقول لنوع المبنى. إن خرج كثيراً عن النطاق، فالمشكلة في بند لا في السوق.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <h2 class="sec"><span class="num">4</span> مراجعة العرض قبل التقديم — ٣٠ دقيقة تنقذ العطاء</h2>
+
+  <p>راجع بترتيب عكسي: ابدأ من الخطاب وارجع للخلف. الخطاب يحمل الرقم النهائي، فإذا كان الرقم صحيحاً فما بعده صحيح عادةً.</p>
+
+  <h3 class="sub">4.1 مراجعة إدارية (Administrative)</h3>
+  <table class="t compact">
+    <thead><tr><th style="width:6%" class="c">✓</th><th style="width:52%">البند</th><th>المسؤول</th></tr></thead>
+    <tbody>
+      <tr><td class="c">☐</td><td>رقم العطاء واسم المشروع مطابقان تماماً لكراسة الشروط</td><td>مهندس العروض</td></tr>
+      <tr><td class="c">☐</td><td>اسم الجهة صحيح وليس نسخة من عطاء سابق</td><td>مهندس العروض</td></tr>
+      <tr><td class="c">☐</td><td>قيمة العرض بالأرقام = بالحروف (خطأ متكرر وسبب رفض)</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>مدة صلاحية العرض مذكورة ومطابقة للمطلوب</td><td>مهندس العروض</td></tr>
+      <tr><td class="c">☐</td><td>التوقيع والختم في كل صفحة تحتاج توقيعاً</td><td>المدير العام</td></tr>
+      <tr><td class="c">☐</td><td>الضمان الابتدائي (إن طُلب) صحيح المبلغ والمدة والمستفيد</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>عدد النسخ المطلوبة وتغليفها ونمط التسليم</td><td>منسق العطاءات</td></tr>
+      <tr><td class="c">☐</td><td>موعد الإغلاق — والوقت المتبقي قبل التسليم</td><td>منسق العطاءات</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">4.2 مراجعة فنية (Technical)</h3>
+  <table class="t compact">
+    <thead><tr><th style="width:6%" class="c">✓</th><th style="width:52%">البند</th><th>المسؤول</th></tr></thead>
+    <tbody>
+      <tr><td class="c">☐</td><td>كل بند في كراسة الشروط له رد في العرض (جدول مطابقة)</td><td>مهندس العروض</td></tr>
+      <tr><td class="c">☐</td><td>المنهجية تذكر أنشطة المشروع الفعلية لا عبارات عامة</td><td>مدير المشروع</td></tr>
+      <tr><td class="c">☐</td><td>المدة الزمنية واقعية ومقارنة بمشروع مماثل منفّذ</td><td>مدير المشروع</td></tr>
+      <tr><td class="c">☐</td><td>الهيكل التنظيمي بأسماء فعلية وسير ذاتية مرفقة</td><td>الموارد البشرية</td></tr>
+      <tr><td class="c">☐</td><td>المعدات مذكورة بموديل وسنة ومصدر (ملك/إيجار)</td><td>إدارة المعدات</td></tr>
+      <tr><td class="c">☐</td><td>أي انحراف عن المواصفات مُعلن في نموذج الانحرافات لا مخفي</td><td>مهندس العروض</td></tr>
+      <tr><td class="c">☐</td><td>البدائل المقترحة (Value Engineering) موضحة بالفائدة والتوفير</td><td>مدير المشروع</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">4.3 مراجعة مالية (Financial)</h3>
+  <table class="t compact">
+    <thead><tr><th style="width:6%" class="c">✓</th><th style="width:52%">البند</th><th>المسؤول</th></tr></thead>
+    <tbody>
+      <tr><td class="c">☐</td><td>مجموع البنود = إجمالي الكميات (اختبار التوازن أعلاه)</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>كل بند له سعر — لا فراغات ولا أصفار</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>المصاريف العامة تغطي فعلياً: الإشراف، المكاتب، التأمين، الأمن، الضمانات</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>الربح محسوب بعد المصاريف لا قبلها</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>الضريبة مطبقة بالنسبة الصحيحة وبعد الإجمالي</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>جدول الدفعات يغطي التدفق النقدي — لا مرحلة تُنفّذ بلا دفعة</td><td>المدير المالي</td></tr>
+      <tr><td class="c">☐</td><td>أسعار المواد مأخوذة من عروض موردين سارية لا من أسعار قديمة</td><td>المشتريات</td></tr>
+      <tr><td class="c">☐</td><td>تكلفة العمالة مبنية على إنتاجية محسوبة لا على تقدير</td><td>إدارة التنفيذ</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warn callout">
+    <strong>بوابة المراجعة النهائية:</strong> لا يُقدَّم عرض لم يمر على المراجعة الثلاثية (إداري + فني + مالي) من ثلاثة أشخاص مختلفين. الشخص الذي كتب العرض لا يراجعه — العين التي كتبت لا ترى الخطأ.
+  </div>
+
+  <h2 class="sec"><span class="num">5</span> أسئلة تتكرر</h2>
+  <table class="t compact">
+    <thead><tr><th style="width:34%">السؤال</th><th>الجواب</th></tr></thead>
+    <tbody>
+      <tr><td>هل أستخدم النماذج كما هي أم أعدّلها؟</td><td>استخدم البنية كما هي — فهي مبنية على ما تطلبه جهات الإشراف عادةً. عدّل النصوص لتناسب مشروعك، ولا تحذف أقساماً لأنها «لا تنطبق» قبل التحقق من كراسة الشروط.</td></tr>
+      <tr><td>هل الحفظ في المتصفح آمن؟</td><td>آمن من ناحية الخصوصية (لا يُرسل لأي جهة)، لكنه ليس نسخة احتياطية. اطبع PDF وأرشفه في مجلد المشروع.</td></tr>
+      <tr><td>ماذا لو كانت الكميات غير معروفة في العطاء؟</td><td>استخدم BOQ الجهة إن وُجد. إن لم يوجد، احسب من المخططات بطريقة النسب، واذكر في TP-10 أن الكميات تقديرية — الإفصاح يحميك من الخلاف لاحقاً.</td></tr>
+      <tr><td>كيف أتعامل مع بنود «مقطوعة» (Lump Sum)؟</td><td>فكّكها داخلياً إلى عناصر محسوبة في ورقة Take-off، لكن قدّمها كبند واحد في TP-09. التفكيك الداخلي يحميك من الخسارة، والبند الواحد يطابق متطلب العطاء.</td></tr>
+      <tr><td>هل يمكن استخدام الملف Excel وحده دون الصفحات؟</td><td>نعم للحساب، لكن العرض الفني يحتاج الصفحات. الـ Excel يُنتج الأرقام؛ الصفحات تُنتج المستند القابل للتقديم.</td></tr>
+      <tr><td>ماذا لو تغيّرت الكميات بعد التقديم؟</td><td>هذا هو الغرض من نموذج الانحرافات (TP-10) وأمر التغيير. أي تغيير في الكمية بعد الترسية يُوثَّق بأمر تغيير سعري، لا بتعديل صامت.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box amber">
+    <h4>خلاصة في سطرين</h4>
+    <p style="margin:0">الكمية تُقاس من المخطط بمرجع، والسعر يُبنى من أربعة عناصر. العرض يُقدَّم بعد ثلاث مراجعات من ثلاثة أشخاص. كل ما عدا ذلك تفاصيل يمكن تحسينها لاحقاً — لكن كسر أي من هذه الثلاثة يُفسد العطاء.</p>
+  </div>
+
+  <div class="print-foot">
+    <span>GUIDE TP-G2 · دليل استخدام الحزمة</span>
+    <span>حزمة العروض الفنية للمقاولات — TP-KIT v1.0</span>
+  </div>
+</div>
+
+<script src="assets/kit.js"></script>
+
+<script>
+/* Portal prefill: ?p=<project>&a=<authority> */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var proj = q.get('p'), auth = q.get('a');
+  if (!proj && !auth) return;
+  var PROJ = /(project|المشروع|اسم المشروع|مشروع)/i;
+  var AUTH = /(authority|client|employer|owner|الجهة|صاحب العمل|المالك|الجهة صاحبة)/i;
+  function labelOf(el) {
+    var f = el.closest('.field, .fld, tr, div');
+    if (!f) return '';
+    var l = f.querySelector('label');
+    if (l) return l.textContent;
+    var td = el.closest('td');
+    if (td && td.previousElementSibling) return td.previousElementSibling.textContent;
+    return f.textContent.slice(0, 80);
+  }
+  function fill(re, val) {
+    if (!val) return false;
+    var nodes = document.querySelectorAll('input.fi, input[type="text"], textarea.fi');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].value) continue;
+      if (re.test(labelOf(nodes[i]))) { nodes[i].value = val; return true; }
+    }
+    return false;
+  }
+  function run() {
+    fill(PROJ, proj);
+    fill(AUTH, auth);
+    document.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+</body>
+</html>
