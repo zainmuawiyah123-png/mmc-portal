@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title data-ar="بوابة المشتريات · MMC" data-en="Procurement Portal · MMC">بوابة المشتريات · MMC</title>
+<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
+<style>
+.split{display:grid;grid-template-columns:1fr 1.5fr;gap:18px}
+.req{display:grid;grid-template-columns:2fr 1fr 90px 70px;gap:7px;margin:7px 0}
+.req input{min-width:0}
+.mini{font-size:11px;color:var(--mut)}
+.locked{color:#9b2c2c;font-weight:800}
+.open{color:#166534;font-weight:800}
+.score{width:78px}
+.rank{font-weight:900;font-size:18px}
+.lang-switch{display:inline-flex;border:1px solid var(--line,#37506b);border-radius:6px;overflow:hidden}
+.lang-switch button{border:0;border-radius:0;padding:5px 11px;font-weight:800;background:transparent;color:var(--mut,#9fb0c2);cursor:pointer}
+.lang-switch button.on{background:#b45309;color:#fff}
+@media(max-width:850px){.split{grid-template-columns:1fr}.req{grid-template-columns:1fr 80px 70px 55px}}
+</style>
+</head>
+<body data-page="procurement">
+<div class="p-top">
+  <div class="brand"><span class="mark">M</span><span><span data-ar="بوابة المشتريات" data-en="Procurement Portal">بوابة المشتريات</span><small>MMC Electronic Tender Room</small></span></div>
+  <div class="spacer"></div>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button type="button" data-lang-btn="ar" class="on">AR</button>
+    <button type="button" data-lang-btn="en">EN</button>
+  </div>
+  <span data-user-name style="margin-inline:10px"></span>
+  <button class="btn ghost" id="logout"><span data-ar="خروج" data-en="Log out">خروج</span></button>
+</div>
+<div class="p-nav">
+  <a class="on" href="index.html"><span data-ar="لوحة المشتريات" data-en="Procurement desk">لوحة المشتريات</span></a>
+  <a href="../bid/index.html"><span data-ar="معاينة بوابة المقاول" data-en="Contractor portal">معاينة بوابة المقاول</span></a>
+  <a href="../portal/pt-9f3c7a1e5b2d/billing.html"><span data-ar="الاشتراك والفواتير" data-en="Billing">الاشتراك والفواتير</span></a>
+  <a href="../portal/pt-9f3c7a1e5b2d/index.html"><span data-ar="البوابة العامة" data-en="Main portal">البوابة العامة</span></a>
+  <a href="../documents/MMC-tender-platform-bilingual.pdf" target="_blank" rel="noopener">PDF Guide</a>
+</div>
+<main class="p-wrap">
+  <div class="p-head">
+    <div class="eyebrow"><span data-ar="دورة عطاء إلكتروني مؤمّنة" data-en="Secured electronic tender cycle">دورة عطاء إلكتروني مؤمّنة</span></div>
+    <h1><span data-ar="أنشئ العطاء، استلم العروض، وقيّم الفني قبل فتح المالي" data-en="Create tenders, receive bids, evaluate technical before opening financial">أنشئ العطاء، استلم العروض، وقيّم الفني قبل فتح المالي</span></h1>
+    <p><span data-ar="الأوزان الافتراضية: فني 60% · مالي 40%. الحد الفني الافتراضي 50 من 60. العرض المالي يبقى مقفلاً حتى اجتياز الحد." data-en="Default weights: technical 60% · financial 40%. Default technical threshold 50 of 60. Financial offers stay locked until the threshold is met.">الأوزان الافتراضية: فني 60% · مالي 40%. الحد الفني الافتراضي 50 من 60. العرض المالي يبقى مقفلاً حتى اجتياز الحد.</span></p>
+  </div>
+  <div id="planbar" class="note"></div>
+  <div id="msg"></div>
+  <div class="split">
+    <section class="p-card">
+      <h2><span class="n">01</span> <span data-ar="إنشاء عطاء إلكتروني" data-en="Create electronic tender">إنشاء عطاء إلكتروني</span></h2>
+      <div class="fld"><label><span data-ar="اسم العطاء" data-en="Tender name">اسم العطاء</span></label>
+        <input id="name" data-ar-ph="مشروع إنشاء مبنى الإدارة" data-en-ph="Admin building construction project" placeholder="مشروع إنشاء مبنى الإدارة"></div>
+      <div class="fgrid">
+        <div class="fld"><label><span data-ar="المرجع" data-en="Reference">المرجع</span></label>
+          <input id="ref" placeholder="T-2026-001"></div>
+        <div class="fld"><label><span data-ar="الجهة" data-en="Authority">الجهة</span></label>
+          <input id="authority" data-ar-ph="دائرة المشتريات" data-en-ph="Procurement department" placeholder="دائرة المشتريات"></div>
+        <div class="fld"><label><span data-ar="آخر موعد للإغلاق" data-en="Closing date">آخر موعد للإغلاق</span> <span style="color:#c2410c">*</span></label>
+          <input id="closing" type="date" required></div>
+        <div class="fld"><label><span data-ar="الحد الفني (من 60)" data-en="Technical threshold (of 60)">الحد الفني (من 60)</span></label>
+          <input id="threshold" type="number" value="50" min="1" max="60"></div>
+      </div>
+      <p class="mini"><span data-ar="الأوزان ثابتة افتراضياً: فني 60% ومالي 40%. مجموع أوزان المتطلبات الفنية يجب أن يساوي 100%." data-en="Default weights: technical 60% and financial 40%. Technical requirement weights must total 100%.">الأوزان ثابتة افتراضياً: فني 60% ومالي 40%. مجموع أوزان المتطلبات الفنية يجب أن يساوي 100%.</span></p>
+      <div id="reqs"></div>
+      <button class="btn light" id="addReq">+ <span data-ar="إضافة متطلب" data-en="Add requirement">إضافة متطلب</span></button>
+      <button class="btn amber" id="create" style="margin-top:14px"><span data-ar="نشر العطاء" data-en="Publish tender">نشر العطاء</span></button>
+    </section>
+    <section class="p-card">
+      <h2><span class="n">02</span> <span data-ar="العطاءات والتقييم" data-en="Tenders & evaluation">العطاءات والتقييم</span></h2>
+      <div id="tenders"><span data-ar="جارٍ التحميل…" data-en="Loading…">جارٍ التحميل…</span></div>
+      <div id="evaluation" style="margin-top:18px"></div>
+    </section>
+  </div>
+</main>
+<script src="../portal/pt-9f3c7a1e5b2d/assets/api.js"></script>
+<script src="../portal/pt-9f3c7a1e5b2d/assets/i18n.js"></script>
+<script>
+(function(){
+  var T = function(ar,en){ return (window.MMC_I18N && MMC_I18N.T) ? MMC_I18N.T(ar,en) : ar; };
+  var reqs = document.getElementById('reqs'), msg = document.getElementById('msg');
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function note(t,k){ msg.innerHTML = '<div class="note '+(k||'')+'">'+esc(t)+'</div>'; }
+
+  function add(r){
+    r = r || {};
+    var d = document.createElement('div');
+    d.className = 'req';
+    d.innerHTML =
+      '<input class="rt" placeholder="'+esc(T('عنوان المتطلب','Requirement title'))+'" value="'+esc(r.title||'')+'">' +
+      '<input class="rw" type="number" min="0" max="100" placeholder="'+esc(T('الوزن','Weight'))+'" value="'+(r.weight||'')+'">' +
+      '<label class="mini"><input class="rm" type="checkbox" '+(r.mandatory?'checked':'')+'> '+esc(T('إلزامي','Mandatory'))+'</label>' +
+      '<button class="btn sm danger rx">'+esc(T('حذف','Remove'))+'</button>';
+    d.querySelector('.rx').onclick = function(){ d.remove(); };
+    reqs.appendChild(d);
+  }
+
+  function seedReqs(){
+    reqs.innerHTML = '';
+    add({ title: T('الخبرة السابقة في مشاريع مماثلة','Similar project experience'), weight: 30, mandatory: true });
+    add({ title: T('المنهجية وخطة التنفيذ','Methodology & execution plan'), weight: 25, mandatory: true });
+    add({ title: T('فريق العمل والكفاءات','Team & competencies'), weight: 20, mandatory: true });
+    add({ title: T('الجدول الزمني','Schedule'), weight: 15, mandatory: false });
+    add({ title: T('الجودة والسلامة','Quality & HSE'), weight: 10, mandatory: false });
+  }
+  seedReqs();
+  document.getElementById('addReq').onclick = function(){ add({}); };
+
+  function load(){
+    API.request('GET','/procurement/tenders').then(function(d){
+      var rows = (d.tenders||[]).map(function(t){
+        return '<tr>' +
+          '<td><strong>'+esc(t.name)+'</strong><div class="mini">'+esc(t.reference||'')+' · '+esc(t.authority||'')+'</div></td>' +
+          '<td>'+esc(t.closing||'—')+(t.expired?' <span class="locked">'+esc(T('مغلق','Closed'))+'</span>':'')+'</td>' +
+          '<td><button class="btn sm amber eval" data-id="'+esc(t.id)+'">'+esc(T('تقييم','Evaluate'))+'</button></td>' +
+          '</tr>';
+      }).join('');
+      document.getElementById('tenders').innerHTML = rows
+        ? '<table class="p-table"><thead><tr><th>'+esc(T('العطاء','Tender'))+'</th><th>'+esc(T('الإغلاق','Closing'))+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
+        : '<p class="mini">'+esc(T('لا عطاءات بعد. أنشئ أول عطاء من النموذج.','No tenders yet. Create the first one from the form.'))+'</p>';
+      document.querySelectorAll('.eval').forEach(function(b){
+        b.onclick = function(){ evaluate(b.getAttribute('data-id')); };
+      });
+    }).catch(function(e){ note(e.message,'warn'); });
+  }
+
+  function evaluate(id){
+    API.request('GET','/procurement/tenders/'+encodeURIComponent(id)+'/submissions').then(function(d){
+      var rows = (d.submissions||[]).map(function(s,i){
+        var fin = s.financialOpen
+          ? '<span class="open">'+esc(s.currency)+' '+esc(s.amount)+'</span>'
+          : '<span class="locked">'+esc(T('مقفل','Locked'))+'</span>';
+        return '<tr><td class="rank">'+(i+1)+'</td><td>'+esc(s.contractorName||s.contractorEmail)+'</td><td>'+(s.technicalScore==null?'—':Number(s.technicalScore).toFixed(2))+'</td><td>'+fin+'</td><td>'+(s.totalScore==null?'—':Number(s.totalScore).toFixed(2))+'</td><td><button class="btn sm amber ev" data-s="'+esc(s.id)+'">'+esc(T('اعتماد التقييم','Confirm evaluation'))+'</button></td></tr>';
+      }).join('');
+      document.getElementById('evaluation').innerHTML =
+        '<h3>'+esc(T('نتائج العطاء','Tender results'))+' · '+esc(d.tender.reference)+'</h3>' +
+        '<div class="note">'+esc(T('المعادلة: الفني من 60، ثم الأقل سعراً المؤهل يحصل على 40 نقطة، ويُرتب المجموع تنازلياً.','Formula: technical out of 60; lowest qualified price gets 40 points; total ranked descending.'))+'</div>' +
+        '<table class="p-table"><thead><tr><th>#</th><th>'+esc(T('المقاول','Contractor'))+'</th><th>'+esc(T('الفني','Technical'))+'</th><th>'+esc(T('المالي','Financial'))+'</th><th>'+esc(T('المجموع','Total'))+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+      document.querySelectorAll('.ev').forEach(function(b){
+        b.onclick = function(){
+          API.request('POST','/procurement/submissions/'+b.getAttribute('data-s')+'/evaluate',{scores:[]})
+            .then(function(x){ note(x.message||T('تم التقييم','Evaluated'),''); evaluate(id); })
+            .catch(function(e){ note(e.message,'warn'); });
+        };
+      });
+    }).catch(function(e){ note(e.message,'warn'); });
+  }
+
+  document.getElementById('create').onclick = function(){
+    var cl = document.getElementById('closing').value;
+    if(!cl){ note(T('حدّد موعد الإغلاق (تاريخ محدد إلزامي).','Set a specific closing date (required).'),'warn'); return; }
+    var rr = [].slice.call(reqs.querySelectorAll('.req')).map(function(d){
+      return { title: d.querySelector('.rt').value, weight: Number(d.querySelector('.rw').value||0), mandatory: d.querySelector('.rm').checked };
+    });
+    API.request('POST','/procurement/tenders',{
+      name: document.getElementById('name').value,
+      reference: document.getElementById('ref').value,
+      authority: document.getElementById('authority').value,
+      closing: cl,
+      technicalThreshold: Number(document.getElementById('threshold').value),
+      requirements: rr
+    }).then(function(d){ note(d.message||T('تم النشر','Published'),''); load(); })
+      .catch(function(e){ note(e.message,'warn'); });
+  };
+
+  (function(){
+    var d = new Date(); d.setDate(d.getDate()+30);
+    document.getElementById('closing').value = d.toISOString().slice(0,10);
+  })();
+
+  API.me().then(function(d){
+    document.querySelector('[data-user-name]').textContent = d.user.name;
+    var pl = d.plan.plan, sb = d.plan.subscription;
+    var left = sb && sb.endsAt ? Math.max(0, Math.ceil((sb.endsAt - Date.now()/1000)/86400)) : null;
+    var planName = (MMC_I18N.lang()==='en' && pl.nameEn) ? pl.nameEn : (pl.nameAr || pl.name || pl.key);
+    document.getElementById('planbar').innerHTML =
+      T('باقتك:','Plan:')+' <b>'+esc(planName)+'</b>' +
+      (left!==null ? ' · '+(sb.source==='trial'?T('تجربة مجانية','Free trial'):T('مدفوعة','Paid'))+' · '+T('متبقٍ','left')+' '+left+' '+T('يوماً','days') : ' · '+T('غير مدفوعة','Unpaid')) +
+      (pl.maxTenders!==null ? ' · '+T('العطاءات:','Tenders:')+' '+d.plan.usage.tenders+' / '+pl.maxTenders : ' · '+T('عطاءات غير محدودة','Unlimited tenders')) +
+      ' · <a href="../portal/pt-9f3c7a1e5b2d/billing.html">'+(pl.key==='free'||(sb&&sb.source==='trial')?T('فعّل الباقة / ادفع','Activate / pay'):T('تجديد أو ترقية','Renew or upgrade'))+'</a>';
+    if(!['buyer','admin'].includes(d.user.role)) note(T('هذا المسار مخصص لدائرة المشتريات أو المكتب الاستشاري.','This path is for procurement or the consulting office.'),'warn');
+  }).catch(function(){
+    location.href = '../portal/pt-9f3c7a1e5b2d/login.html?next=../../procurement/index.html';
+  });
+
+  document.getElementById('logout').onclick = function(){
+    API.logout().then(function(){ location.href = '../portal/pt-9f3c7a1e5b2d/login.html'; });
+  };
+
+  window.addEventListener('mmc:lang', function(){ seedReqs(); load(); });
+  load();
+})();
+</script>
+</body>
+</html>
