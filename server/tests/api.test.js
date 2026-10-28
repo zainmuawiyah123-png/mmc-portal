@@ -646,3 +646,15 @@ test('61 — بيانات الدفع تُقرأ من الإعدادات وتُع
   assert.strictEqual(r.data.ibanValid, true);
   assert.ok(r.data.payment.accountHolder.length > 5);
 });
+
+test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملفات المجلد مغلقة', async () => {
+  const b = base;
+  const ok = await fetch(b + '/documents/technical-proposal-kit_v5/quantity-takeoff-en.xlsx');
+  assert.strictEqual(ok.status, 200);
+  assert.ok((await ok.arrayBuffer()).byteLength > 1000);
+  assert.strictEqual((await fetch(b + '/documents/technical-proposal-kit/quantity-takeoff.xlsx')).status, 200);
+  assert.strictEqual((await fetch(b + '/documents/technical-proposal-kit_v5/technical-proposal-kit-en.pdf')).status, 200);
+  for (const hidden of ['/documents/billing-implementation-ar.md', '/documents/technical-proposal-kit_v5/env.example', '/documents/technical-proposal-kit_v5/test-results.txt', '/documents/technical-proposal-kit_v2/quantity-takeoff-en.xlsx']) {
+    assert.notStrictEqual((await fetch(b + hidden)).status, 200, hidden);
+  }
+});

@@ -97,6 +97,13 @@ function createApp() {
     }
   }));
 
+  // ملفات التنزيل (Excel/PDF) فقط من مجلد documents — بقية ملفاته داخلية ولا تُخدم أبداً
+  const DOCS_ROOT = config.DOCS_ROOT || path.resolve(config.ROOT, '..', 'documents');
+  app.use('/documents', (req, res, next) => {
+    if (!/\.(xlsx|pdf)$/i.test(req.path)) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'غير موجود.' } });
+    next();
+  }, express.static(DOCS_ROOT, { index: false, dotfiles: 'deny' }));
+
   // مسار مختصر: /portal/... → البوابة داخل الحزمة، حتى يطابق الرابط المعروض في الإقلاع
   app.get(/^\/portal\/.*$/, (req, res, next) => {
     const rel = req.path.replace(/^\/portal\/?/, '');

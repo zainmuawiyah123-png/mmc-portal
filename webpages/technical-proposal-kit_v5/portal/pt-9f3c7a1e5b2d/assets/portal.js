@@ -468,10 +468,10 @@
           '../../en/12-takeoff.html' + q, T('فتح الحساب', 'Open take-off')) +
         outCard('XLSX', T('ملف Excel', 'Excel workbook'),
           T('سبع أوراق مترابطة بصيغ حقيقية.', 'Seven linked sheets with live formulas.'),
-          '../../../../documents/technical-proposal-kit_v3/quantity-takeoff-en.xlsx', T('تحميل Excel', 'Download Excel')) +
+          '../../../../documents/technical-proposal-kit_v5/quantity-takeoff-en.xlsx', T('تحميل Excel', 'Download Excel')) +
         outCard('PDF', T('ملف PDF مجمّع', 'Consolidated PDF'),
           T('الحزمة كاملة جاهزة للطباعة والتقديم.', 'The whole kit, print-ready.'),
-          '../../../../documents/technical-proposal-kit_v3/technical-proposal-kit-en.pdf', T('تحميل PDF', 'Download PDF')) +
+          '../../../../documents/technical-proposal-kit_v5/technical-proposal-kit-en.pdf', T('تحميل PDF', 'Download PDF')) +
         '</div></div>';
 
       var fl =
