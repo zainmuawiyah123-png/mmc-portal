@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title data-ar="بوابة المقاول · MMC" data-en="Contractor Portal · MMC">بوابة المقاول · MMC</title>
+<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
+<style>
+.offer{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.reqrow{border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0}
+.reqrow textarea{width:100%;min-height:70px}
+.locked{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:14px;border-radius:8px;font-weight:700}
+.lang-switch{display:inline-flex;border:1px solid var(--line,#37506b);border-radius:6px;overflow:hidden}
+.lang-switch button{border:0;border-radius:0;padding:5px 11px;font-weight:800;background:transparent;color:var(--mut,#9fb0c2);cursor:pointer}
+.lang-switch button.on{background:#b45309;color:#fff}
+@media(max-width:800px){.offer{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="p-top">
+  <div class="brand"><span class="mark">M</span><span><span data-ar="بوابة المقاول" data-en="Contractor Portal">بوابة المقاول</span><small>MMC Electronic Tender Submission</small></span></div>
+  <div class="spacer"></div>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button type="button" data-lang-btn="ar" class="on">AR</button>
+    <button type="button" data-lang-btn="en">EN</button>
+  </div>
+  <span data-user-name style="margin-inline:10px"></span>
+  <button class="btn ghost" id="logout"><span data-ar="خروج" data-en="Log out">خروج</span></button>
+</div>
+<div class="p-nav">
+  <a class="on" href="index.html"><span data-ar="العطاءات المنشورة" data-en="Published tenders">العطاءات المنشورة</span></a>
+  <a href="../procurement/index.html"><span data-ar="بوابة المشتريات" data-en="Procurement portal">بوابة المشتريات</span></a>
+  <a href="../portal/pt-9f3c7a1e5b2d/index.html"><span data-ar="ملفاتي" data-en="My files">ملفاتي</span></a>
+</div>
+<main class="p-wrap">
+  <div class="p-head">
+    <div class="eyebrow"><span data-ar="تقديم إلكتروني منفصل ومؤمّن" data-en="Separate secured electronic submission">تقديم إلكتروني منفصل ومؤمّن</span></div>
+    <h1><span data-ar="قدّم الفني والمالي دون كشف السعر للمقيّم" data-en="Submit technical and financial without revealing price to the evaluator">قدّم الفني والمالي دون كشف السعر للمقيّم</span></h1>
+    <p><span data-ar="أجب عن كل متطلب فني، ثم أدخل السعر. يحفظ النظام العرض المالي ولا يعرضه للجنة إلا بعد اجتياز الحد الفني." data-en="Answer each technical requirement, then enter the price. The system stores the financial offer and only reveals it after the technical threshold is met.">أجب عن كل متطلب فني، ثم أدخل السعر. يحفظ النظام العرض المالي ولا يعرضه للجنة إلا بعد اجتياز الحد الفني.</span></p>
+  </div>
+  <div id="planbar" class="note"></div>
+  <div id="msg"></div>
+  <section class="p-card">
+    <h2><span class="n">01</span> <span data-ar="العطاءات المتاحة" data-en="Available tenders">العطاءات المتاحة</span></h2>
+    <div id="list"><span data-ar="جارٍ التحميل…" data-en="Loading…">جارٍ التحميل…</span></div>
+  </section>
+  <section class="p-card" id="detail" style="display:none"></section>
+  <section class="p-card">
+    <h2><span class="n">03</span> <span data-ar="باقات المقاول" data-en="Contractor plans">باقات المقاول</span></h2>
+    <p class="mini"><span data-ar="الباقة تحدّد عدد التقديمات الإلكترونية على عطاءات المنصة خلال 365 يوماً." data-en="Your plan limits electronic submissions on platform tenders over 365 days.">الباقة تحدّد عدد التقديمات الإلكترونية على عطاءات المنصة خلال 365 يوماً.</span></p>
+    <div id="plans" style="overflow-x:auto"><span data-ar="جارٍ التحميل…" data-en="Loading…">جارٍ التحميل…</span></div>
+  </section>
+  <section class="p-card">
+    <h2><span class="n">04</span> <span data-ar="عطاء غير موجود على المنصة؟" data-en="Tender not on the platform?">عطاء غير موجود على المنصة؟</span></h2>
+    <p><span data-ar="التقديم الإلكتروني هنا يخص العطاءات المنشورة على المنصة فقط. لعطاءات أخرى جهّز عرضك في" data-en="Electronic submission here is only for tenders published on this platform. For other clients, prepare your offer in">التقديم الإلكتروني هنا يخص العطاءات المنشورة على المنصة فقط. لعطاءات أخرى جهّز عرضك في</span>
+      <a href="../portal/pt-9f3c7a1e5b2d/index.html"><span data-ar="ملفاتي" data-en="My files">ملفاتي</span></a>
+      <span data-ar="ثم قدّمه بالقناة الرسمية للجهة." data-en="then submit via the client's official channel.">ثم قدّمه بالقناة الرسمية للجهة.</span></p>
+  </section>
+</main>
+<script src="../portal/pt-9f3c7a1e5b2d/assets/api.js"></script>
+<script src="../portal/pt-9f3c7a1e5b2d/assets/i18n.js"></script>
+<script>
+(function(){
+  var T = function(ar,en){ return (window.MMC_I18N && MMC_I18N.T) ? MMC_I18N.T(ar,en) : ar; };
+  var current = null, msg = document.getElementById('msg');
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function note(t,k){ msg.innerHTML = '<div class="note '+(k||'')+'">'+esc(t)+'</div>'; }
+
+  function loadList(){
+    API.request('GET','/procurement/open-tenders').then(function(d){
+      var rows = (d.tenders||[]).map(function(t){
+        var badge = t.alreadySubmitted
+          ? '<span class="mini">'+esc(T('مقدَّم','Submitted'))+'</span>'
+          : (t.expired ? '<span class="locked">'+esc(T('مغلق','Closed'))+'</span>' : '<button class="btn sm amber open" data-id="'+esc(t.id)+'">'+esc(T('فتح','Open'))+'</button>');
+        return '<tr><td><strong>'+esc(t.name)+'</strong><div class="mini">'+esc(t.reference||'')+' · '+esc(t.authority||'')+'</div></td><td>'+esc(t.closing||'—')+'</td><td>'+badge+'</td></tr>';
+      }).join('');
+      document.getElementById('list').innerHTML = rows
+        ? '<table class="p-table"><thead><tr><th>'+esc(T('العطاء','Tender'))+'</th><th>'+esc(T('الإغلاق','Closing'))+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
+        : '<p class="mini">'+esc(T('لا عطاءات منشورة حالياً.','No published tenders right now.'))+'</p>';
+      document.querySelectorAll('.open').forEach(function(b){
+        b.onclick = function(){ openTender(b.getAttribute('data-id')); };
+      });
+    }).catch(function(e){ note(e.message,'warn'); });
+  }
+
+  function openTender(id){
+    API.request('GET','/procurement/tenders/'+encodeURIComponent(id)).then(function(d){
+      current = d.tender;
+      var reqHtml = (current.requirements||[]).map(function(r){
+        return '<div class="reqrow" data-rid="'+esc(r.id)+'">' +
+          '<div><strong>'+esc(r.title)+'</strong>'+(r.mandatory?' <span class="mini">('+esc(T('إلزامي','Mandatory'))+')</span>':'')+
+          ' <span class="mini">'+esc(T('الوزن','Weight'))+': '+r.weight+'%</span></div>' +
+          '<textarea class="ans" placeholder="'+esc(T('إجابتك الفنية…','Your technical answer…'))+'"></textarea></div>';
+      }).join('');
+      document.getElementById('detail').style.display = 'block';
+      document.getElementById('detail').innerHTML =
+        '<h2><span class="n">02</span> '+esc(current.name)+'</h2>' +
+        '<p class="mini">'+esc(current.reference||'')+' · '+esc(T('إغلاق','Closes'))+': '+esc(current.closing||'—')+'</p>' +
+        (current.expired ? '<div class="locked">'+esc(T('انتهى موعد التقديم.','Submission deadline has passed.'))+'</div>' :
+          '<div class="offer"><div><h3>'+esc(T('الإجابات الفنية','Technical answers'))+'</h3>'+reqHtml+'</div>' +
+          '<div><h3>'+esc(T('العرض المالي','Financial offer'))+'</h3>' +
+          '<div class="fld"><label>'+esc(T('المبلغ','Amount'))+'</label><input id="amount" type="number" min="0" step="0.01"></div>' +
+          '<div class="fld"><label>'+esc(T('العملة','Currency'))+'</label><input id="currency" value="JOD"></div>' +
+          '<button class="btn amber" id="submitBid">'+esc(T('إرسال العرض','Submit bid'))+'</button>' +
+          '<p class="mini">'+esc(T('السعر يُحفظ ولا يظهر للمقيّم قبل اجتياز الحد الفني.','Price is stored and hidden from evaluators until the technical threshold is met.'))+'</p></div></div>');
+      var btn = document.getElementById('submitBid');
+      if(btn) btn.onclick = submitBid;
+    }).catch(function(e){ note(e.message,'warn'); });
+  }
+
+  function submitBid(){
+    if(!current) return;
+    var answers = [].slice.call(document.querySelectorAll('.reqrow')).map(function(row){
+      return { requirementId: row.getAttribute('data-rid'), answer: (row.querySelector('.ans')||{}).value||'' };
+    });
+    var amount = Number(document.getElementById('amount').value);
+    var currency = (document.getElementById('currency').value||'JOD').trim();
+    API.request('POST','/procurement/tenders/'+encodeURIComponent(current.id)+'/submit',{
+      answers: answers, amount: amount, currency: currency
+    }).then(function(d){
+      note(d.message||T('تم إرسال العرض.','Bid submitted.'), '');
+      document.getElementById('detail').style.display = 'none';
+      loadList();
+    }).catch(function(e){ note(e.message,'warn'); });
+  }
+
+  function loadPlans(){
+    document.getElementById('plans').innerHTML = '<p class="mini"><a href="../portal/pt-9f3c7a1e5b2d/billing.html">'+esc(T('الاشتراك والفواتير','Billing & plans'))+'</a></p>';
+  }
+
+  API.me().then(function(d){
+    document.querySelector('[data-user-name]').textContent = d.user.name;
+    var pl = d.plan.plan, sb = d.plan.subscription;
+    var left = sb && sb.endsAt ? Math.max(0, Math.ceil((sb.endsAt - Date.now()/1000)/86400)) : null;
+    var planName = (MMC_I18N.lang()==='en' && pl.nameEn) ? pl.nameEn : (pl.nameAr || pl.name || pl.key);
+    document.getElementById('planbar').innerHTML =
+      T('باقتك:','Plan:')+' <b>'+esc(planName)+'</b>' +
+      (left!==null ? ' · '+(sb.source==='trial'?T('تجربة','Trial'):T('مدفوعة','Paid'))+' · '+left+' '+T('يوماً','days') : '') +
+      ' · <a href="../portal/pt-9f3c7a1e5b2d/billing.html">'+T('الاشتراك','Billing')+'</a>';
+  }).catch(function(){
+    location.href = '../portal/pt-9f3c7a1e5b2d/login.html?next=../../bid/index.html';
+  });
+
+  document.getElementById('logout').onclick = function(){
+    API.logout().then(function(){ location.href = '../portal/pt-9f3c7a1e5b2d/login.html'; });
+  };
+
+  window.addEventListener('mmc:lang', function(){ loadList(); loadPlans(); });
+  loadList();
+  loadPlans();
+})();
+</script>
+</body>
+</html>
