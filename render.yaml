@@ -1,0 +1,47 @@
+# نشر بوابة MMC على Render.com
+# الطريقة: Blueprint → New Blueprint Instance → اختر المستودع الذي فيه هذا الملف
+services:
+  - type: web
+    name: mmc-portal
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /api/health
+    # القرص الدائم يحفظ قاعدة البيانات والملفات المرفوعة بين عمليات إعادة النشر
+    disk:
+      name: mmc-data
+      mountPath: /data
+      sizeGB: 2
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: /data/portal.db
+      - key: UPLOAD_DIR
+        value: /data/uploads
+      - key: BACKUP_DIR
+        value: /data/backups
+      - key: STORAGE_DRIVER
+        value: local
+      - key: SCHEDULER_ENABLED
+        value: "false"
+      # غيّر هذه القيم من لوحة Render بعد أول نشر (Environment)
+      - key: ADMIN_EMAIL
+        value: admin@mmc.local
+      - key: ADMIN_PASSWORD
+        value: Admin@2026Secure
+      - key: ADMIN_NAME
+        value: مدير النظام
+      # بيانات الدفع (اختياري — تظهر في صفحات الأسعار)
+      - key: PAYMENT_BANK_NAME
+        value: Union Bank
+      - key: PAYMENT_ACCOUNT_HOLDER
+        value: سمر محمد بدوان عوض الزرو
+      - key: PAYMENT_IBAN
+        value: JO07UBSI1220000330111332981002
+      - key: PAYMENT_CLIQ_ALIAS
+        value: samarza
