@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>إنشاء حساب · بوابة MMC</title>
+<link rel="stylesheet" href="assets/portal.css">
+<link rel="stylesheet" href="assets/auth.css">
+</head>
+
+<style>
+.lang-switch{position:fixed;top:14px;inset-inline-end:14px;display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;z-index:20;background:#0f2740}
+.lang-switch button{border:0;background:transparent;color:#9fb0c2;font-weight:800;padding:6px 12px;cursor:pointer}
+.lang-switch button.on{background:#b45309;color:#fff}
+</style>
+<div class="lang-switch" role="group" aria-label="Language">
+  <button type="button" data-lang-btn="ar" class="on">AR</button>
+  <button type="button" data-lang-btn="en">EN</button>
+</div>
+
+<body data-page="register" style="background:var(--ink)">
+
+<div class="auth-wrap">
+  <div>
+    <div class="auth-card">
+      <div class="auth-head">
+        <div class="mark">M</div>
+        <h1><span data-ar="إنشاء حساب جديد" data-en="Create your account">إنشاء حساب جديد</span></h1>
+        <p><span data-ar="تبدأ على الباقة التجريبية المجانية: عطاء واحد و25 م.ب من الملفات — بدون بطاقة."
+              data-en="You start on the free trial: one tender and 25 MB of files — no card required.">تبدأ على الباقة التجريبية المجانية: عطاء واحد و25 م.ب من الملفات — بدون بطاقة.</span></p>
+      </div>
+
+      <div class="auth-body">
+        <div class="auth-alert" id="alert"></div>
+
+        <form id="regForm" novalidate>
+          <div class="field">
+            <label for="name"><span data-ar="الاسم الكامل" data-en="Full name">الاسم الكامل</span></label>
+            <input type="text" id="name" name="name" autocomplete="name" required maxlength="120"
+                   placeholder="م. أحمد الخطيب">
+            <div class="err-msg" id="nameErr"></div>
+          </div>
+
+          <div class="field">
+            <label for="company"><span data-ar="اسم الشركة (اختياري)" data-en="Company (optional)">اسم الشركة (اختياري)</span></label>
+            <input type="text" id="company" name="company" autocomplete="organization" maxlength="160"
+                   placeholder="مكتب المقاولات">
+            <div class="err-msg" id="companyErr"></div>
+          </div>
+
+          <div class="field">
+            <label for="email"><span data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</span></label>
+            <input type="email" id="email" name="email" autocomplete="username" required
+                   dir="ltr" placeholder="you@company.com">
+            <div class="err-msg" id="emailErr"></div>
+          </div>
+
+          <div class="field">
+            <label for="role"><span data-ar="نوع الحساب" data-en="Account type">نوع الحساب</span></label>
+            <select id="role" name="role"><option value="contractor">مقاول / Contractor</option><option value="buyer">مشتريات أو مكتب استشاري / Buyer</option></select>
+          </div>
+
+          <div class="field">
+            <label for="password"><span data-ar="كلمة المرور" data-en="Password">كلمة المرور</span></label>
+            <input type="password" id="password" name="password" autocomplete="new-password" required
+                   dir="ltr" placeholder="8 أحرف على الأقل">
+            <div class="hint"><span data-ar="8 أحرف على الأقل. تُخزَّن مشفّرة بـ bcrypt — لا تُحفظ نصاً صريحاً أبداً."
+                  data-en="At least 8 characters. Stored as a bcrypt hash — never as plain text.">8 أحرف على الأقل. تُخزَّن مشفّرة بـ bcrypt — لا تُحفظ نصاً صريحاً أبداً.</span></div>
+            <div class="err-msg" id="passErr"></div>
+          </div>
+
+          <div class="field">
+            <label for="password2"><span data-ar="تأكيد كلمة المرور" data-en="Confirm password">تأكيد كلمة المرور</span></label>
+            <input type="password" id="password2" name="password2" autocomplete="new-password" required
+                   dir="ltr" placeholder="••••••••">
+            <div class="err-msg" id="pass2Err"></div>
+          </div>
+
+          <button type="submit" class="auth-submit" id="submitBtn">
+            <span data-ar="إنشاء الحساب" data-en="Create account">إنشاء الحساب</span>
+          </button>
+        </form>
+
+        <div class="auth-foot">
+          <span data-ar="لديك حساب بالفعل؟" data-en="Already have an account?">لديك حساب بالفعل؟</span>
+          <a href="login.html"><span data-ar="سجّل الدخول" data-en="Sign in">سجّل الدخول</span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-note">
+      <b data-ar="ملاحظة" data-en="Note">ملاحظة</b>
+      <span data-ar=" — هذا نظام فعلي بخادم وقاعدة بيانات: ما ترفعه يُحفظ على الخادم ويظهر في حسابك من أي جهاز."
+            data-en=" — real server and database: what you upload is stored server-side and appears in your account from any device."> — هذا نظام فعلي بخادم وقاعدة بيانات: ما ترفعه يُحفظ على الخادم ويظهر في حسابك من أي جهاز.</span>
+    </div>
+  </div>
+</div>
+
+<script src="assets/api.js"></script>
+<script src="assets/i18n.js"></script>
+<script>
+(function(){
+  'use strict';
+  var LANG_KEY='tpkit-portal-lang';
+  function lang(){ try{return localStorage.getItem(LANG_KEY)||'ar';}catch(e){return 'ar';} }
+  function T(ar,en){ return lang()==='ar'?ar:en; }
+
+  document.documentElement.setAttribute('dir', lang()==='ar'?'rtl':'ltr');
+  document.documentElement.setAttribute('lang', lang());
+  document.querySelectorAll('[data-ar]').forEach(function(n){
+    var v=n.getAttribute('data-'+lang()); if(v!==null) n.textContent=v;
+  });
+
+  var form=document.getElementById('regForm');
+  var alertBox=document.getElementById('alert');
+  var btn=document.getElementById('submitBtn');
+  var defaultLabel='<span data-ar="إنشاء الحساب" data-en="Create account">إنشاء الحساب</span>';
+
+  function showAlert(msg,kind){ alertBox.textContent=msg; alertBox.className='auth-alert on '+(kind||'err'); }
+  function hideAlert(){ alertBox.className='auth-alert'; }
+  function fieldErr(errId,msg){
+    var e=document.getElementById(errId);
+    if(e){ e.textContent=msg||''; e.classList.toggle('on', !!msg); }
+    var inp=document.getElementById(errId.replace(/Err$/,''));
+    if(inp) inp.setAttribute('aria-invalid', msg?'true':'false');
+  }
+  function clearAll(){ ['nameErr','companyErr','emailErr','passErr','pass2Err'].forEach(function(i){ fieldErr(i,''); }); }
+
+  API.me().then(function(){
+    location.replace('index.html');
+  }).catch(function(){});
+
+  if(new URLSearchParams(location.search).get('role')==='buyer'){document.getElementById('role').value='buyer';}
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    hideAlert(); clearAll();
+
+    var name=document.getElementById('name').value.trim();
+    var company=document.getElementById('company').value.trim();
+    var email=document.getElementById('email').value.trim();
+    var role=document.getElementById('role').value;
+    var p1=document.getElementById('password').value;
+    var p2=document.getElementById('password2').value;
+    var bad=false;
+
+    if(name.length<2){ fieldErr('nameErr',T('أدخل الاسم (حرفان على الأقل).','Enter your name (at least 2 characters).')); bad=true; }
+    if(!email){ fieldErr('emailErr',T('أدخل البريد الإلكتروني.','Enter your email.')); bad=true; }
+    else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ fieldErr('emailErr',T('صيغة البريد غير صحيحة.','Invalid email format.')); bad=true; }
+    if(p1.length<8){ fieldErr('passErr',T('كلمة المرور 8 أحرف على الأقل.','Password must be at least 8 characters.')); bad=true; }
+    if(p1!==p2){ fieldErr('pass2Err',T('كلمتا المرور غير متطابقتين.','Passwords do not match.')); bad=true; }
+    if(bad) return;
+
+    btn.disabled=true;
+    btn.innerHTML='<span class="spinner"></span>'+T('جارٍ إنشاء الحساب…','Creating account…');
+
+    API.register({name:name, email:email, password:p1, company:company||undefined, role:role}).then(function(res){
+      showAlert(T('تم إنشاء الحساب. جارٍ التحويل إلى لوحة التحكم…','Account created. Redirecting to your dashboard…'),'ok');
+      var qp=new URLSearchParams(location.search).get('plan')||'';var dest=(res.user&&res.user.role==='buyer')?(/^proc_[a-z]+$/.test(qp)?'billing.html?plan='+qp:'../../procurement/index.html'):'index.html';setTimeout(function(){ location.replace(dest); }, 500);
+    }).catch(function(err){
+      btn.disabled=false; btn.innerHTML=defaultLabel;
+      if(err.code==='CONFLICT'){
+        showAlert(T('هذا البريد مسجّل بالفعل. سجّل الدخول بدلاً من ذلك.','This email is already registered. Sign in instead.'),'err');
+        fieldErr('emailErr',T('البريد مستخدم مسبقاً.','Email already in use.'));
+      } else if(err.code==='VALIDATION' && err.details){
+        err.details.forEach(function(d){
+          var map={email:'emailErr',password:'passErr',name:'nameErr',company:'companyErr'};
+          var id=map[d.field];
+          if(id) fieldErr(id,d.message);
+        });
+        showAlert(T('راجع الحقول المعلَّمة.','Check the highlighted fields.'),'err');
+      } else if(err.status===429){
+        showAlert(err.message,'err');
+      } else if(err.code==='NETWORK'){
+        showAlert(T('تعذّر الاتصال بالخادم. تأكد أنه يعمل ثم أعد المحاولة.','Cannot reach the server. Make sure it is running, then retry.'),'err');
+      } else {
+        showAlert(err.message||T('تعذّر إنشاء الحساب.','Registration failed.'),'err');
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
