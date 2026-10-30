@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="MMC Technical Proposal Kit — fillable construction tender forms, drawing reading guide and quantity take-off workbook.">
+<title>TP-G1 &middot; Drawing Reading Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="../assets/en.css">
+
+</head>
+<body data-doc="en-tp11">
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> MMC Technical Proposal Kit</div>
+  <span class="code">GUIDE TP-G1</span>
+  <div class="spacer"></div>
+  <a class="btn amber" href="../portal/pt-9f3c7a1e5b2d/index.html" title="MMC Portal — upload drawings and produce the proposal">🔓 MMC Portal</a>
+  <a class="btn ghost" href="index.html">Index</a>
+  <a class="btn ghost" href="10-forms.html">&larr; Prev</a><a class="btn ghost" href="12-takeoff.html">Next &rarr;</a>
+  <div class="cur-wrap">
+    <label for="curSel">Currency</label>
+    <select class="cur" id="curSel" aria-label="Display currency">
+      <option value="USD">USD $</option>
+      <option value="JOD">JOD</option>
+      <option value="SAR">SAR</option>
+      <option value="AED">AED</option>
+    </select>
+  </div>
+  <div class="switch" role="group" aria-label="Language">
+    <a href="../11-drawings.html" title="النسخة العربية">AR</a>
+    <button class="on" type="button" aria-current="true">EN</button>
+  </div>
+  <button class="btn" data-print>&#128424; Print / PDF</button>
+  <button class="btn ghost" data-reset>Clear</button>
+</div>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">Guide TP-G1 &middot; Drawing Reading Guide</div>
+    <h1>How to Read Architectural, Structural and MEP Drawings</h1>
+    <p class="sub">A working sequence for reading a drawing set, the symbols that matter, and the details where quantity errors are actually made.</p>
+    <div class="doc-meta">
+      <div><span>Sections</span><b>8</b></div>
+      <div><span>Disciplines</span><b>3</b></div>
+      <div><span>Worked example</span><b>1</b></div>
+      <div><span>Rev.</span><b>A</b></div>
+    </div>
+  </div><div class="callout "><strong>The rule that prevents most take-off errors:</strong> read the sheet, then the schedule, then the detail, then the specification, then measure. Each of those five sources can contradict the one before it, and the contradiction is where the money is lost. A dimension scaled from a PDF is not a dimension.</div><h2 class="sec"><span class="num">1</span> Before You Read a Single Line</h2>
+<ol class="steps">
+  <li><b>Read the drawing register and the revision history</b><p>The register tells you what should exist; the
+  revision block tells you what changed. A take-off from a superseded revision is the most expensive mistake in
+  estimating, and it is silent &mdash; the sheet looks exactly like the current one.</p></li>
+  <li><b>Confirm the revision you are measuring is the current issued revision</b><p>Check the revision letter on
+  the sheet against the transmittal register, not against the file name. Files are renamed; drawings are not.</p></li>
+  <li><b>Establish the scale and the units, and then do not scale</b><p>Most sets are in millimetres; some
+  structural details are in centimetres. Measure only from the written dimensions; use the scale bar to check
+  that a printed copy is not distorted.</p></li>
+  <li><b>Identify the grid and the datum before anything else</b><p>Grid lines give you coordinates for every
+  element; the datum gives you a single reference for every level. Without both, a slab thickness becomes a guess.</p></li>
+  <li><b>Read the general notes</b><p>Concrete grades, cover, blockwork strengths, plaster thickness and paint systems
+  are frequently stated only here &mdash; and they govern the whole take-off.</p></li>
+</ol>
+<h2 class="sec"><span class="num">2</span> Architectural Drawings</h2>
+<p>Architectural drawings answer <em>what the building is</em>: spaces, dimensions, levels, finishes and openings.
+They are the source for blockwork, plaster, tiling, doors and windows &mdash; but only after the finishes schedule
+has been cross-checked, because room finishes are rarely written on the plan.</p>
+<div class="dwg">
+<svg viewBox="0 0 620 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Typical floor plan showing grid, columns, walls and dimensions">
+  <defs><pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="7" stroke="#c9d3de" stroke-width="1.6"/></pattern></defs>
+  <rect width="620" height="400" fill="#fff"/>
+  <!-- grid -->
+  <g stroke="#b9c4d0" stroke-width="0.8" stroke-dasharray="10 3 2 3">
+    <line x1="80" y1="40" x2="80" y2="350"/><line x1="205" y1="40" x2="205" y2="350"/>
+    <line x1="330" y1="40" x2="330" y2="350"/><line x1="455" y1="40" x2="455" y2="350"/>
+    <line x1="580" y1="40" x2="580" y2="350"/>
+    <line x1="60" y1="70" x2="600" y2="70"/><line x1="60" y1="180" x2="600" y2="180"/>
+    <line x1="60" y1="290" x2="600" y2="290"/>
+  </g>
+  <!-- grid bubbles -->
+  <g font-family="Inter,Arial" font-size="10" font-weight="700" fill="#0d1b2a">
+    <circle cx="80" cy="28" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="80" y="32" text-anchor="middle">1</text>
+    <circle cx="205" cy="28" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="205" y="32" text-anchor="middle">2</text>
+    <circle cx="330" cy="28" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="330" y="32" text-anchor="middle">3</text>
+    <circle cx="455" cy="28" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="455" y="32" text-anchor="middle">4</text>
+    <circle cx="580" cy="28" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="580" y="32" text-anchor="middle">5</text>
+    <circle cx="48" cy="70" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="48" y="74" text-anchor="middle">A</text>
+    <circle cx="48" cy="180" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="48" y="184" text-anchor="middle">B</text>
+    <circle cx="48" cy="290" r="11" fill="#fff" stroke="#0d1b2a" stroke-width="1.2"/><text x="48" y="294" text-anchor="middle">C</text>
+  </g>
+  <!-- walls -->
+  <g stroke="#0d1b2a" stroke-width="3" fill="none">
+    <rect x="80" y="70" width="500" height="220"/>
+  </g>
+  <!-- internal partitions -->
+  <g stroke="#5b6b7c" stroke-width="2" fill="none">
+    <line x1="330" y1="70" x2="330" y2="290"/>
+    <line x1="80" y1="180" x2="205" y2="180"/>
+    <line x1="330" y1="180" x2="580" y2="180"/>
+  </g>
+  <!-- core/stairs hatch -->
+  <rect x="340" y="190" width="115" height="90" fill="url(#hatch)" stroke="#5b6b7c" stroke-width="1.5"/>
+  <text x="397" y="212" font-family="Inter,Arial" font-size="9" text-anchor="middle" fill="#1b2f45">STAIR</text>
+  <text x="397" y="225" font-family="Inter,Arial" font-size="8" text-anchor="middle" fill="#5b6b7c">UP 16R</text>
+  <rect x="465" y="190" width="105" height="90" fill="#eff6fc" stroke="#5b6b7c" stroke-width="1.5"/>
+  <text x="517" y="240" font-family="Inter,Arial" font-size="9" text-anchor="middle" fill="#1e4d7b">LIFT</text>
+  <!-- columns -->
+  <g fill="#0d1b2a">
+    <rect x="74" y="64" width="13" height="13"/><rect x="199" y="64" width="13" height="13"/>
+    <rect x="324" y="64" width="13" height="13"/><rect x="449" y="64" width="13" height="13"/>
+    <rect x="573" y="64" width="13" height="13"/>
+    <rect x="74" y="174" width="13" height="13"/><rect x="199" y="174" width="13" height="13"/>
+    <rect x="324" y="174" width="13" height="13"/><rect x="449" y="174" width="13" height="13"/>
+    <rect x="573" y="174" width="13" height="13"/>
+    <rect x="74" y="284" width="13" height="13"/><rect x="199" y="284" width="13" height="13"/>
+    <rect x="324" y="284" width="13" height="13"/><rect x="449" y="284" width="13" height="13"/>
+    <rect x="573" y="284" width="13" height="13"/>
+  </g>
+  <!-- dimension lines -->
+  <g stroke="#b45309" stroke-width="0.8" fill="none">
+    <line x1="80" y1="318" x2="205" y2="318"/><line x1="205" y1="318" x2="330" y2="318"/>
+    <line x1="330" y1="318" x2="455" y2="318"/><line x1="455" y1="318" x2="580" y2="318"/>
+    <line x1="80" y1="312" x2="80" y2="324"/><line x1="205" y1="312" x2="205" y2="324"/>
+    <line x1="330" y1="312" x2="330" y2="324"/><line x1="455" y1="312" x2="455" y2="324"/>
+    <line x1="580" y1="312" x2="580" y2="324"/>
+  </g>
+  <g font-family="Inter,Arial" font-size="9" fill="#8a3f07" font-weight="700" text-anchor="middle">
+    <text x="142" y="332">6000</text><text x="267" y="332">6000</text>
+    <text x="392" y="332">6000</text><text x="517" y="332">6000</text>
+  </g>
+  <text x="330" y="352" font-family="Inter,Arial" font-size="8.5" fill="#5b6b7c" text-anchor="middle">All dimensions in millimetres &middot; grid at 6,000 mm both ways</text>
+  <!-- door swings -->
+  <g stroke="#0d1b2a" stroke-width="1.2" fill="none">
+    <path d="M205 130 A45 45 0 0 1 250 175"/><line x1="205" y1="130" x2="205" y2="175"/>
+  </g>
+  <text x="150" y="120" font-family="Inter,Arial" font-size="8.5" fill="#5b6b7c">OFFICE 1</text>
+  <text x="410" y="120" font-family="Inter,Arial" font-size="8.5" fill="#5b6b7c">OFFICE 2</text>
+  <text x="150" y="240" font-family="Inter,Arial" font-size="8.5" fill="#5b6b7c">CORRIDOR</text>
+</svg><figcaption>Typical floor plan &mdash; grid bubbles, column positions, wall thickness, door swing and dimension string.
+Read the grid first, then the wall centre-lines, then the openings.</figcaption></div>
+<table class="t compact">
+    <thead><tr><th style="width:24%">Drawing type</th><th style="width:44%">What it gives you</th><th>What it hides</th></tr></thead>
+    <tbody>
+      <tr><td>Floor plan</td><td>Layout, room sizes, wall positions, door and window openings</td><td>Wall heights, finishes, structural thickness</td></tr>
+      <tr><td>Reflected ceiling plan (RCP)</td><td>Ceiling grid, levels, light fittings, diffusers, access panels</td><td>Ceiling void depth, which is where services clashes live</td></tr>
+      <tr><td>Elevations</td><td>Storey heights, façade composition, sill and head levels</td><td>Anything behind the façade</td></tr>
+      <tr><td>Sections</td><td>Floor-to-floor heights, slab and screed build-up, roof construction</td><td>Non-typical areas</td></tr>
+      <tr><td>Enlarged details</td><td>Thresholds, parapets, waterproofing laps, junctions</td><td>Continuity between details</td></tr>
+      <tr><td>Door and window schedule</td><td>Type, size, material, glazing, ironmongery, fire rating</td><td>Wall opening size, which may differ from the frame size</td></tr>
+      <tr><td>Finishes schedule</td><td>Floor, wall and ceiling finish per room</td><td>Areas &mdash; these must be measured from the plan</td></tr>
+      <tr><td>Room data sheets (if issued)</td><td>Every finish and fitting per room, plus MEP requirements</td><td>Nothing, when they exist &mdash; they are the best single source</td></tr>
+    </tbody>
+    
+  </table><div class="box amber"><h4>Where architectural take-off goes wrong</h4><p><strong>Openings deducted twice, or not at all.</strong> Establish one rule &mdash; deduct openings above a
+stated area &mdash; and apply it to every wall, every time. A mixed approach produces a quantity nobody can
+reconcile.<br>
+<strong>Wall height assumed from floor-to-floor.</strong> Blockwork stops at the soffit; the beam depth is not
+blockwork. Measure the actual clear height per wall.<br>
+<strong>Finishes measured from the schedule instead of the plan.</strong> The schedule tells you <em>what</em>;
+only the plan tells you <em>how much</em>.</p></div><h2 class="sec"><span class="num">3</span> Structural Drawings</h2>
+<p>Structural drawings answer <em>what carries the load and how</em>. They are the source for concrete, reinforcement,
+formwork and structural steel &mdash; and the discipline where a misread symbol costs the most, because reinforcement
+is priced by weight and weight comes from bar diameter and length.</p>
+<div class="dwg">
+<svg viewBox="0 0 620 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Beam section showing reinforcement, links and cover">
+  <rect width="620" height="340" fill="#fff"/>
+  <!-- beam outline -->
+  <rect x="150" y="90" width="320" height="160" fill="#eef1f5" stroke="#0d1b2a" stroke-width="2.5"/>
+  <!-- links -->
+  <rect x="164" y="104" width="292" height="132" fill="none" stroke="#0f766e" stroke-width="2" stroke-dasharray="6 4"/>
+  <!-- top bars -->
+  <circle cx="182" cy="118" r="8" fill="#b45309"/><circle cx="206" cy="118" r="8" fill="#b45309"/>
+  <circle cx="230" cy="118" r="8" fill="#b45309"/>
+  <!-- bottom bars -->
+  <circle cx="182" cy="222" r="8" fill="#b45309"/><circle cx="206" cy="222" r="8" fill="#b45309"/>
+  <circle cx="230" cy="222" r="8" fill="#b45309"/><circle cx="254" cy="222" r="8" fill="#b45309"/>
+  <!-- side bars -->
+  <circle cx="406" cy="118" r="8" fill="#b45309"/><circle cx="430" cy="118" r="8" fill="#b45309"/>
+  <circle cx="406" cy="222" r="8" fill="#b45309"/><circle cx="430" cy="222" r="8" fill="#b45309"/>
+  <circle cx="418" cy="170" r="8" fill="#b45309"/>
+  <!-- cover dimension -->
+  <g stroke="#1e4d7b" stroke-width="1" fill="none">
+    <line x1="150" y1="270" x2="164" y2="270"/><line x1="150" y1="264" x2="150" y2="276"/>
+    <line x1="164" y1="264" x2="164" y2="276"/>
+  </g>
+  <text x="157" y="288" font-family="Inter,Arial" font-size="8.5" fill="#1e4d7b" text-anchor="middle" font-weight="700">cover</text>
+  <!-- width dim -->
+  <g stroke="#0d1b2a" stroke-width="0.9" fill="none">
+    <line x1="150" y1="66" x2="470" y2="66"/><line x1="150" y1="60" x2="150" y2="72"/><line x1="470" y1="60" x2="470" y2="72"/>
+  </g>
+  <text x="310" y="58" font-family="Inter,Arial" font-size="10" fill="#0d1b2a" text-anchor="middle" font-weight="700">b = 300</text>
+  <!-- depth dim -->
+  <g stroke="#0d1b2a" stroke-width="0.9" fill="none">
+    <line x1="490" y1="90" x2="490" y2="250"/><line x1="484" y1="90" x2="496" y2="90"/><line x1="484" y1="250" x2="496" y2="250"/>
+  </g>
+  <text x="505" y="174" font-family="Inter,Arial" font-size="10" fill="#0d1b2a" font-weight="700">h = 600</text>
+  <!-- link spacing dim -->
+  <g stroke="#0f766e" stroke-width="0.9" fill="none">
+    <line x1="164" y1="258" x2="214" y2="258"/><line x1="164" y1="252" x2="164" y2="264"/><line x1="214" y1="252" x2="214" y2="264"/>
+  </g>
+  <text x="189" y="272" font-family="Inter,Arial" font-size="8.5" fill="#0f766e" text-anchor="middle" font-weight="700">&#64;150</text>
+  <!-- callout labels -->
+  <g font-family="Inter,Arial" font-size="8.5" fill="#5b6b7c">
+    <text x="120" y="118" text-anchor="end">3T16 top</text>
+    <text x="120" y="226" text-anchor="end">4T20 bottom</text>
+    <text x="540" y="200">T10 links</text>
+  </g>
+  <g stroke="#5b6b7c" stroke-width="0.7" fill="none">
+    <line x1="124" y1="115" x2="172" y2="118"/><line x1="124" y1="223" x2="172" y2="222"/>
+    <line x1="536" y1="197" x2="452" y2="170"/>
+  </g>
+  <text x="310" y="315" font-family="Inter,Arial" font-size="9" fill="#5b6b7c" text-anchor="middle">Typical beam section &mdash; read the bar mark, then the schedule, then the bending detail. Never scale from the drawing.</text>
+</svg><figcaption>Beam section &mdash; the four things to read: overall size, bar mark and diameter,
+link diameter and spacing, and cover. The bar mark points to the bending schedule, which is the only place the
+cutting length exists.</figcaption></div>
+<table class="t compact">
+    <thead><tr><th style="width:22%">Symbol / notation</th><th style="width:33%">Meaning</th><th>Take-off consequence</th></tr></thead>
+    <tbody>
+      <tr><td><span class='mono'>4T20</span></td><td>4 bars, high-yield deformed, 20 mm diameter</td><td>Weight = 4 &times; length &times; 2.47 kg/m</td></tr>
+      <tr><td><span class='mono'>T10 @ 150 c/c</span></td><td>10 mm links at 150 mm centres</td><td>Count = run length / 150 + 1, each cut to the link perimeter</td></tr>
+      <tr><td><span class='mono'>&#216;12-200</span></td><td>12 mm at 200 mm spacing (alternative notation)</td><td>Same calculation, different prefix &mdash; check the legend on each office's drawings</td></tr>
+      <tr><td><span class='mono'>Ld</span></td><td>Development / anchorage length</td><td>Affects bar length beyond the clear span; do not price laps as zero</td></tr>
+      <tr><td><span class='mono'>C30/37</span></td><td>Characteristic cylinder / cube strength</td><td>Governs the mix and therefore the rate, not only the quantity</td></tr>
+      <tr><td><span class='mono'>SL</span> / <span class='mono'>EL</span></td><td>Structural level / finished floor level</td><td>Slab thickness = SL &minus; soffit; screed sits above SL</td></tr>
+      <tr><td><span class='mono'>BS</span> / <span class='mono'>BW</span></td><td>Bottom steel / both ways</td><td>Bottom-only means top steel exists only over supports</td></tr>
+    </tbody>
+    
+  </table><h3 class="sub">Reading a reinforcement drawing in the right order</h3>
+<ol>
+  <li><strong>Element, then mark:</strong> identify the element (footing F1, column C2, beam B12) and its mark.
+  Everything else references the mark.</li>
+  <li><strong>Section or schedule:</strong> read the bar arrangement from the section, and the bar mark, diameter,
+  shape and bending dimensions from the schedule.</li>
+  <li><strong>Cutting length:</strong> from the bending schedule &mdash; including hooks, bends and laps. This is the
+  only correct input for weight; a scaled length from the drawing omits every lap.</li>
+  <li><strong>Weight:</strong> $$\text{kg/m} = \frac{d^2}{162}$$ for deformed bar &mdash; 12 mm gives 0.888 kg/m,
+  16 mm gives 1.578 kg/m, 20 mm gives 2.469 kg/m, 25 mm gives 3.854 kg/m.</li>
+  <li><strong>Links:</strong> count along the member at the specified spacing, add the end zones where spacing is
+  tightened, and cut to the perimeter less cover plus hooks.</li>
+  <li><strong>Laps and anchorage:</strong> add them. A take-off that ignores laps under-measures reinforcement by
+  roughly 3&ndash;8% depending on bar size and detailing.</li>
+</ol>
+<h2 class="sec"><span class="num">4</span> MEP Drawings</h2>
+<p>MEP drawings answer <em>how the building services work and where they run</em>. Read them as systems, not as
+lines: a pipe on a plan means nothing until you know what it carries, what pressure it works at, and where it
+rises.</p>
+<div class="dwg">
+<svg viewBox="0 0 620 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MEP riser schematic showing water, drainage, electrical and HVAC risers">
+  <rect width="620" height="330" fill="#fff"/>
+  <!-- floor lines -->
+  <g stroke="#c9d3de" stroke-width="1" stroke-dasharray="6 4">
+    <line x1="60" y1="70" x2="570" y2="70"/><line x1="60" y1="140" x2="570" y2="140"/>
+    <line x1="60" y1="210" x2="570" y2="210"/><line x1="60" y1="280" x2="570" y2="280"/>
+  </g>
+  <g font-family="Inter,Arial" font-size="8.5" fill="#5b6b7c">
+    <text x="52" y="74" text-anchor="end">L3</text><text x="52" y="144" text-anchor="end">L2</text>
+    <text x="52" y="214" text-anchor="end">L1</text><text x="52" y="284" text-anchor="end">GF</text>
+  </g>
+  <!-- riser zones -->
+  <g stroke-width="2" fill="none">
+    <line x1="130" y1="45" x2="130" y2="290" stroke="#1e4d7b" stroke-width="6"/>
+    <line x1="230" y1="45" x2="230" y2="290" stroke="#8a3f07" stroke-width="4" stroke-dasharray="9 5"/>
+    <line x1="330" y1="45" x2="330" y2="290" stroke="#0f766e" stroke-width="5"/>
+    <line x1="430" y1="45" x2="430" y2="290" stroke="#b45309" stroke-width="4" stroke-dasharray="12 4 3 4"/>
+    <line x1="520" y1="45" x2="520" y2="290" stroke="#6b7280" stroke-width="4"/>
+  </g>
+  <!-- branch connections -->
+  <g stroke="#9fb3c8" stroke-width="1.4" fill="none">
+    <path d="M130 70 H180"/><path d="M130 140 H180"/><path d="M130 210 H180"/>
+    <path d="M230 70 H275"/><path d="M230 140 H275"/><path d="M230 210 H275"/>
+    <path d="M330 70 H375"/><path d="M330 140 H375"/><path d="M330 210 H375"/>
+    <path d="M430 70 H470"/><path d="M430 140 H470"/><path d="M430 210 H470"/>
+  </g>
+  <!-- labels -->
+  <g font-family="Inter,Arial" font-size="8" font-weight="700" text-anchor="middle">
+    <text x="130" y="308" fill="#1e4d7b">WATER</text>
+    <text x="230" y="308" fill="#8a3f07">DRAIN</text>
+    <text x="330" y="308" fill="#0f766e">ELEC</text>
+    <text x="430" y="308" fill="#b45309">HVAC</text>
+    <text x="520" y="308" fill="#6b7280">FIRE</text>
+  </g>
+  <g font-family="Inter,Arial" font-size="7.5" fill="#5b6b7c" text-anchor="middle">
+    <text x="130" y="320">PPR DN50</text><text x="230" y="320">uPVC DN110</text>
+    <text x="330" y="320">Busway</text><text x="430" y="320">Duct 600&times;400</text>
+    <text x="520" y="320">DN100</text>
+  </g>
+  <!-- floor penetrations -->
+  <g fill="#fff" stroke="#0d1b2a" stroke-width="1.2">
+    <circle cx="130" cy="140" r="6"/><circle cx="230" cy="140" r="6"/><circle cx="330" cy="140" r="6"/>
+    <circle cx="130" cy="210" r="6"/><circle cx="230" cy="210" r="6"/><circle cx="330" cy="210" r="6"/>
+  </g>
+  <text x="310" y="30" font-family="Inter,Arial" font-size="9.5" fill="#1b2f45" text-anchor="middle" font-weight="700">Riser diagram &mdash; coordination point, not a construction drawing</text>
+</svg><figcaption>Riser diagram &mdash; the coordination document. Every horizontal service originates
+from a riser, so a riser that is too small is a project-wide problem, not a local one.</figcaption></div>
+<table class="t compact">
+    <thead><tr><th style="width:15%">Discipline</th><th style="width:30%">Drawing types</th><th style="width:34%">Key symbols</th><th>Take-off unit</th></tr></thead>
+    <tbody>
+      <tr><td>Electrical</td><td>Single-line diagram, power layout, lighting layout, containment layout, earthing</td><td>DB, MCC, luminaire type, socket type, cable size and core count</td><td>Points, metres of cable and conduit, boards</td></tr>
+      <tr><td>Plumbing / drainage</td><td>Water riser, drainage riser, floor plans, details</td><td>Gate valve, check valve, floor drain, vent stack, clean-out</td><td>Metres by diameter, fittings by count, sanitary sets</td></tr>
+      <tr><td>HVAC</td><td>Duct layout, pipe sizing, equipment schedule, control diagram</td><td>AHU, FCU, VAV box, diffuser, damper, refrigerant pair</td><td>Metres of duct by size, metres of pipe, equipment count</td></tr>
+      <tr><td>Fire protection</td><td>Sprinkler layout, standpipe, pump room, alarm layout</td><td>Sprinkler head, alarm valve, flow switch, detector, sounder</td><td>Heads by count, pipe by diameter, devices by count</td></tr>
+      <tr><td>BMS / controls</td><td>Control schematics, points schedule, architecture diagram</td><td>Sensor, actuator, controller, points type (AI/AO/DI/DO)</td><td>Points by type &mdash; not metres</td></tr>
+    </tbody>
+    
+  </table><div class="box teal"><h4>The services take-off rule</h4><p>Measure pipe and duct by <strong>centre-line length</strong>, then add fittings separately. Never measure the
+drawn length of a pipe that turns: the drawing shows the run, the fittings schedule gives the elbows. A pipe
+take-off without fittings is typically 30&ndash;40% short of the installed cost.</p></div><h2 class="sec"><span class="num">5</span> Worked Example &mdash; A Simple Residential Building</h2>
+<p>A three-storey residential building, 12.0 &times; 10.0 m on a 6.0 m grid, 16 isolated footings, 32 columns,
+three suspended slabs. The full arithmetic is in Form TP-12; this is the reading method that produced it.</p>
+<table class="t compact">
+    <thead><tr><th style="width:5%">Step</th><th style="width:40%">Read</th><th style="width:38%">Compute</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Grid spacing 6,000 mm both ways; 4 bays &times; 3 bays</td><td>12.0 &times; 10.0 m footprint</td><td>120 m&sup2; per floor</td></tr>
+      <tr><td>2</td><td>Footing schedule F1: 1,500 &times; 1,500 &times; 400 deep, 16 no.</td><td>1.5 &times; 1.5 &times; 0.4 &times; 16</td><td>14.40 m&sup3;</td></tr>
+      <tr><td>3</td><td>Column schedule: 300 &times; 400, 3.2 m high, 32 no.</td><td>0.3 &times; 0.4 &times; 3.2 &times; 32</td><td>12.29 m&sup3;</td></tr>
+      <tr><td>4</td><td>Beam schedule: 250 &times; 500, total run 88 m per floor, 2 floors</td><td>0.25 &times; 0.5 &times; 88 &times; 2</td><td>22.00 m&sup3;</td></tr>
+      <tr><td>5</td><td>Slab: 120 m&sup2; &times; 150 mm, 3 floors</td><td>12 &times; 10 &times; 0.15 &times; 3</td><td>54.00 m&sup3;</td></tr>
+      <tr><td>6</td><td>Reinforcement: from the bar bending schedules, summed by diameter</td><td>Enter the schedule total, do not apply a percentage</td><td>11.248 t</td></tr>
+      <tr><td>7</td><td>Formwork: sides and soffits from the sections</td><td>Per element perimeter &times; length + soffit area</td><td>893.76 m&sup2;</td></tr>
+      <tr><td>8</td><td>Blockwork: external and internal wall lengths &times; clear height, less openings</td><td>Net area after deduction</td><td>522.48 m&sup2;</td></tr>
+      <tr><td>9</td><td>Plaster: both faces of every wall plus soffits</td><td>Net wall area &times; 2 + ceiling area</td><td>1,668.96 m&sup2;</td></tr>
+      <tr><td>10</td><td>Electrical: points from the power and lighting layouts, cable from the containment routes</td><td>Points by count; cable by route length &times; 1.15 for slack</td><td>14 no. / 1,850 m</td></tr>
+    </tbody>
+    
+  </table><div class="callout amber"><strong>Why the reinforcement figure is 11.248 t and not a percentage:</strong> a percentage-of-concrete-volume estimate would give somewhere between 100 and 140 kg/m&sup3;, i.e. 10.3&ndash;14.5 t on 102.7 m&sup3; &mdash; a range of &plusmn;20%. The schedule total is exact and defensible. Use the percentage only as a sanity check on the schedule, never as the quantity.</div><h2 class="sec"><span class="num">6</span> Cross-Checking the Set</h2>
+<table class="t compact">
+    <thead><tr><th style="width:20%">Check</th><th style="width:40%">Compare</th><th>A discrepancy means</th></tr></thead>
+    <tbody>
+      <tr><td>Slab thickness</td><td>Architectural section vs structural section</td><td>One discipline has not seen the other's revision</td></tr>
+      <tr><td>Ceiling height</td><td>Architectural RCP vs MEP ceiling void requirement</td><td>Services will not fit; ceiling level must drop</td></tr>
+      <tr><td>Opening sizes</td><td>Architectural door schedule vs structural opening</td><td>Frame will not fit, or excessive making-good</td></tr>
+      <tr><td>Levels</td><td>Architectural FFL vs structural SL</td><td>Screed thickness assumed incorrectly throughout</td></tr>
+      <tr><td>Column positions</td><td>Grid on plan vs grid on foundation layout</td><td>Setting-out error before excavation</td></tr>
+      <tr><td>Services routes</td><td>MEP plan vs structural beam depth</td><td>Beam cannot be penetrated where the drawing shows</td></tr>
+      <tr><td>Quantities</td><td>Drawing take-off vs BOQ</td><td>Either a measurement error or a BOQ omission &mdash; both are priced risks</td></tr>
+    </tbody>
+    
+  </table><h2 class="sec"><span class="num">7</span> Documenting Your Reading</h2>
+<p>Every take-off must be traceable back to a sheet, a revision and a dimension. Record, for each measured item:
+drawing number, revision, the element mark, and the dimensions used. When the drawing is revised, you can then
+identify exactly which quantities change &mdash; and claim the difference if it is a variation.</p>
+<table class="t compact">
+    <thead><tr><th>Item</th><th>Drawing no.</th><th>Rev.</th><th>Element mark</th><th>Dimension source</th><th>Measured by</th><th>Date</th></tr></thead>
+    <tbody>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+    
+  </table><h2 class="sec"><span class="num">8</span> Common Errors and Their Cost</h2>
+<table class="t compact">
+  <thead><tr><th style="width:30%">Error</th><th style="width:34%">How it happens</th><th>Typical cost consequence</th></tr></thead>
+  <tbody>
+    <tr><td>Measuring a superseded revision</td><td>Using a file that was renamed, not reissued</td><td>Whole-element re-measure; often discovered after award</td></tr>
+    <tr><td>Scaling from a PDF</td><td>No printed dimension available for a particular element</td><td>1&ndash;3% random error per dimension, compounding across elements</td></tr>
+    <tr><td>Ignoring laps and anchorage</td><td>Using clear bar length from the drawing</td><td>3&ndash;8% under-measure of reinforcement</td></tr>
+    <tr><td>No deduction for openings</td><td>Measuring wall area as a solid rectangle</td><td>2&ndash;6% over-measure of blockwork and plaster</td></tr>
+    <tr><td>Forgetting the waste factor</td><td>Pricing net quantity as the purchase quantity</td><td>3&ndash;10% under-cost depending on the material</td></tr>
+    <tr><td>Counting fittings as pipe</td><td>Taking a centre-line length and stopping there</td><td>30&ndash;40% under-cost on plumbing packages</td></tr>
+    <tr><td>Assuming floor-to-floor wall height</td><td>Blockwork measured to slab soffit including beam depth</td><td>Over-measure of 8&ndash;15% on blockwork</td></tr>
+    <tr><td>Missing a discipline entirely</td><td>Fire alarm or BMS absent from the drawing register</td><td>Whole trade missing from the price</td></tr>
+  </tbody>
+</table>
+<div class="sig-grid"><div class="sig"><b><input class="fi" placeholder="Prepared by"></b><span>Technical manager</span></div><div class="sig"><b><input class="fi" placeholder="Reviewed by"></b><span>Chief estimator</span></div></div>
+
+  <div class="print-foot">
+    <span>GUIDE TP-G1 &middot; MMC Technical Proposal Kit &mdash; English Edition v2.0</span>
+    <span>TP-KIT v2.0 &middot; English Edition</span>
+  </div>
+</div>
+
+<script src="../assets/en.js"></script>
+
+<script>
+/* Portal prefill: ?p=<project>&a=<authority> */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var proj = q.get('p'), auth = q.get('a');
+  if (!proj && !auth) return;
+  var PROJ = /(project|المشروع|اسم المشروع|مشروع)/i;
+  var AUTH = /(authority|client|employer|owner|الجهة|صاحب العمل|المالك|الجهة صاحبة)/i;
+  function labelOf(el) {
+    var f = el.closest('.field, .fld, tr, div');
+    if (!f) return '';
+    var l = f.querySelector('label');
+    if (l) return l.textContent;
+    var td = el.closest('td');
+    if (td && td.previousElementSibling) return td.previousElementSibling.textContent;
+    return f.textContent.slice(0, 80);
+  }
+  function fill(re, val) {
+    if (!val) return false;
+    var nodes = document.querySelectorAll('input.fi, input[type="text"], textarea.fi');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].value) continue;
+      if (re.test(labelOf(nodes[i]))) { nodes[i].value = val; return true; }
+    }
+    return false;
+  }
+  function run() {
+    fill(PROJ, proj);
+    fill(AUTH, auth);
+    document.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+</body>
+</html>

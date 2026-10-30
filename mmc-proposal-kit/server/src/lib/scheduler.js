@@ -1,0 +1,116 @@
+'use strict';
+/**
+ * جدولة المهام داخل الخادم (node-cron).
+ * تُفعّل بـ SCHEDULER_ENABLED=true.
+ */
+const cron = require('node-cron');
+const path = require('path');
+const config = require('../config');
+
+let _jobs = [];
+let _lastRun = null;
+
+function record(entry) {
+  _lastRun = entry;
+  const status = entry.ok ? 'OK  ' : 'FAIL';
+  const line = '[' + entry.at + '] ' + status + ' ' + entry.job + '  ' + (entry.ms || 0) + 'ms  ' + entry.message + '\n';
+  try {
+    const fs = require('fs');
+    fs.mkdirSync(config.BACKUP_DIR, { recursive: true });
+    fs.appendFileSync(path.join(config.BACKUP_DIR, 'scheduler.log'), line);
+  } catch (_) {}
+  console.log('[scheduler] ' + line.trim());
+}
+
+async function runBackupJob() {
+  const started = Date.now();
+  try {
+    const { execFile } = require('child_process');
+    const { promisify } = require('util');
+    const run = promisify(execFile);
+    const root = path.resolve(__dirname, '..', '..');
+    const scriptPath = path.resolve(root, 'scripts', 'backup.js');
+    const { stdout } = await run(process.execPath, [scriptPath], {
+      cwd: root, timeout: 10 * 60 * 1000, env: process.env
+    });
+    const ms = Date.now() - started;
+    const m = stdout.match(/portal-\d{8}-\d{6}\.db\.gz/);
+    record({ at: new Date().toISOString(), job: 'backup', ok: true, ms,
+      message: m ? m[0] : 'done' });
+    return { ok: true, name: m ? m[0] : null, ms };
+  } catch (err) {
+    const ms = Date.now() - started;
+    record({ at: new Date().toISOString(), job: 'backup', ok: false, ms,
+      message: (err.message || String(err)).slice(0, 300) });
+    return { ok: false, error: err.message, ms };
+  }
+}
+
+/** ينقل الاشتراكات المنتهية إلى expired ويعيد المستخدم للباقة المجانية */
+function runSubscriptionExpiryJob() {
+  const started = Date.now();
+  try {
+    const { getDB } = require('../db');
+    const db = getDB();
+    const now = Math.floor(Date.now() / 1000);
+    const expired = db.prepare(`SELECT id, user_id, plan_key FROM subscriptions
+      WHERE status = 'active' AND ends_at IS NOT NULL AND ends_at <= ?`).all(now);
+    const tx = db.transaction(() => {
+      for (const sub of expired) {
+        db.prepare("UPDATE subscriptions SET status = 'expired' WHERE id = ? AND status = 'active'").run(sub.id);
+        db.prepare(`UPDATE users SET plan_key = 'free', plan_started_at = ?
+          WHERE id = ? AND plan_key = ?
+          AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = users.id AND s.status = 'active')`)
+          .run(now, sub.user_id, sub.plan_key);
+      }
+    });
+    tx();
+    const ms = Date.now() - started;
+    record({ at: new Date().toISOString(), job: 'subscription-expiry', ok: true, ms,
+      message: 'expired=' + expired.length });
+    return { ok: true, expired: expired.length, ms };
+  } catch (err) {
+    const ms = Date.now() - started;
+    record({ at: new Date().toISOString(), job: 'subscription-expiry', ok: false, ms,
+      message: (err.message || String(err)).slice(0, 300) });
+    return { ok: false, error: err.message, ms };
+  }
+}
+
+function startScheduler() {
+  if (!config.SCHEDULER_ENABLED) {
+    console.log('[scheduler] معطّل (SCHEDULER_ENABLED=false)');
+    return { enabled: false, jobs: [] };
+  }
+  if (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON)) {
+    console.error('[scheduler] تعبير cron غير صالح — لم تُجدول المهام');
+    return { enabled: false, jobs: [], error: 'invalid cron' };
+  }
+  const backupJob = cron.schedule(config.BACKUP_CRON, () => {
+    console.log('[scheduler] بدء النسخة الاحتياطية المجدولة...');
+    runBackupJob().catch((e) => console.error('[scheduler] خطأ النسخ:', e.message));
+  }, { timezone: config.BACKUP_TZ, name: 'db-backup' });
+  const expiryJob = cron.schedule(config.SUBSCRIPTION_EXPIRY_CRON, () => {
+    console.log('[scheduler] فحص الاشتراكات المنتهية...');
+    runSubscriptionExpiryJob();
+  }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
+  _jobs.push(backupJob, expiryJob);
+  console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
+  console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
+  return { enabled: true, jobs: ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
+    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON, tz: config.BACKUP_TZ };
+}
+
+function stopScheduler() {
+  _jobs.forEach((j) => { try { j.stop(); } catch (_) {} });
+  _jobs = [];
+  console.log('[scheduler] أُوقفت كل المهام.');
+}
+
+function schedulerStatus() {
+  return { enabled: config.SCHEDULER_ENABLED, cron: config.BACKUP_CRON,
+    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON, timezone: config.BACKUP_TZ,
+    running: _jobs.length, lastRun: _lastRun };
+}
+
+module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob };
