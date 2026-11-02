@@ -26,7 +26,7 @@ test('project finance inline JavaScript parses without syntax errors', () => {
 test('project finance UI exposes every role workflow action', () => {
   const requiredIds = [
     'makeAward','makePO','review','forward','makeInvoice',
-    'confirmOwner','approveFinance','recordPayment',
+    'confirmOwner','approveFinance','recordPayment','invoiceItem',
     'buyerTools','contractorTools','ownerTools','financeTools'
   ];
   for (const id of requiredIds) {
@@ -48,4 +48,5 @@ test('project finance UI keeps project invoices separate from MMC subscription b
   assert.ok(html.includes('لا تدخل ضمن فواتير اشتراكات MMC'));
   assert.ok(html.includes('/project-finance/invoices/'));
   assert.ok(!html.includes("API.request('POST','/billing"));
+  assert.ok(html.includes('poItemId:opt.value'), 'contractor invoices must identify the approved PO line');
 });
