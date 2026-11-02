@@ -7,17 +7,20 @@ const path = require('node:path');
 
 const pagePath = path.join(__dirname, '../../webpages/technical-proposal-kit_v5/project-finance/index.html');
 const html = fs.readFileSync(pagePath, 'utf8');
-const inlineScripts = [...html.matchAll(/<script(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/script>/gi)].map((m) => m[1]).filter((s) => s.trim());
+const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)]
+  .filter((m) => !/\bsrc\s*=/.test(m[1]))
+  .map((m) => m[2])
+  .filter((s) => s.trim());
 
 test('project finance UI page exists and has a responsive viewport', () => {
   assert.ok(html.includes('<meta name="viewport"'));
-  assert.match(html, /@media\\s*\\(max-width:\s*700px\\)/);
+  assert.ok(html.includes('@media(max-width:700px)'));
   assert.ok(html.includes('دورة المشاريع والمستحقات'));
 });
 
 test('project finance inline JavaScript parses without syntax errors', () => {
-  assert.ok(inlineScripts.length > 0, 'no inline application script found');
-  inlineScripts.forEach((source, index) => new vm.Script(source, { filename: 'project-finance-inline-' + index + '.js' }));
+  assert.ok(scripts.length > 0, 'no inline application script found');
+  scripts.forEach((source, index) => new vm.Script(source, { filename: 'project-finance-inline-' + index + '.js' }));
 });
 
 test('project finance UI exposes every role workflow action', () => {
@@ -27,7 +30,7 @@ test('project finance UI exposes every role workflow action', () => {
     'buyerTools','contractorTools','ownerTools','financeTools'
   ];
   for (const id of requiredIds) {
-    assert.match(html, new RegExp('id=["\\']' + id + '["\\']'), 'missing UI control: ' + id);
+    assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'missing UI control: ' + id);
   }
   for (const endpoint of [
     '/project-finance/awards',
@@ -41,7 +44,7 @@ test('project finance UI exposes every role workflow action', () => {
   ]) assert.ok(html.includes(endpoint), 'missing API workflow endpoint: ' + endpoint);
 });
 
-test('project finance UI does not route project payments through MMC subscription billing', () => {
+test('project finance UI keeps project invoices separate from MMC subscription billing', () => {
   assert.ok(html.includes('لا تدخل ضمن فواتير اشتراكات MMC'));
   assert.ok(html.includes('/project-finance/invoices/'));
   assert.ok(!html.includes("API.request('POST','/billing"));
