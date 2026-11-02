@@ -4,6 +4,9 @@
  * Completely separate from MMC subscription billing.
  */
 const express = require('express');
+const multer = require('multer');
+const config = require('../config');
+const S = require('../lib/storage');
 const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
@@ -249,4 +252,53 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
   })();
   res.status(201).json({ok:true,payment:db().prepare('SELECT * FROM project_payments WHERE id=?').get(id)});
 }));
+
+const invoiceUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: config.MAX_FILE_BYTES, files: 5 },
+  fileFilter: (req, file, cb) => {
+    try { S.assertAllowed(file.originalname, file.size || 0); cb(null, true); }
+    catch (err) { cb(err); }
+  }
+});
+router.post('/invoices/:id/documents', invoiceUpload.array('files', 5), wrap(async (req,res)=>{
+  if(req.user.role!=='contractor') throw E.forbidden('إرفاق مستندات الفاتورة متاح للمقاول فقط.');
+  const i=invoiceFor(req,req.params.id);
+  if(!['submitted','returned'].includes(i.status)) throw E.conflict('لا يمكن تعديل مستندات فاتورة بعد بدء مراجعتها.');
+  const files=req.files||[];
+  if(!files.length) throw E.validation('أرفق ملفاً واحداً على الأقل.');
+  const store=S.getStorage(), inserted=[];
+  for(const f of files){
+    const key=S.buildKey(req.user.id,i.id,S.makeStoredName(f.originalname));
+    const put=await store.put(key,f.buffer,{mime:f.mimetype||'application/octet-stream',originalName:S.displayName(f.originalname)});
+    const id=uid('pidoc_');
+    db().prepare('INSERT INTO project_invoice_documents (id,invoice_id,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(id,i.id,key,store.DRIVER,S.displayName(f.originalname),f.mimetype||'application/octet-stream',f.size,put.checksum,req.user.id);
+    inserted.push({id,name:S.displayName(f.originalname),size:f.size});
+    event({orgId:i.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:'contractor',action:'invoice_document_uploaded',detail:{documentId:id,size:f.size},ip:req.ip});
+  }
+  res.status(201).json({documents:inserted});
+}));
+router.get('/invoices/:id/documents',wrap(async(req,res)=>{
+  const i=invoiceFor(req,req.params.id);
+  const rows=db().prepare('SELECT id,original_name name,mime,size,uploaded_at FROM project_invoice_documents WHERE invoice_id=? ORDER BY uploaded_at').all(i.id);
+  res.json({documents:rows});
+}));
+router.get('/invoice-documents/:id/download',wrap(async(req,res)=>{
+  const d=db().prepare('SELECT d.*,i.org_id,i.contractor_user_id FROM project_invoice_documents d JOIN project_invoices i ON i.id=d.invoice_id WHERE d.id=?').get(req.params.id);
+  if(!d) throw E.notFound('المستند غير موجود.');
+  if(req.user.role==='contractor'){
+    if(d.contractor_user_id!==req.user.id) throw E.notFound('المستند غير موجود.');
+  }else{
+    const m=member(req);
+    if(m.org_id!==d.org_id) throw E.notFound('المستند غير موجود.');
+  }
+  const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+  if(!(await store.exists(d.storage_key))) throw E.notFound('ملف المستند غير موجود في التخزين.');
+  res.setHeader('Content-Type',d.mime||'application/octet-stream');
+  res.setHeader('Content-Disposition','attachment; filename*=UTF-8\\'\\''+encodeURIComponent(d.original_name));
+  res.setHeader('Cache-Control','private, no-store');
+  store.stream(d.storage_key).pipe(res);
+}));
+
 module.exports=router;
