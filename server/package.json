@@ -36,5 +36,9 @@
   },
   "devDependencies": {
     "s3rver": "^3.7.1"
+  },
+  "overrides": {
+    "busboy": "^1.6.0",
+    "fast-xml-parser": "^5.6.1"
   }
 }
