@@ -1056,6 +1056,10 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   });
   assert.strictEqual(awardRes.status, 201, JSON.stringify(awardRes.data));
   const awardId = awardRes.data.award.id;
+  const duplicateAward = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId, submissionId, awardReference: 'PF-AWARD-DUP-' + uniq(), awardedAmount: 900, currency: 'JOD' }
+  });
+  assert.strictEqual(duplicateAward.status, 409, 'يجب منع ترسية ثانية للعطاء نفسه');
 
   const poRes = await call(procurement, 'POST', '/api/project-finance/awards/' + awardId + '/purchase-orders', {
     body: { poNumber: 'PF-PO-' + uniq(), currency: 'JOD', requiresOwnerConfirmation: true,
@@ -1142,6 +1146,10 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
   assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
 
+  const impossibleDate = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 1, paymentReference: 'PF-PAY-BAD-DATE-' + uniq(), paymentDate: '2026-02-30' }
+  });
+  assert.strictEqual(impossibleDate.status, 422, 'يجب رفض تاريخ غير موجود في التقويم');
   const firstPay = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 400, paymentReference: 'PF-PAY-1-' + uniq(), paymentDate: '2026-11-02' }
   });
