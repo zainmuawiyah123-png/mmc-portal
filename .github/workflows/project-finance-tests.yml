@@ -53,20 +53,27 @@ jobs:
           node --check src/routes/project-finance.js
           node --check src/lib/org.js
           node --check src/index.js
-      - name: Start isolated S3-compatible test server
+      - name: Start isolated MinIO test server
         run: |
-          mkdir -p /tmp/mmc-s3-test
-          nohup node -e "const S3rver=require('s3rver'); new S3rver({address:'127.0.0.1',port:9500,silent:true,directory:'/tmp/mmc-s3-test',configureBuckets:[{name:'tpkit-test'}]}).run().catch(e=>{console.error(e);process.exit(1)})" >/tmp/mmc-s3rver.log 2>&1 &
-          for i in {1..20}; do
-            if curl -sS http://127.0.0.1:9500/ >/dev/null 2>&1; then exit 0; fi
+          docker run -d --name mmc-minio -p 9500:9000 \
+            -e MINIO_ROOT_USER=mmctestkey \
+            -e MINIO_ROOT_PASSWORD=mmctestsecret123 \
+            quay.io/minio/minio server /data --address ":9000"
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:9500/minio/health/ready >/dev/null; then break; fi
             sleep 1
           done
-          cat /tmp/mmc-s3rver.log
-          exit 1
+          curl -fsS http://127.0.0.1:9500/minio/health/ready >/dev/null
+          node <<'NODE'
+          const { S3Client, CreateBucketCommand } = require('@aws-sdk/client-s3');
+          const client = new S3Client({ region: 'us-east-1', endpoint: 'http://127.0.0.1:9500', forcePathStyle: true,
+            credentials: { accessKeyId: 'mmctestkey', secretAccessKey: 'mmctestsecret123' } });
+          client.send(new CreateBucketCommand({ Bucket: 'tpkit-test' })).then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+          NODE
       - name: Run API, migration and storage tests
         env:
           S3_TEST_ENDPOINT: http://127.0.0.1:9500
           S3_TEST_BUCKET: tpkit-test
-          S3_TEST_KEY: S3RVER
-          S3_TEST_SECRET: S3RVER
+          S3_TEST_KEY: mmctestkey
+          S3_TEST_SECRET: mmctestsecret123
         run: npm run test:all
