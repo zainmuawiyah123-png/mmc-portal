@@ -704,6 +704,32 @@ test('63 — لا تقديم بعد موعد الإغلاق، ويُقبل في 
   assert.strictEqual((await call('qcon', 'POST', '/api/procurement/tenders/' + today.id + '/submit', { body: bidBody(today) })).status, 201);
 });
 
+test('63A — لا تمنح الإجابة علامة تلقائية، ولا يفتح المالي قبل تقييم جميع المعايير', async () => {
+  const tender = await publish('qbuy');
+  const submitted = await call('qcon', 'POST', '/api/procurement/tenders/' + tender.id + '/submit', { body: bidBody(tender) });
+  assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
+  assert.strictEqual(submitted.data.technicalScore, 0);
+  assert.strictEqual(submitted.data.technicalPoints, 0);
+  const before = await call('qbuy', 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations');
+  assert.strictEqual(before.data.submissions[0].financialOpened, false);
+  const submissionId = before.data.submissions[0].id;
+  const incomplete = await call('qbuy', 'POST', '/api/procurement/submissions/' + submissionId + '/evaluate', {
+    body: { scores: [], reason: 'اختبار' }
+  });
+  assert.strictEqual(incomplete.status, 422);
+  const scored = await call('qbuy', 'POST', '/api/procurement/submissions/' + submissionId + '/evaluate', {
+    body: { scores: tender.requirements.map((r) => ({ requirementId: r.id, score: 100 })), reason: 'اختبار آلي: استيفاء معايير العطاء' }
+  });
+  assert.strictEqual(scored.status, 200, JSON.stringify(scored.data));
+  assert.strictEqual(scored.data.technicalScore, 100);
+  assert.strictEqual(scored.data.technicalPoints, 60);
+  assert.strictEqual(scored.data.financialOpened, true);
+  const after = await call('qbuy', 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations');
+  assert.strictEqual(after.data.submissions[0].financialOpened, true);
+  const audit = getDB().prepare('SELECT action, technical_score, technical_points, passed FROM bid_evaluation_audit WHERE submission_id=?').get(submissionId);
+  assert.deepStrictEqual([audit.action, audit.technical_score, audit.technical_points, audit.passed], ['human_scored', 100, 60, 1]);
+});
+
 test('64 — حد التقديم الإلكتروني: المجاني 2، ويُرفع بالترقية', async () => {
   const email = 'ql' + uniq() + '@t.com';
   await call('qfree', 'POST', '/api/auth/register', { body: { name: 'مجاني', email, password: 'Password123' } });
