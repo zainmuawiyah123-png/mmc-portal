@@ -46,3 +46,9 @@ The current scoring path is a controlled human-review fallback, not yet the requ
 6. Add regression tests for 49.99/60, 50/60, mandatory failures, missing evidence, changed rubric attempts, and financial-data isolation.
 
 No production data or `main` branch is changed by this work. No deployment has been triggered.
+
+## Verification procedure
+- Run the isolated backend, migration, browser/UI, and S3 suites with `cd server && npm ci && npm run test:all`.
+- The GitHub Actions workflow `.github/workflows/project-finance-tests.yml` runs this suite on every push to the development branch and on pull requests targeting `main`.
+- A successful Vercel build or deployment check is not a substitute for this MMC test suite.
+- Do not merge or deploy until the MMC workflow reports success and the release checklist is reviewed.
