@@ -28,11 +28,22 @@ test('project finance migration is additive and repeatable', () => {
   assert.ok(invoiceColumnsBefore.includes('plan_key'));
   assert.ok(invoiceColumnsBefore.includes('billing_cycle'));
   assert.ok(!invoiceColumnsBefore.includes('po_id'));
+  // Preserve a real pre-existing MMC subscription invoice across the additive migration.
+  first.prepare("INSERT INTO users (id,email,password_hash,name,plan_key) VALUES (?,?,?,?,?)")
+    .run('pf_migration_user','migration-check@example.test','test-hash','Migration Check','free');
+  first.prepare("INSERT INTO invoices (id,invoice_number,user_id,plan_key,billing_cycle,currency,amount,status,payment_method,transfer_reference) VALUES (?,?,?,?,?,?,?,?,?,?)")
+    .run('mmc_sub_invoice_1','MMC-MIGRATION-001','pf_migration_user','free','annual','JOD',25,'paid','bank_transfer','BANK-REF-001');
   first.close();
 
   const second = migrate(process.env.DB_PATH);
   const invoiceColumnsAfter = second.prepare('PRAGMA table_info(invoices)').all().map((x) => x.name);
   assert.deepEqual(invoiceColumnsAfter, invoiceColumnsBefore, 'MMC subscription invoice schema must remain unchanged');
+  const preservedInvoice = second.prepare('SELECT id,invoice_number,user_id,plan_key,billing_cycle,currency,amount,status,payment_method,transfer_reference FROM invoices WHERE id=?').get('mmc_sub_invoice_1');
+  assert.deepEqual(preservedInvoice, {
+    id:'mmc_sub_invoice_1', invoice_number:'MMC-MIGRATION-001', user_id:'pf_migration_user',
+    plan_key:'free', billing_cycle:'annual', currency:'JOD', amount:25, status:'paid',
+    payment_method:'bank_transfer', transfer_reference:'BANK-REF-001'
+  }, 'MMC subscription invoice data must survive project finance migration unchanged');
   const poColumns = second.prepare('PRAGMA table_info(purchase_orders)').all().map((x) => x.name);
   assert.ok(poColumns.includes('requires_owner_confirmation'));
   second.close();
