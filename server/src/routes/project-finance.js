@@ -162,9 +162,11 @@ router.post('/purchase-orders/:id/issue', wrap(async(req,res)=>{
   res.json({ok:true,status:'issued'});
 }));
 router.get('/purchase-orders',wrap(async(req,res)=>{
-  if(req.user.role==='contractor') return res.json({purchaseOrders:db().prepare("SELECT p.*,a.tender_id FROM purchase_orders p JOIN project_awards a ON a.id=p.award_id WHERE a.contractor_user_id=? AND p.status='issued' ORDER BY p.created_at DESC").all(req.user.id)});
-  const m=member(req);
-  res.json({purchaseOrders:db().prepare('SELECT * FROM purchase_orders WHERE org_id=? ORDER BY created_at DESC').all(m.org_id)});
+  let rows;
+  if(req.user.role==='contractor') rows=db().prepare("SELECT p.*,a.tender_id FROM purchase_orders p JOIN project_awards a ON a.id=p.award_id WHERE a.contractor_user_id=? AND p.status='issued' ORDER BY p.created_at DESC").all(req.user.id);
+  else { const m=member(req); rows=db().prepare('SELECT * FROM purchase_orders WHERE org_id=? ORDER BY created_at DESC').all(m.org_id); }
+  const purchaseOrders=rows.map(p=>({...p,items:db().prepare('SELECT id,line_no,description,unit,quantity,unit_price,line_total FROM purchase_order_items WHERE po_id=? ORDER BY line_no').all(p.id)}));
+  res.json({purchaseOrders});
 }));
 
 router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
@@ -174,8 +176,23 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   const b=req.body||{};
   if (!clip(b.invoiceNumber,80)) throw E.validation('رقم الفاتورة مطلوب.');
   const items=Array.isArray(b.items)?b.items:[];
-  const total=Math.round(items.reduce((s,x)=>s+Math.round(Number(x.quantity)*Number(x.unitPrice)*100)/100,0)*100)/100;
-  if(!items.length||!Number.isFinite(total)||total<=0) throw E.validation('أدخل بنود الفاتورة بصورة صحيحة.');
+  if(!items.length||items.length>300) throw E.validation('أدخل بنود الفاتورة بصورة صحيحة.');
+  const requested=new Map();
+  let total=0;
+  for(const x of items){
+    const q=amount(x.quantity,'quantity');
+    const price=Number(x.unitPrice);
+    if(!x.poItemId||!Number.isFinite(price)||price<0||Math.round(price*100)!==price*100) throw E.validation('اربط كل بند فاتورة ببند أمر شراء معتمد وبسعر صحيح.');
+    const poItem=db().prepare('SELECT * FROM purchase_order_items WHERE id=? AND po_id=?').get(clip(x.poItemId,100),p.id);
+    if(!poItem) throw E.validation('بند الفاتورة لا يتبع أمر الشراء المحدد.');
+    if(Math.abs(price-Number(poItem.unit_price))>0.0001) throw E.validation('سعر الفاتورة يجب أن يطابق سعر أمر الشراء.');
+    const already=db().prepare("SELECT COALESCE(SUM(ii.quantity),0) n FROM project_invoice_items ii JOIN project_invoices i ON i.id=ii.invoice_id WHERE ii.po_item_id=? AND i.status NOT IN ('void','rejected')").get(poItem.id).n;
+    const requestedQty=(requested.get(poItem.id)||0)+q;
+    if(Number(already)+requestedQty>Number(poItem.quantity)+0.0001) throw E.conflict('كمية الفاتورة تتجاوز الكمية المتبقية من بند أمر الشراء.');
+    requested.set(poItem.id,requestedQty);
+    total+=Math.round(q*price*100)/100;
+  }
+  total=Math.round(total*100)/100;
   const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
   if(invoiced+total>p.total_amount+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
   const type=['materials','progress','final'].includes(b.invoiceType)?b.invoiceType:null;
