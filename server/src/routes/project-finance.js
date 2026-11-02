@@ -296,7 +296,7 @@ router.get('/invoice-documents/:id/download',wrap(async(req,res)=>{
   const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
   if(!(await store.exists(d.storage_key))) throw E.notFound('ملف المستند غير موجود في التخزين.');
   res.setHeader('Content-Type',d.mime||'application/octet-stream');
-  res.setHeader('Content-Disposition','attachment; filename*=UTF-8\\'\\''+encodeURIComponent(d.original_name));
+  res.setHeader('Content-Disposition','attachment; filename*=UTF-8\'\''+encodeURIComponent(d.original_name));
   res.setHeader('Cache-Control','private, no-store');
   store.stream(d.storage_key).pipe(res);
 }));
