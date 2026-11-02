@@ -30,9 +30,9 @@ function requireOrg(req, roles) {
   return m;
 }
 function event(data) {
-  db().prepare(\`INSERT INTO project_audit_events
+  db().prepare(`INSERT INTO project_audit_events
     (id,org_id,tender_id,award_id,po_id,invoice_id,payment_id,actor_user_id,actor_role,action,from_status,to_status,detail_json,ip)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)\`).run(
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
     uid('pae_'), data.orgId, data.tenderId || null, data.awardId || null,
     data.poId || null, data.invoiceId || null, data.paymentId || null,
     data.userId || null, data.role || null, data.action,
@@ -51,9 +51,9 @@ function poForOrg(id, orgId) {
   return p;
 }
 function invoiceFor(req, id) {
-  const row = db().prepare(\`SELECT i.*, p.status po_status, p.total_amount po_total, a.contractor_user_id, a.tender_id
+  const row = db().prepare(`SELECT i.*, p.status po_status, p.total_amount po_total, a.contractor_user_id, a.tender_id
     FROM project_invoices i JOIN purchase_orders p ON p.id=i.po_id
-    JOIN project_awards a ON a.id=i.award_id WHERE i.id=?\`).get(id);
+    JOIN project_awards a ON a.id=i.award_id WHERE i.id=?`).get(id);
   if (!row) throw E.notFound('الفاتورة غير موجودة.');
   if (req.user.role === 'contractor') {
     if (row.contractor_user_id !== req.user.id) throw E.notFound('الفاتورة غير موجودة.');
@@ -65,7 +65,7 @@ function invoiceFor(req, id) {
 }
 function insertItems(table, parentColumn, parentId, items) {
   if (!Array.isArray(items) || !items.length || items.length > 300) throw E.validation('أدخل بنوداً صحيحة.');
-  const ins = db().prepare(\`INSERT INTO \${table} (id,\${parentColumn},\${table === 'purchase_order_items' ? 'line_no,' : ''}description,quantity,unit_price,line_total\${table === 'purchase_order_items' ? ',unit' : ',po_item_id'}) VALUES (\${table === 'purchase_order_items' ? '?,?,?,?,?,?,?,?' : '?,?,?,?,?,?,?'})\`);
+  const ins = db().prepare(`INSERT INTO ${table} (id,${parentColumn},${table === 'purchase_order_items' ? 'line_no,' : ''}description,quantity,unit_price,line_total${table === 'purchase_order_items' ? ',unit' : ',po_item_id'}) VALUES (${table === 'purchase_order_items' ? '?,?,?,?,?,?,?,?' : '?,?,?,?,?,?,?'})`);
   let total = 0;
   items.forEach((x, i) => {
     const q = amount(x.quantity, 'quantity');
@@ -86,16 +86,16 @@ router.post('/awards', wrap(async (req, res) => {
   const tender = db().prepare('SELECT * FROM tenders WHERE id=? AND org_id=?').get(clip(b.tenderId, 100), m.org_id);
   if (!tender) throw E.notFound('العطاء غير موجود ضمن جهتك.');
   if (tender.procurement_status !== 'published' && tender.procurement_status !== 'closed') throw E.conflict('العطاء غير مؤهل للترسية.');
-  const submission = db().prepare(\`SELECT s.*, u.role contractor_role FROM bid_submissions s
-    JOIN users u ON u.id=s.contractor_id WHERE s.id=? AND s.tender_id=?\`).get(clip(b.submissionId, 100), tender.id);
+  const submission = db().prepare(`SELECT s.*, u.role contractor_role FROM bid_submissions s
+    JOIN users u ON u.id=s.contractor_id WHERE s.id=? AND s.tender_id=?`).get(clip(b.submissionId, 100), tender.id);
   if (!submission || submission.contractor_role !== 'contractor' || !submission.technical_passed || !submission.financial_unlocked) throw E.validation('العرض المحدد غير مؤهل للترسية.');
   if (db().prepare('SELECT 1 FROM project_awards WHERE tender_id=? AND status=\'approved\'').get(tender.id)) throw E.conflict('سبق تسجيل ترسية معتمدة لهذا العطاء.');
   const value = amount(b.awardedAmount, 'awardedAmount');
   const id = uid('awd_');
   db().transaction(() => {
-    db().prepare(\`INSERT INTO project_awards
+    db().prepare(`INSERT INTO project_awards
       (id,tender_id,org_id,contractor_user_id,award_reference,contract_reference,currency,awarded_amount,awarded_by,notes)
-      VALUES (?,?,?,?,?,?,?,?,?,?)\`).run(id, tender.id, m.org_id, submission.contractor_id,
+      VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id, tender.id, m.org_id, submission.contractor_id,
       clip(b.awardReference, 100) || id, clip(b.contractReference, 100) || null,
       clip(b.currency, 3).toUpperCase() || 'JOD', value, req.user.id, clip(b.notes, 2000) || null);
     event({ orgId:m.org_id,tenderId:tender.id,awardId:id,userId:req.user.id,role:m.role,action:'award_registered',to:'approved',detail:{submissionId:submission.id,awardedAmount:value},ip:req.ip });
@@ -105,11 +105,11 @@ router.post('/awards', wrap(async (req, res) => {
 
 router.get('/awards', wrap(async (req, res) => {
   if (req.user.role === 'contractor') {
-    const rows = db().prepare(\`SELECT a.*, t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.contractor_user_id=? ORDER BY a.awarded_at DESC\`).all(req.user.id);
+    const rows = db().prepare(`SELECT a.*, t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.contractor_user_id=? ORDER BY a.awarded_at DESC`).all(req.user.id);
     return res.json({ awards: rows });
   }
   const m = member(req);
-  res.json({ awards: db().prepare(\`SELECT a.*,t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.org_id=? ORDER BY a.awarded_at DESC\`).all(m.org_id) });
+  res.json({ awards: db().prepare(`SELECT a.*,t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.org_id=? ORDER BY a.awarded_at DESC`).all(m.org_id) });
 }));
 
 router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
@@ -122,8 +122,8 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const rounded = Math.round(total * 100) / 100;
   if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
   db().transaction(() => {
-    db().prepare(\`INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by)
-      VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?)\`).run(id,a.id,m.org_id,clip(b.poNumber,80),clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id);
+    db().prepare(`INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by)
+      VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?)`).run(id,a.id,m.org_id,clip(b.poNumber,80),clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id);
     insertItems('purchase_order_items','po_id',id,items);
     event({orgId:m.org_id,tenderId:a.tender_id,awardId:a.id,poId:id,userId:req.user.id,role:m.role,action:'po_submitted_for_approval',to:'pending_approval',detail:{total:rounded},ip:req.ip});
   })();
@@ -170,8 +170,8 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   if(!type) throw E.validation('حدد نوع الفاتورة.');
   const id=uid('pin_');
   db().transaction(()=>{
-    db().prepare(\`INSERT INTO project_invoices (id,po_id,award_id,org_id,contractor_user_id,invoice_number,invoice_type,currency,gross_amount,contractor_note)
-      VALUES (?,?,?,?,?,?,?,?,?,?)\`).run(id,p.id,p.award_id,p.org_id,req.user.id,clip(b.invoiceNumber,80),type,p.currency,total,clip(b.note,2000)||null);
+    db().prepare(`INSERT INTO project_invoices (id,po_id,award_id,org_id,contractor_user_id,invoice_number,invoice_type,currency,gross_amount,contractor_note)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id,p.id,p.award_id,p.org_id,req.user.id,clip(b.invoiceNumber,80),type,p.currency,total,clip(b.note,2000)||null);
     insertItems('project_invoice_items','invoice_id',id,items);
     event({orgId:p.org_id,tenderId:p.tender_id,awardId:p.award_id,poId:p.id,invoiceId:id,userId:req.user.id,role:'contractor',action:'invoice_submitted',to:'submitted',detail:{grossAmount:total,type},ip:req.ip});
   })();
@@ -235,7 +235,7 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
   const remaining=Math.round((Number(i.gross_amount)-Number(i.retention_amount)-paid)*100)/100;
   if(value>remaining+0.0001) throw E.conflict('قيمة الدفعة تتجاوز الرصيد المستحق.');
   const ref=clip(req.body?.paymentReference,100);const date=clip(req.body?.paymentDate,20);
-  if(!ref||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
+  if(!ref||!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
   const id=uid('pay_');
   db().transaction(()=>{
     db().prepare('INSERT INTO project_payments (id,invoice_id,org_id,amount,currency,payment_reference,payment_date,recorded_by) VALUES (?,?,?,?,?,?,?,?)').run(id,i.id,m.org_id,value,i.currency,ref,date,req.user.id);
