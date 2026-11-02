@@ -1063,6 +1063,7 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   });
   assert.strictEqual(poRes.status, 201, JSON.stringify(poRes.data));
   const poId = poRes.data.purchaseOrder.id;
+  const poItemId = getDB().prepare('SELECT id FROM purchase_order_items WHERE po_id=?').get(poId).id;
   const wrongPoCurrency = await call(procurement, 'POST', '/api/project-finance/awards/' + awardId + '/purchase-orders', {
     body: { poNumber: 'PF-PO-USD-' + uniq(), currency: 'USD', items: [{ description: 'بند', quantity: 1, unitPrice: 1 }] }
   });
@@ -1074,7 +1075,7 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
 
   assert.strictEqual((await call(contractor, 'GET', '/api/project-finance/purchase-orders')).data.purchaseOrders.length, 0);
   assert.strictEqual((await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
-    body: { invoiceNumber: 'PF-EARLY', invoiceType: 'progress', items: [{ description: 'عمل', quantity: 1, unitPrice: 10 }] }
+    body: { invoiceNumber: 'PF-EARLY', invoiceType: 'progress', items: [{ poItemId, description: 'عمل', quantity: 1, unitPrice: 50 }] }
   })).status, 404);
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + poId + '/issue')).status, 409);
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + poId + '/approve')).status, 403);
@@ -1082,12 +1083,12 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + poId + '/issue')).status, 200);
 
   const over = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
-    body: { invoiceNumber: 'PF-OVER', invoiceType: 'progress', items: [{ description: 'عمل', quantity: 11, unitPrice: 50 }] }
+    body: { invoiceNumber: 'PF-OVER', invoiceType: 'progress', items: [{ poItemId, description: 'عمل', quantity: 11, unitPrice: 50 }] }
   });
   assert.strictEqual(over.status, 409);
   const invoiceRes = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
     body: { invoiceNumber: 'PF-INV-' + uniq(), invoiceType: 'progress',
-      items: [{ description: 'أعمال منفذة', quantity: 10, unitPrice: 50 }] }
+      items: [{ poItemId, description: 'أعمال منفذة', quantity: 10, unitPrice: 50 }] }
   });
   assert.strictEqual(invoiceRes.status, 201, JSON.stringify(invoiceRes.data));
   const invoiceId = invoiceRes.data.invoice.id;
