@@ -125,7 +125,7 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   if (!poNumber) throw E.validation('رقم أمر الشراء مطلوب.');
   const id = uid('po_');
   const items = Array.isArray(b.items) ? b.items : [];
-  const total = items.reduce((s,x) => s + amount(x.quantity,'quantity') * Number(x.unitPrice), 0);
+  const total = items.reduce((s,x) => s + Math.round(amount(x.quantity,'quantity') * Number(x.unitPrice) * 100) / 100, 0);
   const rounded = Math.round(total * 100) / 100;
   if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
   db().transaction(() => {
@@ -170,7 +170,7 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   const b=req.body||{};
   if (!clip(b.invoiceNumber,80)) throw E.validation('رقم الفاتورة مطلوب.');
   const items=Array.isArray(b.items)?b.items:[];
-  const total=Math.round(items.reduce((s,x)=>s+Number(x.quantity)*Number(x.unitPrice),0)*100)/100;
+  const total=Math.round(items.reduce((s,x)=>s+Math.round(Number(x.quantity)*Number(x.unitPrice)*100)/100,0)*100)/100;
   if(!items.length||!Number.isFinite(total)||total<=0) throw E.validation('أدخل بنود الفاتورة بصورة صحيحة.');
   const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
   if(invoiced+total>p.total_amount+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
