@@ -712,6 +712,8 @@ test('63A — لا تمنح الإجابة علامة تلقائية، ولا ي
   assert.strictEqual(submitted.data.technicalPoints, 0);
   assert.throws(() => getDB().prepare('UPDATE tender_requirements SET title=? WHERE id=?').run('تغيير بعد التقديم', tender.requirements[0].id),
     /locked after bid submission/, 'يجب قفل معايير العطاء بعد استلام أول عرض');
+  assert.throws(() => getDB().prepare('UPDATE tenders SET technical_threshold=49 WHERE id=?').run(tender.id),
+    /locked after bid submission/, 'يجب قفل سياسة التقييم بعد استلام أول عرض');
   const before = await call('qbuy', 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations');
   assert.strictEqual(before.data.submissions[0].financialOpened, false);
   const submissionId = before.data.submissions[0].id;
