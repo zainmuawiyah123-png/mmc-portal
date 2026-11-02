@@ -164,6 +164,7 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   const p=db().prepare("SELECT p.*,a.contractor_user_id,a.tender_id,a.awarded_amount FROM purchase_orders p JOIN project_awards a ON a.id=p.award_id WHERE p.id=? AND a.contractor_user_id=?").get(req.params.id,req.user.id);
   if(!p||p.status!=='issued') throw E.notFound('أمر الشراء غير متاح.');
   const b=req.body||{};
+  if (!clip(b.invoiceNumber,80)) throw E.validation('رقم الفاتورة مطلوب.');
   const items=Array.isArray(b.items)?b.items:[];
   const total=Math.round(items.reduce((s,x)=>s+Number(x.quantity)*Number(x.unitPrice),0)*100)/100;
   if(!items.length||!Number.isFinite(total)||total<=0) throw E.validation('أدخل بنود الفاتورة بصورة صحيحة.');
@@ -210,7 +211,7 @@ router.post('/invoices/:id/procurement-review',wrap(async(req,res)=>{
   res.json({ok:true,status:next});
 }));
 router.post('/invoices/:id/owner-confirmation',wrap(async(req,res)=>{
-  const m=requireOrg(req,['requester','projects','manager']); const i=invoiceFor(req,req.params.id);
+  const m=requireOrg(req,['requester']); const i=invoiceFor(req,req.params.id);
   if(i.status!=='owner_confirmation') throw E.conflict('الفاتورة ليست بانتظار تأكيد المالك.');
   const decision=req.body?.decision; if(!['confirmed','returned'].includes(decision)) throw E.validation('قرار التأكيد غير صحيح.');
   const note=clip(req.body?.note,2000); if(decision==='returned'&&!note) throw E.validation('سبب الإعادة إلزامي.');
