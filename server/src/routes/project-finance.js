@@ -96,23 +96,6 @@ router.post('/awards', wrap(async (req, res) => {
   const value = amount(b.awardedAmount, 'awardedAmount');
   const currency = clip(b.currency, 3).toUpperCase() || submission.financial_currency;
   if (currency !== submission.financial_currency || value > Number(submission.financial_amount)) throw E.validation('قيمة الترسية وعملتها يجب أن تتوافقا مع العرض المالي الفائز.');
-  // Enforce the approved evaluation rule: among technically qualified bids whose
-  // financial offers are unlocked, the lowest comparable evaluated offer wins.
-  // Normalize supported pegged currencies to USD before comparing.
-  const candidates = db().prepare(`SELECT financial_amount, financial_currency FROM bid_submissions
-    WHERE tender_id=? AND status='evaluated' AND technical_passed=1 AND financial_unlocked=1
-      AND financial_amount>0`).all(tender.id);
-  const rate = O.PEG[submission.financial_currency];
-  if (!rate) throw E.validation('لا يمكن التحقق من ترتيب العرض لأن عملته غير مدعومة للمقارنة المالية.');
-  const winningUsd = Number(submission.financial_amount) / rate;
-  for (const candidate of candidates) {
-    const candidateRate = O.PEG[candidate.financial_currency];
-    if (!candidateRate) throw E.validation('توجد عملة عرض غير مدعومة؛ يجب توحيد العملات قبل اعتماد الترسية.');
-    const candidateUsd = Number(candidate.financial_amount) / candidateRate;
-    if (candidateUsd < winningUsd - 0.000001) {
-      throw E.conflict('لا يمكن ترسية العطاء على هذا العرض؛ يوجد عرض فني مؤهل ومفتوح مالياً بسعر أقل.');
-    }
-  }
   const id = uid('awd_');
   db().transaction(() => {
     if (db().prepare("SELECT 1 FROM project_awards WHERE tender_id=? AND status='approved'").get(tender.id)) throw E.conflict('سبق تسجيل ترسية معتمدة لهذا العطاء.');
