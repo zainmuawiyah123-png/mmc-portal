@@ -126,3 +126,38 @@ never trust client-supplied totals or status values.
 A feature branch has been created from \`main\`. The schema module is committed
 only to that branch. The production \`main\` branch, Render deployment, and
 production database have not been changed. No test run is claimed yet.
+
+
+## Implemented development branch increment
+- Added \`server/src/routes/project-finance.js\`, mounted at \`/api/project-finance\`.
+- Added organization role \`finance\`; it is separate from the platform \`admin\` role.
+- Added idempotent project-finance schema invocation to the migration flow.
+- Added contract-level \`requires_owner_confirmation\` on each PO. It defaults to required; Procurement may set it to false when the contract does not require Owner confirmation.
+- Added protected invoice document upload/download using the existing local/S3 storage abstraction.
+- Added a first shared workflow page at \`/project-finance/\`, linked from procurement and contractor portals.
+- Added \`tests/project-finance.test.js\` for additive/repeatable migration and subscription invoice separation; included it in \`test:all\`.
+
+### Implemented API paths
+- \`POST /api/project-finance/awards\`, \`GET /api/project-finance/awards\`
+- \`POST /api/project-finance/awards/:id/purchase-orders\`
+- \`POST /api/project-finance/purchase-orders/:id/approve\`, \`/issue\`
+- \`GET /api/project-finance/purchase-orders\`
+- \`POST /api/project-finance/purchase-orders/:id/invoices\`
+- \`GET /api/project-finance/invoices\`, \`GET /api/project-finance/invoices/:id\`
+- \`POST /api/project-finance/invoices/:id/documents\`
+- \`GET /api/project-finance/invoices/:id/documents\`
+- \`GET /api/project-finance/invoice-documents/:id/download\`
+- \`POST /api/project-finance/invoices/:id/procurement-review\`
+- \`POST /api/project-finance/invoices/:id/owner-confirmation\`
+- \`POST /api/project-finance/invoices/:id/forward-to-finance\`
+- \`POST /api/project-finance/invoices/:id/finance-approval\`
+- \`POST /api/project-finance/invoices/:id/payments\`
+
+### Still required before this can be called production-ready
+- Run Node syntax checks and the full API + project-finance + S3 test suites in an isolated environment.
+- Add end-to-end API tests for award → PO → invoice → review → Finance → partial/final payment, plus negative role and cross-organization tests.
+- Complete the richer list/detail UI and workflow status indicators; current page is a first operational interface, not a final polished portal.
+- Validate migration against a copy of the actual current database, and rehearse backup/rollback.
+- Review currency precision, tax/retention rules, contract amendments, and the exact Owner/Procurement approval policy for each customer.
+
+No deployment or production database change is authorized by this work.
