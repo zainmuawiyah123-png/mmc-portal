@@ -33,7 +33,7 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
       - name: Install dependencies
-        run: npm install && npm audit fix --omit=dev && npm install --include=dev
+        run: npm install && npm audit fix && npm install --include=dev
       - name: Commit refreshed dependency lockfile
         working-directory: .
         run: |
@@ -41,8 +41,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server/package-lock.json
           git diff --cached --quiet || (git commit -m "Refresh patched server dependency lockfile" && git push origin HEAD:feature/contractor-award-payment-cycle)
-      - name: Audit production dependencies
-        run: npm audit --omit=dev
+      - name: Audit all dependency trees
+        run: npm audit --audit-level=moderate
       - name: Install Playwright browser test runtime
         run: |
           npm install --no-save playwright
