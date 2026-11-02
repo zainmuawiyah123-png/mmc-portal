@@ -49,4 +49,7 @@ test('project finance UI keeps project invoices separate from MMC subscription b
   assert.ok(html.includes('/project-finance/invoices/'));
   assert.ok(!html.includes("API.request('POST','/billing"));
   assert.ok(html.includes('poItemId:opt.value'), 'contractor invoices must identify the approved PO line');
+  assert.ok(html.includes("['manager','procurement'].includes(o.myRole)"), 'only manager/procurement should see buyer actions');
+  assert.ok(html.includes("if(o.myRole==='requester')$('ownerTools').classList.remove('hide')"));
+  assert.ok(html.includes("if(o.myRole==='finance')$('financeTools').classList.remove('hide')"));
 });
