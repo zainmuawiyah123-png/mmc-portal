@@ -1042,7 +1042,6 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   const contractorId = getDB().prepare('SELECT id FROM users WHERE email=?').get(contractorEmail).id;
   const tenderId = 'pft_' + uniq();
   const submissionId = 'pfs_' + uniq();
-  const managerId = getDB().prepare('SELECT id FROM users WHERE email=?').get(getDB().prepare('SELECT email FROM users WHERE id=?').get(getDB().prepare('SELECT user_id id FROM org_members WHERE user_id=?').get(manager).user_id).email).id;
   getDB().prepare('INSERT INTO tenders (id,user_id,org_id,name,status,procurement_status) VALUES (?,?,?, ?,?,?)')
     .run(tenderId, managerId, orgId, 'اختبار دورة المستحقات', 'ready', 'published');
   getDB().prepare('INSERT INTO bid_submissions (id,tender_id,contractor_id,status,technical_score,technical_points,technical_passed,financial_amount,financial_currency,financial_unlocked) VALUES (?,?,?, ?,?,?,?,?,?,?)')
