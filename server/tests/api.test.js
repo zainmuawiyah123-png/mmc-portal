@@ -858,10 +858,10 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
     const open = await call('vc', 'GET', '/api/procurement/open-tenders');
     const seen = open.data.tenders.find((t) => t.id === pub.data.tender.id);
     assert.ok(seen && seen.issuer.verified === true && seen.issuer.country === 'AE' && seen.issuer.name.includes('ذ.م.م'));
-    // عملة العرض: KWD مقبولة، وغير المعروفة تعود لعملة دولة الجهة
-    const ok = await call('vc', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: { ...bidBody(pub.data.tender), financialCurrency: 'KWD' } });
+    // عملة العرض: يجب أن تطابق عملة العطاء المعتمدة (AED)
+    const ok = await call('vc', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: { ...bidBody(pub.data.tender), financialCurrency: 'AED' } });
     assert.strictEqual(ok.status, 201);
-    assert.strictEqual(getDB().prepare('SELECT financial_currency c FROM bid_submissions WHERE id=?').get(ok.data.submissionId).c, 'KWD');
+    assert.strictEqual(getDB().prepare('SELECT financial_currency c FROM bid_submissions WHERE id=?').get(ok.data.submissionId).c, 'AED');
     // سحب التوثيق: يختفي العطاء ويُمنع التقديم
     assert.strictEqual((await call('vadm', 'POST', '/api/verification/admin/' + row.id + '/revoke', { body: { note: 'شكوى موثّقة' } })).status, 200);
     assert.ok(!(await call('vc', 'GET', '/api/procurement/open-tenders')).data.tenders.some((t) => t.id === pub.data.tender.id));
