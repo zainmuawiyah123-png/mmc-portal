@@ -1084,6 +1084,19 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   assert.strictEqual(invoiceRes.status, 201, JSON.stringify(invoiceRes.data));
   const invoiceId = invoiceRes.data.invoice.id;
 
+  // A different organization and an unrelated contractor must not read this invoice.
+  const otherManager = await newBuyer('pfother', 'proc_pro');
+  await call(otherManager, 'GET', '/api/org');
+  const otherFinance = (await joinTeam(otherManager, 'finance', 'pfofin')).who;
+  const outsiderEmail = 'pfoutsider' + uniq() + '@t.com';
+  const outsider = 'pfoutsider' + uniq();
+  const outsiderReg = await call(outsider, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول غير مرتبط', email: outsiderEmail, password: 'Password123', role: 'contractor' }
+  });
+  assert.strictEqual(outsiderReg.status, 201);
+  assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
+  assert.strictEqual((await call(otherFinance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 404);
+
   assert.strictEqual((await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).status, 403);
   assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 409);
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).data.status, 'owner_confirmation');
