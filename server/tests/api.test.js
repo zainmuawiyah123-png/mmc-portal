@@ -1108,6 +1108,12 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
     body: { tenderId, submissionId, awardReference: 'PF-AWARD-X', awardedAmount: 900, currency: 'USD' }
   });
   assert.strictEqual(wrongCurrency.status, 422);
+  getDB().prepare('UPDATE bid_submissions SET technical_score=83,technical_points=49.8,technical_passed=0,financial_unlocked=0 WHERE id=?').run(submissionId);
+  const belowThresholdAward = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId, submissionId, awardReference: 'PF-AWARD-BELOW-' + uniq(), awardedAmount: 900, currency: 'JOD' }
+  });
+  assert.strictEqual(belowThresholdAward.status, 422, 'يجب منع الترسية إذا كانت العلامة الفنية أقل من 50/60');
+  getDB().prepare('UPDATE bid_submissions SET technical_score=90,technical_points=54,technical_passed=1,financial_unlocked=1 WHERE id=?').run(submissionId);
   const awardRes = await call(manager, 'POST', '/api/project-finance/awards', {
     body: { tenderId, submissionId, awardReference: 'PF-AWARD-' + uniq(), awardedAmount: 900, currency: 'JOD' }
   });
