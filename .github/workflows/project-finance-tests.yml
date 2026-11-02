@@ -53,27 +53,27 @@ jobs:
           node --check src/routes/project-finance.js
           node --check src/lib/org.js
           node --check src/index.js
-      - name: Start isolated MinIO test server
+      - name: Start isolated LocalStack S3 test server
         run: |
-          docker run -d --name mmc-minio -p 9500:9000 \
-            -e MINIO_ROOT_USER=mmctestkey \
-            -e MINIO_ROOT_PASSWORD=mmctestsecret123 \
-            minio/minio:latest server /data --address ":9000"
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:9500/minio/health/ready >/dev/null; then break; fi
-            sleep 1
+          docker run -d --name mmc-localstack -p 9500:4566 \
+            -e SERVICES=s3 \
+            -e GATEWAY_LISTEN=0.0.0.0:4566 \
+            localstack/localstack:3.8
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:9500/_localstack/health >/dev/null; then break; fi
+            sleep 2
           done
-          curl -fsS http://127.0.0.1:9500/minio/health/ready >/dev/null
+          curl -fsS http://127.0.0.1:9500/_localstack/health >/dev/null
           node <<'NODE'
           const { S3Client, CreateBucketCommand } = require('@aws-sdk/client-s3');
           const client = new S3Client({ region: 'us-east-1', endpoint: 'http://127.0.0.1:9500', forcePathStyle: true,
-            credentials: { accessKeyId: 'mmctestkey', secretAccessKey: 'mmctestsecret123' } });
+            credentials: { accessKeyId: 'test', secretAccessKey: 'test' } });
           client.send(new CreateBucketCommand({ Bucket: 'tpkit-test' })).then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
           NODE
       - name: Run API, migration and storage tests
         env:
           S3_TEST_ENDPOINT: http://127.0.0.1:9500
           S3_TEST_BUCKET: tpkit-test
-          S3_TEST_KEY: mmctestkey
-          S3_TEST_SECRET: mmctestsecret123
+          S3_TEST_KEY: test
+          S3_TEST_SECRET: test
         run: npm run test:all
