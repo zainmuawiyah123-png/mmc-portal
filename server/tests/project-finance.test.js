@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'mmc-project-finance-'));
 process.env.NODE_ENV = 'test';
@@ -60,6 +61,31 @@ test('project workflow schema keeps financial records separate from subscription
   assert.ok(projectInvoiceColumns.includes('contractor_user_id'));
   assert.ok(projectInvoiceColumns.includes('po_id'));
   db.close();
+});
+
+test('backup and restore retain MMC subscription invoices and project finance tables', () => {
+  const backup = spawnSync(process.execPath, ['scripts/backup.js', '--local-only', '--no-retention'], {
+    cwd: path.join(__dirname, '..'), env: process.env, encoding: 'utf8'
+  });
+  assert.strictEqual(backup.status, 0, backup.stdout + '\\n' + backup.stderr);
+  const last = JSON.parse(fs.readFileSync(path.join(process.env.BACKUP_DIR, 'last-backup.json'), 'utf8'));
+  assert.ok(last.counts.project_awards !== undefined);
+  assert.ok(last.counts.project_invoices !== undefined);
+  assert.ok(last.counts.project_payments !== undefined);
+
+  const restoredPath = path.join(TMP, 'restored-project-finance.db');
+  const restore = spawnSync(process.execPath, ['scripts/restore.js', '--file=' + last.file, '--to=' + restoredPath], {
+    cwd: path.join(__dirname, '..'), env: process.env, encoding: 'utf8'
+  });
+  assert.strictEqual(restore.status, 0, restore.stdout + '\\n' + restore.stderr);
+  const Database = require('better-sqlite3');
+  const restored = new Database(restoredPath, { readonly: true });
+  const preserved = restored.prepare('SELECT invoice_number,status,transfer_reference FROM invoices WHERE id=?').get('mmc_sub_invoice_1');
+  assert.deepEqual(preserved, { invoice_number:'MMC-MIGRATION-001',status:'paid',transfer_reference:'BANK-REF-001' });
+  for (const table of ['project_awards','purchase_orders','project_invoices','project_payments','project_audit_events']) {
+    assert.ok(restored.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table), 'restored database missing ' + table);
+  }
+  restored.close();
 });
 
 test.after(() => {
