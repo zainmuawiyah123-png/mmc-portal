@@ -256,6 +256,7 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   const db = getDB();
   const s = db.prepare('SELECT s.*, t.user_id buyer_id, t.technical_weight, t.financial_weight, t.technical_threshold FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
   if (!s || (req.user.role !== 'admin' && !O.canManageUserTenders(req.user, s.buyer_id))) throw E.notFound('التقديم غير موجود.');
+  if (s.evaluated_at || s.status === 'evaluated') throw E.conflict('تم اعتماد التقييم الفني لهذا العرض بالفعل؛ لا يمكن استبداله دون مسار مراجعة/اعتراض موثق.');
   const reqs = db.prepare('SELECT * FROM tender_requirements WHERE tender_id=? ORDER BY sort_order').all(s.tender_id);
   const submittedScores = Array.isArray(req.body?.scores) ? req.body.scores : [];
   const scoreIds = new Set(reqs.map((r) => r.id));
