@@ -11,11 +11,12 @@
     "seed": "node src/seed.js",
     "test": "node --test tests/api.test.js",
     "test:s3": "node --test tests/s3.test.js",
-    "test:all": "node --test tests/api.test.js && node --test tests/s3.test.js",
+    "test:all": "node --test tests/api.test.js && node --test tests/project-finance.test.js && node --test tests/s3.test.js",
     "backup": "node scripts/backup.js",
     "expire-subscriptions": "node scripts/expire-subscriptions.js",
     "restore": "node scripts/restore.js",
-    "migrate:cloud": "node scripts/migrate-to-cloud.js"
+    "migrate:cloud": "node scripts/migrate-to-cloud.js",
+    "test:project-finance": "node --test tests/project-finance.test.js"
   },
   "engines": {
     "node": ">=18"
