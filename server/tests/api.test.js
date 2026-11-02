@@ -1091,6 +1091,17 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   });
   assert.strictEqual(invoiceRes.status, 201, JSON.stringify(invoiceRes.data));
   const invoiceId = invoiceRes.data.invoice.id;
+  const invoiceFile = new FormData();
+  invoiceFile.append('files', new Blob(['invoice attachment test content'], { type: 'application/pdf' }), 'invoice-proof.pdf');
+  const invoiceDocument = await call(contractor, 'POST', '/api/project-finance/invoices/' + invoiceId + '/documents', { form: invoiceFile });
+  assert.strictEqual(invoiceDocument.status, 201, JSON.stringify(invoiceDocument.data));
+  const documentId = invoiceDocument.data.documents[0].id;
+  const documentList = await call(contractor, 'GET', '/api/project-finance/invoices/' + invoiceId + '/documents');
+  assert.strictEqual(documentList.status, 200);
+  assert.strictEqual(documentList.data.documents.length, 1);
+  const documentDownload = await call(contractor, 'GET', '/api/project-finance/invoice-documents/' + documentId + '/download');
+  assert.strictEqual(documentDownload.status, 200);
+  assert.ok(String(documentDownload.data).includes('invoice attachment test content'));
 
   // A different organization and an unrelated contractor must not read this invoice.
   const otherManager = await newBuyer('pfother', 'proc_pro');
