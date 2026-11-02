@@ -710,6 +710,8 @@ test('63A — لا تمنح الإجابة علامة تلقائية، ولا ي
   assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
   assert.strictEqual(submitted.data.technicalScore, 0);
   assert.strictEqual(submitted.data.technicalPoints, 0);
+  assert.throws(() => getDB().prepare('UPDATE tender_requirements SET title=? WHERE id=?').run('تغيير بعد التقديم', tender.requirements[0].id),
+    /locked after bid submission/, 'يجب قفل معايير العطاء بعد استلام أول عرض');
   const before = await call('qbuy', 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations');
   assert.strictEqual(before.data.submissions[0].financialOpened, false);
   const submissionId = before.data.submissions[0].id;
@@ -728,6 +730,10 @@ test('63A — لا تمنح الإجابة علامة تلقائية، ولا ي
   assert.strictEqual(after.data.submissions[0].financialOpened, true);
   const audit = getDB().prepare('SELECT action, technical_score, technical_points, passed FROM bid_evaluation_audit WHERE submission_id=?').get(submissionId);
   assert.deepStrictEqual([audit.action, audit.technical_score, audit.technical_points, audit.passed], ['human_scored', 100, 60, 1]);
+  assert.throws(() => getDB().prepare('UPDATE bid_evaluation_audit SET reason=? WHERE submission_id=?').run('تعديل لاحق', submissionId),
+    /immutable/, 'يجب عدم السماح بتعديل سجل التقييم');
+  assert.throws(() => getDB().prepare('DELETE FROM bid_evaluation_audit WHERE submission_id=?').run(submissionId),
+    /immutable/, 'يجب عدم السماح بحذف سجل التقييم');
 });
 
 test('63B — حد التأهل الفني 50/60: ما دونه مرفوض وما فوقه مؤهل', async () => {
