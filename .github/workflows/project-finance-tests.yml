@@ -58,7 +58,7 @@ jobs:
           docker run -d --name mmc-minio -p 9500:9000 \
             -e MINIO_ROOT_USER=mmctestkey \
             -e MINIO_ROOT_PASSWORD=mmctestsecret123 \
-            quay.io/minio/minio server /data --address ":9000"
+            minio/minio:latest server /data --address ":9000"
           for i in {1..30}; do
             if curl -fsS http://127.0.0.1:9500/minio/health/ready >/dev/null; then break; fi
             sleep 1
