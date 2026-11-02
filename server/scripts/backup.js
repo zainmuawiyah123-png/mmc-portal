@@ -36,7 +36,7 @@ function tsCompact(d = new Date()) {
 function tsIso() { return new Date().toISOString().replace(/[:.]/g, '-'); }
 function sha256(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
 
-const TABLES = ['users', 'plans', 'subscriptions', 'tenders', 'files', 'requests', 'audit_log'];
+const TABLES = ['users', 'plans', 'subscriptions', 'tenders', 'files', 'requests', 'audit_log', 'project_awards', 'purchase_orders', 'purchase_order_items', 'project_invoices', 'project_invoice_items', 'project_invoice_reviews', 'project_payments', 'project_invoice_documents', 'project_audit_events'];
 
 function countRows(db) {
   const out = {};
