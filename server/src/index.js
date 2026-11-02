@@ -112,6 +112,9 @@ function createApp() {
   // API routes already enforce role checks; this also prevents contractors and anonymous visitors
   // from loading the procurement workspace itself.
   app.use('/procurement', A.requireAuth, A.requireRole('buyer', 'admin'));
+  // The project-finance workspace is shared by authenticated contractors and buyer-side roles.
+  // API endpoints enforce their own organization/role scopes; this guard protects the HTML shell.
+  app.use('/project-finance', A.requireAuth);
 
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
