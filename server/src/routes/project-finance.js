@@ -242,17 +242,19 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
   const m=requireOrg(req,['finance']);const i=invoiceFor(req,req.params.id);
   if(!['approved_for_payment','part_paid'].includes(i.status)) throw E.conflict('لا يمكن تسجيل دفعة قبل اعتماد المالية.');
   const value=amount(req.body?.amount,'payment amount');
-  const paid=db().prepare('SELECT COALESCE(SUM(amount),0) n FROM project_payments WHERE invoice_id=?').get(i.id).n;
-  const remaining=Math.round((Number(i.gross_amount)-Number(i.retention_amount)-paid)*100)/100;
-  if(value>remaining+0.0001) throw E.conflict('قيمة الدفعة تتجاوز الرصيد المستحق.');
-  const ref=clip(req.body?.paymentReference,100);const date=clip(req.body?.paymentDate,20);
-  if(!ref||!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
+  const paymentReference=clip(req.body?.paymentReference,100);const date=clip(req.body?.paymentDate,20);
+  if(!paymentReference||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
   const id=uid('pay_');
+  let next;
   db().transaction(()=>{
-    db().prepare('INSERT INTO project_payments (id,invoice_id,org_id,amount,currency,payment_reference,payment_date,recorded_by) VALUES (?,?,?,?,?,?,?,?)').run(id,i.id,m.org_id,value,i.currency,ref,date,req.user.id);
-    const newPaid=paid+value;const next=newPaid>=Number(i.gross_amount)-Number(i.retention_amount)-0.0001?'paid':'part_paid';
+    // Read the balance inside the same write transaction to prevent concurrent overpayment.
+    const paidNow=db().prepare('SELECT COALESCE(SUM(amount),0) n FROM project_payments WHERE invoice_id=?').get(i.id).n;
+    const remaining=Math.round((Number(i.gross_amount)-Number(i.retention_amount)-paidNow)*100)/100;
+    if(value>remaining+0.0001) throw E.conflict('قيمة الدفعة تتجاوز الرصيد المستحق.');
+    db().prepare('INSERT INTO project_payments (id,invoice_id,org_id,amount,currency,payment_reference,payment_date,recorded_by) VALUES (?,?,?,?,?,?,?,?)').run(id,i.id,m.org_id,value,i.currency,paymentReference,date,req.user.id);
+    const newPaid=paidNow+value;next=newPaid>=Number(i.gross_amount)-Number(i.retention_amount)-0.0001?'paid':'part_paid';
     db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);
-    event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,paymentId:id,userId:req.user.id,role:m.role,action:'payment_recorded',from:i.status,to:next,detail:{amount:value,reference:ref,date},ip:req.ip});
+    event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,paymentId:id,userId:req.user.id,role:m.role,action:'payment_recorded',from:i.status,to:next,detail:{amount:value,reference:paymentReference,date},ip:req.ip});
   })();
   res.status(201).json({ok:true,payment:db().prepare('SELECT * FROM project_payments WHERE id=?').get(id)});
 }));
