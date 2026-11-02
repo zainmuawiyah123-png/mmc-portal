@@ -149,6 +149,7 @@ function upgradeProjectFinance(db) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_one_active_award_per_tender ON project_awards(tender_id) WHERE status='approved';
     CREATE INDEX IF NOT EXISTS idx_awards_org ON project_awards(org_id, awarded_at);
     CREATE INDEX IF NOT EXISTS idx_po_award ON purchase_orders(award_id, status);
     CREATE INDEX IF NOT EXISTS idx_po_items_po ON purchase_order_items(po_id, line_no);
