@@ -91,7 +91,15 @@ router.post('/awards', wrap(async (req, res) => {
   if (tender.procurement_status !== 'published' && tender.procurement_status !== 'closed') throw E.conflict('العطاء غير مؤهل للترسية.');
   const submission = db().prepare(`SELECT s.*, u.role contractor_role FROM bid_submissions s
     JOIN users u ON u.id=s.contractor_id WHERE s.id=? AND s.tender_id=?`).get(clip(b.submissionId, 100), tender.id);
-  if (!submission || submission.contractor_role !== 'contractor' || submission.status !== 'evaluated' || !submission.technical_passed || !submission.financial_unlocked || !(Number(submission.financial_amount) > 0)) throw E.validation('العرض المحدد غير مؤهل للترسية.');
+  const technicalPoints = Number(submission?.technical_score) * 0.6;
+  if (!submission || submission.contractor_role !== 'contractor' || submission.status !== 'evaluated' ||
+      !submission.technical_passed || !submission.financial_unlocked ||
+      !Number.isFinite(Number(submission.technical_score)) || Number(submission.technical_score) < 0 ||
+      !Number.isFinite(Number(submission.technical_points)) ||
+      Math.abs(Number(submission.technical_points) - technicalPoints) > 0.011 ||
+      Number(submission.technical_points) < 50 || !(Number(submission.financial_amount) > 0)) {
+    throw E.validation('العرض المحدد غير مؤهل للترسية: يجب أن يكون التقييم الفني موثقاً ومتوافقاً مع معادلة 100 إلى 60 وأن يبلغ 50/60 على الأقل.');
+  }
   if (db().prepare('SELECT 1 FROM project_awards WHERE tender_id=? AND status=\'approved\'').get(tender.id)) throw E.conflict('سبق تسجيل ترسية معتمدة لهذا العطاء.');
   const value = amount(b.awardedAmount, 'awardedAmount');
   const currency = clip(b.currency, 3).toUpperCase() || submission.financial_currency;
