@@ -1023,3 +1023,105 @@ test('75 — الانضمام لا يُسمح به لمدير جهة فيها أ
   await call(busy, 'POST', '/api/requests', { body: reqBody() });
   assert.strictEqual((await call(busy, 'POST', '/api/org/join', { body: { code: inv.data.code } })).status, 409);
 });
+
+
+test('76 — دورة المشروع كاملة: ترسية، أمر شراء، فاتورة، تدقيق، مالية ودفعات جزئية', async () => {
+  const manager = await newBuyer('pfmgr', 'proc_pro');
+  await call(manager, 'GET', '/api/org');
+  const procurement = (await joinTeam(manager, 'procurement', 'pfproc')).who;
+  const owner = (await joinTeam(manager, 'requester', 'pfowner')).who;
+  const finance = (await joinTeam(manager, 'finance', 'pffin')).who;
+  const contractorEmail = 'pfcontractor' + uniq() + '@t.com';
+  const contractor = 'pfcontractor' + uniq();
+  const reg = await call(contractor, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول الاختبار', email: contractorEmail, password: 'Password123', role: 'contractor' }
+  });
+  assert.strictEqual(reg.status, 201, JSON.stringify(reg.data));
+  const orgId = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(manager).org_id;
+  const contractorId = getDB().prepare('SELECT id FROM users WHERE email=?').get(contractorEmail).id;
+  const tenderId = 'pft_' + uniq();
+  const submissionId = 'pfs_' + uniq();
+  const managerId = getDB().prepare('SELECT id FROM users WHERE email=?').get(getDB().prepare('SELECT email FROM users WHERE id=?').get(getDB().prepare('SELECT user_id id FROM org_members WHERE user_id=?').get(manager).user_id).email).id;
+  getDB().prepare('INSERT INTO tenders (id,user_id,org_id,name,status,procurement_status) VALUES (?,?,?, ?,?,?)')
+    .run(tenderId, managerId, orgId, 'اختبار دورة المستحقات', 'ready', 'published');
+  getDB().prepare('INSERT INTO bid_submissions (id,tender_id,contractor_id,status,technical_score,technical_points,technical_passed,financial_amount,financial_currency,financial_unlocked) VALUES (?,?,?, ?,?,?,?,?,?,?)')
+    .run(submissionId, tenderId, contractorId, 'evaluated', 80, 80, 1, 1000, 'JOD', 1);
+
+  const wrongCurrency = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId, submissionId, awardReference: 'PF-AWARD-X', awardedAmount: 900, currency: 'USD' }
+  });
+  assert.strictEqual(wrongCurrency.status, 422);
+  const awardRes = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId, submissionId, awardReference: 'PF-AWARD-' + uniq(), awardedAmount: 900, currency: 'JOD' }
+  });
+  assert.strictEqual(awardRes.status, 201, JSON.stringify(awardRes.data));
+  const awardId = awardRes.data.award.id;
+
+  const poRes = await call(procurement, 'POST', '/api/project-finance/awards/' + awardId + '/purchase-orders', {
+    body: { poNumber: 'PF-PO-' + uniq(), currency: 'JOD', requiresOwnerConfirmation: true,
+      items: [{ description: 'أعمال مدنية', quantity: 10, unitPrice: 50 }] }
+  });
+  assert.strictEqual(poRes.status, 201, JSON.stringify(poRes.data));
+  const poId = poRes.data.purchaseOrder.id;
+
+  assert.strictEqual((await call(contractor, 'GET', '/api/project-finance/purchase-orders')).data.purchaseOrders.length, 0);
+  assert.strictEqual((await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
+    body: { invoiceNumber: 'PF-EARLY', invoiceType: 'progress', items: [{ description: 'عمل', quantity: 1, unitPrice: 10 }] }
+  })).status, 404);
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + poId + '/issue')).status, 409);
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + poId + '/approve')).status, 403);
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/purchase-orders/' + poId + '/approve')).status, 200);
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + poId + '/issue')).status, 200);
+
+  const over = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
+    body: { invoiceNumber: 'PF-OVER', invoiceType: 'progress', items: [{ description: 'عمل', quantity: 11, unitPrice: 50 }] }
+  });
+  assert.strictEqual(over.status, 409);
+  const invoiceRes = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
+    body: { invoiceNumber: 'PF-INV-' + uniq(), invoiceType: 'progress',
+      items: [{ description: 'أعمال منفذة', quantity: 10, unitPrice: 50 }] }
+  });
+  assert.strictEqual(invoiceRes.status, 201, JSON.stringify(invoiceRes.data));
+  const invoiceId = invoiceRes.data.invoice.id;
+
+  assert.strictEqual((await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).status, 403);
+  assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 409);
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).data.status, 'owner_confirmation');
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).status, 409);
+  assert.strictEqual((await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', { body: { decision: 'confirmed', note: 'تم الاستلام' } })).data.status, 'finance_queue');
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
+  assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
+
+  const firstPay = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 400, paymentReference: 'PF-PAY-1-' + uniq(), paymentDate: '2026-11-02' }
+  });
+  assert.strictEqual(firstPay.status, 201, JSON.stringify(firstPay.data));
+  assert.strictEqual((await call(contractor, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.remaining, 100);
+  const excess = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 101, paymentReference: 'PF-PAY-X-' + uniq(), paymentDate: '2026-11-02' }
+  });
+  assert.strictEqual(excess.status, 409);
+  const lastPay = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 100, paymentReference: 'PF-PAY-2-' + uniq(), paymentDate: '2026-11-02' }
+  });
+  assert.strictEqual(lastPay.status, 201, JSON.stringify(lastPay.data));
+  const finalDetail = await call(contractor, 'GET', '/api/project-finance/invoices/' + invoiceId);
+  assert.strictEqual(finalDetail.data.invoice.status, 'paid');
+  assert.strictEqual(finalDetail.data.paid, 500);
+  assert.strictEqual(finalDetail.data.remaining, 0);
+  assert.ok(getDB().prepare('SELECT COUNT(*) n FROM project_audit_events WHERE invoice_id=?').get(invoiceId).n >= 7);
+});
+
+test('77 — عزل المقاول: لا يرى إلا الترسيات وأوامر الشراء والفواتير الخاصة به', async () => {
+  const contractorEmail = 'pfiso' + uniq() + '@t.com';
+  const contractor = 'pfiso' + uniq();
+  const r = await call(contractor, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول آخر', email: contractorEmail, password: 'Password123', role: 'contractor' }
+  });
+  assert.strictEqual(r.status, 201);
+  assert.deepStrictEqual((await call(contractor, 'GET', '/api/project-finance/awards')).data.awards, []);
+  assert.deepStrictEqual((await call(contractor, 'GET', '/api/project-finance/purchase-orders')).data.purchaseOrders, []);
+  assert.deepStrictEqual((await call(contractor, 'GET', '/api/project-finance/invoices')).data.invoices, []);
+});
