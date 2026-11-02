@@ -27,8 +27,9 @@ test('project finance browser role visibility, contractor invoice selection and 
 
   async function open(role, orgRole, width=1280) {
     const page = await browser.newPage({viewport:{width,height:900}});
-    await page.addInitScript(({role,orgRole}) => { window.__role=role; window.__orgRole=orgRole; }, {role,orgRole});
-    await page.setContent(pageHtml, {waitUntil:'domcontentloaded'});
+    const roleHtml=pageHtml.replace('window.__role="buyer";window.__orgRole="manager";',
+      'window.__role='+JSON.stringify(role)+';window.__orgRole='+JSON.stringify(orgRole)+';');
+    await page.setContent(roleHtml, {waitUntil:'domcontentloaded'});
     await page.waitForFunction(() => document.getElementById('identity')?.textContent.includes('الدور'));
     return page;
   }
