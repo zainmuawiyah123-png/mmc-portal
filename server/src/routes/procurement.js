@@ -120,11 +120,15 @@ router.get('/open-tenders', contractor, wrap(async (req, res) => {
 function createTender(user, b, opts = {}) {
   const requirements = (Array.isArray(b.requirements) ? b.requirements : []).map(cleanRequirement).filter((r) => r.title);
   validateWeights(requirements);
-  const technicalWeight = Number(b.technicalWeight ?? 60);
-  const financialWeight = Number(b.financialWeight ?? 40);
-  const threshold = Number(b.technicalThreshold ?? 50);
-  if (technicalWeight + financialWeight !== 100 || threshold <= 0 || threshold > technicalWeight) {
-    throw E.validation('يجب أن يكون مجموع الأوزان 100، وأن يكون الحد الفني بين 1 والوزن الفني.');
+  // MMC standard: technical score /100 converted to 60 points; qualification at 50/60.
+  // Financial component is 40 points. These are fixed policy values, not per-tender overrides.
+  const technicalWeight = 60;
+  const financialWeight = 40;
+  const threshold = 50;
+  if (b.technicalWeight != null && Number(b.technicalWeight) !== 60 ||
+      b.financialWeight != null && Number(b.financialWeight) !== 40 ||
+      b.technicalThreshold != null && Number(b.technicalThreshold) !== 50) {
+    throw E.validation('معيار MMC المعتمد ثابت: الفني 60، المالي 40، والحد الأدنى للتأهل 50 من 60.');
   }
   const db = getDB();
   if (!O.canPublish(user)) {
@@ -199,15 +203,19 @@ router.post('/tenders/:id/submit', contractor, wrap(async (req, res) => {
   if (!Number.isFinite(amount) || amount <= 0) throw E.validation('أدخل قيمة مالية صحيحة.');
   if (!Array.isArray(b.answers) || b.answers.length !== x.reqs.length) throw E.validation('يجب الإجابة عن جميع المتطلبات الفنية.');
   if (getDB().prepare('SELECT id FROM bid_submissions WHERE tender_id = ? AND contractor_id = ?').get(x.t.id, req.user.id)) throw E.conflict('سبق تقديم العرض لهذا العطاء.');
-  const calc = calculateTechnical(x.reqs, b.answers, x.t.technical_weight);
+  const tenderCurrency = (O.COUNTRIES[x.t.country] || O.COUNTRIES.JO).currency;
+  const submittedCurrency = String(b.financialCurrency || tenderCurrency).toUpperCase();
+  if (submittedCurrency !== tenderCurrency) {
+    throw E.validation('يجب تقديم جميع العروض المالية بعملة العطاء المعتمدة (' + tenderCurrency + ') لضمان المقارنة العادلة.');
+  }
+  const calc = calculateTechnical(x.reqs, b.answers, 60);
   const db = getDB();
   const id = uid('sub_');
   const tx = db.transaction(() => {
     db.prepare(`INSERT INTO bid_submissions
       (id,tender_id,contractor_id,technical_score,technical_points,technical_passed,financial_amount,financial_currency)
       VALUES (?,?,?,?,?,?,?,?)`).run(id, x.t.id, req.user.id, calc.normalized, calc.points,
-      calc.points >= x.t.technical_threshold && !calc.missingMandatory ? 1 : 0, amount,
-      O.BID_CURRENCIES.includes(String(b.financialCurrency || '').toUpperCase()) ? String(b.financialCurrency).toUpperCase() : (O.COUNTRIES[x.t.country] || O.COUNTRIES.JO).currency);
+      0, amount, tenderCurrency);
     const ins = db.prepare('INSERT INTO bid_responses (id,submission_id,requirement_id,answer,score) VALUES (?,?,?,?,?)');
     calc.details.forEach((d) => ins.run(uid('rsp_'), id, d.requirementId, d.answer, d.score));
   });
@@ -221,7 +229,8 @@ router.get('/tenders/:id/evaluations', procOnly, wrap(async (req, res) => {
   const db = x.db;
   const rows = db.prepare(`SELECT s.*, u.name contractor_name, u.company contractor_company
     FROM bid_submissions s JOIN users u ON u.id=s.contractor_id WHERE s.tender_id=? ORDER BY s.submitted_at`).all(x.t.id);
-  const eligible = rows.filter((r) => r.technical_passed && r.financial_unlocked && r.financial_amount > 0);
+  const tenderCurrency = (O.COUNTRIES[x.t.country] || O.COUNTRIES.JO).currency;
+  const eligible = rows.filter((r) => r.technical_passed && r.financial_unlocked && r.financial_amount > 0 && r.financial_currency === tenderCurrency);
   const lowest = eligible.length ? Math.min(...eligible.map((r) => r.financial_amount)) : null;
   const out = rows.map((r) => {
     const opened = !!r.financial_unlocked;
@@ -264,8 +273,8 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
     normalized += r.weight * score / 100;
     if (row) update.run(score, String((req.body?.notes || {})[r.id] || '').slice(0,1000) || null, row.id);
   }
-  const points=normalized*s.technical_weight/100;
-  const passed=points>=s.technical_threshold && !missing;
+  const points=normalized*0.6;
+  const passed=points>=50 && !missing;
   const tx = db.transaction(() => {
     db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL WHERE id=?`)
       .run(normalized, points, passed?1:0, passed?1:0, s.id);
