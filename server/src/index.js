@@ -22,6 +22,7 @@ const billingRoutes = require('./routes/billing');
 const verificationRoutes = require('./routes/verification');
 const orgRoutes = require('./routes/org');
 const requestRoutes = require('./routes/requests');
+const projectFinanceRoutes = require('./routes/project-finance');
 
 function createApp() {
   const app = express();
@@ -92,6 +93,7 @@ function createApp() {
   app.use('/api/org', orgRoutes);
   app.use('/api/requests', requestRoutes);
   app.use('/api/procurement', procurementRoutes);
+  app.use('/api/project-finance', projectFinanceRoutes);
 
   app.use('/api', (req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'نقطة API غير موجودة: ' + req.method + ' ' + req.originalUrl } });
