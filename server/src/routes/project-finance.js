@@ -137,7 +137,7 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
     const insertedTotal = insertItems('purchase_order_items','po_id',id,items);
     if (insertedTotal !== rounded) throw E.validation('إجمالي بنود أمر الشراء غير متطابق مع القيمة المحسوبة.');
     event({orgId:m.org_id,tenderId:a.tender_id,awardId:a.id,poId:id,userId:req.user.id,role:m.role,action:'po_submitted_for_approval',to:'pending_approval',detail:{total:rounded},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({ purchaseOrder: db().prepare('SELECT * FROM purchase_orders WHERE id=?').get(id) });
 }));
 
@@ -205,7 +205,7 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
     const insertedTotal = insertItems('project_invoice_items','invoice_id',id,items);
     if (insertedTotal !== total) throw E.validation('إجمالي بنود الفاتورة غير متطابق مع القيمة المحسوبة.');
     event({orgId:p.org_id,tenderId:p.tender_id,awardId:p.award_id,poId:p.id,invoiceId:id,userId:req.user.id,role:'contractor',action:'invoice_submitted',to:'submitted',detail:{grossAmount:total,type},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({invoice:db().prepare('SELECT * FROM project_invoices WHERE id=?').get(id)});
 }));
 
@@ -276,7 +276,7 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
     const newPaid=paidNow+value;next=newPaid>=Number(i.gross_amount)-Number(i.retention_amount)-0.0001?'paid':'part_paid';
     db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);
     event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,paymentId:id,userId:req.user.id,role:m.role,action:'payment_recorded',from:i.status,to:next,detail:{amount:value,reference:paymentReference,date},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({ok:true,payment:db().prepare('SELECT * FROM project_payments WHERE id=?').get(id)});
 }));
 
