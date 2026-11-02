@@ -161,3 +161,16 @@ production database have not been changed. No test run is claimed yet.
 - Review currency precision, tax/retention rules, contract amendments, and the exact Owner/Procurement approval policy for each customer.
 
 No deployment or production database change is authorized by this work.
+
+
+## CI verification — 2026-11-02
+- GitHub Actions run: https://github.com/zainmuawiyah123-png/mmc-portal/actions/runs/41479081667
+- JavaScript syntax checks: passed.
+- Existing + new API integration suite: 77 passed, 0 failed.
+- Project finance migration suite: 2 passed, 0 failed.
+- S3 integration test: skipped because \`S3_TEST_ENDPOINT\` was not configured; this is not an S3 pass.
+- End-to-end test 76 covers award, PO approval/issue, contractor invoice, procurement review, Owner confirmation, Finance approval, partial payment, overpayment rejection, and final settlement.
+- Isolation assertions cover unrelated contractors and a Finance member of another organization.
+- The end-to-end test exposed a defect: four invoice lifecycle handlers created SQLite transactions but did not invoke them. The handlers were corrected to execute the transactions, and the complete CI run then passed.
+
+This is a development-branch CI result only. No production deployment or production database migration was performed.
