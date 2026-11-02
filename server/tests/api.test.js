@@ -752,8 +752,18 @@ test('63B — حد التأهل الفني 50/60: ما دونه مرفوض وم�
   assert.strictEqual(below.data.passed, false);
   assert.ok(below.data.technicalPoints < 50);
   assert.strictEqual(below.data.financialOpened, false);
-  const above = await call('qbuy', 'POST', '/api/procurement/submissions/' + submissionId + '/evaluate', {
-    body: { scores: tender.requirements.map((r) => ({ requirementId: r.id, score: 83.34 })), reason: 'اختبار حد التأهل: تجاوز 50/60' }
+  const repeat = await call('qbuy', 'POST', '/api/procurement/submissions/' + submissionId + '/evaluate', {
+    body: { scores: tender.requirements.map((r) => ({ requirementId: r.id, score: 100 })), reason: 'محاولة إعادة تقييم غير مصرح بها' }
+  });
+  assert.strictEqual(repeat.status, 409, 'يُمنع استبدال التقييم المعتمد دون مسار اعتراض موثق');
+
+  const passingTender = await publish('qbuy');
+  const passingSubmission = await call('qcon', 'POST', '/api/procurement/tenders/' + passingTender.id + '/submit', { body: bidBody(passingTender) });
+  assert.strictEqual(passingSubmission.status, 201, JSON.stringify(passingSubmission.data));
+  const passingList = await call('qbuy', 'GET', '/api/procurement/tenders/' + passingTender.id + '/evaluations');
+  const passingId = passingList.data.submissions[0].id;
+  const above = await call('qbuy', 'POST', '/api/procurement/submissions/' + passingId + '/evaluate', {
+    body: { scores: passingTender.requirements.map((r) => ({ requirementId: r.id, score: 83.34 })), reason: 'اختبار حد التأهل: تجاوز 50/60' }
   });
   assert.strictEqual(above.status, 200, JSON.stringify(above.data));
   assert.ok(above.data.technicalPoints >= 50);
