@@ -1130,6 +1130,19 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoice-documents/' + documentId + '/download')).status, 404);
   assert.strictEqual((await call(otherFinance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 404);
 
+  const mmcAdminEmail = 'pfadmin' + uniq() + '@t.com';
+  const mmcAdminReg = await call('pfadmin', 'POST', '/api/auth/register', {
+    body: { name: 'مدير منصة MMC', email: mmcAdminEmail, password: 'Password123' }
+  });
+  assert.strictEqual(mmcAdminReg.status, 201);
+  getDB().prepare("UPDATE users SET role='admin' WHERE email=?").run(mmcAdminEmail);
+  assert.strictEqual((await call('pfadmin', 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403,
+    'مدير MMC لا يملك اعتماد مستحقات المشروع');
+  assert.strictEqual((await call('pfadmin', 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 1, paymentReference: 'PF-ADMIN-PAY-' + uniq(), paymentDate: '2026-11-02' }
+  })).status, 403, 'مدير MMC لا يملك تسجيل دفعات المشروع');
+  assert.strictEqual((await call('pfadmin', 'GET', '/api/project-finance/invoices')).status, 403,
+    'مدير MMC لا يملك الاطلاع على فواتير المشاريع بصفته مدير منصة');
   assert.strictEqual((await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).status, 403);
   assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 409);
   const procurementReview = await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } });
