@@ -131,6 +131,8 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const rounded = Math.round(total * 100) / 100;
   if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
   db().transaction(() => {
+    const committed = db().prepare("SELECT COALESCE(SUM(total_amount),0) n FROM purchase_orders WHERE award_id=? AND status<>'cancelled'").get(a.id).n;
+    if (Number(committed) + rounded > Number(a.awarded_amount) + 0.0001) throw E.conflict('إجمالي أوامر الشراء يتجاوز قيمة الترسية المتبقية.');
     db().prepare("INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by,requires_owner_confirmation) VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?,?)").run(id,a.id,m.org_id,poNumber,poCurrency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id,b.requiresOwnerConfirmation === false ? 0 : 1);
     const insertedTotal = insertItems('purchase_order_items','po_id',id,items);
     if (insertedTotal !== rounded) throw E.validation('إجمالي بنود أمر الشراء غير متطابق مع القيمة المحسوبة.');
