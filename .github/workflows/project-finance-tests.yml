@@ -43,6 +43,10 @@ jobs:
           git diff --cached --quiet || (git commit -m "Refresh patched server dependency lockfile" && git push origin HEAD:feature/contractor-award-payment-cycle)
       - name: Audit production dependencies
         run: npm audit --omit=dev
+      - name: Install Playwright browser test runtime
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
       - name: Syntax check project finance modules
         run: |
           node --check src/project-finance/schema.js
