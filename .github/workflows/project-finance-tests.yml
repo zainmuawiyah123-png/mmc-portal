@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -30,7 +33,14 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm install
+      - name: Commit refreshed dependency lockfile
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server/package-lock.json
+          git diff --cached --quiet || (git commit -m "Refresh patched server dependency lockfile" && git push origin HEAD:feature/contractor-award-payment-cycle)
       - name: Audit production dependencies
         run: npm audit --omit=dev
       - name: Syntax check project finance modules
