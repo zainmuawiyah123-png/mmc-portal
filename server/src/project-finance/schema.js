@@ -39,6 +39,7 @@ function upgradeProjectFinance(db) {
       status TEXT NOT NULL DEFAULT 'draft'
         CHECK (status IN ('draft','pending_approval','approved','issued','closed','cancelled')),
       payment_terms TEXT,
+      requires_owner_confirmation INTEGER NOT NULL DEFAULT 1 CHECK (requires_owner_confirmation IN (0,1)),
       delivery_start TEXT,
       delivery_end TEXT,
       created_by TEXT NOT NULL REFERENCES users(id),
