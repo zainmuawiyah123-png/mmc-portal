@@ -1118,12 +1118,20 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   });
   assert.strictEqual(firstPay.status, 201, JSON.stringify(firstPay.data));
   assert.strictEqual((await call(contractor, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.remaining, 100);
+  const duplicateReference = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 1, paymentReference: firstPay.data.payment.payment_reference, paymentDate: '2026-11-02' }
+  });
+  assert.strictEqual(duplicateReference.status, 409, 'يجب رفض مرجع الدفع المكرر');
   const excess = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 101, paymentReference: 'PF-PAY-X-' + uniq(), paymentDate: '2026-11-02' }
   });
   assert.strictEqual(excess.status, 409);
+  const concurrent = await Promise.all([1, 2].map(() => call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 60, paymentReference: 'PF-PAY-RACE-' + uniq(), paymentDate: '2026-11-02' }
+  })));
+  assert.deepStrictEqual(concurrent.map(x => x.status).sort(), [201, 409], 'يجب قبول دفعة متزامنة واحدة فقط عند بقاء 100');
   const lastPay = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
-    body: { amount: 100, paymentReference: 'PF-PAY-2-' + uniq(), paymentDate: '2026-11-02' }
+    body: { amount: 40, paymentReference: 'PF-PAY-2-' + uniq(), paymentDate: '2026-11-02' }
   });
   assert.strictEqual(lastPay.status, 201, JSON.stringify(lastPay.data));
   const finalDetail = await call(contractor, 'GET', '/api/project-finance/invoices/' + invoiceId);
