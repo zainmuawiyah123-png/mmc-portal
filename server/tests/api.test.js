@@ -1101,7 +1101,9 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 409);
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).data.status, 'owner_confirmation');
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).status, 409);
-  assert.strictEqual((await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', { body: { decision: 'confirmed', note: 'تم الاستلام' } })).data.status, 'finance_queue');
+  const ownerConfirmation = await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', { body: { decision: 'confirmed', note: 'تم الاستلام' } });
+  assert.strictEqual(ownerConfirmation.status, 200, JSON.stringify(ownerConfirmation.data));
+  assert.strictEqual(ownerConfirmation.data.status, 'finance_queue');
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
   assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
