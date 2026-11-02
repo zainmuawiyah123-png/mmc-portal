@@ -271,16 +271,20 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   const responses = db.prepare('SELECT * FROM bid_responses WHERE submission_id=?').all(s.id);
   const scoreMap = new Map(responses.map((r) => [r.requirement_id, r]));
   let normalized=0, missing=false;
-  const update = db.prepare('UPDATE bid_responses SET score=?, evaluator_note=? WHERE id=?');
+  const responseUpdates = [];
   for (const r of reqs) {
-    const row=scoreMap.get(r.id); const score=scores.has(r.id)?scores.get(r.id):(row ? row.score : 0);
-    if (r.mandatory && (!row || !String(row.answer).trim() || score < 50)) missing=true;
+    const row=scoreMap.get(r.id); const score=scores.get(r.id);
+    // Mandatory means the bidder must provide an answer; it does not invent a per-criterion pass mark.
+    if (r.mandatory && (!row || !String(row.answer).trim())) missing=true;
     normalized += r.weight * score / 100;
-    if (row) update.run(score, String((req.body?.notes || {})[r.id] || '').slice(0,1000) || null, row.id);
+    if (row) responseUpdates.push({ id: row.id, score,
+      note: String((req.body?.notes || {})[r.id] || '').slice(0,1000) || null });
   }
   const points=normalized*0.6;
   const passed=points>=50 && !missing;
   const tx = db.transaction(() => {
+    const updateResponse = db.prepare('UPDATE bid_responses SET score=?, evaluator_note=? WHERE id=?');
+    responseUpdates.forEach((r) => updateResponse.run(r.score, r.note, r.id));
     db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL WHERE id=?`)
       .run(normalized, points, passed?1:0, passed?1:0, s.id);
     db.prepare(`INSERT INTO bid_evaluation_audit
