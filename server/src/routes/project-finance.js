@@ -124,7 +124,7 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const rounded = Math.round(total * 100) / 100;
   if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
   db().transaction(() => {
-    db().prepare(`undefined`).run(id,a.id,m.org_id,poNumber,clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id);
+    db().prepare("INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by,requires_owner_confirmation) VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?,?)").run(id,a.id,m.org_id,poNumber,clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id,b.requiresOwnerConfirmation === false ? 0 : 1);
     insertItems('purchase_order_items','po_id',id,items);
     event({orgId:m.org_id,tenderId:a.tender_id,awardId:a.id,poId:id,userId:req.user.id,role:m.role,action:'po_submitted_for_approval',to:'pending_approval',detail:{total:rounded},ip:req.ip});
   })();
