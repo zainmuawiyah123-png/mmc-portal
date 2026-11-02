@@ -1114,6 +1114,7 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   });
   assert.strictEqual(outsiderReg.status, 201);
   assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
+  assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoice-documents/' + documentId + '/download')).status, 404);
   assert.strictEqual((await call(otherFinance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 404);
 
   assert.strictEqual((await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).status, 403);
