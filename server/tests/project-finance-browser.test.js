@@ -57,6 +57,7 @@ test('project finance browser role visibility, contractor invoice selection and 
   await finance.close();
 
   const contractor = await open('contractor',null,390);
+  await contractor.waitForFunction(() => document.querySelector('#invoicePO option[value="po-1"]'));
   assert.equal(await contractor.locator('#contractorTools').evaluate(e=>!e.classList.contains('hide')), true);
   await contractor.locator('#invoicePO').selectOption('po-1');
   await contractor.locator('#invoiceItem').selectOption('poi-1');
