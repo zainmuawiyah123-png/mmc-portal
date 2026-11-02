@@ -13,6 +13,7 @@ const path = require('path');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'tpkit-test-'));
 process.env.NODE_ENV = 'test';
 process.env.DB_PATH = path.join(TMP, 'test.db');
+process.env.REQUIRE_ORG_VERIFICATION = 'false'; // يُفعَّل داخل اختبارات التوثيق فقط
 process.env.UPLOAD_DIR = path.join(TMP, 'uploads');
 process.env.JWT_SECRET = 'test-secret-not-for-production';
 process.env.BCRYPT_ROUNDS = '4';      // أسرع في الاختبارات
@@ -657,4 +658,368 @@ test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملف
   for (const hidden of ['/documents/billing-implementation-ar.md', '/documents/technical-proposal-kit_v5/env.example', '/documents/technical-proposal-kit_v5/test-results.txt', '/documents/technical-proposal-kit_v2/quantity-takeoff-en.xlsx']) {
     assert.notStrictEqual((await fetch(b + hidden)).status, 200, hidden);
   }
+});
+
+/* ==========================================================
+   موعد الإغلاق + حد التقديم الإلكتروني حسب باقة المقاول
+   ========================================================== */
+async function publish(who, closing) {
+  const r = await call(who, 'POST', '/api/procurement/tenders', { body: { name: 'عطاء ' + uniq(), reference: 'Q-' + uniq(), closing, requirements: reqs4() } });
+  assert.strictEqual(r.status, 201, JSON.stringify(r.data));
+  return r.data.tender;
+}
+function grantPlan(email, planKey) {
+  const u = getDB().prepare('SELECT id FROM users WHERE email=?').get(email);
+  getDB().prepare("UPDATE subscriptions SET status='cancelled' WHERE user_id=? AND status='active'").run(u.id);
+  getDB().prepare("INSERT INTO subscriptions (id,user_id,plan_key,status,source,started_at,ends_at) VALUES (?,?,?,?,?,unixepoch(),unixepoch()+2592000)").run('sub_t' + uniq(), u.id, planKey, 'active', 'manual');
+  getDB().prepare('UPDATE users SET plan_key=? WHERE id=?').run(planKey, u.id);
+}
+const bidBody = (t, amount = 1000) => ({ answers: t.requirements.map((q) => ({ requirementId: q.id, answer: 'إجابة' })), financialAmount: amount, financialCurrency: 'JOD' });
+
+test('63 — لا تقديم بعد موعد الإغلاق، ويُقبل في يوم الإغلاق نفسه وبدون موعد', async () => {
+  const ymd = (d) => new Date(d).toISOString().slice(0, 10);
+  await call('qbuy', 'POST', '/api/auth/register', { body: { name: 'جهة', email: 'qb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  await call('qbuy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
+  const qcEmail = 'qc' + uniq() + '@t.com';
+  await call('qcon', 'POST', '/api/auth/register', { body: { name: 'مقاول', email: qcEmail, password: 'Password123' } });
+  grantPlan(qcEmail, 'ent');
+  const past = await publish('qbuy', ymd(Date.now() - 3 * 86400000));
+  const noDate = await publish('qbuy', undefined);
+  const today = await publish('qbuy', new Date(Date.now() + 3 * 3600000).toISOString().slice(0, 10));
+  const list = await call('qcon', 'GET', '/api/procurement/open-tenders');
+  assert.strictEqual(list.data.tenders.find((t) => t.id === past.id).expired, true);
+  assert.strictEqual(list.data.tenders.find((t) => t.id === noDate.id).expired, false);
+  const late = await call('qcon', 'POST', '/api/procurement/tenders/' + past.id + '/submit', { body: bidBody(past) });
+  assert.strictEqual(late.status, 409);
+  assert.ok(/انتهى موعد/.test(late.data.error.message));
+  assert.strictEqual((await call('qcon', 'POST', '/api/procurement/tenders/' + noDate.id + '/submit', { body: bidBody(noDate) })).status, 201);
+  assert.strictEqual((await call('qcon', 'POST', '/api/procurement/tenders/' + today.id + '/submit', { body: bidBody(today) })).status, 201);
+});
+
+test('64 — حد التقديم الإلكتروني: المجاني 2، ويُرفع بالترقية', async () => {
+  const email = 'ql' + uniq() + '@t.com';
+  await call('qfree', 'POST', '/api/auth/register', { body: { name: 'مجاني', email, password: 'Password123' } });
+  const me = await call('qfree', 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.plan.plan.maxSubmissions, 2);
+  assert.strictEqual(me.data.plan.usage.submissions, 0);
+  const a = await publish('qbuy'), b = await publish('qbuy'), c = await publish('qbuy');
+  assert.strictEqual((await call('qfree', 'POST', '/api/procurement/tenders/' + a.id + '/submit', { body: bidBody(a) })).status, 201);
+  assert.strictEqual((await call('qfree', 'POST', '/api/procurement/tenders/' + b.id + '/submit', { body: bidBody(b) })).status, 201);
+  const blocked = await call('qfree', 'POST', '/api/procurement/tenders/' + c.id + '/submit', { body: bidBody(c) });
+  assert.strictEqual(blocked.status, 403);
+  assert.ok(/حد باقتك/.test(blocked.data.error.message));
+  assert.strictEqual((await call('qfree', 'GET', '/api/auth/me')).data.plan.usage.submissions, 2);
+  grantPlan(email, 'starter');
+  assert.strictEqual((await call('qfree', 'POST', '/api/procurement/tenders/' + c.id + '/submit', { body: bidBody(c) })).status, 201);
+});
+
+test('65 — قائمة باقات المقاول تُظهر حدّ التقديمات', async () => {
+  const r = await call('qfree', 'GET', '/api/plans');
+  assert.deepStrictEqual(r.data.plans.map((p) => [p.key, p.maxSubmissions]), [['free', 2], ['starter', 10], ['pro', 40], ['ent', null]]);
+});
+
+/* ==========================================================
+   توثيق الجهات + دول الخليج
+   ========================================================== */
+const cfg = require('../src/config');
+function verForm(over = {}, withDoc = true) {
+  const fd = new FormData();
+  const f = { orgName: 'شركة الخليج للمشاريع', orgType: 'company', country: 'AE', regNumber: 'CR-123456', officialPhone: '+971 4 123 4567', officialEmail: 'procurement@gulf-projects.example', onBehalfOf: '', website: '', ...over };
+  Object.entries(f).forEach(([k, v]) => fd.append(k, v));
+  if (withDoc) fd.append('docs', new Blob(['%PDF-1.4 commercial registration'], { type: 'application/pdf' }), 'registration.pdf');
+  return fd;
+}
+async function makeAdmin(name) {
+  const email = 'ad' + uniq() + '@t.com';
+  await call(name, 'POST', '/api/auth/register', { body: { name: 'مدير', email, password: 'Password123' } });
+  getDB().prepare("UPDATE users SET role='admin' WHERE email=?").run(email);
+  await call(name, 'POST', '/api/auth/login', { body: { email, password: 'Password123' } });
+}
+
+test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة والرفض والاعتماد والسحب', async () => {
+  cfg.REQUIRE_ORG_VERIFICATION = true;
+  try {
+    await call('vb', 'POST', '/api/auth/register', { body: { name: 'جهة', email: 'vb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+    await call('vb', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
+    const blocked = await mkTender('vb', 1);
+    assert.strictEqual(blocked.status, 403);
+    assert.strictEqual(blocked.data.error.code, 'ORG_NOT_VERIFIED');
+    // تحقق من المدخلات
+    assert.strictEqual((await call('vb', 'POST', '/api/verification', { form: verForm({ country: 'XX' }) })).status, 422);
+    assert.strictEqual((await call('vb', 'POST', '/api/verification', { form: verForm({}, false) })).status, 422, 'وثيقة واحدة على الأقل');
+    const sent = await call('vb', 'POST', '/api/verification', { form: verForm() });
+    assert.strictEqual(sent.status, 201, JSON.stringify(sent.data));
+    assert.strictEqual(sent.data.verification.status, 'pending');
+    assert.strictEqual((await call('vb', 'POST', '/api/verification', { form: verForm() })).status, 409, 'لا طلب ثانٍ أثناء المراجعة');
+    assert.strictEqual((await mkTender('vb', 2)).status, 403, 'ما زال محظوراً أثناء المراجعة');
+    // غير المدير لا يرى لوحة المراجعة
+    assert.strictEqual((await call('vb', 'GET', '/api/verification/admin')).status, 403);
+    await makeAdmin('vadm');
+    const list = await call('vadm', 'GET', '/api/verification/admin?status=pending');
+    const row = list.data.verifications.find((v) => v.orgName === 'شركة الخليج للمشاريع' && v.status === 'pending');
+    assert.ok(row && row.docs.length === 1 && row.countryAr === 'الإمارات');
+    const doc = await fetch(base + '/api/verification/admin/' + row.id + '/docs/' + row.docs[0].id, { headers: cookieFor('vadm') });
+    assert.strictEqual(doc.status, 200);
+    assert.strictEqual((await call('vadm', 'POST', '/api/verification/admin/' + row.id + '/reject', { body: {} })).status, 422, 'السبب إلزامي');
+    assert.strictEqual((await call('vadm', 'POST', '/api/verification/admin/' + row.id + '/reject', { body: { note: 'السجل غير واضح' } })).status, 200);
+    const mine = await call('vb', 'GET', '/api/verification');
+    assert.strictEqual(mine.data.verification.status, 'rejected');
+    assert.strictEqual(mine.data.verification.reviewNote, 'السجل غير واضح');
+    // إعادة التقديم ثم الاعتماد
+    assert.strictEqual((await call('vb', 'POST', '/api/verification', { form: verForm({ orgName: 'شركة الخليج للمشاريع ذ.م.م' }) })).status, 201);
+    assert.strictEqual((await call('vadm', 'POST', '/api/verification/admin/' + row.id + '/approve', { body: { days: 365 } })).status, 200);
+    const pub = await mkTender('vb', 3);
+    assert.strictEqual(pub.status, 201, JSON.stringify(pub.data));
+    assert.strictEqual(pub.data.tender.country, 'AE');
+    assert.strictEqual(pub.data.tender.currency, 'AED');
+    // المقاول يرى الشارة
+    await call('vc', 'POST', '/api/auth/register', { body: { name: 'مقاول', email: 'vc' + uniq() + '@t.com', password: 'Password123' } });
+    const open = await call('vc', 'GET', '/api/procurement/open-tenders');
+    const seen = open.data.tenders.find((t) => t.id === pub.data.tender.id);
+    assert.ok(seen && seen.issuer.verified === true && seen.issuer.country === 'AE' && seen.issuer.name.includes('ذ.م.م'));
+    // عملة العرض: KWD مقبولة، وغير المعروفة تعود لعملة دولة الجهة
+    const ok = await call('vc', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: { ...bidBody(pub.data.tender), financialCurrency: 'KWD' } });
+    assert.strictEqual(ok.status, 201);
+    assert.strictEqual(getDB().prepare('SELECT financial_currency c FROM bid_submissions WHERE id=?').get(ok.data.submissionId).c, 'KWD');
+    // سحب التوثيق: يختفي العطاء ويُمنع التقديم
+    assert.strictEqual((await call('vadm', 'POST', '/api/verification/admin/' + row.id + '/revoke', { body: { note: 'شكوى موثّقة' } })).status, 200);
+    assert.ok(!(await call('vc', 'GET', '/api/procurement/open-tenders')).data.tenders.some((t) => t.id === pub.data.tender.id));
+    await call('vc2', 'POST', '/api/auth/register', { body: { name: 'مقاول2', email: 'vc2' + uniq() + '@t.com', password: 'Password123' } });
+    assert.strictEqual((await call('vc2', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: bidBody(pub.data.tender) })).status, 409);
+  } finally { cfg.REQUIRE_ORG_VERIFICATION = false; }
+});
+
+test('67 — دول الخليج: فواتير بالعملات المربوطة، والدينار الكويتي بالدولار فقط', async () => {
+  await call('gcc', 'POST', '/api/auth/register', { body: { name: 'خليجي', email: 'g' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  const amt = async (cur) => (await call('gcc', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', billingCycle: 'monthly', currency: cur } }));
+  assert.strictEqual((await amt('USD')).data.invoice.amount, 49);
+  assert.strictEqual((await amt('SAR')).data.invoice.amount, 183.75);
+  assert.strictEqual((await amt('AED')).data.invoice.amount, 179.95);
+  assert.strictEqual((await amt('QAR')).data.invoice.amount, 178.36);
+  assert.strictEqual((await amt('BHD')).data.invoice.amount, 18.424);
+  assert.strictEqual((await amt('OMR')).data.invoice.amount, 18.841);
+  assert.strictEqual((await amt('JOD')).data.invoice.amount, 34.74);
+  assert.strictEqual((await amt('KWD')).status, 422);
+});
+
+test('68 — توقيت إغلاق العطاء حسب دولة الجهة (الإمارات +4، السعودية +3)', async () => {
+  const org = require('../src/lib/org');
+  assert.strictEqual(org.tzOf('AE'), '+04:00');
+  assert.strictEqual(org.tzOf('OM'), '+04:00');
+  assert.strictEqual(org.tzOf('SA'), '+03:00');
+  assert.strictEqual(org.tzOf('XX'), '+03:00');
+  assert.deepStrictEqual(Object.keys((await call('anon3', 'GET', '/api/verification/meta')).data.countries.reduce((o, c) => ({ ...o, [c.code]: 1 }), {})), ['JO', 'SA', 'AE', 'KW', 'QA', 'BH', 'OM']);
+});
+
+test('69 — نص العطاء بالعربية والإنجليزية: الاسم والملاحظات وعناوين المتطلبات', async () => {
+  await call('bl', 'POST', '/api/auth/register', { body: { name: 'جهة ثنائية', email: 'bl' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  await call('bl', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
+  const mk = await call('bl', 'POST', '/api/procurement/tenders', { body: {
+    name: 'إنشاء مبنى الإدارة', nameEn: 'Administration building construction', notes: 'ملاحظات', notesEn: 'Site visit is mandatory', reference: 'BL-' + uniq(),
+    requirements: [{ title: 'الخبرة السابقة', titleEn: 'Previous experience', description: 'وصف', descriptionEn: 'Describe similar projects', weight: 60, mandatory: true }, { title: 'المنهجية', weight: 40 }] } });
+  assert.strictEqual(mk.status, 201, JSON.stringify(mk.data));
+  const t = mk.data.tender;
+  assert.strictEqual(t.nameEn, 'Administration building construction');
+  assert.strictEqual(t.notesEn, 'Site visit is mandatory');
+  assert.strictEqual(t.requirements[0].titleEn, 'Previous experience');
+  assert.strictEqual(t.requirements[0].descriptionEn, 'Describe similar projects');
+  assert.strictEqual(t.requirements[1].titleEn, null, 'الإنجليزية اختيارية');
+  await call('blc', 'POST', '/api/auth/register', { body: { name: 'مقاول', email: 'blc' + uniq() + '@t.com', password: 'Password123' } });
+  const list = await call('blc', 'GET', '/api/procurement/open-tenders');
+  assert.strictEqual(list.data.tenders.find((x) => x.id === t.id).nameEn, 'Administration building construction');
+  const one = await call('blc', 'GET', '/api/procurement/tenders/' + t.id);
+  assert.strictEqual(one.data.tender.requirements[0].titleEn, 'Previous experience');
+  // الحقول القديمة بلا إنجليزي تبقى صالحة
+  const old = await mkTender('bl', 7);
+  assert.strictEqual(old.status, 201);
+  assert.strictEqual(old.data.tender.nameEn, null);
+});
+
+/* ==========================================================
+   الجهة والأدوار + دورة الطلبات (مالك ← مشاريع ← مشتريات ← مقاول)
+   ========================================================== */
+let teamSeq = 0;
+async function newBuyer(name, plan) {
+  const email = name + (++teamSeq) + uniq() + '@t.com';
+  const r = await call(name + teamSeq, 'POST', '/api/auth/register', { body: { name: 'عضو ' + name, email, password: 'Password123', role: 'buyer' } });
+  assert.strictEqual(r.status, 201, JSON.stringify(r.data));
+  const who = name + teamSeq;
+  if (plan) await call(who, 'POST', '/api/billing/trial', { body: { planKey: plan } });
+  return who;
+}
+async function joinTeam(mgr, role, label) {
+  const inv = await call(mgr, 'POST', '/api/org/invites', { body: { role, label } });
+  assert.strictEqual(inv.status, 201, JSON.stringify(inv.data));
+  const who = await newBuyer(label);
+  const j = await call(who, 'POST', '/api/org/join', { body: { code: inv.data.code } });
+  assert.strictEqual(j.status, 200, JSON.stringify(j.data));
+  return { who, code: inv.data.code };
+}
+const reqBody = (over = {}) => ({ title: 'إنشاء مبنى إداري', titleEn: 'Administrative building', description: 'مبنى من ثلاثة طوابق', location: 'عمّان', country: 'JO', serviceType: 'works', budget: 500000, currency: 'JOD', neededBy: '2027-06-30', ...over });
+function docForm(kind, name = 'spec.pdf') {
+  const fd = new FormData();
+  fd.append('kind', kind);
+  fd.append('files', new Blob(['%PDF-1.4 ' + kind], { type: 'application/pdf' }), name);
+  return fd;
+}
+const tenderBody = (over = {}) => ({ closing: '2030-01-01', requirements: reqs4(), ...over });
+
+test('70 — جهة جديدة: مدير تلقائي، والدعوات تحدّها مقاعد الباقة', async () => {
+  const free = await newBuyer('free');
+  const org = await call(free, 'GET', '/api/org');
+  assert.strictEqual(org.data.myRole, 'manager');
+  assert.strictEqual(org.data.seats.max, 1);
+  const denied = await call(free, 'POST', '/api/org/invites', { body: { role: 'requester' } });
+  assert.strictEqual(denied.status, 403);
+  assert.ok(/حد المستخدمين/.test(denied.data.error.message));
+  const pro = await newBuyer('pro', 'proc_basic');    // 3 مستخدمين
+  assert.strictEqual((await call(pro, 'GET', '/api/org')).data.seats.max, 3);
+  await joinTeam(pro, 'requester', 'r');
+  await joinTeam(pro, 'projects', 'p');
+  const third = await call(pro, 'POST', '/api/org/invites', { body: { role: 'procurement' } });
+  assert.strictEqual(third.status, 403, 'المقاعد الثلاثة اكتملت');
+});
+
+test('71 — الانضمام برمز: صحيح مرة واحدة، والأدوار تُدار من المدير فقط', async () => {
+  const mgr = await newBuyer('mgr', 'proc_pro');
+  const inv = await call(mgr, 'POST', '/api/org/invites', { body: { role: 'projects', label: 'مهندس' } });
+  const a = await newBuyer('a');
+  assert.strictEqual((await call(a, 'POST', '/api/org/join', { body: { code: 'AAAAA-BBBBB' } })).status, 404, 'رمز خاطئ');
+  assert.strictEqual((await call(a, 'POST', '/api/org/join', { body: { code: inv.data.code } })).status, 200);
+  const b = await newBuyer('b');
+  assert.strictEqual((await call(b, 'POST', '/api/org/join', { body: { code: inv.data.code } })).status, 404, 'الرمز لا يُستعمل مرتين');
+  const org = await call(mgr, 'GET', '/api/org');
+  assert.deepStrictEqual(org.data.members.map((m) => m.role).sort(), ['manager', 'projects']);
+  assert.ok(org.data.members.every((m) => m.email), 'المدير يرى البريد');
+  const view = await call(a, 'GET', '/api/org');
+  assert.strictEqual(view.data.myRole, 'projects');
+  assert.ok(view.data.members.every((m) => m.email === undefined), 'العضو العادي لا يرى البريد');
+  assert.strictEqual((await call(a, 'POST', '/api/org/invites', { body: { role: 'requester' } })).status, 403);
+  const me = await call(a, 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.plan.plan.key, 'proc_pro', 'العضو يرى باقة الجهة');
+  const memberId = org.data.members.find((m) => m.role === 'projects').id;
+  const owner = org.data.members.find((m) => m.isOwner).id;
+  assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + owner, { body: { role: 'projects' } })).status, 409, 'صاحب الاشتراك يبقى مديراً');
+  assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + memberId, { body: { role: 'procurement' } })).status, 200);
+  assert.strictEqual((await call(a, 'GET', '/api/org')).data.myRole, 'procurement');
+  assert.strictEqual((await call(mgr, 'DELETE', '/api/org/members/' + memberId)).status, 200);
+});
+
+test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مشتريات تنشر ← المقاول يرى الوثائق وFIDIC', async () => {
+  const mgr = await newBuyer('mg', 'proc_pro');
+  const R = (await joinTeam(mgr, 'requester', 'rq')).who, P = (await joinTeam(mgr, 'projects', 'pj')).who, C = (await joinTeam(mgr, 'procurement', 'pc')).who;
+  const made = await call(R, 'POST', '/api/requests', { body: reqBody() });
+  assert.strictEqual(made.status, 201, JSON.stringify(made.data));
+  const id = made.data.request.id;
+  assert.strictEqual(made.data.request.status, 'draft');
+  assert.strictEqual((await call(P, 'GET', '/api/requests')).data.requests.length, 0, 'المسودة لا تظهر للمشاريع');
+  assert.strictEqual((await call(P, 'GET', '/api/requests/' + id)).status, 404);
+  assert.strictEqual((await call(R, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'take' } })).status, 403);
+  assert.strictEqual((await call(R, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'submit' } })).data.request.status, 'submitted');
+  assert.strictEqual((await call(P, 'GET', '/api/requests')).data.requests.length, 1);
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'take' } })).data.request.status, 'in_study');
+  // لا تجهيز بلا وثائق أو بلا FIDIC
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).status, 422);
+  assert.strictEqual((await call(R, 'POST', '/api/requests/' + id + '/docs', { form: docForm('specifications') })).status, 403, 'الطالب لا يرفع مواصفات');
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('specifications', 'spec.pdf') })).status, 201);
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('drawings', 'plan.pdf') })).status, 201);
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('internal', 'cost-notes.pdf') })).status, 201);
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).status, 422, 'FIDIC مطلوب');
+  const fid = await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '2017', particularNotes: 'الشروط الخاصة مرفقة' } });
+  assert.strictEqual(fid.status, 200, JSON.stringify(fid.data));
+  assert.strictEqual((await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'purple' } })).status, 422);
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).data.request.status, 'ready');
+  // المشتريات ترى الجاهز فقط وتنشر؛ الطالب لا ينشر
+  assert.strictEqual((await call(C, 'GET', '/api/requests')).data.requests.length, 1);
+  assert.strictEqual((await call(R, 'POST', '/api/requests/' + id + '/tender', { body: tenderBody() })).status, 403);
+  assert.strictEqual((await call(C, 'POST', '/api/requests/' + id + '/tender', { body: { closing: '2030-01-01' } })).status, 422, 'متطلبات التقييم مطلوبة');
+  const pub = await call(C, 'POST', '/api/requests/' + id + '/tender', { body: tenderBody() });
+  assert.strictEqual(pub.status, 201, JSON.stringify(pub.data));
+  assert.strictEqual(pub.data.request.status, 'published');
+  assert.strictEqual((await call(C, 'POST', '/api/requests/' + id + '/tender', { body: tenderBody() })).status, 409, 'لا نشر مرتين');
+  // المقاول يرى العطاء مع FIDIC والوثائق العامة فقط
+  const con = 'qcon-wf' + uniq();
+  await call(con, 'POST', '/api/auth/register', { body: { name: 'مقاول', email: con + '@t.com', password: 'Password123' } });
+  const one = await call(con, 'GET', '/api/procurement/tenders/' + pub.data.tenderId);
+  assert.strictEqual(one.data.tender.fidic.book, 'red');
+  assert.strictEqual(one.data.tender.fidic.edition, '2017');
+  assert.strictEqual(one.data.tender.fidic.url, 'https://fidic.org');
+  assert.strictEqual(one.data.tender.documentsCount, 2);
+  assert.strictEqual(one.data.tender.name, 'إنشاء مبنى إداري', 'الاسم يؤخذ من الطلب');
+  assert.strictEqual(one.data.tender.nameEn, 'Administrative building');
+  const docs = await call(con, 'GET', '/api/procurement/tenders/' + pub.data.tenderId + '/documents');
+  assert.deepStrictEqual(docs.data.documents.map((d) => d.kind).sort(), ['drawings', 'specifications']);
+  const dl = await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + docs.data.documents[0].id, { headers: cookieFor(con) });
+  assert.strictEqual(dl.status, 200);
+  assert.ok(/attachment/.test(dl.headers.get('content-disposition')));
+  // الوثيقة الداخلية لا تُسرَّب
+  const internalId = (await call(P, 'GET', '/api/requests/' + id)).data.request.docs.find((d) => d.kind === 'internal').id;
+  assert.strictEqual((await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + internalId, { headers: cookieFor(con) })).status, 404);
+  // المقاول لا يدخل مسارات الجهة
+  assert.strictEqual((await call(con, 'GET', '/api/requests')).status, 403);
+  // تظهر العطاءات لأعضاء المشتريات والمدير لا الطالب
+  assert.strictEqual((await call(C, 'GET', '/api/procurement/tenders')).data.tenders.length, 1);
+  assert.strictEqual((await call(mgr, 'GET', '/api/procurement/tenders')).data.tenders.length, 1);
+  assert.strictEqual((await call(R, 'GET', '/api/procurement/tenders')).status, 403);
+  // سجل الأحداث
+  const ev = (await call(mgr, 'GET', '/api/requests/' + id)).data.request.events.map((e) => e.action);
+  assert.deepStrictEqual(ev.filter((a) => ['create', 'submit', 'take', 'ready', 'publish'].includes(a)), ['create', 'submit', 'take', 'ready', 'publish']);
+});
+
+test('73 — الاعتماد الاختياري، الإعادة من المشتريات، وعزل الطلبات بين الأعضاء', async () => {
+  const mgr = await newBuyer('mgr2', 'proc_pro');
+  const R = (await joinTeam(mgr, 'requester', 'rr')).who, R2 = (await joinTeam(mgr, 'requester', 'r2')).who, P = (await joinTeam(mgr, 'projects', 'pp')).who, C = (await joinTeam(mgr, 'procurement', 'cc')).who;
+  assert.strictEqual((await call(P, 'PATCH', '/api/org', { body: { requireApproval: true } })).status, 403);
+  assert.strictEqual((await call(mgr, 'PATCH', '/api/org', { body: { requireApproval: true } })).status, 200);
+  const id = (await call(R, 'POST', '/api/requests', { body: reqBody() })).data.request.id;
+  assert.strictEqual((await call(R2, 'GET', '/api/requests/' + id)).status, 404, 'طالب آخر لا يرى الطلب');
+  assert.strictEqual((await call(R2, 'GET', '/api/requests')).data.requests.length, 0);
+  await call(R, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'submit' } });
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'return' } })).status, 422, 'ملاحظة الإعادة إلزامية');
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'return', note: 'أرفق مخطط الموقع' } })).data.request.status, 'returned');
+  assert.strictEqual((await call(R, 'GET', '/api/requests/' + id)).data.request.reviewNote, 'أرفق مخطط الموقع');
+  assert.strictEqual((await call(R, 'PATCH', '/api/requests/' + id, { body: reqBody({ title: 'إنشاء مبنى إداري — معدّل' }) })).status, 200);
+  await call(R, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'submit' } });
+  await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'take' } });
+  await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('boq', 'boq.pdf') });
+  await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'yellow', fidicEdition: '1999' } });
+  const aw = await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } });
+  assert.strictEqual(aw.data.request.status, 'awaiting_approval');
+  assert.strictEqual((await call(C, 'GET', '/api/requests')).data.requests.length, 0, 'المشتريات لا ترى قبل الاعتماد');
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'approve' } })).status, 403);
+  assert.strictEqual((await call(R2, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'approve' } })).status, 404);
+  assert.strictEqual((await call(R, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'approve' } })).data.request.status, 'ready');
+  const back = await call(C, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'send_back', note: 'نحتاج مواصفات الكهرباء' } });
+  assert.strictEqual(back.data.request.status, 'in_study');
+  assert.strictEqual(back.data.request.reviewNote, 'نحتاج مواصفات الكهرباء');
+  assert.strictEqual((await call(C, 'GET', '/api/requests')).data.requests.length, 0);
+});
+
+test('74 — توثيق الجهة يخص الجهة كلها، وطلبه لمديرها فقط', async () => {
+  cfg.REQUIRE_ORG_VERIFICATION = true;
+  try {
+    const mgr = await newBuyer('mgv', 'proc_pro');
+    const C = (await joinTeam(mgr, 'procurement', 'pcv')).who;
+    const blocked = await mkTender(C, 1);
+    assert.strictEqual(blocked.status, 403);
+    assert.strictEqual(blocked.data.error.code, 'ORG_NOT_VERIFIED');
+    assert.strictEqual((await call(C, 'POST', '/api/verification', { form: verForm() })).status, 403, 'العضو لا يقدّم طلب التوثيق');
+    assert.strictEqual((await call(mgr, 'POST', '/api/verification', { form: verForm({ orgName: 'الشركة المتحدة', country: 'SA' }) })).status, 201);
+    await makeAdmin('vadm2');
+    const row = (await call('vadm2', 'GET', '/api/verification/admin?status=pending')).data.verifications.find((v) => v.orgName === 'الشركة المتحدة');
+    assert.ok(row);
+    assert.strictEqual((await call('vadm2', 'POST', '/api/verification/admin/' + row.id + '/approve', { body: {} })).status, 200);
+    const ok = await mkTender(C, 2);
+    assert.strictEqual(ok.status, 201, JSON.stringify(ok.data));
+    assert.strictEqual(ok.data.tender.country, 'SA', 'دولة الجهة الموثّقة');
+    assert.strictEqual((await call(C, 'GET', '/api/verification')).data.verification.effective, 'verified', 'العضو يرى حالة التوثيق');
+  } finally { cfg.REQUIRE_ORG_VERIFICATION = false; }
+});
+
+test('75 — الانضمام لا يُسمح به لمدير جهة فيها أعضاء أو طلبات', async () => {
+  const other = await newBuyer('o', 'proc_pro');
+  const inv = await call(other, 'POST', '/api/org/invites', { body: { role: 'requester' } });
+  const busy = await newBuyer('busy', 'proc_pro');
+  await call(busy, 'POST', '/api/requests', { body: reqBody() });
+  assert.strictEqual((await call(busy, 'POST', '/api/org/join', { body: { code: inv.data.code } })).status, 409);
 });

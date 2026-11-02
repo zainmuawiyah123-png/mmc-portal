@@ -49,6 +49,8 @@ const config = {
   UPLOAD_DIR: v('UPLOAD_DIR', path.join(ROOT, 'uploads')),
 
   JWT_SECRET: v('JWT_SECRET', 'dev-insecure-secret-CHANGE-ME'),
+  REQUIRE_ORG_VERIFICATION: v('REQUIRE_ORG_VERIFICATION', 'true') !== 'false',
+  VERIFICATION_DAYS: Number(v('VERIFICATION_DAYS', 365)),
   JWT_TTL: v('JWT_TTL', '7d'),
   COOKIE_NAME: v('COOKIE_NAME', 'tpkit_session'),
   COOKIE_SECURE: v('COOKIE_SECURE', 'false') === 'true',

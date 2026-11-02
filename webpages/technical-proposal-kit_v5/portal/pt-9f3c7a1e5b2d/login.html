@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>تسجيل الدخول · بوابة MMC</title>
+<title data-ar="تسجيل الدخول · بوابة MMC" data-en="Sign in · MMC Portal">تسجيل الدخول · بوابة MMC</title>
 <link rel="stylesheet" href="assets/portal.css">
 <link rel="stylesheet" href="assets/auth.css">
 </head>
-
+<body data-page="login" style="background:var(--ink)">
 <style>
 .lang-switch{position:fixed;top:14px;inset-inline-end:14px;display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;z-index:20;background:#0f2740}
 .lang-switch button{border:0;background:transparent;color:#9fb0c2;font-weight:800;padding:6px 12px;cursor:pointer}
@@ -19,16 +19,15 @@
   <button type="button" data-lang-btn="en">EN</button>
 </div>
 
-<body data-page="login" style="background:var(--ink)">
 
 <div class="auth-wrap">
   <div>
     <div class="auth-card">
       <div class="auth-head">
         <div class="mark">M</div>
-        <h1><span data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</span></h1>
+        <h1><span data-ar="تسجيل الدخول" data-en="Sign in"><span data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</span></span></h1>
         <p><span data-ar="بوابتك الخاصة لرفع المخططات ووثائق العطاء وتوليد العرض الفني وحساب الكميات."
-              data-en="Your private portal to upload drawings and tender documents, then generate the technical proposal and take-off.">بوابتك الخاصة لرفع المخططات ووثائق العطاء وتوليد العرض الفني وحساب الكميات.</span></p>
+              data-en="Your private portal to upload drawings and tender documents, then generate the technical proposal and take-off."><span data-ar="بوابتك الخاصة لرفع المخططات ووثائق العطاء وتوليد العرض الفني وحساب الكميات." data-en="Your private portal to upload drawings and tender documents, then generate the technical proposal and take-off.">بوابتك الخاصة لرفع المخططات ووثائق العطاء وتوليد العرض الفني وحساب الكميات.</span></span></p>
       </div>
 
       <div class="auth-body">
@@ -36,43 +35,42 @@
 
         <form id="loginForm" novalidate>
           <div class="field">
-            <label for="email"><span data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</span></label>
+            <label for="email"><span data-ar="البريد الإلكتروني" data-en="Email"><span data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</span></span></label>
             <input type="email" id="email" name="email" autocomplete="username" required
                    dir="ltr" placeholder="you@company.com">
             <div class="err-msg" id="emailErr"></div>
           </div>
 
           <div class="field">
-            <label for="password"><span data-ar="كلمة المرور" data-en="Password">كلمة المرور</span></label>
+            <label for="password"><span data-ar="كلمة المرور" data-en="Password"><span data-ar="كلمة المرور" data-en="Password">كلمة المرور</span></span></label>
             <input type="password" id="password" name="password" autocomplete="current-password" required
                    dir="ltr" placeholder="••••••••">
             <div class="err-msg" id="passErr"></div>
           </div>
 
           <button type="submit" class="auth-submit" id="submitBtn">
-            <span data-ar="دخول" data-en="Sign in">دخول</span>
+            <span data-ar="دخول" data-en="Sign in"><span data-ar="دخول" data-en="Sign in">دخول</span></span>
           </button>
         </form>
 
         <div class="auth-foot">
-          <span data-ar="ليس لديك حساب؟" data-en="No account yet?">ليس لديك حساب؟</span>
-          <a href="register.html"><span data-ar="أنشئ حساباً" data-en="Create one">أنشئ حساباً</span></a>
+          <span data-ar="ليس لديك حساب؟" data-en="No account yet?"><span data-ar="ليس لديك حساب؟" data-en="No account yet?">ليس لديك حساب؟</span></span>
+          <a href="register.html"><span data-ar="أنشئ حساباً" data-en="Create one"><span data-ar="أنشئ حساباً" data-en="Create one">أنشئ حساباً</span></span></a>
         </div>
       </div>
     </div>
 
     <div class="auth-note">
-      <b data-ar="المرحلة الأولى" data-en="Phase 1">المرحلة الأولى</b>
+      <b data-ar="المرحلة الأولى" data-en="Phase 1"><span data-ar="المرحلة الأولى" data-en="Phase 1">المرحلة الأولى</span></b>
       <span data-ar=" — خادم وقاعدة بيانات ومصادقة حقيقية. كلمة المرور مشفّرة بـ bcrypt، والجلسة في كوكي httpOnly."
-            data-en=" — real server, database and authentication. Passwords are bcrypt-hashed; the session lives in an httpOnly cookie."> — خادم وقاعدة بيانات ومصادقة حقيقية. كلمة المرور مشفّرة بـ bcrypt، والجلسة في كوكي httpOnly.</span>
+            data-en=" — real server, database and authentication. Passwords are bcrypt-hashed; the session lives in an httpOnly cookie."><span data-ar=" — خادم وقاعدة بيانات ومصادقة حقيقية. كلمة المرور مشفّرة بـ bcrypt، والجلسة في كوكي httpOnly." data-en=" — real server, database and authentication. Passwords are bcrypt-hashed; the session lives in an httpOnly cookie."> — خادم وقاعدة بيانات ومصادقة حقيقية. كلمة المرور مشفّرة بـ bcrypt، والجلسة في كوكي httpOnly.</span></span>
       <br>
-      <span data-ar="لا يوجد دفع فعلي في هذه المرحلة." data-en="No real payment in this phase.">لا يوجد دفع فعلي في هذه المرحلة.</span>
+      <span data-ar="لا يوجد دفع فعلي في هذه المرحلة." data-en="No real payment in this phase."><span data-ar="لا يوجد دفع فعلي في هذه المرحلة." data-en="No real payment in this phase.">لا يوجد دفع فعلي في هذه المرحلة.</span></span>
     </div>
   </div>
 </div>
 
 <script src="assets/api.js"></script>
-<script src="assets/i18n.js"></script>
 <script>
 (function(){
   'use strict';
@@ -157,5 +155,5 @@
   });
 })();
 </script>
-</body>
+<script src="assets/i18n.js"></script></body>
 </html>

@@ -53,6 +53,7 @@ router.get('/plans', auth, wrap(async (req, res) => {
     plans: rows.map((p) => ({
       key: p.key, nameAr: p.name_ar, nameEn: p.name_en,
       maxTenders: p.max_tenders === -1 ? null : p.max_tenders,
+      maxSubmissions: p.max_submissions === -1 ? null : p.max_submissions,
       maxBytes: p.max_bytes === -1 ? null : p.max_bytes,
       priceMonth: p.price_month, priceYear: p.price_year, sortOrder: p.sort_order
     }))

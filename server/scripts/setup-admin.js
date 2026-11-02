@@ -1,77 +1,29 @@
 'use strict';
 /**
- * إعداد سريع لحساب المدير + حسابات تجريبية.
- * الاستخدام:
- *   node scripts/setup-admin.js
- * أو مع قيم مخصصة:
- *   ADMIN_EMAIL=admin@mmc.local ADMIN_PASSWORD=Admin@2026Secure node scripts/setup-admin.js
+ * ينشئ حساب المدير عند الإقلاع إن عُيّن ADMIN_EMAIL و ADMIN_PASSWORD في البيئة.
+ *  - لا يعدّل حساباً موجوداً ولا يغيّر كلمة مروره أبداً.
+ *  - لا يطبع كلمة المرور. إن لم تُعيَّن المتغيرات يخرج بصمت دون خطأ.
+ *  - بعد أول إنشاء ناجح احذف ADMIN_PASSWORD من إعدادات البيئة.
  */
 const { migrate } = require('../src/migrate');
 const config = require('../src/config');
-const { getDB, uid } = require('../src/db');
+const { getDB, closeDB, uid } = require('../src/db');
 const { hashPassword } = require('../src/lib/auth');
 
-const accounts = [
-  {
-    email: process.env.ADMIN_EMAIL || 'admin@mmc.local',
-    password: process.env.ADMIN_PASSWORD || 'Admin@2026Secure',
-    name: process.env.ADMIN_NAME || 'مدير النظام',
-    role: 'admin',
-    company: 'MMC'
-  },
-  {
-    email: process.env.BUYER_EMAIL || 'buyer@mmc.local',
-    password: process.env.BUYER_PASSWORD || 'Buyer@2026Secure',
-    name: 'لجنة المشتريات',
-    role: 'buyer',
-    company: 'دائرة المشتريات'
-  },
-  {
-    email: process.env.CONTRACTOR_EMAIL || 'contractor@mmc.local',
-    password: process.env.CONTRACTOR_PASSWORD || 'Contractor@2026Secure',
-    name: 'مكتب المقاولات',
-    role: 'contractor',
-    company: 'شركة المقاولات'
-  }
-];
+(async () => {
+  const email = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const password = String(process.env.ADMIN_PASSWORD || '');
+  if (!email || !password) { console.log('[setup-admin] ADMIN_EMAIL/ADMIN_PASSWORD غير معيّنين — تخطّي.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { console.warn('[setup-admin] ADMIN_EMAIL غير صالح — تخطّي.'); return; }
+  if (password.length < 12) { console.warn('[setup-admin] ADMIN_PASSWORD أقصر من 12 حرفاً — تخطّي. اختر كلمة أقوى.'); return; }
 
-async function ensureUser({ email, password, name, role, company }) {
-  const db = getDB();
-  const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email);
-  if (existing) {
-    console.log('  • موجود مسبقاً: ' + email + ' (' + existing.role + ')');
-    return existing.id;
-  }
-  const hash = await hashPassword(password);
-  const id = uid('usr_');
-  db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, plan_key)
-              VALUES (?,?,?,?,?,?, 'free')`).run(id, email, hash, name, company, role);
-  db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
-              VALUES (?,?, 'free', 'active', 'trial')`).run(uid('sub_'), id);
-  console.log('  ✓ تم الإنشاء: ' + email + ' / ' + role);
-  return id;
-}
-
-async function main() {
   migrate(config.DB_PATH);
-  console.log('');
-  console.log('=== إعداد حسابات البوابات ===');
-  for (const a of accounts) {
-    await ensureUser(a);
-  }
-  console.log('');
-  console.log('بيانات الدخول:');
-  console.log('─────────────────────────────────────────────');
-  for (const a of accounts) {
-    console.log('  ' + String(a.role).padEnd(12) + ': ' + a.email + '  /  ' + a.password);
-  }
-  console.log('─────────────────────────────────────────────');
-  console.log('  تسجيل الدخول: /portal/pt-9f3c7a1e5b2d/login.html');
-  console.log('  بوابة الإدارة: /admin/index.html');
-  console.log('');
-}
+  const db = getDB();
+  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) { console.log('[setup-admin] الحساب موجود مسبقاً — لم يُغيَّر شيء.'); return; }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+  const id = uid('usr_');
+  db.prepare("INSERT INTO users (id, email, password_hash, name, company, role, plan_key) VALUES (?,?,?,?,?,'admin','free')")
+    .run(id, email, await hashPassword(password), String(process.env.ADMIN_NAME || 'مدير النظام').slice(0, 120), String(process.env.ADMIN_COMPANY || 'MMC').slice(0, 120));
+  db.prepare("INSERT INTO subscriptions (id, user_id, plan_key, status, source) VALUES (?,?, 'free', 'active', 'trial')").run(uid('sub_'), id);
+  console.log('[setup-admin] ✓ أُنشئ حساب المدير: ' + email + ' — احذف ADMIN_PASSWORD من إعدادات البيئة الآن.');
+})().catch((e) => { console.warn('[setup-admin] تعذّر: ' + e.message); }).finally(() => { try { closeDB(); } catch (_) {} });

@@ -19,6 +19,9 @@ const fileRoutes = require('./routes/files');
 const accountRoutes = require('./routes/account');
 const procurementRoutes = require('./routes/procurement');
 const billingRoutes = require('./routes/billing');
+const verificationRoutes = require('./routes/verification');
+const orgRoutes = require('./routes/org');
+const requestRoutes = require('./routes/requests');
 
 function createApp() {
   const app = express();
@@ -51,27 +54,25 @@ function createApp() {
     });
   }
 
+  const WEB_ROOT_HEALTH = config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5');
+
   /* ---------------- API ---------------- */
   app.get('/api/health', (req, res) => {
     const db = require('./db').getDB();
     const users = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
     const tenders = db.prepare('SELECT COUNT(*) AS n FROM tenders').get().n;
-    const webRoot = config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5');
-    const loginPath = path.join(webRoot, 'portal', 'pt-9f3c7a1e5b2d', 'login.html');
     res.json({
       ok: true, service: 'tpkit-portal', phase: 2, env: config.NODE_ENV,
       time: new Date().toISOString(),
       storage: { driver: config.STORAGE_DRIVER, signedUrlTtl: config.SIGNED_URL_TTL },
       scheduler: require('./lib/scheduler').schedulerStatus(),
       counts: { users, tenders },
-      web: {
-        root: webRoot,
-        rootExists: fs.existsSync(webRoot),
-        loginExists: fs.existsSync(loginPath),
-        loginUrl: '/portal/pt-9f3c7a1e5b2d/login.html',
-        procurementExists: fs.existsSync(path.join(webRoot, 'procurement', 'index.html')),
-        bidExists: fs.existsSync(path.join(webRoot, 'bid', 'index.html')),
-        adminExists: fs.existsSync(path.join(webRoot, 'admin', 'index.html'))
+      web: { // أعلام فقط — بلا مسارات الخادم
+        rootExists: fs.existsSync(WEB_ROOT_HEALTH),
+        login: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'portal', 'pt-9f3c7a1e5b2d', 'login.html')),
+        procurement: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'procurement', 'index.html')),
+        bid: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'bid', 'index.html')),
+        admin: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'admin', 'index.html'))
       }
     });
   });
@@ -87,6 +88,9 @@ function createApp() {
   app.use('/api', fileRoutes);
   app.use('/api', accountRoutes);
   app.use('/api/billing', billingRoutes);
+  app.use('/api/verification', verificationRoutes);
+  app.use('/api/org', orgRoutes);
+  app.use('/api/requests', requestRoutes);
   app.use('/api/procurement', procurementRoutes);
 
   app.use('/api', (req, res) => {
@@ -94,30 +98,13 @@ function createApp() {
   });
 
   /* ---------------- الواجهة (صفحات البوابة والحزمة) ---------------- */
+  // WEB_ROOT: جذر الملفات الثابتة. في المرحلة الأولى كان الخادم داخل مجلد الحزمة،
+  // والآن أصبح مجلداً مستقلاً (portal-server-v5) — افتراضياً نخدم مجلد النسخة v5،
+  // ويُضبط صراحةً عبر WEB_ROOT حين تُنشر الحزمة في مسار آخر.
   const WEB_ROOT = config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5');
   if (!fs.existsSync(WEB_ROOT)) {
     console.warn('  ⚠ WEB_ROOT غير موجود: ' + WEB_ROOT + ' — الواجهة لن تُخدم. اضبط WEB_ROOT.');
-  } else {
-    console.log('  WEB_ROOT   : ' + WEB_ROOT);
   }
-
-  function sendFromWeb(relPath, res, next) {
-    const target = path.resolve(WEB_ROOT, relPath);
-    const rootResolved = path.resolve(WEB_ROOT);
-    if (!target.startsWith(rootResolved + path.sep) && target !== rootResolved) {
-      return res.status(400).type('text').send('Bad path');
-    }
-    if (!fs.existsSync(target)) {
-      return res.status(404).type('text').send(
-        'File not found: /' + relPath.replace(/\\/g, '/') +
-        '\nWEB_ROOT=' + WEB_ROOT +
-        '\nrootExists=' + fs.existsSync(WEB_ROOT) +
-        '\nTip: ensure webpages/technical-proposal-kit_v5 is in the Git repo and Docker image.'
-      );
-    }
-    return res.sendFile(target, (err) => { if (err) next(err); });
-  }
-
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {
@@ -125,31 +112,37 @@ function createApp() {
     }
   }));
 
-  // ملفات التنزيل (Excel/PDF) فقط من مجلد documents
+  // ملفات التنزيل (Excel/PDF) فقط من مجلد documents — بقية ملفاته داخلية ولا تُخدم أبداً
   const DOCS_ROOT = config.DOCS_ROOT || path.resolve(config.ROOT, '..', 'documents');
   app.use('/documents', (req, res, next) => {
     if (!/\.(xlsx|pdf)$/i.test(req.path)) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'غير موجود.' } });
     next();
-  }, express.static(DOCS_ROOT, { index: false, dotfiles: 'deny' }));
+  }, express.static(DOCS_ROOT, {
+    index: false, dotfiles: 'deny',
+    setHeaders: (res, filePath) => {
+      if (/\.xlsx$/i.test(filePath)) {
+        // بدون هذا الرأس لا تعرض المتصفحات المدمجة (مثل متصفح التطبيقات على الآيفون) شيئاً عند فتح ملف Excel
+        res.setHeader('Content-Disposition', "attachment; filename*=UTF-8''" + encodeURIComponent(require('path').basename(filePath)));
+      }
+    }
+  }));
 
-  // مسارات صريحة للبوابات (حتى لو فشل static لسبب ما)
-  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => {
-    sendFromWeb(path.join('procurement', 'index.html'), res, next);
-  });
-  app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => {
-    sendFromWeb(path.join('bid', 'index.html'), res, next);
-  });
-  app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => {
-    sendFromWeb(path.join('admin', 'index.html'), res, next);
-  });
+  // مسارات صريحة للبوابات + /portal، مع رسالة 404 واضحة (دون كشف مسارات الخادم)
+  function sendFromWeb(relPath, res, next) {
+    const root = path.resolve(WEB_ROOT);
+    const target = path.resolve(root, relPath);
+    if (!target.startsWith(root + path.sep)) return res.status(400).type('text').send('Bad path');
+    if (!fs.existsSync(target)) return res.status(404).type('text').send('File not found: /' + relPath.replace(/\\/g, '/'));
+    return res.sendFile(target, (err) => { if (err) next(err); });
+  }
+  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
+  app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
+  app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
+  app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
   app.get(/^\/portal(\/.*)?$/, (req, res, next) => {
-    let rel = (req.path.replace(/^\/portal\/?/, '') || 'pt-9f3c7a1e5b2d/login.html');
+    let rel = req.path.replace(/^\/portal\/?/, '') || 'pt-9f3c7a1e5b2d/login.html';
     if (rel.endsWith('/')) rel += 'index.html';
     sendFromWeb(path.join('portal', rel), res, next);
-  });
-
-  app.get('/', (req, res) => {
-    res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
   });
 
   app.use(errorHandler);

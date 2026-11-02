@@ -1,195 +1,320 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title data-ar="بوابة المشتريات · MMC" data-en="Procurement Portal · MMC">بوابة المشتريات · MMC</title>
-<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="MMC Technical Proposal Kit — bilingual Arabic/English tender forms, drawing guide and quantity take-off, with subscription packages.">
+<title>MMC Technical Proposal Kit &middot; حزمة العروض الفنية — Index</title>
+<link rel="stylesheet" href="assets/en.css">
 <style>
-.split{display:grid;grid-template-columns:1fr 1.5fr;gap:18px}
-.req{display:grid;grid-template-columns:2fr 1fr 90px 70px;gap:7px;margin:7px 0}
-.req input{min-width:0}
-.mini{font-size:11px;color:var(--mut)}
-.locked{color:#9b2c2c;font-weight:800}
-.open{color:#166534;font-weight:800}
-.score{width:78px}
-.rank{font-weight:900;font-size:18px}
-.lang-switch{display:inline-flex;border:1px solid var(--line,#37506b);border-radius:6px;overflow:hidden}
-.lang-switch button{border:0;border-radius:0;padding:5px 11px;font-weight:800;background:transparent;color:var(--mut,#9fb0c2);cursor:pointer}
-.lang-switch button.on{background:#b45309;color:#fff}
-@media(max-width:850px){.split{grid-template-columns:1fr}.req{grid-template-columns:1fr 80px 70px 55px}}
+  .lang-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0 26px}
+  .lang-card{border:1px solid var(--line);border-radius:8px;padding:16px 18px;background:#fff;display:block;color:inherit;transition:.16s}
+  .lang-card:hover{border-color:var(--accent);text-decoration:none;box-shadow:0 4px 16px rgba(180,83,9,.12)}
+  .lang-card b{display:block;font-size:14px;margin-bottom:3px}
+  .lang-card span{font-size:11.5px;color:var(--mut)}
+  .lang-card .pill{display:inline-block;font-size:9px;font-weight:900;letter-spacing:.8px;padding:2px 7px;border-radius:3px;background:#eef1f5;color:#5b6b7c;margin-bottom:7px}
+  table.t td{vertical-align:middle}
+  @media(max-width:820px){.lang-row{grid-template-columns:1fr}}
 </style>
 </head>
-<body data-page="procurement">
-<div class="p-top">
-  <div class="brand"><span class="mark">M</span><span><span data-ar="بوابة المشتريات" data-en="Procurement Portal">بوابة المشتريات</span><small>MMC Electronic Tender Room</small></span></div>
+<body>
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> MMC Technical Proposal Kit</div>
+  <span class="code">TP-KIT v4.0</span>
   <div class="spacer"></div>
-  <div class="lang-switch" role="group" aria-label="Language">
-    <button type="button" data-lang-btn="ar" class="on">AR</button>
-    <button type="button" data-lang-btn="en">EN</button>
+  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="MMC Portal — upload drawings and produce the proposal">🔓 MMC Portal</a>
+  <a class="btn ghost" href="marketing/landing.html">Overview</a>
+  <a class="btn ghost" href="marketing/pricing.html">Pricing</a>
+  <a class="btn ghost" href="marketing/compare.html">Compare</a>
+  <a class="btn ghost" href="marketing/faq.html">FAQ</a>
+  <a class="btn amber" href="marketing/subscribe.html">Subscribe</a>
+  <div class="switch" role="group" aria-label="Language">
+    <a href="index.html" class="on" title="Arabic index">AR</a>
+    <span style="background:#b45309;color:#fff">EN</span>
   </div>
-  <span data-user-name style="margin-inline:10px"></span>
-  <button class="btn ghost" id="logout"><span data-ar="خروج" data-en="Log out">خروج</span></button>
+  <button class="btn" data-print>&#128424; Print</button>
 </div>
-<div class="p-nav">
-  <a class="on" href="index.html"><span data-ar="لوحة المشتريات" data-en="Procurement desk">لوحة المشتريات</span></a>
-  <a href="../bid/index.html"><span data-ar="معاينة بوابة المقاول" data-en="Contractor portal">معاينة بوابة المقاول</span></a>
-  <a href="../portal/pt-9f3c7a1e5b2d/billing.html"><span data-ar="الاشتراك والفواتير" data-en="Billing">الاشتراك والفواتير</span></a>
-  <a href="../portal/pt-9f3c7a1e5b2d/index.html"><span data-ar="البوابة العامة" data-en="Main portal">البوابة العامة</span></a>
-  <a href="../documents/MMC-tender-platform-bilingual.pdf" target="_blank" rel="noopener">PDF Guide</a>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">MMC Technical Proposal Kit &middot; Bilingual Edition</div>
+    <h1>MMC Technical Proposal Kit &mdash; Bilingual Index</h1>
+    <p class="sub">Thirteen fillable tender documents, a drawing-reading guide and a self-calculating quantity
+    take-off &mdash; in English and Arabic, with a subscription layer for commercial distribution.</p>
+    <div class="doc-meta">
+      <div><span>Documents</span><b>13 &times; 2 editions</b></div>
+      <div><span>Version</span><b>2.0</b></div>
+      <div><span>Currency</span><b>USD / JOD / SAR / AED</b></div>
+      <div><span>Packages</span><b>3 tiers</b></div>
+    </div>
+  </div>
+
+
+  <section class="portal-gateway" style="margin:28px 0">
+    <h2 class="sec"><span class="num">00</span> System portals before launch</h2>
+    <p class="small">Use these entry points to test subscriptions, payments and tender evaluation locally.</p>
+    <div class="cards">
+      <a class="card" href="portal/pt-9f3c7a1e5b2d/login.html?next=../../bid/index.html"><div class="k">CONTRACTOR PORTAL</div><div class="ttl">Contractor portal</div><div class="d">Register, choose a plan, create an invoice, upload a transfer receipt and track activation.</div></a>
+      <a class="card" href="portal/pt-9f3c7a1e5b2d/login.html?next=../../procurement/index.html"><div class="k">PROCUREMENT PORTAL</div><div class="ttl">Procurement portal</div><div class="d">Create tenders, define requirements, receive bids and evaluate technical proposals before financial opening.</div></a>
+      <a class="card" href="portal/pt-9f3c7a1e5b2d/login.html?next=../../admin/index.html"><div class="k">ADMIN PORTAL</div><div class="ttl">Administration portal</div><div class="d">Review payment receipts, approve or reject invoices and activate plans with an expiry date.</div></a>
+      <a class="card" href="org/index.html"><div class="k">ORGANIZATION WORKSPACE</div><div class="ttl">Requests &amp; team</div><div class="d">Owner request → projects department prepares drawings, specifications and FIDIC conditions → procurement publishes the tender.</div></a>
+      <a class="card" href="marketing/procurement-plans.html"><div class="k">PROCUREMENT PLANS</div><div class="ttl">Procurement plans</div><div class="d">Basic, Professional and Enterprise — 14-day trial, then a custom price per case.</div></a>
+    </div>
+  </section>
+
+  <div class="callout">
+    <strong>Start here.</strong> Both editions carry the same thirteen documents and the same arithmetic. Choose a
+    language below, then follow the documents in order — the usage guide (TP-G2) explains the sequence and the
+    fifteen checks to run before submission.
+  </div>
+
+  <h2 class="sec"><span class="num">01</span> Choose your edition</h2>
+
+  <div class="lang-row">
+    <a class="lang-card" href="en/index.html">
+      <span class="pill">ENGLISH</span>
+      <b>English Edition &mdash; LTR</b>
+      <span>Full set of 13 documents, ISO-style terminology, USD / JOD / SAR / AED switching, English number and date formats.</span>
+    </a>
+    <a class="lang-card" href="index-ar.html">
+      <span class="pill">العربية</span>
+      <b dir="rtl">النسخة العربية — RTL</b>
+      <span dir="rtl">جميع المستندات الثلاثة عشر، مع المصطلحات الفنية بالإنجليزية بين قوسين، والتنسيق من اليمين إلى اليسار.</span>
+    </a>
+  </div>
+
+  <h2 class="sec"><span class="num">02</span> Document index &mdash; both editions</h2>
+  <p class="small" style="margin-top:-4px">Each row links to the same document in each language. The tag shows the
+  document's role in the submission.</p>
+
+  <table class="t compact">
+    <thead>
+      <tr>
+        <th style="width:12%" class="c">Code</th>
+        <th style="width:34%">English</th>
+        <th style="width:34%">العربية</th>
+        <th style="width:8%" class="c">Role</th>
+        <th class="c">Open</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-01</td>
+  <td><a href="en/01-cover-letter.html" style="font-weight:700">Cover Letter &amp; Compliance Statement</a></td>
+  <td dir="rtl" style="text-align:right"><a href="01-cover-letter.html" style="font-weight:700">خطاب التقديم وإقرار المطابقة</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">التقديم</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/01-cover-letter.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="01-cover-letter.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-02</td>
+  <td><a href="en/02-methodology.html" style="font-weight:700">Scope Understanding &amp; Methodology</a></td>
+  <td dir="rtl" style="text-align:right"><a href="02-methodology.html" style="font-weight:700">فهم نطاق العمل والمنهجية</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">فني</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/02-methodology.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="02-methodology.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-03</td>
+  <td><a href="en/03-schedule.html" style="font-weight:700">Time Schedule &amp; Payment Schedule</a></td>
+  <td dir="rtl" style="text-align:right"><a href="03-schedule.html" style="font-weight:700">البرنامج الزمني وجدول الدفعات</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">فني</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/03-schedule.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="03-schedule.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-04</td>
+  <td><a href="en/04-qaqc.html" style="font-weight:700">QA/QC Plan</a></td>
+  <td dir="rtl" style="text-align:right"><a href="04-qaqc.html" style="font-weight:700">خطة الجودة</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">فني</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/04-qaqc.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="04-qaqc.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-05</td>
+  <td><a href="en/05-hse.html" style="font-weight:700">HSE Plan</a></td>
+  <td dir="rtl" style="text-align:right"><a href="05-hse.html" style="font-weight:700">خطة السلامة والصحة المهنية</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">فني</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/05-hse.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="05-hse.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-06</td>
+  <td><a href="en/06-resources.html" style="font-weight:700">Resource Plan: Organisation, CVs, Plant, Materials</a></td>
+  <td dir="rtl" style="text-align:right"><a href="06-resources.html" style="font-weight:700">خطة الموارد: الهيكل والسير الذاتية والمعدات والمواد</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">فني</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/06-resources.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="06-resources.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-07</td>
+  <td><a href="en/07-track-record.html" style="font-weight:700">Track Record &amp; Similar Projects</a></td>
+  <td dir="rtl" style="text-align:right"><a href="07-track-record.html" style="font-weight:700">سجل الأعمال والمشاريع المماثلة</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">تأهيل</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/07-track-record.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="07-track-record.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-08</td>
+  <td><a href="en/08-risk.html" style="font-weight:700">Risk Register &amp; Mitigation</a></td>
+  <td dir="rtl" style="text-align:right"><a href="08-risk.html" style="font-weight:700">سجل المخاطر وخطة التعامل</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">فني</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/08-risk.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="08-risk.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-09</td>
+  <td><a href="en/09-boq.html" style="font-weight:700">BOQ Summary &amp; Price Schedule</a></td>
+  <td dir="rtl" style="text-align:right"><a href="09-boq.html" style="font-weight:700">ملخص الكميات والجدول السعري</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">مالي</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/09-boq.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="09-boq.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-10&ndash;13</td>
+  <td><a href="en/10-forms.html" style="font-weight:700">Supporting Forms: Checklist, RFI, Deviations, Handover</a></td>
+  <td dir="rtl" style="text-align:right"><a href="10-forms.html" style="font-weight:700">النماذج المساندة: قائمة التحقق، الاستفسارات، الانحرافات، التسليم</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">إداري</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/10-forms.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="10-forms.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-G1</td>
+  <td><a href="en/11-drawings.html" style="font-weight:700">Drawing Reading Guide (Arch / Struct / MEP)</a></td>
+  <td dir="rtl" style="text-align:right"><a href="11-drawings.html" style="font-weight:700">دليل قراءة المخططات (معماري / إنشائي / كهروميكانيك)</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">دليل</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/11-drawings.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="11-drawings.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-14</td>
+  <td><a href="en/12-takeoff.html" style="font-weight:700">Quantity Take-off &amp; Summary Sheet</a></td>
+  <td dir="rtl" style="text-align:right"><a href="12-takeoff.html" style="font-weight:700">جدول حساب الكميات والملخص</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">كميات</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/12-takeoff.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="12-takeoff.html">AR</a></td>
+</tr>
+<tr>
+  <td class="c mono" style="font-size:10px;font-weight:800;color:#b45309">TP-G2</td>
+  <td><a href="en/13-usage-guide.html" style="font-weight:700">How to Use the Kit</a></td>
+  <td dir="rtl" style="text-align:right"><a href="13-usage-guide.html" style="font-weight:700">دليل الاستخدام</a></td>
+  <td class="c"><span class="chip info" style="font-size:8px">دليل</span></td>
+  <td class="c"><a class="btn" style="padding:3px 8px;font-size:10.5px" href="en/13-usage-guide.html">EN</a>
+      <a class="btn" style="padding:3px 8px;font-size:10.5px;background:#b45309;border-color:#b45309" href="13-usage-guide.html">AR</a></td>
+</tr>
+    </tbody>
+  </table>
+
+  <h2 class="sec"><span class="num">03</span> Downloadable workbooks</h2>
+  <div class="cards">
+    <a class="card" href="../../documents/technical-proposal-kit_v5/quantity-takeoff-en.xlsx" download>
+      <div class="k">EXCEL &middot; ENGLISH</div>
+      <div class="ttl">Quantity take-off workbook</div>
+      <div class="d">Seven linked sheets, 135 live formulas — take-off, summary, BOQ, waste analysis, rates, checks.</div>
+    </a>
+    <a class="card" href="../../documents/technical-proposal-kit/quantity-takeoff.xlsx" download>
+      <div class="k">EXCEL &middot; ARABIC</div>
+      <div class="ttl">مصنّف حساب الكميات</div>
+      <div class="d">نفس البنية والمعادلات بالنسخة العربية — سبع أوراق مترابطة.</div>
+    </a>
+  </div>
+  <p class="no-print" style="font-size:12px;color:#5b6b7c;margin:6px 0 0">If nothing happens on a phone, open this page in Safari or Chrome (not an in-app browser) and tap the card again. The file downloads as .xlsx and opens in Excel, Numbers or Google Sheets. · إن لم يحدث شيء على الجوال فافتح الصفحة في Safari أو Chrome مباشرة، وليس من داخل تطبيق آخر.</p>
+
+  <h2 class="sec"><span class="num">05</span> Subscription packages</h2>
+  <p class="small" style="margin-top:-4px">The documents above are complete on their own. The packages add the second
+  edition, the Excel workbook, your own branding and support — and fund the maintenance of the forms.
+  The portal applies the same limits: active tenders and upload space.</p>
+
+  <div class="tiers"><a class="tier" href="portal/pt-9f3c7a1e5b2d/upgrade.html" style="text-decoration:none;color:inherit">
+     <h3>Free Trial</h3>
+     <div class="amt">Free</div>
+     <div class="per">no card required</div>
+     <p class="for" style="margin-top:8px">One tender, 25 MB upload, try the whole flow</p>
+   </a><a class="tier" href="marketing/subscribe.html?plan=starter" style="text-decoration:none;color:inherit">
+     <h3>Starter</h3>
+     <div class="amt"><sup>$</sup>39</div>
+     <div class="per">per month</div>
+     <p class="for" style="margin-top:8px">One seat, one language, three projects</p>
+   </a><a class="tier" href="marketing/subscribe.html?plan=pro" style="text-decoration:none;color:inherit">
+     <h3>Professional</h3>
+     <div class="amt"><sup>$</sup>89</div>
+     <div class="per">per month</div>
+     <p class="for" style="margin-top:8px">Both editions, Excel workbook, your branding</p>
+   </a><a class="tier" href="marketing/subscribe.html?plan=ent" style="text-decoration:none;color:inherit">
+     <h3>Enterprise</h3>
+     <div class="amt"><sup>$</sup>199</div>
+     <div class="per">per month</div>
+     <p class="for" style="margin-top:8px">Unlimited seats, custom forms, named support</p>
+   </a></div>
+
+  <table class="t compact" style="margin-top:26px">
+    <thead><tr><th style="width:40%">What differs between packages</th><th class="c">Free Trial</th><th class="c">Starter</th><th class="c" style="background:#b45309">Professional</th><th class="c">Enterprise</th></tr></thead>
+    <tbody>
+      <tr><td>Active tenders in the portal</td><td class="c">1</td><td class="c">3</td><td class="c">15</td><td class="c">unlimited</td></tr>
+      <tr><td>Upload space</td><td class="c">25 MB</td><td class="c">200 MB</td><td class="c">1 GB</td><td class="c">unlimited</td></tr>
+      <tr><td>All 13 forms, both guides and the take-off</td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td></tr>
+      <tr><td>English edition</td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td></tr>
+      <tr><td>Arabic edition (RTL)</td><td class="c"><span class="chip no">&mdash;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td></tr>
+      <tr><td>Excel workbook</td><td class="c"><span class="chip no">&mdash;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td></tr>
+      <tr><td>Your logo on the forms</td><td class="c"><span class="chip no">&mdash;</span></td><td class="c"><span class="chip no">&mdash;</span></td><td class="c"><span class="chip ok">&#10003;</span></td><td class="c"><span class="chip ok">&#10003;</span></td></tr>
+      <tr><td>Users / seats</td><td class="c">1</td><td class="c">1</td><td class="c">5</td><td class="c">unlimited</td></tr>
+      <tr><td>Support</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td class="c">1 business day</td><td class="c">4 hours, named manager</td></tr>
+      <tr><td>Custom forms to your tender format</td><td class="c"><span class="chip no">&mdash;</span></td><td class="c"><span class="chip no">&mdash;</span></td><td class="c"><span class="chip no">&mdash;</span></td><td class="c"><span class="chip ok">&#10003;</span></td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:16px">
+    <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html">&#128275; Open MMC Portal</a>
+    <a class="btn" href="portal/pt-9f3c7a1e5b2d/login.html" style="margin-left:8px">Sign in</a>
+    <a class="btn" href="marketing/subscribe.html?plan=pro" style="margin-left:8px">Subscribe</a>
+    <a class="btn" href="marketing/pricing.html" style="margin-left:8px">Full pricing</a>
+    <a class="btn" href="marketing/compare.html" style="margin-left:8px">Compare plans</a>
+    <a class="btn ghost" href="marketing/faq.html" style="margin-left:8px">FAQ</a>
+  </p>
+
+  <div class="note" style="margin-top:18px">
+    <h4>Phase 1 — live backend</h4>
+    <p>The portal is no longer a browser-only prototype. It now runs on a real Node/Express server with a SQLite
+    database, bcrypt password hashing and JWT sessions in an httpOnly cookie. Tenders, uploaded files and requests
+    are stored server-side and follow your account across devices, and plan limits are enforced by the server.
+    Project verification: <b>54/54</b> integration tests and <b>35/35</b> live curl checks pass. Run it with
+    <span class="code">cd server &amp;&amp; npm install &amp;&amp; npm run migrate &amp;&amp; npm start</span> — see <span class="code">server/README.md</span>.</p>
+    <p><b>Not yet implemented:</b> automated drawing/PDF quantity extraction (outputs are built from the templates
+    plus tender data), payment (plan changes write straight to the database), and notifications.</p>
+  </div>
+
+  <div class="note" style="margin-top:14px;border-left-color:#0d9488">
+    <h4>Phase 2 &mdash; cloud storage &amp; scheduled backups</h4>
+    <p>Files no longer live only on the server disk. A single abstraction with two drivers &mdash; local disk and any
+    S3-compatible cloud (AWS S3, Cloudflare R2, MinIO) &mdash; is selected by one variable:
+    <span class="code">STORAGE_DRIVER=local|s3</span>. Every upload is stored under
+    <span class="code">users/&lt;id&gt;/tenders/&lt;id&gt;/&lt;uuid&gt;.&lt;ext&gt;</span> and recorded with its
+    SHA-256 checksum and driver, so downloads are served by short-lived signed URLs (5 minutes) only after ownership
+    is verified. A migration script moves existing files to the cloud, verifying the checksum of each object after
+    upload and never deleting the local copy unless you pass <span class="code">--delete-local</span>.</p>
+    <p>Database backups use SQLite's <span class="code">VACUUM INTO</span> &mdash; a consistent copy taken inside a
+    read transaction, safe while the server is running, never a raw file copy. Each backup is gzipped, checksummed,
+    verified by <span class="code">integrity_check</span> and per-table row counts, then uploaded to
+    <span class="code">backups/db/YYYY/MM/</span> with retention of <b>7 daily + 4 weekly + 12 monthly</b>. Scheduling
+    runs in-process on node-cron, each run in an isolated child process, and is disabled with
+    <span class="code">SCHEDULER_ENABLED=false</span>. Restore verifies both checksums, compares every table's row
+    count against the manifest, and refuses to overwrite in place without <span class="code">--yes</span>.</p>
+    <p style="margin-bottom:0">Project verification: <b>54/54</b> Phase 1 tests still pass, plus
+    <b>11/11</b> S3 tests against a live S3-compatible endpoint. An actual backup was restored and all seven tables
+    matched row-for-row. Run the migration and backups with
+    <span class="code">node scripts/migrate-to-cloud.js</span> and <span class="code">node scripts/backup.js</span>
+    &mdash; see <span class="code">README.md</span> section 11 for exactly what was <i>not</i> tested against real
+    AWS S3 or R2.</p>
+  </div>
+
+  <div class="print-foot">
+    <span>TP-KIT v5.0 &middot; Phase 2: server + database + auth + S3 storage + scheduled backups</span>
+    <span>English Edition + النسخة العربية &middot; USD / JOD / SAR / AED</span>
+  </div>
 </div>
-<main class="p-wrap">
-  <div class="p-head">
-    <div class="eyebrow"><span data-ar="دورة عطاء إلكتروني مؤمّنة" data-en="Secured electronic tender cycle">دورة عطاء إلكتروني مؤمّنة</span></div>
-    <h1><span data-ar="أنشئ العطاء، استلم العروض، وقيّم الفني قبل فتح المالي" data-en="Create tenders, receive bids, evaluate technical before opening financial">أنشئ العطاء، استلم العروض، وقيّم الفني قبل فتح المالي</span></h1>
-    <p><span data-ar="الأوزان الافتراضية: فني 60% · مالي 40%. الحد الفني الافتراضي 50 من 60. العرض المالي يبقى مقفلاً حتى اجتياز الحد." data-en="Default weights: technical 60% · financial 40%. Default technical threshold 50 of 60. Financial offers stay locked until the threshold is met.">الأوزان الافتراضية: فني 60% · مالي 40%. الحد الفني الافتراضي 50 من 60. العرض المالي يبقى مقفلاً حتى اجتياز الحد.</span></p>
-  </div>
-  <div id="planbar" class="note"></div>
-  <div id="msg"></div>
-  <div class="split">
-    <section class="p-card">
-      <h2><span class="n">01</span> <span data-ar="إنشاء عطاء إلكتروني" data-en="Create electronic tender">إنشاء عطاء إلكتروني</span></h2>
-      <div class="fld"><label><span data-ar="اسم العطاء" data-en="Tender name">اسم العطاء</span></label>
-        <input id="name" data-ar-ph="مشروع إنشاء مبنى الإدارة" data-en-ph="Admin building construction project" placeholder="مشروع إنشاء مبنى الإدارة"></div>
-      <div class="fgrid">
-        <div class="fld"><label><span data-ar="المرجع" data-en="Reference">المرجع</span></label>
-          <input id="ref" placeholder="T-2026-001"></div>
-        <div class="fld"><label><span data-ar="الجهة" data-en="Authority">الجهة</span></label>
-          <input id="authority" data-ar-ph="دائرة المشتريات" data-en-ph="Procurement department" placeholder="دائرة المشتريات"></div>
-        <div class="fld"><label><span data-ar="آخر موعد للإغلاق" data-en="Closing date">آخر موعد للإغلاق</span> <span style="color:#c2410c">*</span></label>
-          <input id="closing" type="date" required></div>
-        <div class="fld"><label><span data-ar="الحد الفني (من 60)" data-en="Technical threshold (of 60)">الحد الفني (من 60)</span></label>
-          <input id="threshold" type="number" value="50" min="1" max="60"></div>
-      </div>
-      <p class="mini"><span data-ar="الأوزان ثابتة افتراضياً: فني 60% ومالي 40%. مجموع أوزان المتطلبات الفنية يجب أن يساوي 100%." data-en="Default weights: technical 60% and financial 40%. Technical requirement weights must total 100%.">الأوزان ثابتة افتراضياً: فني 60% ومالي 40%. مجموع أوزان المتطلبات الفنية يجب أن يساوي 100%.</span></p>
-      <div id="reqs"></div>
-      <button class="btn light" id="addReq">+ <span data-ar="إضافة متطلب" data-en="Add requirement">إضافة متطلب</span></button>
-      <button class="btn amber" id="create" style="margin-top:14px"><span data-ar="نشر العطاء" data-en="Publish tender">نشر العطاء</span></button>
-    </section>
-    <section class="p-card">
-      <h2><span class="n">02</span> <span data-ar="العطاءات والتقييم" data-en="Tenders & evaluation">العطاءات والتقييم</span></h2>
-      <div id="tenders"><span data-ar="جارٍ التحميل…" data-en="Loading…">جارٍ التحميل…</span></div>
-      <div id="evaluation" style="margin-top:18px"></div>
-    </section>
-  </div>
-</main>
-<script src="../portal/pt-9f3c7a1e5b2d/assets/api.js"></script>
-<script src="../portal/pt-9f3c7a1e5b2d/assets/i18n.js"></script>
-<script>
-(function(){
-  var T = function(ar,en){ return (window.MMC_I18N && MMC_I18N.T) ? MMC_I18N.T(ar,en) : ar; };
-  var reqs = document.getElementById('reqs'), msg = document.getElementById('msg');
-  function esc(s){ return String(s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function note(t,k){ msg.innerHTML = '<div class="note '+(k||'')+'">'+esc(t)+'</div>'; }
 
-  function add(r){
-    r = r || {};
-    var d = document.createElement('div');
-    d.className = 'req';
-    d.innerHTML =
-      '<input class="rt" placeholder="'+esc(T('عنوان المتطلب','Requirement title'))+'" value="'+esc(r.title||'')+'">' +
-      '<input class="rw" type="number" min="0" max="100" placeholder="'+esc(T('الوزن','Weight'))+'" value="'+(r.weight||'')+'">' +
-      '<label class="mini"><input class="rm" type="checkbox" '+(r.mandatory?'checked':'')+'> '+esc(T('إلزامي','Mandatory'))+'</label>' +
-      '<button class="btn sm danger rx">'+esc(T('حذف','Remove'))+'</button>';
-    d.querySelector('.rx').onclick = function(){ d.remove(); };
-    reqs.appendChild(d);
-  }
-
-  function seedReqs(){
-    reqs.innerHTML = '';
-    add({ title: T('الخبرة السابقة في مشاريع مماثلة','Similar project experience'), weight: 30, mandatory: true });
-    add({ title: T('المنهجية وخطة التنفيذ','Methodology & execution plan'), weight: 25, mandatory: true });
-    add({ title: T('فريق العمل والكفاءات','Team & competencies'), weight: 20, mandatory: true });
-    add({ title: T('الجدول الزمني','Schedule'), weight: 15, mandatory: false });
-    add({ title: T('الجودة والسلامة','Quality & HSE'), weight: 10, mandatory: false });
-  }
-  seedReqs();
-  document.getElementById('addReq').onclick = function(){ add({}); };
-
-  function load(){
-    API.request('GET','/procurement/tenders').then(function(d){
-      var rows = (d.tenders||[]).map(function(t){
-        return '<tr>' +
-          '<td><strong>'+esc(t.name)+'</strong><div class="mini">'+esc(t.reference||'')+' · '+esc(t.authority||'')+'</div></td>' +
-          '<td>'+esc(t.closing||'—')+(t.expired?' <span class="locked">'+esc(T('مغلق','Closed'))+'</span>':'')+'</td>' +
-          '<td><button class="btn sm amber eval" data-id="'+esc(t.id)+'">'+esc(T('تقييم','Evaluate'))+'</button></td>' +
-          '</tr>';
-      }).join('');
-      document.getElementById('tenders').innerHTML = rows
-        ? '<table class="p-table"><thead><tr><th>'+esc(T('العطاء','Tender'))+'</th><th>'+esc(T('الإغلاق','Closing'))+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
-        : '<p class="mini">'+esc(T('لا عطاءات بعد. أنشئ أول عطاء من النموذج.','No tenders yet. Create the first one from the form.'))+'</p>';
-      document.querySelectorAll('.eval').forEach(function(b){
-        b.onclick = function(){ evaluate(b.getAttribute('data-id')); };
-      });
-    }).catch(function(e){ note(e.message,'warn'); });
-  }
-
-  function evaluate(id){
-    API.request('GET','/procurement/tenders/'+encodeURIComponent(id)+'/submissions').then(function(d){
-      var rows = (d.submissions||[]).map(function(s,i){
-        var fin = s.financialOpen
-          ? '<span class="open">'+esc(s.currency)+' '+esc(s.amount)+'</span>'
-          : '<span class="locked">'+esc(T('مقفل','Locked'))+'</span>';
-        return '<tr><td class="rank">'+(i+1)+'</td><td>'+esc(s.contractorName||s.contractorEmail)+'</td><td>'+(s.technicalScore==null?'—':Number(s.technicalScore).toFixed(2))+'</td><td>'+fin+'</td><td>'+(s.totalScore==null?'—':Number(s.totalScore).toFixed(2))+'</td><td><button class="btn sm amber ev" data-s="'+esc(s.id)+'">'+esc(T('اعتماد التقييم','Confirm evaluation'))+'</button></td></tr>';
-      }).join('');
-      document.getElementById('evaluation').innerHTML =
-        '<h3>'+esc(T('نتائج العطاء','Tender results'))+' · '+esc(d.tender.reference)+'</h3>' +
-        '<div class="note">'+esc(T('المعادلة: الفني من 60، ثم الأقل سعراً المؤهل يحصل على 40 نقطة، ويُرتب المجموع تنازلياً.','Formula: technical out of 60; lowest qualified price gets 40 points; total ranked descending.'))+'</div>' +
-        '<table class="p-table"><thead><tr><th>#</th><th>'+esc(T('المقاول','Contractor'))+'</th><th>'+esc(T('الفني','Technical'))+'</th><th>'+esc(T('المالي','Financial'))+'</th><th>'+esc(T('المجموع','Total'))+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
-      document.querySelectorAll('.ev').forEach(function(b){
-        b.onclick = function(){
-          API.request('POST','/procurement/submissions/'+b.getAttribute('data-s')+'/evaluate',{scores:[]})
-            .then(function(x){ note(x.message||T('تم التقييم','Evaluated'),''); evaluate(id); })
-            .catch(function(e){ note(e.message,'warn'); });
-        };
-      });
-    }).catch(function(e){ note(e.message,'warn'); });
-  }
-
-  document.getElementById('create').onclick = function(){
-    var cl = document.getElementById('closing').value;
-    if(!cl){ note(T('حدّد موعد الإغلاق (تاريخ محدد إلزامي).','Set a specific closing date (required).'),'warn'); return; }
-    var rr = [].slice.call(reqs.querySelectorAll('.req')).map(function(d){
-      return { title: d.querySelector('.rt').value, weight: Number(d.querySelector('.rw').value||0), mandatory: d.querySelector('.rm').checked };
-    });
-    API.request('POST','/procurement/tenders',{
-      name: document.getElementById('name').value,
-      reference: document.getElementById('ref').value,
-      authority: document.getElementById('authority').value,
-      closing: cl,
-      technicalThreshold: Number(document.getElementById('threshold').value),
-      requirements: rr
-    }).then(function(d){ note(d.message||T('تم النشر','Published'),''); load(); })
-      .catch(function(e){ note(e.message,'warn'); });
-  };
-
-  (function(){
-    var d = new Date(); d.setDate(d.getDate()+30);
-    document.getElementById('closing').value = d.toISOString().slice(0,10);
-  })();
-
-  API.me().then(function(d){
-    document.querySelector('[data-user-name]').textContent = d.user.name;
-    var pl = d.plan.plan, sb = d.plan.subscription;
-    var left = sb && sb.endsAt ? Math.max(0, Math.ceil((sb.endsAt - Date.now()/1000)/86400)) : null;
-    var planName = (MMC_I18N.lang()==='en' && pl.nameEn) ? pl.nameEn : (pl.nameAr || pl.name || pl.key);
-    document.getElementById('planbar').innerHTML =
-      T('باقتك:','Plan:')+' <b>'+esc(planName)+'</b>' +
-      (left!==null ? ' · '+(sb.source==='trial'?T('تجربة مجانية','Free trial'):T('مدفوعة','Paid'))+' · '+T('متبقٍ','left')+' '+left+' '+T('يوماً','days') : ' · '+T('غير مدفوعة','Unpaid')) +
-      (pl.maxTenders!==null ? ' · '+T('العطاءات:','Tenders:')+' '+d.plan.usage.tenders+' / '+pl.maxTenders : ' · '+T('عطاءات غير محدودة','Unlimited tenders')) +
-      ' · <a href="../portal/pt-9f3c7a1e5b2d/billing.html">'+(pl.key==='free'||(sb&&sb.source==='trial')?T('فعّل الباقة / ادفع','Activate / pay'):T('تجديد أو ترقية','Renew or upgrade'))+'</a>';
-    if(!['buyer','admin'].includes(d.user.role)) note(T('هذا المسار مخصص لدائرة المشتريات أو المكتب الاستشاري.','This path is for procurement or the consulting office.'),'warn');
-  }).catch(function(){
-    location.href = '../portal/pt-9f3c7a1e5b2d/login.html?next=../../procurement/index.html';
-  });
-
-  document.getElementById('logout').onclick = function(){
-    API.logout().then(function(){ location.href = '../portal/pt-9f3c7a1e5b2d/login.html'; });
-  };
-
-  window.addEventListener('mmc:lang', function(){ seedReqs(); load(); });
-  load();
-})();
-</script>
+<script src="assets/en.js"></script>
 </body>
 </html>

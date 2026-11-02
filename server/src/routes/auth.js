@@ -9,6 +9,7 @@ const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const { registerSchema, loginSchema, parse } = require('../lib/validate');
 const A = require('../lib/auth');
+const O = require('../lib/org');
 
 const router = express.Router();
 
@@ -99,7 +100,7 @@ router.post('/login', loginLimiter, wrap(async (req, res) => {
   const fresh = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
   A.setSessionCookie(res, A.signToken(fresh));
 
-  res.json({ user: publicUser(fresh), plan: A.planAndUsage(fresh.id), message: 'تم تسجيل الدخول.' });
+  res.json({ user: publicUser(fresh), plan: A.planAndUsage(O.billingUserId(fresh)), message: 'تم تسجيل الدخول.' });
 }));
 
 /* ---------------- POST /api/auth/logout ---------------- */
@@ -110,7 +111,7 @@ router.post('/logout', wrap(async (req, res) => {
 
 /* ---------------- GET /api/auth/me ---------------- */
 router.get('/me', A.requireAuth, wrap(async (req, res) => {
-  res.json({ user: publicUser(req.user), plan: A.planAndUsage(req.user.id) });
+  res.json({ user: publicUser(req.user), plan: A.planAndUsage(O.billingUserId(req.user)), org: req.user.role === 'buyer' ? (() => { const m = O.ensureOrg(req.user); return m ? { id: m.org_id, name: m.org_name, role: m.role } : null; })() : null });
 }));
 
 /* ---------------- PATCH /api/auth/me ---------------- */

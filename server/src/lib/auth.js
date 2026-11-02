@@ -120,6 +120,9 @@ function planAndUsage(userId) {
   const ready = db.prepare("SELECT COUNT(*) AS n FROM tenders WHERE user_id = ? AND status = 'ready'").get(userId).n;
   const proc = db.prepare("SELECT COUNT(*) AS n FROM tenders WHERE user_id = ? AND status = 'proc'").get(userId).n;
 
+  const subsUsed = db.prepare('SELECT COUNT(*) AS n FROM bid_submissions WHERE contractor_id = ? AND submitted_at >= ?')
+    .get(userId, Math.floor(Date.now() / 1000) - 365 * 86400).n;
+  const unlimS = plan.max_submissions === -1;
   const unlimT = plan.max_tenders === -1;
   const unlimB = plan.max_bytes === -1;
 
@@ -130,6 +133,7 @@ function planAndUsage(userId) {
       key: plan.key, nameAr: plan.name_ar, nameEn: plan.name_en,
       audience: plan.audience, maxUsers: plan.max_users === -1 ? null : plan.max_users,
       maxTenders: unlimT ? null : plan.max_tenders,
+      maxSubmissions: unlimS ? null : plan.max_submissions,
       maxBytes: unlimB ? null : plan.max_bytes,
       priceMonth: plan.price_month, priceYear: plan.price_year
     },
@@ -141,6 +145,7 @@ function planAndUsage(userId) {
       bytesMax: unlimB ? null : plan.max_bytes,
       bytesPct: unlimB ? null : Math.min(100, Math.round((agg.bytes / plan.max_bytes) * 100)),
       files: agg.files,
+      submissions: subsUsed, submissionsMax: unlimS ? null : plan.max_submissions,
       ready, processing: proc
     }
   };

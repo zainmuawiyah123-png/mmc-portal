@@ -11,6 +11,7 @@ const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
 const S = require('../lib/storage');
 const { audit } = require('../lib/audit');
+const O = require('../lib/org');
 
 const router = express.Router();
 const auth = A.requireAuth;
@@ -58,7 +59,7 @@ function ownInvoice(req, id) {
 function audienceFor(user) { return user.role === 'buyer' ? 'buyer' : 'contractor'; }
 function shapePlan(p) {
   return { key: p.key, nameAr: p.name_ar, nameEn: p.name_en, audience: p.audience,
-    maxTenders: p.max_tenders === -1 ? null : p.max_tenders, maxUsers: p.max_users === -1 ? null : p.max_users,
+    maxTenders: p.max_tenders === -1 ? null : p.max_tenders, maxSubmissions: p.max_submissions === -1 ? null : p.max_submissions, maxUsers: p.max_users === -1 ? null : p.max_users,
     priceMonth: p.price_month, priceYear: p.price_year, trialDays: p.trial_days || 0 };
 }
 
@@ -96,12 +97,13 @@ router.post('/invoices', auth, wrap(async (req, res) => {
   const billingCycle = body.billingCycle === 'annual' ? 'annual' : 'monthly';
   const currency = String(body.currency || 'USD').toUpperCase();
   const paymentMethod = ['bank_transfer', 'cliq'].includes(body.paymentMethod) ? body.paymentMethod : 'bank_transfer';
-  if (!['JOD', 'USD', 'SAR', 'AED'].includes(currency)) throw E.validation('العملة غير مدعومة.');
+  if (!O.INVOICE_CURRENCIES.includes(currency)) throw E.validation('العملة غير مدعومة. المتاح: ' + O.INVOICE_CURRENCIES.join('، ') + ' (الدينار الكويتي بالدولار).');
   const db = getDB();
   const plan = db.prepare("SELECT * FROM plans WHERE key = ? AND key != 'free'").get(planKey);
   if (!plan) throw E.validation('اختر باقة مدفوعة صالحة.');
   if (req.user.role !== 'admin' && plan.audience !== audienceFor(req.user)) throw E.forbidden('هذه الباقة غير مخصصة لنوع حسابك.');
-  const amount = billingCycle === 'annual' ? plan.price_year : plan.price_month;
+  const usd = billingCycle === 'annual' ? plan.price_year : plan.price_month;
+  const amount = O.convertUsd(usd, currency);
   const id = uid('inv_');
   db.prepare(`INSERT INTO invoices (id,invoice_number,user_id,plan_key,billing_cycle,currency,amount,status,payment_method,due_at,notes)
     VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(id, invoiceNumber(), req.user.id, planKey, billingCycle, currency, amount,
@@ -156,7 +158,7 @@ router.post('/admin/invoices/:id/amount', admin, wrap(async (req, res) => {
   const amount = Number(req.body?.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1e7) throw E.validation('أدخل مبلغاً صحيحاً.');
   const currency = String(req.body?.currency || row.currency).toUpperCase();
-  if (!['JOD', 'USD', 'SAR', 'AED'].includes(currency)) throw E.validation('العملة غير مدعومة.');
+  if (!O.INVOICE_CURRENCIES.includes(currency)) throw E.validation('العملة غير مدعومة.');
   db.prepare('UPDATE invoices SET amount=?, currency=?, updated_at=unixepoch() WHERE id=?').run(amount, currency, row.id);
   audit({ action: 'billing_custom_price', entity: 'invoice', entityId: row.id, userId: req.user.id, ip: req.ip, detail: { from: row.amount, to: amount, currency } });
   res.json({ ok: true, amount, currency, message: 'تم تحديد السعر الخاص لهذه الفاتورة.' });

@@ -202,6 +202,8 @@ const PLANS_SEED = [
 ];
 // عدد المستخدمين المسموح (-1 = غير محدود) — للعرض حالياً؛ لا يوجد نموذج منظمة/مقاعد بعد
 const PLAN_SEATS = { free: 1, starter: 1, pro: 10, ent: -1, proc_basic: 3, proc_pro: 10, proc_ent: -1 };
+// عدد التقديمات الإلكترونية على عطاءات المنصة خلال 365 يوماً (-1 = غير محدود). حدّ مساحة العمل (max_tenders) منفصل عنه
+const PLAN_SUBMISSIONS = { free: 2, starter: 10, pro: 40, ent: -1, proc_basic: -1, proc_pro: -1, proc_ent: -1 };
 const TRIAL_DAYS = 14;
 
 /**
@@ -240,12 +242,167 @@ function upgradeProcurement(db) {
   }
 }
 
+function upgradeWorkflow(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS organizations (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,  -- صاحب الاشتراك (الفوترة)
+      require_approval INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS org_members (
+      org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,   -- manager | requester | projects | procurement
+      joined_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (org_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS org_invites (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      label TEXT,
+      role TEXT NOT NULL,
+      code_hash TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'pending',  -- pending | used | revoked
+      created_by TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      expires_at INTEGER NOT NULL,
+      used_by TEXT
+    );
+    CREATE TABLE IF NOT EXISTS project_requests (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      requester_id TEXT NOT NULL REFERENCES users(id),
+      assigned_to TEXT,
+      title TEXT NOT NULL,
+      title_en TEXT,
+      description TEXT,
+      location TEXT,
+      country TEXT,
+      service_type TEXT,
+      budget REAL,
+      currency TEXT,
+      needed_by TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      fidic_book TEXT,
+      fidic_edition TEXT,
+      particular_notes TEXT,
+      review_note TEXT,
+      tender_id TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      submitted_at INTEGER,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_req_org ON project_requests(org_id, status);
+    CREATE TABLE IF NOT EXISTS request_events (
+      id TEXT PRIMARY KEY,
+      request_id TEXT NOT NULL REFERENCES project_requests(id) ON DELETE CASCADE,
+      user_id TEXT,
+      action TEXT NOT NULL,
+      from_status TEXT,
+      to_status TEXT,
+      note TEXT,
+      at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_reqev_req ON request_events(request_id, at);
+    CREATE TABLE IF NOT EXISTS request_docs (
+      id TEXT PRIMARY KEY,
+      request_id TEXT NOT NULL REFERENCES project_requests(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,   -- brief | drawings | specifications | boq | conditions | particular_conditions | internal
+      storage_key TEXT NOT NULL,
+      storage_driver TEXT NOT NULL DEFAULT 'local',
+      original_name TEXT NOT NULL,
+      mime TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      checksum TEXT,
+      uploaded_by TEXT,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_reqdocs_req ON request_docs(request_id);
+  `);
+  const addCol = (table, col, def) => {
+    const cols = new Set(db.prepare('PRAGMA table_info(' + table + ')').all().map((c) => c.name));
+    if (!cols.has(col)) db.exec('ALTER TABLE ' + table + ' ADD COLUMN ' + col + ' ' + def);
+  };
+  addCol('org_verifications', 'org_id', 'TEXT');
+  addCol('tenders', 'org_id', 'TEXT');
+  addCol('tenders', 'request_id', 'TEXT');
+
+  // ترحيل: لكل حساب مشتريات قائم جهة خاصة به (هو مديرها) حتى لا تتأثر بياناته
+  const { randomUUID } = require('crypto');
+  const orphans = db.prepare("SELECT u.id, u.name, u.company FROM users u WHERE u.role = 'buyer' AND NOT EXISTS (SELECT 1 FROM org_members m WHERE m.user_id = u.id)").all();
+  const mk = db.transaction(() => {
+    orphans.forEach((u) => {
+      const v = db.prepare('SELECT org_name FROM org_verifications WHERE user_id = ?').get(u.id);
+      const id = 'org_' + randomUUID();
+      db.prepare('INSERT INTO organizations (id, name, created_by) VALUES (?,?,?)').run(id, (v && v.org_name) || u.company || u.name || 'جهة', u.id);
+      db.prepare("INSERT INTO org_members (org_id, user_id, role) VALUES (?,?,'manager')").run(id, u.id);
+      db.prepare('UPDATE org_verifications SET org_id = ? WHERE user_id = ? AND org_id IS NULL').run(id, u.id);
+      db.prepare('UPDATE tenders SET org_id = ? WHERE user_id = ? AND org_id IS NULL').run(id, u.id);
+    });
+  });
+  mk();
+}
+
+function upgradeBilingual(db) {
+  const add = (table, col) => {
+    const cols = new Set(db.prepare('PRAGMA table_info(' + table + ')').all().map((c) => c.name));
+    if (!cols.has(col)) db.exec('ALTER TABLE ' + table + ' ADD COLUMN ' + col + ' TEXT');
+  };
+  add('tenders', 'name_en'); add('tenders', 'notes_en');
+  add('tender_requirements', 'title_en'); add('tender_requirements', 'description_en');
+}
+
+function upgradeOrg(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS org_verifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      org_name TEXT NOT NULL,
+      org_type TEXT NOT NULL,
+      country TEXT NOT NULL,
+      reg_number TEXT NOT NULL,
+      official_phone TEXT NOT NULL,
+      official_email TEXT NOT NULL,
+      on_behalf_of TEXT,
+      website TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',  -- pending | verified | rejected | revoked
+      review_note TEXT,
+      reviewed_by TEXT,
+      reviewed_at INTEGER,
+      verified_at INTEGER,
+      expires_at INTEGER,
+      submitted_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_orgver_status ON org_verifications(status, submitted_at);
+    CREATE TABLE IF NOT EXISTS org_verification_docs (
+      id TEXT PRIMARY KEY,
+      verification_id TEXT NOT NULL REFERENCES org_verifications(id) ON DELETE CASCADE,
+      storage_key TEXT NOT NULL,
+      storage_driver TEXT NOT NULL DEFAULT 'local',
+      original_name TEXT NOT NULL,
+      mime TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      checksum TEXT,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_orgdocs_ver ON org_verification_docs(verification_id);
+  `);
+  const tc = new Set(db.prepare('PRAGMA table_info(tenders)').all().map((c) => c.name));
+  if (!tc.has('country')) db.exec("ALTER TABLE tenders ADD COLUMN country TEXT NOT NULL DEFAULT 'JO'");
+}
+
 function upgradePlans(db) {
   const cols = new Set(db.prepare('PRAGMA table_info(plans)').all().map((c) => c.name));
   if (!cols.has('audience')) db.exec("ALTER TABLE plans ADD COLUMN audience TEXT NOT NULL DEFAULT 'contractor'");
   if (!cols.has('max_users')) db.exec('ALTER TABLE plans ADD COLUMN max_users INTEGER NOT NULL DEFAULT 1');
   if (!cols.has('trial_days')) db.exec('ALTER TABLE plans ADD COLUMN trial_days INTEGER NOT NULL DEFAULT 0');
   db.prepare("UPDATE plans SET audience='buyer', trial_days=? WHERE key LIKE 'proc\\_%' ESCAPE '\\'").run(TRIAL_DAYS);
+  if (!cols.has('max_submissions')) db.exec('ALTER TABLE plans ADD COLUMN max_submissions INTEGER NOT NULL DEFAULT -1');
+  const upS = db.prepare('UPDATE plans SET max_submissions=? WHERE key=?');
+  Object.entries(PLAN_SUBMISSIONS).forEach(([k, v]) => upS.run(v, k));
   const up = db.prepare('UPDATE plans SET max_users=? WHERE key=?');
   Object.entries(PLAN_SEATS).forEach(([k, v]) => up.run(v, k));
 }
@@ -285,6 +442,9 @@ function migrate(dbPath = config.DB_PATH) {
 
   upgradeProcurement(db);
   upgradePlans(db);
+  upgradeOrg(db);
+  upgradeBilingual(db);
+  upgradeWorkflow(db);
   upgradeV5(db);
 
   return db;
