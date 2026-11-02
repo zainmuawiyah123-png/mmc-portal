@@ -300,9 +300,15 @@ router.get('/invoice-documents/:id/download',wrap(async(req,res)=>{
   const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
   if(!(await store.exists(d.storage_key))) throw E.notFound('ملف المستند غير موجود في التخزين.');
   res.setHeader('Content-Type',d.mime||'application/octet-stream');
-  res.setHeader('Content-Disposition','attachment; filename*=UTF-8\'\''+encodeURIComponent(d.original_name));
+  res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));
   res.setHeader('Cache-Control','private, no-store');
-  store.stream(d.storage_key).pipe(res);
+  const streamed = await store.stream(d.storage_key);
+  // Local storage returns a Readable; S3 returns { body, contentType, contentLength }.
+  const body = streamed && streamed.body ? streamed.body : streamed;
+  if (streamed && streamed.contentType) res.setHeader('Content-Type', streamed.contentType);
+  if (streamed && Number.isFinite(Number(streamed.contentLength))) res.setHeader('Content-Length', String(streamed.contentLength));
+  body.on('error', (err) => res.destroy(err));
+  body.pipe(res);
 }));
 
 module.exports=router;
