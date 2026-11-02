@@ -1086,6 +1086,14 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
     body: { invoiceNumber: 'PF-OVER', invoiceType: 'progress', items: [{ poItemId, description: 'عمل', quantity: 11, unitPrice: 50 }] }
   });
   assert.strictEqual(over.status, 409);
+  const wrongPoLine = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
+    body: { invoiceNumber: 'PF-WRONG-LINE', invoiceType: 'progress', items: [{ poItemId: 'not-a-po-line', description: 'بند غير تابع', quantity: 1, unitPrice: 50 }] }
+  });
+  assert.strictEqual(wrongPoLine.status, 422, 'يجب رفض بند لا يتبع أمر الشراء');
+  const wrongPrice = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
+    body: { invoiceNumber: 'PF-WRONG-PRICE', invoiceType: 'progress', items: [{ poItemId, description: 'أعمال', quantity: 1, unitPrice: 49 }] }
+  });
+  assert.strictEqual(wrongPrice.status, 422, 'يجب رفض سعر لا يطابق أمر الشراء');
   const invoiceRes = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
     body: { invoiceNumber: 'PF-INV-' + uniq(), invoiceType: 'progress',
       items: [{ poItemId, description: 'أعمال منفذة', quantity: 10, unitPrice: 50 }] }
