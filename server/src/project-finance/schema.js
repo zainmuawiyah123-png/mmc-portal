@@ -10,7 +10,7 @@
  */
 function upgradeProjectFinance(db) {
   db.exec('PRAGMA foreign_keys = ON');
-  db.exec(\`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS project_awards (
       id TEXT PRIMARY KEY,
       tender_id TEXT NOT NULL REFERENCES tenders(id),
@@ -157,7 +157,11 @@ function upgradeProjectFinance(db) {
     CREATE INDEX IF NOT EXISTS idx_project_reviews_invoice ON project_invoice_reviews(invoice_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_project_payments_invoice ON project_payments(invoice_id, payment_date);
     CREATE INDEX IF NOT EXISTS idx_project_audit_org ON project_audit_events(org_id, created_at);
-  \`);
+  `);
+  const poColumns = new Set(db.prepare('PRAGMA table_info(purchase_orders)').all().map((row) => row.name));
+  if (!poColumns.has('requires_owner_confirmation')) {
+    db.exec('ALTER TABLE purchase_orders ADD COLUMN requires_owner_confirmation INTEGER NOT NULL DEFAULT 1 CHECK (requires_owner_confirmation IN (0,1))');
+  }
 }
 
 module.exports = { upgradeProjectFinance };
