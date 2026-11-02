@@ -446,6 +446,8 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeBilingual(db);
   upgradeWorkflow(db);
   upgradeV5(db);
+  // Additive project workflow tables; subscription invoices remain untouched.
+  require('./project-finance/schema').upgradeProjectFinance(db);
 
   return db;
 }
