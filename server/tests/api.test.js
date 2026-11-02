@@ -1099,8 +1099,12 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
 
   assert.strictEqual((await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).status, 403);
   assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 409);
-  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } })).data.status, 'owner_confirmation');
-  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).status, 409);
+  const procurementReview = await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', { body: { decision: 'accepted' } });
+  assert.strictEqual(procurementReview.data.status, 'owner_confirmation');
+  assert.strictEqual(getDB().prepare('SELECT status FROM project_invoices WHERE id=?').get(invoiceId).status, 'owner_confirmation', 'حالة الفاتورة بعد مراجعة المشتريات');
+  const prematureForward = await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} });
+  assert.strictEqual(prematureForward.status, 409);
+  assert.strictEqual(getDB().prepare('SELECT status FROM project_invoices WHERE id=?').get(invoiceId).status, 'owner_confirmation', 'الإحالة المبكرة لا تغير الحالة');
   const ownerConfirmation = await call(owner, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', { body: { decision: 'confirmed', note: 'تم الاستلام' } });
   assert.strictEqual(ownerConfirmation.status, 200, JSON.stringify(ownerConfirmation.data));
   assert.strictEqual(ownerConfirmation.data.status, 'finance_queue');
