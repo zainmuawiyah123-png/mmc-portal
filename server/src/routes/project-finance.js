@@ -177,28 +177,29 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   if (!clip(b.invoiceNumber,80)) throw E.validation('رقم الفاتورة مطلوب.');
   const items=Array.isArray(b.items)?b.items:[];
   if(!items.length||items.length>300) throw E.validation('أدخل بنود الفاتورة بصورة صحيحة.');
-  const requested=new Map();
-  let total=0;
-  for(const x of items){
-    const q=amount(x.quantity,'quantity');
-    const price=Number(x.unitPrice);
-    if(!x.poItemId||!Number.isFinite(price)||price<0||Math.round(price*100)!==price*100) throw E.validation('اربط كل بند فاتورة ببند أمر شراء معتمد وبسعر صحيح.');
-    const poItem=db().prepare('SELECT * FROM purchase_order_items WHERE id=? AND po_id=?').get(clip(x.poItemId,100),p.id);
-    if(!poItem) throw E.validation('بند الفاتورة لا يتبع أمر الشراء المحدد.');
-    if(Math.abs(price-Number(poItem.unit_price))>0.0001) throw E.validation('سعر الفاتورة يجب أن يطابق سعر أمر الشراء.');
-    const already=db().prepare("SELECT COALESCE(SUM(ii.quantity),0) n FROM project_invoice_items ii JOIN project_invoices i ON i.id=ii.invoice_id WHERE ii.po_item_id=? AND i.status NOT IN ('void','rejected')").get(poItem.id).n;
-    const requestedQty=(requested.get(poItem.id)||0)+q;
-    if(Number(already)+requestedQty>Number(poItem.quantity)+0.0001) throw E.conflict('كمية الفاتورة تتجاوز الكمية المتبقية من بند أمر الشراء.');
-    requested.set(poItem.id,requestedQty);
-    total+=Math.round(q*price*100)/100;
-  }
-  total=Math.round(total*100)/100;
-  const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
-  if(invoiced+total>p.total_amount+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
   const type=['materials','progress','final'].includes(b.invoiceType)?b.invoiceType:null;
   if(!type) throw E.validation('حدد نوع الفاتورة.');
   const id=uid('pin_');
+  let total=0;
   db().transaction(()=>{
+    // Keep item quantity and PO balance checks inside the same write transaction.
+    const requested=new Map();
+    for(const x of items){
+      const q=amount(x.quantity,'quantity');
+      const price=Number(x.unitPrice);
+      if(!x.poItemId||!Number.isFinite(price)||price<0||Math.round(price*100)!==price*100) throw E.validation('اربط كل بند فاتورة ببند أمر شراء معتمد وبسعر صحيح.');
+      const poItem=db().prepare('SELECT * FROM purchase_order_items WHERE id=? AND po_id=?').get(clip(x.poItemId,100),p.id);
+      if(!poItem) throw E.validation('بند الفاتورة لا يتبع أمر الشراء المحدد.');
+      if(Math.abs(price-Number(poItem.unit_price))>0.0001) throw E.validation('سعر الفاتورة يجب أن يطابق سعر أمر الشراء.');
+      const already=db().prepare("SELECT COALESCE(SUM(ii.quantity),0) n FROM project_invoice_items ii JOIN project_invoices i ON i.id=ii.invoice_id WHERE ii.po_item_id=? AND i.status NOT IN ('void','rejected')").get(poItem.id).n;
+      const requestedQty=(requested.get(poItem.id)||0)+q;
+      if(Number(already)+requestedQty>Number(poItem.quantity)+0.0001) throw E.conflict('كمية الفاتورة تتجاوز الكمية المتبقية من بند أمر الشراء.');
+      requested.set(poItem.id,requestedQty);
+      total+=Math.round(q*price*100)/100;
+    }
+    total=Math.round(total*100)/100;
+    const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
+    if(invoiced+total>p.total_amount+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
     db().prepare(`INSERT INTO project_invoices (id,po_id,award_id,org_id,contractor_user_id,invoice_number,invoice_type,currency,gross_amount,contractor_note)
       VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id,p.id,p.award_id,p.org_id,req.user.id,clip(b.invoiceNumber,80),type,p.currency,total,clip(b.note,2000)||null);
     const insertedTotal = insertItems('project_invoice_items','invoice_id',id,items);
