@@ -108,6 +108,14 @@ test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوك
   assert.ok(!JSON.stringify(r.data).includes('password'), 'يجب ألا تُرجع كلمة المرور');
 });
 
+test('02A — صفحة المشاريع والمستحقات تتطلب جلسة، وتسمح للمستخدم المسجل', async () => {
+  const anonymous = await fetch(base + '/project-finance/', { redirect: 'manual' });
+  assert.strictEqual(anonymous.status, 401, 'يجب منع الزائر غير المسجل من تحميل صفحة المالية');
+  const authenticated = await fetch(base + '/project-finance/', { headers: cookieFor('userA'), redirect: 'manual' });
+  assert.strictEqual(authenticated.status, 200, 'المستخدم المسجل يستطيع تحميل الصفحة؛ الصلاحيات التفصيلية تفرضها API');
+  assert.match(await authenticated.text(), /دورة المشاريع والمستحقات/);
+});
+
 test('03 — تسجيل ببريد مكرر يُرفض 409', async () => {
   const email = 'dup' + uniq() + '@test.com';
   const a = await call('tmp1', 'POST', '/api/auth/register', { body: { name: 'أحمد', email, password: 'Password123' } });
