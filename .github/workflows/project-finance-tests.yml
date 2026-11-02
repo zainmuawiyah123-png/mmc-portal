@@ -54,4 +54,3 @@ jobs:
           S3_TEST_KEY: S3RVER
           S3_TEST_SECRET: S3RVER
         run: npm run test:all
-        run: npm run test:all
