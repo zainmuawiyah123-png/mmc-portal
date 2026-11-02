@@ -721,8 +721,9 @@ test('63A — لا تمنح الإجابة علامة تلقائية، ولا ي
     body: { scores: [], reason: 'اختبار' }
   });
   assert.strictEqual(incomplete.status, 422);
+  const evidenceNotes = Object.fromEntries(tender.requirements.map((r) => [r.id, 'مرجع الدليل: صفحة 12']));
   const scored = await call('qbuy', 'POST', '/api/procurement/submissions/' + submissionId + '/evaluate', {
-    body: { scores: tender.requirements.map((r) => ({ requirementId: r.id, score: 100 })), reason: 'اختبار آلي: استيفاء معايير العطاء' }
+    body: { scores: tender.requirements.map((r) => ({ requirementId: r.id, score: 100 })), notes: evidenceNotes, reason: 'اختبار: تقييم موثق بالأدلة' }
   });
   assert.strictEqual(scored.status, 200, JSON.stringify(scored.data));
   assert.strictEqual(scored.data.technicalScore, 100);
@@ -730,7 +731,12 @@ test('63A — لا تمنح الإجابة علامة تلقائية، ولا ي
   assert.strictEqual(scored.data.financialOpened, true);
   const after = await call('qbuy', 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations');
   assert.strictEqual(after.data.submissions[0].financialOpened, true);
-  const audit = getDB().prepare('SELECT action, technical_score, technical_points, passed FROM bid_evaluation_audit WHERE submission_id=?').get(submissionId);
+  assert.strictEqual(after.data.submissions[0].responses[0].evaluatorNote, 'مرجع الدليل: صفحة 12',
+    'يجب حفظ مرجع الدليل وإظهاره عند استرجاع التقييم');
+  const audit = getDB().prepare('SELECT action, technical_score, technical_points, passed, criteria_scores_json FROM bid_evaluation_audit WHERE submission_id=?').get(submissionId);
+  const auditCriteria = JSON.parse(audit.criteria_scores_json);
+  assert.ok(auditCriteria.every((item) => item.note === 'مرجع الدليل: صفحة 12'),
+    'يجب تضمين مراجع الأدلة في سجل التدقيق غير القابل للتعديل');
   assert.deepStrictEqual([audit.action, audit.technical_score, audit.technical_points, audit.passed], ['human_scored', 100, 60, 1]);
   assert.throws(() => getDB().prepare('UPDATE bid_evaluation_audit SET reason=? WHERE submission_id=?').run('تعديل لاحق', submissionId),
     /immutable/, 'يجب عدم السماح بتعديل سجل التقييم');
