@@ -12,6 +12,7 @@ const cookieParser = require('cookie-parser');
 const config = require('./config');
 const { migrate } = require('./migrate');
 const { errorHandler } = require('./lib/errors');
+const A = require('./lib/auth');
 
 const authRoutes = require('./routes/auth');
 const { router: tenderRoutes } = require('./routes/tenders');
