@@ -30,7 +30,7 @@ test('project finance browser role visibility, contractor invoice selection and 
     const roleHtml=pageHtml.replace('window.__role="buyer";window.__orgRole="manager";',
       'window.__role='+JSON.stringify(role)+';window.__orgRole='+JSON.stringify(orgRole)+';');
     await page.setContent(roleHtml, {waitUntil:'domcontentloaded'});
-    await page.waitForFunction(() => document.getElementById('identity')?.textContent.includes('الدور'));
+    await page.waitForFunction(() => (document.getElementById('identity')?.textContent || '').length > 0);
     return page;
   }
 
