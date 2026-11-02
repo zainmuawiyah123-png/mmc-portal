@@ -98,13 +98,14 @@ router.post('/awards', wrap(async (req, res) => {
   if (currency !== submission.financial_currency || value > Number(submission.financial_amount)) throw E.validation('قيمة الترسية وعملتها يجب أن تتوافقا مع العرض المالي الفائز.');
   const id = uid('awd_');
   db().transaction(() => {
+    if (db().prepare("SELECT 1 FROM project_awards WHERE tender_id=? AND status='approved'").get(tender.id)) throw E.conflict('سبق تسجيل ترسية معتمدة لهذا العطاء.');
     db().prepare(`INSERT INTO project_awards
       (id,tender_id,org_id,contractor_user_id,award_reference,contract_reference,currency,awarded_amount,awarded_by,notes)
       VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id, tender.id, m.org_id, submission.contractor_id,
       clip(b.awardReference, 100) || id, clip(b.contractReference, 100) || null,
       currency, value, req.user.id, clip(b.notes, 2000) || null);
     event({ orgId:m.org_id,tenderId:tender.id,awardId:id,userId:req.user.id,role:m.role,action:'award_registered',to:'approved',detail:{submissionId:submission.id,awardedAmount:value},ip:req.ip });
-  })();
+  }).immediate();
   res.status(201).json({ award: db().prepare('SELECT * FROM project_awards WHERE id=?').get(id) });
 }));
 
@@ -263,7 +264,9 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
   if(!['approved_for_payment','part_paid'].includes(i.status)) throw E.conflict('لا يمكن تسجيل دفعة قبل اعتماد المالية.');
   const value=amount(req.body?.amount,'payment amount');
   const paymentReference=clip(req.body?.paymentReference,100);const date=clip(req.body?.paymentDate,20);
-  if(!paymentReference||!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
+  const parsedDate=/^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const validDate=parsedDate && Number(parsedDate[2])>=1 && Number(parsedDate[2])<=12 && Number(parsedDate[3])>=1 && Number(parsedDate[3])<=new Date(Date.UTC(Number(parsedDate[1]),Number(parsedDate[2]),0)).getUTCDate();
+  if(!paymentReference||!validDate) throw E.validation('مرجع الدفع وتاريخه مطلوبان بصيغة تاريخ صحيحة YYYY-MM-DD.');
   const id=uid('pay_');
   let next;
   db().transaction(()=>{
