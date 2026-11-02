@@ -107,6 +107,11 @@ function createApp() {
   if (!fs.existsSync(WEB_ROOT)) {
     console.warn('  ⚠ WEB_ROOT غير موجود: ' + WEB_ROOT + ' — الواجهة لن تُخدم. اضبط WEB_ROOT.');
   }
+  // Protect procurement UI before the generic static middleware can serve its HTML.
+  // API routes already enforce role checks; this also prevents contractors and anonymous visitors
+  // from loading the procurement workspace itself.
+  app.use('/procurement', A.requireAuth, A.requireRole('buyer', 'admin'));
+
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {
