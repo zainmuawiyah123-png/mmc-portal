@@ -89,6 +89,8 @@ router.post('/awards', wrap(async (req, res) => {
   const submission = db().prepare(`SELECT s.*, u.role contractor_role FROM bid_submissions s
     JOIN users u ON u.id=s.contractor_id WHERE s.id=? AND s.tender_id=?`).get(clip(b.submissionId, 100), tender.id);
   if (!submission || submission.contractor_role !== 'contractor' || !submission.technical_passed || !submission.financial_unlocked) throw E.validation('العرض المحدد غير مؤهل للترسية.');
+  const currency = clip(b.currency, 3).toUpperCase() || submission.financial_currency;
+  if (currency !== submission.financial_currency || value > Number(submission.financial_amount)) throw E.validation('قيمة الترسية وعملتها يجب أن تتوافقا مع العرض المالي الفائز.');
   if (db().prepare('SELECT 1 FROM project_awards WHERE tender_id=? AND status=\'approved\'').get(tender.id)) throw E.conflict('سبق تسجيل ترسية معتمدة لهذا العطاء.');
   const value = amount(b.awardedAmount, 'awardedAmount');
   const id = uid('awd_');
