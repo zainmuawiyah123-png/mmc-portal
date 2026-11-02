@@ -422,6 +422,26 @@ function upgradeV5(db) {
   return added;
 }
 
+function upgradeTenderEvaluation(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bid_evaluation_audit (
+      id TEXT PRIMARY KEY,
+      submission_id TEXT NOT NULL REFERENCES bid_submissions(id) ON DELETE CASCADE,
+      tender_id TEXT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
+      actor_user_id TEXT NOT NULL REFERENCES users(id),
+      action TEXT NOT NULL,
+      technical_score REAL NOT NULL,
+      technical_points REAL NOT NULL,
+      passed INTEGER NOT NULL,
+      reason TEXT,
+      criteria_scores_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_bid_eval_audit_submission
+      ON bid_evaluation_audit(submission_id, created_at);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -446,6 +466,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeBilingual(db);
   upgradeWorkflow(db);
   upgradeV5(db);
+  upgradeTenderEvaluation(db);
   // Additive project workflow tables; subscription invoices remain untouched.
   require('./project-finance/schema').upgradeProjectFinance(db);
 
