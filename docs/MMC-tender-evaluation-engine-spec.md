@@ -31,7 +31,10 @@
 - Financial offers remain locked until the technical qualification gate is passed.
 - The scoring endpoint now requires a score for every published criterion and a written rationale.
 - A non-destructive `bid_evaluation_audit` table records the scorer, criterion scores, reason, result, and timestamp.
-- The procurement UI now provides criterion-level score inputs and a required rationale field.
+- The procurement UI now provides criterion-level score inputs, a required overall rationale, and a per-criterion evidence/document-page reference.
+- Database triggers lock criteria and the 60/40 scoring policy once the first bid is submitted; evaluation audit rows cannot be updated or deleted.
+- The award endpoint independently verifies the 50/60 technical gate and consistency between the stored /100 and /60 scores.
+- Project award regression tests now use a valid converted score and include a below-threshold rejection case.
 
 ## Important implementation boundary
 The current scoring path is a controlled human-review fallback, not yet the requested automated-first engine. It deliberately does not claim that free-text answers can be judged objectively without a configured rubric or evidence extraction. The next implementation stage is:
