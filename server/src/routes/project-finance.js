@@ -245,7 +245,7 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
   if(!['approved_for_payment','part_paid'].includes(i.status)) throw E.conflict('لا يمكن تسجيل دفعة قبل اعتماد المالية.');
   const value=amount(req.body?.amount,'payment amount');
   const paymentReference=clip(req.body?.paymentReference,100);const date=clip(req.body?.paymentDate,20);
-  if(!paymentReference||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
+  if(!paymentReference||!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
   const id=uid('pay_');
   let next;
   db().transaction(()=>{
