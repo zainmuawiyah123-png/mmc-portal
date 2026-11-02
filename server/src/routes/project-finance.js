@@ -251,6 +251,7 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
     const paidNow=db().prepare('SELECT COALESCE(SUM(amount),0) n FROM project_payments WHERE invoice_id=?').get(i.id).n;
     const remaining=Math.round((Number(i.gross_amount)-Number(i.retention_amount)-paidNow)*100)/100;
     if(value>remaining+0.0001) throw E.conflict('قيمة الدفعة تتجاوز الرصيد المستحق.');
+    if(db().prepare('SELECT 1 FROM project_payments WHERE org_id=? AND payment_reference=?').get(m.org_id,paymentReference)) throw E.conflict('مرجع الدفعة مستخدم مسبقاً.');
     db().prepare('INSERT INTO project_payments (id,invoice_id,org_id,amount,currency,payment_reference,payment_date,recorded_by) VALUES (?,?,?,?,?,?,?,?)').run(id,i.id,m.org_id,value,i.currency,paymentReference,date,req.user.id);
     const newPaid=paidNow+value;next=newPaid>=Number(i.gross_amount)-Number(i.retention_amount)-0.0001?'paid':'part_paid';
     db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);
