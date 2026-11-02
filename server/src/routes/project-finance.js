@@ -212,7 +212,7 @@ router.post('/invoices/:id/procurement-review',wrap(async(req,res)=>{
   if(!['accepted','returned','rejected'].includes(decision)) throw E.validation('قرار المراجعة غير صحيح.');
   const note=clip(req.body?.note,2000); if(decision!=='accepted'&&!note) throw E.validation('سبب الإعادة أو الرفض إلزامي.');
   const next=decision==='accepted'?(i.requires_owner_confirmation?'owner_confirmation':'finance_queue'):decision==='returned'?'returned':'rejected';
-  db().transaction(()=>{review(req,i,m.role,decision,note);db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'procurement_'+decision,from:i.status,to:next,detail:{note},ip:req.ip});});
+  db().transaction(()=>{review(req,i,m.role,decision,note);db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'procurement_'+decision,from:i.status,to:next,detail:{note},ip:req.ip});})();
   res.json({ok:true,status:next});
 }));
 router.post('/invoices/:id/owner-confirmation',wrap(async(req,res)=>{
@@ -221,19 +221,19 @@ router.post('/invoices/:id/owner-confirmation',wrap(async(req,res)=>{
   const decision=req.body?.decision; if(!['confirmed','returned'].includes(decision)) throw E.validation('قرار التأكيد غير صحيح.');
   const note=clip(req.body?.note,2000); if(decision==='returned'&&!note) throw E.validation('سبب الإعادة إلزامي.');
   const next=decision==='confirmed'?'finance_queue':'returned';
-  db().transaction(()=>{review(req,i,m.role,decision,note);db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'owner_'+decision,from:i.status,to:next,detail:{note},ip:req.ip});});
+  db().transaction(()=>{review(req,i,m.role,decision,note);db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'owner_'+decision,from:i.status,to:next,detail:{note},ip:req.ip});})();
   res.json({ok:true,status:next});
 }));
 router.post('/invoices/:id/forward-to-finance',wrap(async(req,res)=>{
   const m=requireOrg(req,['manager','procurement','requester']);const i=invoiceFor(req,req.params.id);
   if(i.status!=='finance_queue') throw E.conflict('لا يمكن الإحالة قبل اكتمال التدقيق المطلوب.');
-  db().transaction(()=>{review(req,i,m.role,'forwarded',clip(req.body?.note,1000));db().prepare("UPDATE project_invoices SET status='finance_review',updated_at=unixepoch() WHERE id=?").run(i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'forwarded_to_finance',from:i.status,to:'finance_review',ip:req.ip});});
+  db().transaction(()=>{review(req,i,m.role,'forwarded',clip(req.body?.note,1000));db().prepare("UPDATE project_invoices SET status='finance_review',updated_at=unixepoch() WHERE id=?").run(i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'forwarded_to_finance',from:i.status,to:'finance_review',ip:req.ip});})();
   res.json({ok:true,status:'finance_review'});
 }));
 router.post('/invoices/:id/finance-approval',wrap(async(req,res)=>{
   const m=requireOrg(req,['finance']);const i=invoiceFor(req,req.params.id);
   if(i.status!=='finance_review') throw E.conflict('الفاتورة لم تستكمل مراجعة المشتريات والمالك.');
-  db().transaction(()=>{review(req,i,m.role,'approved',clip(req.body?.note,1000));db().prepare("UPDATE project_invoices SET status='approved_for_payment',updated_at=unixepoch() WHERE id=?").run(i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'finance_approved',from:i.status,to:'approved_for_payment',ip:req.ip});});
+  db().transaction(()=>{review(req,i,m.role,'approved',clip(req.body?.note,1000));db().prepare("UPDATE project_invoices SET status='approved_for_payment',updated_at=unixepoch() WHERE id=?").run(i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'finance_approved',from:i.status,to:'approved_for_payment',ip:req.ip});})();
   res.json({ok:true,status:'approved_for_payment'});
 }));
 router.post('/invoices/:id/payments',wrap(async(req,res)=>{
