@@ -51,7 +51,7 @@ function poForOrg(id, orgId) {
   return p;
 }
 function invoiceFor(req, id) {
-  const row = db().prepare(`SELECT i.*, p.status po_status, p.total_amount po_total, a.contractor_user_id, a.tender_id
+  const row = db().prepare(`SELECT i.*, p.status po_status, p.total_amount po_total, p.requires_owner_confirmation, a.contractor_user_id, a.tender_id
     FROM project_invoices i JOIN purchase_orders p ON p.id=i.po_id
     JOIN project_awards a ON a.id=i.award_id WHERE i.id=?`).get(id);
   if (!row) throw E.notFound('الفاتورة غير موجودة.');
@@ -116,14 +116,15 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const m = requireOrg(req, ['manager', 'procurement']);
   const a = awardForOrg(req.params.id, m.org_id);
   const b = req.body || {};
+  const poNumber = clip(b.poNumber, 80);
+  if (!poNumber) throw E.validation('رقم أمر الشراء مطلوب.');
   const id = uid('po_');
   const items = Array.isArray(b.items) ? b.items : [];
   const total = items.reduce((s,x) => s + amount(x.quantity,'quantity') * Number(x.unitPrice), 0);
   const rounded = Math.round(total * 100) / 100;
   if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
   db().transaction(() => {
-    db().prepare(`INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by)
-      VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?)`).run(id,a.id,m.org_id,clip(b.poNumber,80),clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id);
+    db().prepare(`undefined`).run(id,a.id,m.org_id,poNumber,clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id);
     insertItems('purchase_order_items','po_id',id,items);
     event({orgId:m.org_id,tenderId:a.tender_id,awardId:a.id,poId:id,userId:req.user.id,role:m.role,action:'po_submitted_for_approval',to:'pending_approval',detail:{total:rounded},ip:req.ip});
   })();
@@ -202,7 +203,7 @@ router.post('/invoices/:id/procurement-review',wrap(async(req,res)=>{
   const decision=req.body?.decision;
   if(!['accepted','returned','rejected'].includes(decision)) throw E.validation('قرار المراجعة غير صحيح.');
   const note=clip(req.body?.note,2000); if(decision!=='accepted'&&!note) throw E.validation('سبب الإعادة أو الرفض إلزامي.');
-  const next=decision==='accepted'?'owner_confirmation':decision==='returned'?'returned':'rejected';
+  const next=decision==='accepted'?(i.requires_owner_confirmation?'owner_confirmation':'finance_queue'):decision==='returned'?'returned':'rejected';
   db().transaction(()=>{review(req,i,m.role,decision,note);db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'procurement_'+decision,from:i.status,to:next,detail:{note},ip:req.ip});});
   res.json({ok:true,status:next});
 }));
