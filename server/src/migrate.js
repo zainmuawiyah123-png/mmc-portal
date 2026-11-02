@@ -439,6 +439,30 @@ function upgradeTenderEvaluation(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_bid_eval_audit_submission
       ON bid_evaluation_audit(submission_id, created_at);
+
+    CREATE TRIGGER IF NOT EXISTS trg_bid_eval_audit_no_update
+      BEFORE UPDATE ON bid_evaluation_audit
+      BEGIN SELECT RAISE(ABORT, 'Evaluation audit records are immutable'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_bid_eval_audit_no_delete
+      BEFORE DELETE ON bid_evaluation_audit
+      BEGIN SELECT RAISE(ABORT, 'Evaluation audit records are immutable'); END;
+
+    CREATE TRIGGER IF NOT EXISTS trg_tender_criteria_no_update_after_bids
+      BEFORE UPDATE ON tender_requirements
+      WHEN EXISTS (SELECT 1 FROM bid_submissions WHERE tender_id=OLD.tender_id)
+      BEGIN SELECT RAISE(ABORT, 'Tender criteria are locked after bid submission'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_tender_criteria_no_delete_after_bids
+      BEFORE DELETE ON tender_requirements
+      WHEN EXISTS (SELECT 1 FROM bid_submissions WHERE tender_id=OLD.tender_id)
+      BEGIN SELECT RAISE(ABORT, 'Tender criteria are locked after bid submission'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_tender_criteria_no_insert_after_bids
+      BEFORE INSERT ON tender_requirements
+      WHEN EXISTS (SELECT 1 FROM bid_submissions WHERE tender_id=NEW.tender_id)
+      BEGIN SELECT RAISE(ABORT, 'Tender criteria are locked after bid submission'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_tender_scoring_policy_no_change_after_bids
+      BEFORE UPDATE OF technical_weight, financial_weight, technical_threshold ON tenders
+      WHEN EXISTS (SELECT 1 FROM bid_submissions WHERE tender_id=OLD.id)
+      BEGIN SELECT RAISE(ABORT, 'Tender scoring policy is locked after bid submission'); END;
   `);
 }
 
