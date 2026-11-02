@@ -1102,7 +1102,7 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   getDB().prepare('INSERT INTO tenders (id,user_id,org_id,name,status,procurement_status) VALUES (?,?,?, ?,?,?)')
     .run(tenderId, managerId, orgId, 'اختبار دورة المستحقات', 'ready', 'published');
   getDB().prepare('INSERT INTO bid_submissions (id,tender_id,contractor_id,status,technical_score,technical_points,technical_passed,financial_amount,financial_currency,financial_unlocked) VALUES (?,?,?, ?,?,?,?,?,?,?)')
-    .run(submissionId, tenderId, contractorId, 'evaluated', 80, 80, 1, 1000, 'JOD', 1);
+    .run(submissionId, tenderId, contractorId, 'evaluated', 90, 54, 1, 1000, 'JOD', 1);
 
   const wrongCurrency = await call(manager, 'POST', '/api/project-finance/awards', {
     body: { tenderId, submissionId, awardReference: 'PF-AWARD-X', awardedAmount: 900, currency: 'USD' }
