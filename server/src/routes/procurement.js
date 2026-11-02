@@ -243,7 +243,17 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   const s = db.prepare('SELECT s.*, t.user_id buyer_id, t.technical_weight, t.financial_weight, t.technical_threshold FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
   if (!s || (req.user.role !== 'admin' && !O.canManageUserTenders(req.user, s.buyer_id))) throw E.notFound('التقديم غير موجود.');
   const reqs = db.prepare('SELECT * FROM tender_requirements WHERE tender_id=? ORDER BY sort_order').all(s.tender_id);
-  const scores = new Map((Array.isArray(req.body?.scores) ? req.body.scores : []).map((a) => [a.requirementId, Math.max(0, Math.min(100, Number(a.score) || 0))]));
+  const submittedScores = Array.isArray(req.body?.scores) ? req.body.scores : [];
+  const scoreIds = new Set(reqs.map((r) => r.id));
+  if (submittedScores.length !== reqs.length ||
+      submittedScores.some((a) => !a || !scoreIds.has(a.requirementId) ||
+        !Number.isFinite(Number(a.score)) || Number(a.score) < 0 || Number(a.score) > 100) ||
+      new Set(submittedScores.map((a) => a.requirementId)).size !== reqs.length) {
+    throw E.validation('يلزم إدخال علامة واضحة من 0 إلى 100 لكل معيار منشور قبل اعتماد التقييم.');
+  }
+  const reason = String(req.body?.reason || '').trim().slice(0, 2000);
+  if (!reason) throw E.validation('أدخل مبرراً مختصراً لاعتماد نتيجة التقييم وسجل التدقيق.');
+  const scores = new Map(submittedScores.map((a) => [a.requirementId, Number(a.score)]));
   const responses = db.prepare('SELECT * FROM bid_responses WHERE submission_id=?').all(s.id);
   const scoreMap = new Map(responses.map((r) => [r.requirement_id, r]));
   let normalized=0, missing=false;
@@ -256,10 +266,22 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   }
   const points=normalized*s.technical_weight/100;
   const passed=points>=s.technical_threshold && !missing;
-  db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL WHERE id=?`)
-    .run(normalized, points, passed?1:0, passed?1:0, s.id);
-  if (passed) db.prepare('UPDATE tenders SET financial_opened_at=COALESCE(financial_opened_at,unixepoch()) WHERE id=?').run(s.tender_id);
-  res.json({ ok:true, technicalScore:normalized, technicalPoints:points, passed, financialOpened:passed, message:passed?'اجتاز العرض الفني؛ تم فتح المالي آلياً.':'لم يبلغ العرض الحد الفني؛ بقي المالي مقفلاً.' });
+  const tx = db.transaction(() => {
+    db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL WHERE id=?`)
+      .run(normalized, points, passed?1:0, passed?1:0, s.id);
+    db.prepare(`INSERT INTO bid_evaluation_audit
+      (id,submission_id,tender_id,actor_user_id,action,technical_score,technical_points,passed,reason,criteria_scores_json)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`)
+      .run(uid('eva_'), s.id, s.tender_id, req.user.id, 'human_scored', normalized, points,
+        passed?1:0, reason, JSON.stringify(reqs.map((r) => ({
+          requirementId:r.id, title:r.title, weight:r.weight, score:scores.get(r.id),
+          note:String((req.body?.notes || {})[r.id] || '').slice(0,1000) || null
+        }))));
+    if (passed) db.prepare('UPDATE tenders SET financial_opened_at=COALESCE(financial_opened_at,unixepoch()) WHERE id=?').run(s.tender_id);
+  });
+  tx();
+  res.json({ ok:true, technicalScore:normalized, technicalPoints:points, passed, financialOpened:passed,
+    evaluationMode:'human_review', message:passed?'اجتاز العرض الفني؛ تم فتح المالي آلياً بعد تسجيل التقييم.':'لم يبلغ العرض الحد الفني؛ بقي المالي مقفلاً.' });
 }));
 
 /* وثائق العطاء (المخططات والمواصفات والشروط) — للمقاول بعد النشر ولأعضاء الجهة */
