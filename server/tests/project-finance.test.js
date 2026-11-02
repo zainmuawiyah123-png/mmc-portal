@@ -26,6 +26,19 @@ test('project finance migration is additive and repeatable', () => {
   for (const name of required) {
     assert.ok(first.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name), 'missing table: ' + name);
   }
+  assert.ok(first.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='bid_evaluation_audit'").get(),
+    'technical evaluation audit table must be created by migration');
+  for (const trigger of [
+    'trg_bid_eval_audit_no_update',
+    'trg_bid_eval_audit_no_delete',
+    'trg_tender_criteria_no_update_after_bids',
+    'trg_tender_criteria_no_delete_after_bids',
+    'trg_tender_criteria_no_insert_after_bids',
+    'trg_tender_scoring_policy_no_change_after_bids'
+  ]) {
+    assert.ok(first.prepare("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name=?").get(trigger),
+      'missing tender evaluation integrity trigger: ' + trigger);
+  }
   assert.ok(invoiceColumnsBefore.includes('plan_key'));
   assert.ok(invoiceColumnsBefore.includes('billing_cycle'));
   assert.ok(!invoiceColumnsBefore.includes('po_id'));
@@ -47,6 +60,8 @@ test('project finance migration is additive and repeatable', () => {
   }, 'MMC subscription invoice data must survive project finance migration unchanged');
   const poColumns = second.prepare('PRAGMA table_info(purchase_orders)').all().map((x) => x.name);
   assert.ok(poColumns.includes('requires_owner_confirmation'));
+  const auditTriggerCount = second.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='trigger' AND name LIKE 'trg_%'").get().n;
+  assert.ok(auditTriggerCount >= 6, 'evaluation integrity triggers must survive a repeated migration');
   second.close();
 });
 
