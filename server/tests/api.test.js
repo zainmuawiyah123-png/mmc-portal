@@ -730,6 +730,29 @@ test('63A — لا تمنح الإجابة علامة تلقائية، ولا ي
   assert.deepStrictEqual([audit.action, audit.technical_score, audit.technical_points, audit.passed], ['human_scored', 100, 60, 1]);
 });
 
+test('63B — حد التأهل الفني 50/60: ما دونه مرفوض وما فوقه مؤهل', async () => {
+  const tender = await publish('qbuy');
+  const submitted = await call('qcon', 'POST', '/api/procurement/tenders/' + tender.id + '/submit', { body: bidBody(tender) });
+  assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
+  const list = await call('qbuy', 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations');
+  const submissionId = list.data.submissions[0].id;
+  const below = await call('qbuy', 'POST', '/api/procurement/submissions/' + submissionId + '/evaluate', {
+    body: { scores: tender.requirements.map((r) => ({ requirementId: r.id, score: 83.32 })), reason: 'اختبار حد التأهل: أقل من 50/60' }
+  });
+  assert.strictEqual(below.status, 200, JSON.stringify(below.data));
+  assert.strictEqual(below.data.technicalPassed, undefined);
+  assert.strictEqual(below.data.passed, false);
+  assert.ok(below.data.technicalPoints < 50);
+  assert.strictEqual(below.data.financialOpened, false);
+  const above = await call('qbuy', 'POST', '/api/procurement/submissions/' + submissionId + '/evaluate', {
+    body: { scores: tender.requirements.map((r) => ({ requirementId: r.id, score: 83.34 })), reason: 'اختبار حد التأهل: تجاوز 50/60' }
+  });
+  assert.strictEqual(above.status, 200, JSON.stringify(above.data));
+  assert.ok(above.data.technicalPoints >= 50);
+  assert.strictEqual(above.data.passed, true);
+  assert.strictEqual(above.data.financialOpened, true);
+});
+
 test('64 — حد التقديم الإلكتروني: المجاني 2، ويُرفع بالترقية', async () => {
   const email = 'ql' + uniq() + '@t.com';
   await call('qfree', 'POST', '/api/auth/register', { body: { name: 'مجاني', email, password: 'Password123' } });
