@@ -1063,6 +1063,14 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
   });
   assert.strictEqual(poRes.status, 201, JSON.stringify(poRes.data));
   const poId = poRes.data.purchaseOrder.id;
+  const wrongPoCurrency = await call(procurement, 'POST', '/api/project-finance/awards/' + awardId + '/purchase-orders', {
+    body: { poNumber: 'PF-PO-USD-' + uniq(), currency: 'USD', items: [{ description: 'بند', quantity: 1, unitPrice: 1 }] }
+  });
+  assert.strictEqual(wrongPoCurrency.status, 422, 'يجب منع عملة أمر شراء مختلفة عن عملة الترسية');
+  const cumulativePoOver = await call(procurement, 'POST', '/api/project-finance/awards/' + awardId + '/purchase-orders', {
+    body: { poNumber: 'PF-PO-OVER-' + uniq(), currency: 'JOD', items: [{ description: 'بند إضافي', quantity: 1, unitPrice: 401 }] }
+  });
+  assert.strictEqual(cumulativePoOver.status, 409, 'يجب منع تجاوز مجموع أوامر الشراء لقيمة الترسية');
 
   assert.strictEqual((await call(contractor, 'GET', '/api/project-finance/purchase-orders')).data.purchaseOrders.length, 0);
   assert.strictEqual((await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + poId + '/invoices', {
