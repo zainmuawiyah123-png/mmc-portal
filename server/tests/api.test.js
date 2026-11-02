@@ -1037,7 +1037,8 @@ test('76 — دورة المشروع كاملة: ترسية، أمر شراء، 
     body: { name: 'مقاول الاختبار', email: contractorEmail, password: 'Password123', role: 'contractor' }
   });
   assert.strictEqual(reg.status, 201, JSON.stringify(reg.data));
-  const orgId = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(manager).org_id;
+  const managerId = getDB().prepare('SELECT id FROM users WHERE name=? ORDER BY created_at DESC LIMIT 1').get('عضو pfmgr').id;
+  const orgId = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(managerId).org_id;
   const contractorId = getDB().prepare('SELECT id FROM users WHERE email=?').get(contractorEmail).id;
   const tenderId = 'pft_' + uniq();
   const submissionId = 'pfs_' + uniq();
