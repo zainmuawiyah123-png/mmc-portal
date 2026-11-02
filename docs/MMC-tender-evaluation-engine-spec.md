@@ -9,6 +9,13 @@
 - A qualified bidder's financial offer may be opened only after the technical result is recorded.
 - The platform may calculate a financial comparison score under the tender's published financial method, but it does not automatically make the award decision. The issuing authority records the award decision and rationale.
 
+## Fixed tender scoring implementation
+- New tenders use a fixed 60 technical / 40 financial split and a fixed technical qualification threshold of 50 points out of 60.
+- Per-tender attempts to override these values are rejected.
+- Technical criteria weights must total 100; each criterion mark is 0–100 and contributes by its published weight.
+- Financial bids must use the tender's currency. Mixed-currency comparisons are rejected rather than silently comparing unlike amounts.
+- For qualified submissions, the current comparison formula is proportional: lowest eligible bid / bidder bid × 40. It is a comparison score only; award remains a recorded authority decision.
+
 ## Integrity requirements
 - Presence of a response is not proof of merit and must never produce a score by itself.
 - Every score must be linked to a published criterion and supporting evidence.
