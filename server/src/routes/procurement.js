@@ -79,14 +79,15 @@ function validateWeights(reqs) {
 
 function calculateTechnical(reqs, answers, technicalWeight) {
   const map = new Map((answers || []).map((a) => [a.requirementId, a]));
+  // Receiving an answer is not evidence of merit. Initial submission records completeness
+  // only; marks must come from the published rubric/evaluation process.
   let normalized = 0;
   let missingMandatory = false;
   const details = reqs.map((r) => {
     const a = map.get(r.id) || {};
     const answer = String(a.answer || '').trim();
-    const score = answer ? 100 : 0;
+    const score = 0;
     if (r.mandatory && !answer) missingMandatory = true;
-    normalized += r.weight * score / 100;
     return { requirementId: r.id, answer, score };
   });
   const points = normalized * (Number(technicalWeight) / 100);
@@ -211,7 +212,7 @@ router.post('/tenders/:id/submit', contractor, wrap(async (req, res) => {
     calc.details.forEach((d) => ins.run(uid('rsp_'), id, d.requirementId, d.answer, d.score));
   });
   tx();
-  res.status(201).json({ submissionId: id, technicalPoints: calc.points, message: 'تم استلام العرض الفني والمالي، والمالي محفوظ ومقفل أمام لجنة التقييم.' });
+  res.status(201).json({ submissionId: id, technicalScore: calc.normalized, technicalPoints: calc.points, technicalStatus: 'pending_evaluation', message: 'تم استلام العرض. لم تُمنح علامة تلقائياً لمجرد تقديم إجابة؛ التقييم الفني قيد الإجراء والمالي مقفل.' });
 }));
 
 /* التقييم/الفتح والترتيب */
@@ -255,7 +256,7 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   }
   const points=normalized*s.technical_weight/100;
   const passed=points>=s.technical_threshold && !missing;
-  db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL ${passed ? ', financial_unlocked=1' : ''} WHERE id=?`)
+  db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL WHERE id=?`)
     .run(normalized, points, passed?1:0, passed?1:0, s.id);
   if (passed) db.prepare('UPDATE tenders SET financial_opened_at=COALESCE(financial_opened_at,unixepoch()) WHERE id=?').run(s.tender_id);
   res.json({ ok:true, technicalScore:normalized, technicalPoints:points, passed, financialOpened:passed, message:passed?'اجتاز العرض الفني؛ تم فتح المالي آلياً.':'لم يبلغ العرض الحد الفني؛ بقي المالي مقفلاً.' });
