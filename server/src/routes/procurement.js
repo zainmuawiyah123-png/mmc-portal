@@ -201,7 +201,12 @@ router.post('/tenders/:id/submit', contractor, wrap(async (req, res) => {
   const b = req.body || {};
   const amount = Number(b.financialAmount);
   if (!Number.isFinite(amount) || amount <= 0) throw E.validation('أدخل قيمة مالية صحيحة.');
-  if (!Array.isArray(b.answers) || b.answers.length !== x.reqs.length) throw E.validation('يجب الإجابة عن جميع المتطلبات الفنية.');
+  if (!Array.isArray(b.answers) || b.answers.length !== x.reqs.length) throw E.validation('يجب تقديم إجابة مستقلة لكل معيار فني منشور.');
+  const publishedRequirementIds = new Set(x.reqs.map((r) => r.id));
+  if (b.answers.some((a) => !a || !publishedRequirementIds.has(a.requirementId)) ||
+      new Set(b.answers.map((a) => a.requirementId)).size !== x.reqs.length) {
+    throw E.validation('الإجابات يجب أن تطابق معايير العطاء المنشورة دون تكرار أو نقص.');
+  }
   if (getDB().prepare('SELECT id FROM bid_submissions WHERE tender_id = ? AND contractor_id = ?').get(x.t.id, req.user.id)) throw E.conflict('سبق تقديم العرض لهذا العطاء.');
   const tenderCurrency = (O.COUNTRIES[x.t.country] || O.COUNTRIES.JO).currency;
   const submittedCurrency = String(b.financialCurrency || tenderCurrency).toUpperCase();
