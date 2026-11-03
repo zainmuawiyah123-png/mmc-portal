@@ -975,6 +975,9 @@ test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مش�
   const fid = await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '2017', particularNotes: 'الشروط الخاصة مرفقة' } });
   assert.strictEqual(fid.status, 200, JSON.stringify(fid.data));
   assert.strictEqual((await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'purple' } })).status, 422);
+  await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '' } });
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).status, 422, 'إصدار FIDIC مطلوب');
+  await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '2017' } });
   assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).data.request.status, 'ready');
   // المشتريات ترى الجاهز فقط وتنشر؛ الطالب لا ينشر
   assert.strictEqual((await call(C, 'GET', '/api/requests')).data.requests.length, 1);
