@@ -952,6 +952,14 @@ test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مش�
   const dl = await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + docs.data.documents[0].id, { headers: cookieFor(con) });
   assert.strictEqual(dl.status, 200);
   assert.ok(/attachment/.test(dl.headers.get('content-disposition')));
+
+  // A different organization cannot list, inspect, or download this tender's files.
+  const isolated = await newBuyer('isolated', 'proc_pro');
+  const isolatedProcurement = (await joinTeam(isolated, 'procurement', 'isolated-proc')).who;
+  assert.strictEqual((await call(isolatedProcurement, 'GET', '/api/requests/' + id)).status, 404);
+  assert.strictEqual((await call(isolatedProcurement, 'GET', '/api/requests/' + id + '/docs/' + docs.data.documents[0].id)).status, 404);
+  assert.strictEqual((await call(isolatedProcurement, 'GET', '/api/procurement/tenders/' + pub.data.tenderId)).status, 404);
+  assert.strictEqual((await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + docs.data.documents[0].id, { headers: cookieFor(isolatedProcurement) })).status, 404);
   // الوثيقة الداخلية لا تُسرَّب
   const internalId = (await call(P, 'GET', '/api/requests/' + id)).data.request.docs.find((d) => d.kind === 'internal').id;
   assert.strictEqual((await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + internalId, { headers: cookieFor(con) })).status, 404);
@@ -1129,6 +1137,9 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.ok(!otherTenderList.data.tenders.some((t) => t.id === tender.id), 'العطاء لا يظهر في قائمة مشتريات جهة أخرى');
   assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id)).status, 404);
   assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations')).status, 404);
+  assert.strictEqual((await call(otherProcurement, 'POST', '/api/submissions/' + submitted.data.submissionId + '/evaluate', {
+    body: { scores: [] }
+  })).status, 404, 'لا يمكن تقييم عرض تابع لعطاء جهة أخرى');
   assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id + '/documents')).status, 404);
   assert.strictEqual((await call(otherManager, 'POST', '/api/project-finance/awards', {
     body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 300, currency: 'JOD' }
