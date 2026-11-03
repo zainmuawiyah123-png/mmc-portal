@@ -189,6 +189,32 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   res.status(201).json({invoice:db().prepare('SELECT * FROM project_invoices WHERE id=?').get(id)});
 }));
 
+
+/* Contractor may revise and resubmit an invoice returned by procurement/owner. */
+router.post('/invoices/:id/resubmit',wrap(async(req,res)=>{
+  if(req.user.role!=='contractor') throw E.forbidden('إعادة تقديم الفاتورة متاحة للمقاول فقط.');
+  const i=invoiceFor(req,req.params.id);
+  if(i.status!=='returned') throw E.conflict('يمكن إعادة تقديم الفاتورة بعد إعادتها فقط.');
+  const b=req.body||{};
+  const invoiceNumber=clip(b.invoiceNumber,80)||i.invoice_number;
+  const type=['materials','progress','final'].includes(b.invoiceType)?b.invoiceType:i.invoice_type;
+  const items=Array.isArray(b.items)?b.items:[];
+  if(!items.length) throw E.validation('أدخل بنود الفاتورة المعدلة.');
+  const total=Math.round(items.reduce((sum,x)=>sum+Math.round(amount(x.quantity,'quantity')*Number(x.unitPrice)*100)/100,0)*100)/100;
+  if(!Number.isFinite(total)||total<=0) throw E.validation('قيمة الفاتورة المعدلة غير صحيحة.');
+  const other=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND id<>? AND status NOT IN ('void','rejected')").get(i.po_id,i.id).n;
+  if(other+total>Number(i.po_total)+0.0001) throw E.conflict('إجمالي الفواتير يتجاوز قيمة أمر الشراء.');
+  db().transaction(()=>{
+    db().prepare("DELETE FROM project_invoice_items WHERE invoice_id=?").run(i.id);
+    const inserted=insertItems('project_invoice_items','invoice_id',i.id,items);
+    if(inserted!==total) throw E.validation('إجمالي بنود الفاتورة غير متطابق.');
+    db().prepare("UPDATE project_invoices SET invoice_number=?,invoice_type=?,gross_amount=?,contractor_note=?,status='submitted',submitted_at=unixepoch(),updated_at=unixepoch() WHERE id=?")
+      .run(invoiceNumber,type,total,clip(b.note,2000)||null,i.id);
+    event({orgId:i.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:'contractor',action:'invoice_resubmitted',from:i.status,to:'submitted',detail:{grossAmount:total},ip:req.ip});
+  })();
+  res.json({ok:true,status:'submitted',invoice:db().prepare('SELECT * FROM project_invoices WHERE id=?').get(i.id)});
+}));
+
 router.get('/invoices',wrap(async(req,res)=>{
   if(req.user.role==='contractor') return res.json({invoices:db().prepare('SELECT * FROM project_invoices WHERE contractor_user_id=? ORDER BY submitted_at DESC').all(req.user.id)});
   const m=member(req);
