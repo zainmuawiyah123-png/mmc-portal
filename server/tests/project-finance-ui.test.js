@@ -192,3 +192,14 @@ test('OPP-14 — حالة المجدول تعرض مهمة مزامنة العط
   assert.ok(scheduler.includes("'opportunity-sync'"));
   assert.ok(scheduler.includes("config.OPPORTUNITY_SYNC_ENABLED ?"));
 });
+
+
+test('OPP-15 — مستورد JONEPS يتبع روابط ترقيم الصفحات الرسمية فقط', () => {
+  const { extractPageUrls, LIST_URL } = require('../src/lib/joneps-sync');
+  const html = '<a href="?page=2">2</a><a href="?page=3">3</a><a href="https://evil.example/page">4</a><a href="/other">5</a><a href="?page=11">11</a>';
+  const urls = extractPageUrls(html);
+  assert.equal(urls.length, 3);
+  assert.equal(urls[0], LIST_URL);
+  assert.ok(urls[1].includes('page=2'));
+  assert.ok(urls[2].includes('page=3'));
+});
