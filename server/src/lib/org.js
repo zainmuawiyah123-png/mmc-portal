@@ -75,7 +75,7 @@ function ensureOrg(user) {
   const id = uid('org_');
   const v = db.prepare('SELECT org_name FROM org_verifications WHERE user_id = ?').get(user.id);
   db.transaction(() => {
-    db.prepare('INSERT INTO organizations (id, name, created_by) VALUES (?,?,?)').run(id, (v && v.org_name) || user.company || user.name || 'جهة', user.id);
+    db.prepare('INSERT INTO organizations (id, name, created_by, country) VALUES (?,?,?,?)').run(id, (v && v.org_name) || user.company || user.name || 'جهة', user.id, user.country || null);
     db.prepare("INSERT INTO org_members (org_id, user_id, role) VALUES (?,?,'manager')").run(id, user.id);
     db.prepare('UPDATE org_verifications SET org_id = ? WHERE user_id = ? AND org_id IS NULL').run(id, user.id);
     db.prepare('UPDATE tenders SET org_id = ? WHERE user_id = ? AND org_id IS NULL').run(id, user.id);
