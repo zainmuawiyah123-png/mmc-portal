@@ -1127,6 +1127,19 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
     body: bidBody(tender, 300)
   });
   assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
+  const receipt = await call(contractor, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/receipt');
+  assert.strictEqual(receipt.status, 200, JSON.stringify(receipt.data));
+  assert.ok(receipt.data.receipt.reference.startsWith('MMC-'));
+  assert.strictEqual(receipt.data.receipt.documents.length, 2);
+  const bidDocs = getDB().prepare('SELECT id,doc_class FROM bid_submission_docs WHERE submission_id=? ORDER BY doc_class').all(submitted.data.submissionId);
+  const technicalDoc = bidDocs.find((d) => d.doc_class === 'technical');
+  const financialDoc = bidDocs.find((d) => d.doc_class === 'financial');
+  assert.ok(technicalDoc && financialDoc, 'يجب حفظ ملفات العرضين منفصلة');
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + technicalDoc.id)).status, 200);
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + financialDoc.id)).status, 403,
+    'يجب منع المشتريات من تنزيل المالي قبل الفتح الرسمي');
+  assert.strictEqual((await call(projects, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + financialDoc.id)).status, 404,
+    'موظف المشاريع لا يملك صلاحية الوصول إلى عروض المقاولين');
 
   // لا ترسية قبل التقييم الفني وفتح العرض المالي.
   const premature = await call(manager, 'POST', '/api/project-finance/awards', {
@@ -1143,6 +1156,10 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   const financialOpen = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/open-financial', { body: {} });
   assert.strictEqual(financialOpen.status, 200, JSON.stringify(financialOpen.data));
   assert.strictEqual(financialOpen.data.financialOpened, true);
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + financialDoc.id)).status, 200,
+    'يسمح للمشتريات بتنزيل المالي بعد الفتح الرسمي');
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/receipt')).status, 404,
+    'الإيصال الخاص بالمقاول لا يُكشف لحساب المشتريات');
 
   const award = await call(manager, 'POST', '/api/project-finance/awards', {
     body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 300, currency: 'JOD', awardReference: 'AWD-FIN-01' }
