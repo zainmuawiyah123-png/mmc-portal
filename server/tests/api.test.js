@@ -1169,6 +1169,11 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   // Tenant isolation: a second organization's manager/finance users cannot
   // discover, read, evaluate, award, or transact against this organization's tender.
   const otherProcurement = (await joinTeam(otherManager, 'procurement', 'finother-procurement')).who;
+  const otherOrgView = await call(otherManager, 'GET', '/api/org');
+  const originalOrgView = await call(manager, 'GET', '/api/org');
+  assert.notStrictEqual(otherOrgView.data.org.id, originalOrgView.data.org.id, 'لكل مؤسسة معرّف مستقل');
+  assert.ok(!otherOrgView.data.members.some((member) => member.id === manager), 'لا تظهر عضوية المؤسسة الأولى في إدارة المؤسسة الثانية');
+  assert.ok(!otherOrgView.data.invites.some((invite) => invite.id === originalOrgView.data.invites?.[0]?.id), 'لا تظهر دعوات المؤسسة الأولى في المؤسسة الثانية');
   const otherTenderList = await call(otherProcurement, 'GET', '/api/procurement/tenders');
   assert.strictEqual(otherTenderList.status, 200);
   assert.ok(!otherTenderList.data.tenders.some((t) => t.id === tender.id), 'العطاء لا يظهر في قائمة مشتريات جهة أخرى');
