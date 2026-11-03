@@ -127,15 +127,17 @@ router.post('/join', buyerOnly, wrap(async (req, res) => {
   if (mine.org_id === inv.org_id) throw E.conflict('أنت عضو في هذه الجهة بالفعل.');
   const memberCount = db.prepare('SELECT COUNT(*) n FROM org_members WHERE org_id = ?').get(mine.org_id).n;
   const reqCount = db.prepare('SELECT COUNT(*) n FROM project_requests WHERE org_id = ?').get(mine.org_id).n;
-  if (memberCount > 1 || reqCount > 0) throw E.conflict('حسابك يدير جهة فيها أعضاء أو طلبات. استخدم حساباً جديداً للانضمام.');
+  const tenderCount = db.prepare('SELECT COUNT(*) n FROM tenders WHERE org_id = ? OR user_id = ?').get(mine.org_id, req.user.id).n;
+  const verificationCount = db.prepare('SELECT COUNT(*) n FROM org_verifications WHERE org_id = ? OR user_id = ?').get(mine.org_id, req.user.id).n;
+  if (memberCount > 1 || reqCount > 0 || tenderCount > 0 || verificationCount > 0) {
+    throw E.conflict('لا يمكن نقل حساب لديه عطاءات أو طلبات أو سجل توثيق إلى جهة أخرى تلقائياً. استخدم حساباً جديداً، أو اطلب من إدارة المنصة معالجة نقل البيانات رسمياً.');
+  }
   const target = db.prepare('SELECT * FROM organizations WHERE id = ?').get(inv.org_id);
   if (!target) throw E.notFound('الجهة غير موجودة.');
   const seats = seatInfo({ org_id: target.id, created_by: target.created_by });
   // الدعوة نفسها محسوبة ضمن المقاعد، فالتحقق على الأعضاء الفعليين فقط
   if (seats.max !== null && seats.members >= seats.max) throw E.forbidden('اكتمل عدد المستخدمين في باقة هذه الجهة.');
   db.transaction(() => {
-    db.prepare('UPDATE tenders SET org_id = ? WHERE user_id = ?').run(target.id, req.user.id);
-    db.prepare('UPDATE org_verifications SET org_id = NULL WHERE user_id = ? AND org_id = ?').run(req.user.id, mine.org_id);
     db.prepare('DELETE FROM organizations WHERE id = ?').run(mine.org_id);
     db.prepare('INSERT INTO org_members (org_id, user_id, role) VALUES (?,?,?)').run(target.id, req.user.id, inv.role);
     db.prepare("UPDATE org_invites SET status = 'used', used_by = ? WHERE id = ?").run(req.user.id, inv.id);
