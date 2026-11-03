@@ -578,6 +578,37 @@ function upgradeProjectFinance(db) {
   `);
 }
 
+
+function upgradeTenderOpportunities(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tender_opportunities (
+      id TEXT PRIMARY KEY,
+      source_key TEXT NOT NULL,
+      external_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      authority TEXT,
+      country TEXT NOT NULL DEFAULT 'JO',
+      sector TEXT,
+      tender_number TEXT,
+      summary TEXT,
+      published_at TEXT,
+      closing_at TEXT,
+      source_url TEXT NOT NULL,
+      application_url TEXT,
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed','cancelled','draft')),
+      language TEXT NOT NULL DEFAULT 'ar',
+      imported_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      UNIQUE(source_key, external_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tender_opportunities_public
+      ON tender_opportunities(status, country, closing_at);
+    CREATE INDEX IF NOT EXISTS idx_tender_opportunities_source
+      ON tender_opportunities(source_key, imported_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -602,6 +633,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeBilingual(db);
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
+  upgradeTenderOpportunities(db);
   upgradeV5(db);
 
   return db;
