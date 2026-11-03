@@ -77,12 +77,51 @@ function runSubscriptionExpiryJob() {
   }
 }
 
+
+function persistOpportunitySync(source, startedAt, result) {
+  try {
+    const { getDB, uid } = require('../db');
+    const db=getDB(), finishedAt=Math.floor(Date.now()/1000);
+    db.prepare(`INSERT INTO opportunity_sync_runs
+      (id,source_key,started_at,finished_at,status,received,added,updated,duration_ms,error)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
+      uid('sync_'), source, Math.floor(startedAt/1000), finishedAt,
+      result.skipped?'skipped':result.ok?'success':'failed',
+      Number(result.received)||0, Number(result.added)||0, Number(result.updated)||0,
+      Math.max(0,Date.now()-startedAt), result.error?String(result.error).slice(0,500):null
+    );
+    db.prepare(`DELETE FROM opportunity_sync_runs WHERE source_key=? AND id NOT IN (SELECT id FROM opportunity_sync_runs WHERE source_key=? ORDER BY finished_at DESC LIMIT 1000)`).run(source,source);
+  } catch(err) {
+    console.error('[scheduler] تعذر حفظ سجل مزامنة '+source+':',err.message);
+  }
+}
+
+async function runOpportunitySyncJob() {
+  const started=Date.now(), results={};
+  const runSource=async(name,fn)=>{
+    const sourceStarted=Date.now();
+    try { results[name]={ok:true,...await fn()}; }
+    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
+    persistOpportunitySync(name,sourceStarted,results[name]);
+  };
+  await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
+  await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
+  if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
+  else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
+  const ms=Date.now()-started;
+  const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+  const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
+  record({at:new Date().toISOString(),job:'opportunity-sync',ok:failed.length===0,ms,message:summary});
+  return {ok:failed.length===0,partial:failed.length>0,failed,results,ms};
+}
+
 function startScheduler() {
   if (!config.SCHEDULER_ENABLED) {
     console.log('[scheduler] معطّل (SCHEDULER_ENABLED=false)');
     return { enabled: false, jobs: [] };
   }
-  if (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON)) {
+  if (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON) ||
+      (config.OPPORTUNITY_SYNC_ENABLED && !cron.validate(config.OPPORTUNITY_SYNC_CRON))) {
     console.error('[scheduler] تعبير cron غير صالح — لم تُجدول المهام');
     return { enabled: false, jobs: [], error: 'invalid cron' };
   }
@@ -95,10 +134,20 @@ function startScheduler() {
     runSubscriptionExpiryJob();
   }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
   _jobs.push(backupJob, expiryJob);
+  if (config.OPPORTUNITY_SYNC_ENABLED) {
+    const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
+      console.log('[scheduler] بدء مزامنة إعلانات البنك الدولي...');
+      runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
+    },{timezone:config.BACKUP_TZ,name:'opportunity-sync-worldbank'});
+    _jobs.push(opportunityJob);
+    console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
+  }
   console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
   console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
-  return { enabled: true, jobs: ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
-    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON, tz: config.BACKUP_TZ };
+  return { enabled: true, jobs: config.OPPORTUNITY_SYNC_ENABLED ? ['db-backup', 'subscription-expiry', 'opportunity-sync'] : ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
+    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON,
+    opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED,
+    opportunitySyncCron: config.OPPORTUNITY_SYNC_CRON, tz: config.BACKUP_TZ };
 }
 
 function stopScheduler() {
@@ -113,4 +162,4 @@ function schedulerStatus() {
     running: _jobs.length, lastRun: _lastRun };
 }
 
-module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob };
+module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob, persistOpportunitySync };

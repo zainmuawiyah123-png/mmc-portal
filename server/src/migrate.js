@@ -422,6 +422,212 @@ function upgradeV5(db) {
   return added;
 }
 
+
+/**
+ * Project award, purchase order and invoice workflow.
+ * Additive and idempotent: never alters or drops existing MMC tables or records.
+ */
+function upgradeProjectFinance(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS project_audit_events (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL REFERENCES organizations(id),
+      tender_id TEXT REFERENCES tenders(id),
+      award_id TEXT,
+      po_id TEXT,
+      invoice_id TEXT,
+      payment_id TEXT,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      actor_role TEXT,
+      action TEXT NOT NULL,
+      from_status TEXT,
+      to_status TEXT,
+      detail_json TEXT,
+      ip TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS project_awards (
+      id TEXT PRIMARY KEY,
+      tender_id TEXT NOT NULL REFERENCES tenders(id),
+      org_id TEXT NOT NULL REFERENCES organizations(id),
+      contractor_user_id TEXT NOT NULL REFERENCES users(id),
+      award_reference TEXT NOT NULL,
+      contract_reference TEXT,
+      currency TEXT NOT NULL,
+      awarded_amount REAL NOT NULL CHECK (awarded_amount > 0),
+      status TEXT NOT NULL DEFAULT 'approved',
+      awarded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      notes TEXT,
+      awarded_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id TEXT PRIMARY KEY,
+      award_id TEXT NOT NULL REFERENCES project_awards(id),
+      org_id TEXT NOT NULL REFERENCES organizations(id),
+      po_number TEXT NOT NULL,
+      currency TEXT NOT NULL,
+      total_amount REAL NOT NULL CHECK (total_amount > 0),
+      status TEXT NOT NULL DEFAULT 'pending_approval',
+      payment_terms TEXT,
+      delivery_start TEXT,
+      delivery_end TEXT,
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      approved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      approved_at INTEGER,
+      issued_at INTEGER,
+      requires_owner_confirmation INTEGER NOT NULL DEFAULT 1 CHECK (requires_owner_confirmation IN (0,1)),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(org_id, po_number)
+    );
+
+    CREATE TABLE IF NOT EXISTS purchase_order_items (
+      id TEXT PRIMARY KEY,
+      po_id TEXT NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+      line_no INTEGER NOT NULL,
+      description TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_price REAL NOT NULL CHECK (unit_price >= 0),
+      line_total REAL NOT NULL CHECK (line_total >= 0),
+      unit TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(po_id, line_no)
+    );
+
+    CREATE TABLE IF NOT EXISTS project_invoices (
+      id TEXT PRIMARY KEY,
+      po_id TEXT NOT NULL REFERENCES purchase_orders(id),
+      award_id TEXT NOT NULL REFERENCES project_awards(id),
+      org_id TEXT NOT NULL REFERENCES organizations(id),
+      contractor_user_id TEXT NOT NULL REFERENCES users(id),
+      invoice_number TEXT NOT NULL,
+      invoice_type TEXT NOT NULL CHECK (invoice_type IN ('materials','progress','final')),
+      currency TEXT NOT NULL,
+      gross_amount REAL NOT NULL CHECK (gross_amount > 0),
+      retention_amount REAL NOT NULL DEFAULT 0 CHECK (retention_amount >= 0),
+      contractor_note TEXT,
+      status TEXT NOT NULL DEFAULT 'submitted',
+      submitted_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(contractor_user_id, invoice_number)
+    );
+
+    CREATE TABLE IF NOT EXISTS project_invoice_items (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL REFERENCES project_invoices(id) ON DELETE CASCADE,
+      description TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_price REAL NOT NULL CHECK (unit_price >= 0),
+      line_total REAL NOT NULL CHECK (line_total >= 0),
+      po_item_id TEXT REFERENCES purchase_order_items(id),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS project_invoice_reviews (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL REFERENCES project_invoices(id) ON DELETE CASCADE,
+      reviewer_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      reviewer_role TEXT NOT NULL,
+      decision TEXT NOT NULL,
+      note TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS project_payments (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL REFERENCES project_invoices(id),
+      org_id TEXT NOT NULL REFERENCES organizations(id),
+      amount REAL NOT NULL CHECK (amount > 0),
+      currency TEXT NOT NULL,
+      payment_reference TEXT NOT NULL,
+      payment_date TEXT NOT NULL,
+      recorded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(org_id, payment_reference)
+    );
+
+    CREATE TABLE IF NOT EXISTS project_invoice_documents (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL REFERENCES project_invoices(id) ON DELETE CASCADE,
+      storage_key TEXT NOT NULL UNIQUE,
+      storage_driver TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime TEXT,
+      size INTEGER NOT NULL CHECK (size >= 0),
+      checksum TEXT,
+      uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_project_awards_one_approved_per_tender ON project_awards(tender_id) WHERE status='approved';
+    CREATE INDEX IF NOT EXISTS idx_project_awards_org ON project_awards(org_id, awarded_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_project_awards_contractor ON project_awards(contractor_user_id, awarded_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_purchase_orders_org ON purchase_orders(org_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_purchase_orders_award ON purchase_orders(award_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_project_invoices_org ON project_invoices(org_id, submitted_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_project_invoices_contractor ON project_invoices(contractor_user_id, submitted_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_project_invoices_po ON project_invoices(po_id, status);
+    CREATE INDEX IF NOT EXISTS idx_project_invoice_reviews_invoice ON project_invoice_reviews(invoice_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_project_payments_invoice ON project_payments(invoice_id, payment_date);
+    CREATE INDEX IF NOT EXISTS idx_project_invoice_documents_invoice ON project_invoice_documents(invoice_id, uploaded_at);
+    CREATE INDEX IF NOT EXISTS idx_project_audit_org ON project_audit_events(org_id, created_at DESC);
+  `);
+}
+
+
+function upgradeOpportunitySyncRuns(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS opportunity_sync_runs (
+      id TEXT PRIMARY KEY,
+      source_key TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      finished_at INTEGER NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('success','failed','skipped')),
+      received INTEGER NOT NULL DEFAULT 0,
+      added INTEGER NOT NULL DEFAULT 0,
+      updated INTEGER NOT NULL DEFAULT 0,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_opportunity_sync_runs_source
+      ON opportunity_sync_runs(source_key, finished_at DESC);
+  `);
+}
+
+function upgradeTenderOpportunities(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tender_opportunities (
+      id TEXT PRIMARY KEY,
+      source_key TEXT NOT NULL,
+      external_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      authority TEXT,
+      country TEXT NOT NULL DEFAULT 'JO',
+      sector TEXT,
+      tender_number TEXT,
+      summary TEXT,
+      published_at TEXT,
+      closing_at TEXT,
+      source_url TEXT NOT NULL,
+      application_url TEXT,
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed','cancelled','draft')),
+      language TEXT NOT NULL DEFAULT 'ar',
+      imported_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      UNIQUE(source_key, external_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tender_opportunities_public
+      ON tender_opportunities(status, country, closing_at);
+    CREATE INDEX IF NOT EXISTS idx_tender_opportunities_source
+      ON tender_opportunities(source_key, imported_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -445,6 +651,9 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeOrg(db);
   upgradeBilingual(db);
   upgradeWorkflow(db);
+  upgradeProjectFinance(db);
+  upgradeTenderOpportunities(db);
+  upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
 
   return db;

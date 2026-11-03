@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>دليل العطاءات والفرص | MMC</title>
+<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
+<style>
+:root{--ink:#172b4d;--muted:#667085;--line:#e4e7ec;--soft:#f7f9fc}
+.wrap{max-width:1120px;margin:28px auto;padding:0 18px}.intro{background:#f5f8fc;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}.intro h1{margin:6px 0 10px;color:var(--ink)}.intro p{color:var(--muted);line-height:1.8;margin:0}.group{margin:26px 0}.group h2{font-size:20px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:10px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.source{border:1px solid var(--line);border-radius:12px;padding:17px;background:#fff;display:flex;flex-direction:column;gap:9px}.source h3{font-size:17px;margin:0;color:var(--ink)}.source p{margin:0;color:var(--muted);line-height:1.65;font-size:14px}.tag{font-size:11px;background:#eef2f7;color:#344054;border-radius:20px;padding:4px 9px;width:max-content}.source a{margin-top:auto;display:inline-block;color:#175cd3;font-weight:700;text-decoration:none;padding-top:8px}.source a:hover{text-decoration:underline}.notice{background:#fffaeb;border:1px solid #fedf89;border-radius:10px;padding:14px;line-height:1.7;color:#7a2e0e}.muted{font-size:12px;color:var(--muted)}.lang{float:left}
+</style></head>
+<body>
+<header class="p-top"><div class="brand"><span class="mark">M</span><span><b>MMC</b><small data-ar="دليل العطاءات والفرص" data-en="Tender & Opportunity Directory">دليل العطاءات والفرص</small></span></div><div class="spacer"></div><a class="btn ghost" href="../portal/pt-9f3c7a1e5b2d/index.html" data-ar="العودة للبوابة" data-en="Back to portal">العودة للبوابة</a><button class="btn ghost" id="lang">EN</button></header>
+<main class="wrap">
+<section class="intro"><div class="eyebrow">MMC · TENDER DISCOVERY</div><h1 data-ar="دليل العطاءات والفرص" data-en="Tender & Opportunity Directory">دليل العطاءات والفرص</h1><p data-ar="بوابة موحدة للوصول إلى إعلانات العطاءات الحكومية والخاصة والدولية. افتح المصدر، راجع الإعلان ووثائقه، ثم قدّم من خلال القناة الرسمية التي تحددها الجهة صاحبة العطاء." data-en="A single directory to reach government, private-sector and international tender notices. Open the source, review the notice and documents, then submit through the official channel specified by the issuing entity.">بوابة موحدة للوصول إلى إعلانات العطاءات الحكومية والخاصة والدولية. افتح المصدر، راجع الإعلان ووثائقه، ثم قدّم من خلال القناة الرسمية التي تحددها الجهة صاحبة العطاء.</p></section>
+<div class="notice" data-ar="تنبيه مهم: هذه المرحلة تعرض روابط المصادر الرسمية وصفحات البحث المباشر. لا ندّعي أن كل إعلان منشور في هذه الجهات قد جرى استيراده تلقائياً إلى MMC. لا تعتمد رابط تقديم إلا بعد مطابقته مع إعلان العطاء الأصلي؛ وقد تتطلب بعض الجهات تسجيل المورد أو شراء وثائق العطاء." data-en="Important: this phase provides official source links and live search pages. It does not claim that every notice from these organizations has been automatically imported into MMC. Verify the original notice before applying; some issuers require supplier registration or purchase of tender documents.">تنبيه مهم: هذه المرحلة تعرض روابط المصادر الرسمية وصفحات البحث المباشر. لا ندّعي أن كل إعلان منشور في هذه الجهات قد جرى استيراده تلقائياً إلى MMC. لا تعتمد رابط تقديم إلا بعد مطابقته مع إعلان العطاء الأصلي؛ وقد تتطلب بعض الجهات تسجيل المورد أو شراء وثائق العطاء.</div>
+<section class="group" id="live-opportunities">
+<h2 data-ar="العطاءات المسجلة في MMC" data-en="Opportunities listed in MMC">العطاءات المسجلة في MMC</h2>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
+<input id="opp-q" type="search" placeholder="ابحث باسم العطاء أو الجهة أو الرقم" style="flex:1;min-width:220px;padding:11px;border:1px solid #d0d5dd;border-radius:9px">
+<select id="opp-country" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الدول</option><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="INT">دولي</option></select>
+<select id="opp-status" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الحالات</option><option value="open">مفتوح</option><option value="closed">مغلق</option></select>
+<button class="btn" id="opp-search">بحث</button></div>
+<div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
+<p class="muted" id="opp-count"></p>
+<div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
+<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>سجل المزامنة</h3><button class="btn" id="oa-sync-history-refresh" type="button">تحديث سجل المصادر</button><div id="oa-sync-history" class="muted">لم يتم تحميل سجل المزامنة بعد.</div><h3>إضافة إعلان يدوياً</h3>
+<p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
+<div class="grid">
+<input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
+<input id="oa-id" placeholder="رقم الإعلان في المصدر">
+<input id="oa-title" placeholder="عنوان العطاء">
+<input id="oa-authority" placeholder="الجهة صاحبة العطاء">
+<input id="oa-country" placeholder="الدولة (JO)" value="JO">
+<input id="oa-sector" placeholder="القطاع">
+<input id="oa-closing" placeholder="موعد الإغلاق YYYY-MM-DD">
+<input id="oa-url" placeholder="رابط الإعلان الرسمي https://">
+<input id="oa-apply" placeholder="رابط التقديم الرسمي https://">
+<textarea id="oa-summary" placeholder="ملخص الإعلان" style="grid-column:1/-1;min-height:80px"></textarea>
+</div><button class="btn" id="oa-save" style="margin-top:12px">حفظ الإعلان</button><span id="oa-message" class="muted"></span>
+</div></section>
+<section class="group"><h2 data-ar="الأردن — المصادر الحكومية" data-en="Jordan — Government sources">الأردن — المصادر الحكومية</h2><div class="grid">
+<article class="source"><span class="tag" data-ar="المصدر الحكومي الرئيسي" data-en="Primary government source">المصدر الحكومي الرئيسي</span><h3>JONEPS — نظام الشراء الإلكتروني الأردني</h3><p data-ar="دعوات العطاءات الحكومية، البحث برقم واسم العطاء والجهة المشترية وتاريخ الإغلاق، ومتابعة إجراءات الشراء." data-en="Government tender invitations, searchable by tender number, title, purchasing entity and closing date.">دعوات العطاءات الحكومية، البحث برقم واسم العطاء والجهة المشترية وتاريخ الإغلاق، ومتابعة إجراءات الشراء.</p><a href="https://www.joneps.gov.jo/ep/invt/selectListTendInvitAL.do" target="_blank" rel="noopener">فتح دعوات العطاءات الرسمية ↗</a></article>
+<article class="source"><span class="tag" data-ar="دائرة العطاءات الحكومية" data-en="Government Tenders Department">دائرة العطاءات الحكومية</span><h3>Government Tenders Department (GTD)</h3><p data-ar="إعلانات وإرشادات ومعلومات دائرة العطاءات الحكومية وروابط نظام JONEPS." data-en="Government Tenders Department announcements, guidance and links to JONEPS.">إعلانات وإرشادات ومعلومات دائرة العطاءات الحكومية وروابط نظام JONEPS.</p><a href="https://www.gtd.gov.jo/AR/List/الإعلانات" target="_blank" rel="noopener">عرض الإعلانات الرسمية ↗</a></article>
+<article class="source"><span class="tag" data-ar="الأشغال والطرق والبنية التحتية" data-en="Public works and infrastructure">الأشغال والطرق والبنية التحتية</span><h3>وزارة الأشغال العامة والإسكان</h3><p data-ar="العطاءات المحلية المطروحة، عطاءات المديريات في المحافظات، ونتائج فتح العروض والإحالات المبدئية." data-en="Current local tenders, directorate tenders across governorates, bid-opening results and preliminary awards.">العطاءات المحلية المطروحة، عطاءات المديريات في المحافظات، ونتائج فتح العروض والإحالات المبدئية.</p><a href="https://www.mpwh.gov.jo/Ar/Modules/Tenders" target="_blank" rel="noopener">عرض العطاءات الرسمية ↗</a></article>
+<article class="source"><span class="tag" data-ar="وزارة المياه والري" data-en="Ministry of Water and Irrigation">وزارة المياه والري</span><h3>وزارة المياه والري / سلطة المياه</h3><p data-ar="العطاءات المطروحة حالياً والمنتهية، وتشمل الأشغال والمياه والصرف الصحي والخدمات والاستشارات." data-en="Current and archived tenders for water, wastewater, works, goods and consultancy.">العطاءات المطروحة حالياً والمنتهية، وتشمل الأشغال والمياه والصرف الصحي والخدمات والاستشارات.</p><a href="https://www.mwi.gov.jo/AR/Modules/tenders" target="_blank" rel="noopener">عرض العطاءات الرسمية ↗</a></article>
+<article class="source"><span class="tag" data-ar="مناقصات الأمانة" data-en="Municipal tenders">مناقصات الأمانة</span><h3>أمانة عمّان الكبرى — المناقصات</h3><p data-ar="إعلانات المناقصات المحلية والدولية ومعلومات شراء الوثائق. تحقق من تعليمات الحصول على النسخة الرسمية قبل المشاركة." data-en="Local and international tender notices and document-purchase information. Check official document requirements before bidding.">إعلانات المناقصات المحلية والدولية ومعلومات شراء الوثائق. تحقق من تعليمات الحصول على النسخة الرسمية قبل المشاركة.</p><a href="https://www.gamtenders.gov.jo/internationaltenders.aspx" target="_blank" rel="noopener">المناقصات الدولية ↗</a></article>
+<article class="source"><span class="tag" data-ar="المشتريات المشتركة" data-en="Joint procurement">المشتريات المشتركة</span><h3>دائرة المشتريات الحكومية (GPD)</h3><p data-ar="إعلانات وإحالات وأرشيف مشتريات الأدوية واللوازم؛ يوضح الموقع أن معلومات العطاءات الحالية تُتابع عبر JONEPS." data-en="Medicines and supplies tender notices, awards and archives. The department directs users to JONEPS for current tender information.">إعلانات وإحالات وأرشيف مشتريات الأدوية واللوازم؛ يوضح الموقع أن معلومات العطاءات الحالية تُتابع عبر JONEPS.</p><a href="https://www.gpd.gov.jo/en/Pages/SuppliesTenders" target="_blank" rel="noopener">إعلانات اللوازم ↗</a></article>
+</div></section>
+<section class="group"><h2 data-ar="الأردن — القطاع الخاص والمنظمات" data-en="Jordan — Private sector & organizations">الأردن — القطاع الخاص والمنظمات</h2><div class="grid">
+<article class="source"><span class="tag" data-ar="منصة تجارية — ليست جهة تقديم رسمية" data-en="Commercial aggregator — not an issuing authority">منصة تجارية — ليست جهة تقديم رسمية</span><h3>Tender.jo — تندر العالمية</h3><p data-ar="محرك تجاري يجمع فرصاً حكومية وخاصة ومنظمات وسفارات في الأردن والمنطقة. قد يتطلب الاشتراك؛ استخدمه للاكتشاف فقط ثم ارجع إلى الجهة الناشرة للتحقق والتقديم." data-en="A commercial discovery service listing government, private, NGO and embassy opportunities. May require a subscription; use it for discovery, then verify and apply with the issuing entity.">محرك تجاري يجمع فرصاً حكومية وخاصة ومنظمات وسفارات في الأردن والمنطقة. قد يتطلب الاشتراك؛ استخدمه للاكتشاف فقط ثم ارجع إلى الجهة الناشرة للتحقق والتقديم.</p><a href="https://www.tender.jo/default.aspx?country=jo&lang=ar" target="_blank" rel="noopener">استعراض فرص الأردن ↗</a></article>
+<article class="source"><span class="tag" data-ar="مصدر إعلانات مشاريع" data-en="Project procurement notices">مصدر إعلانات مشاريع</span><h3>Millennium Challenge Account — Jordan</h3><p data-ar="تابع إعلانات مشتريات المشاريع والبرامج الممولة، وتحقق دائماً من صفحة المشروع ووثيقة الإعلان لمعرفة جهة التقديم." data-en="Follow procurement notices for funded projects and programs; verify the project page and notice for the submission channel.">تابع إعلانات مشتريات المشاريع والبرامج الممولة، وتحقق دائماً من صفحة المشروع ووثيقة الإعلان لمعرفة جهة التقديم.</p><a href="https://www.mca-jordan.gov.jo/" target="_blank" rel="noopener">موقع MCA-Jordan ↗</a></article>
+</div></section>
+<section class="group"><h2 data-ar="المصادر الدولية" data-en="International sources">المصادر الدولية</h2><div class="grid">
+<article class="source"><span class="tag" data-ar="الأمم المتحدة" data-en="United Nations">الأمم المتحدة</span><h3>UNGM — United Nations Global Marketplace</h3><p data-ar="إعلانات المناقصات وفرص التوريد الصادرة عن وكالات الأمم المتحدة، مع متطلبات تسجيل الموردين." data-en="Tender notices and procurement opportunities from UN agencies, including supplier registration requirements.">إعلانات المناقصات وفرص التوريد الصادرة عن وكالات الأمم المتحدة، مع متطلبات تسجيل الموردين.</p><a href="https://www.ungm.org/Public/Notice" target="_blank" rel="noopener">البحث في إعلانات الأمم المتحدة ↗</a></article>
+<article class="source"><span class="tag" data-ar="البنك الدولي" data-en="World Bank">البنك الدولي</span><h3>World Bank — Procurement</h3><p data-ar="فرص ومناقصات المشاريع الممولة من البنك الدولي، ويمكن تصفية النتائج حسب الدولة والقطاع." data-en="Procurement opportunities for World Bank-financed projects, filterable by country and sector.">فرص ومناقصات المشاريع الممولة من البنك الدولي، ويمكن تصفية النتائج حسب الدولة والقطاع.</p><a href="https://projects.worldbank.org/en/projects-operations/procurement?lang=en" target="_blank" rel="noopener">فرص مشتريات البنك الدولي ↗</a></article>
+<article class="source"><span class="tag" data-ar="الأمم المتحدة — التنمية" data-en="UN development business">الأمم المتحدة — التنمية</span><h3>UN Development Business</h3><p data-ar="إعلانات فرص المشتريات للمشاريع التنموية والجهات الممولة دولياً." data-en="Procurement notices for development projects and internationally financed entities.">إعلانات فرص المشتريات للمشاريع التنموية والجهات الممولة دولياً.</p><a href="https://devbusiness.un.org/" target="_blank" rel="noopener">استعراض الفرص ↗</a></article>
+<article class="source"><span class="tag" data-ar="الاتحاد الأوروبي" data-en="European Union">الاتحاد الأوروبي</span><h3>TED — Tenders Electronic Daily</h3><p data-ar="قاعدة الإعلانات الرسمية للمشتريات العامة في الاتحاد الأوروبي؛ مفيدة للمناقصات الدولية المؤهلة." data-en="The EU's official public procurement notices database, useful for eligible international opportunities.">قاعدة الإعلانات الرسمية للمشتريات العامة في الاتحاد الأوروبي؛ مفيدة للمناقصات الدولية المؤهلة.</p><a href="https://ted.europa.eu/en/" target="_blank" rel="noopener">قاعدة TED الرسمية ↗</a></article>
+</div></section>
+<section class="group"><h2 data-ar="أسواق إقليمية" data-en="Regional markets">أسواق إقليمية</h2><div class="grid">
+<article class="source"><span class="tag" data-ar="السعودية" data-en="Saudi Arabia">السعودية</span><h3>منصة اعتماد — Etimad</h3><p data-ar="منصة المشتريات الحكومية والخدمات المالية للموردين والجهات الحكومية في السعودية." data-en="Saudi government procurement and financial services platform for suppliers and public entities.">منصة المشتريات الحكومية والخدمات المالية للموردين والجهات الحكومية في السعودية.</p><a href="https://etimad.sa/" target="_blank" rel="noopener">فتح منصة اعتماد ↗</a></article>
+</div></section>
+<p class="muted" data-ar="سياسة MMC: روابط المصادر لا تعني اعتماد الجهة أو ضمان استمرار الإعلان. يجب التحقق من تاريخ الإغلاق، شروط التأهيل، الرسوم، والجهة الرسمية التي تستقبل العروض قبل اتخاذ أي إجراء." data-en="MMC policy: source links do not imply endorsement or guarantee that a notice remains open. Verify closing dates, eligibility, fees and the official submission recipient before taking action.">سياسة MMC: روابط المصادر لا تعني اعتماد الجهة أو ضمان استمرار الإعلان. يجب التحقق من تاريخ الإغلاق، شروط التأهيل، الرسوم، والجهة الرسمية التي تستقبل العروض قبل اتخاذ أي إجراء.</p>
+</main>
+<script>
+
+(function(){
+ const results=document.getElementById('opp-results');
+ const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),status=document.getElementById('opp-status');
+ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ async function load(){
+  results.textContent='جارٍ تحميل النتائج...';
+  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);
+  try{
+   const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'});
+   if(!res.ok)throw new Error('تعذر تحميل الإعلانات');
+   const data=await res.json();
+   results.innerHTML='';
+   if(!data.opportunities.length){results.innerHTML='<p class="muted">لا توجد إعلانات مسجلة تطابق البحث حالياً.</p>';}
+   data.opportunities.forEach(o=>{
+    const card=document.createElement('article');card.className='source';
+    const state=o.status==='open'?'مفتوح':'مغلق';
+    card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'الجهة غير محددة')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted">المصدر: '+esc(o.sourceKey)+'</p><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">الإعلان الأصلي ↗</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">التقديم الرسمي ↗</a>':'');
+    results.appendChild(card);
+   });
+   document.getElementById('opp-count').textContent='عدد النتائج: '+data.count;
+  }catch(e){results.textContent=e.message;}
+ }
+ document.getElementById('opp-search').addEventListener('click',load);
+ q.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+ fetch('/api/auth/me',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(me=>{
+  if(me&&(me.user?.role==='admin'||me.role==='admin'))document.getElementById('opp-admin').hidden=false;
+ }).catch(()=>{});
+ document.getElementById('oa-sync-worldbank').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ جلب أحدث الإعلانات من البنك الدولي...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync/worldbank',{method:'POST',credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت المزامنة');
+   msg.textContent='اكتملت المزامنة: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
+   load();
+  }catch(e){msg.textContent=e.message;}
+ });
+ document.getElementById('oa-sync-joneps').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ قراءة دعوات العطاءات المنشورة على JONEPS...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync/joneps',{method:'POST',credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت مزامنة JONEPS');
+   msg.textContent='JONEPS: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
+   load();
+  }catch(e){msg.textContent=e.message;}
+ });
+ document.getElementById('oa-sync-ungm').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ الاتصال بمصدر UNGM الرسمي...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync/ungm',{method:'POST',credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت مزامنة UNGM');
+   msg.textContent='UNGM: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
+   load();
+  }catch(e){msg.textContent=e.message;}
+ });
+ async function loadSyncHistory(){
+  const box=document.getElementById('oa-sync-history');if(!box)return;
+  box.textContent='جارٍ تحميل سجل المزامنة...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync-history?limit=30',{credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'تعذر تحميل السجل');
+   if(!data.runs.length){box.textContent='لا توجد عمليات مزامنة مسجلة حتى الآن.';return;}
+   const labels={joneps:'JONEPS',worldbank:'البنك الدولي',ungm:'UNGM'};
+   box.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>المصدر</th><th>النتيجة</th><th>المستلم</th><th>جديد</th><th>محدّث</th><th>المدة</th><th>وقت الانتهاء</th></tr></thead><tbody>'+data.runs.map(r=>'<tr><td>'+((labels[r.source_key]||r.source_key).replace(/[&<>"]/g,''))+'</td><td>'+({success:'نجاح',failed:'فشل',skipped:'تخطي'}[r.status]||r.status)+'</td><td>'+r.received+'</td><td>'+r.added+'</td><td>'+r.updated+'</td><td>'+r.duration_ms+' ms</td><td>'+new Date(r.finishedAt).toLocaleString('ar-JO')+(r.error?'<br><span style="color:#b42318">'+String(r.error).replace(/[&<>"]/g,'')+'</span>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+  }catch(e){box.textContent=e.message;}
+ }
+ document.getElementById('oa-sync-history-refresh').addEventListener('click',loadSyncHistory);
+ document.getElementById('oa-save').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-message');msg.textContent='جارٍ الحفظ...';
+  const v=id=>document.getElementById(id).value.trim();
+  try{
+   const res=await fetch('/api/opportunities/admin',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({sourceKey:v('oa-source'),externalId:v('oa-id'),title:v('oa-title'),authority:v('oa-authority'),country:v('oa-country'),sector:v('oa-sector'),closingAt:v('oa-closing'),sourceUrl:v('oa-url'),applicationUrl:v('oa-apply'),summary:v('oa-summary')})});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشل الحفظ');
+   msg.textContent='تم حفظ الإعلان في دليل MMC.';document.getElementById('oa-id').value='';document.getElementById('oa-title').value='';load();
+  }catch(e){msg.textContent=e.message;}
+ });
+ load();
+ loadSyncHistory();
+})();
+
+(function(){var en=false,b=document.getElementById('lang');b.onclick=function(){en=!en;document.documentElement.lang=en?'en':'ar';document.documentElement.dir=en?'ltr':'rtl';document.querySelectorAll('[data-ar][data-en]').forEach(function(x){x.textContent=en?x.getAttribute('data-en'):x.getAttribute('data-ar')});b.textContent=en?'عربي':'EN'}})();
+</script>
+</body></html>

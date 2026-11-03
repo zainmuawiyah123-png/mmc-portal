@@ -97,6 +97,12 @@ test('01 — /api/health يستجيب', async () => {
   assert.ok(r.data.scheduler, 'يجب أن يعرض /api/health حالة الجدولة');
 });
 
+test('01A — صفحة دورة المالية لا تُعرض دون جلسة', async () => {
+  const r = await call('anon', 'GET', '/project-finance/index.html');
+  assert.strictEqual(r.status, 302);
+  assert.match(r.headers.get('location') || '', /login\.html/);
+});
+
 test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوكي', async () => {
   const r = await call('userA', 'POST', '/api/auth/register', {
     body: { name: 'مستخدم أ', email: 'a' + uniq() + '@test.com', password: 'Password123', company: 'شركة أ' }
@@ -106,6 +112,12 @@ test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوك
   assert.strictEqual(r.data.user.planKey, 'free');
   assert.ok(cookies.userA, 'يجب أن يُضبط كوكي الجلسة');
   assert.ok(!JSON.stringify(r.data).includes('password'), 'يجب ألا تُرجع كلمة المرور');
+});
+
+test('02A — المقاول المسجل يستطيع فتح صفحة دورة المالية', async () => {
+  const r = await call('userA', 'GET', '/project-finance/index.html');
+  assert.strictEqual(r.status, 200);
+  assert.match(r.data, /MMC Project Finance Workflow/);
 });
 
 test('03 — تسجيل ببريد مكرر يُرفض 409', async () => {
@@ -642,10 +654,12 @@ test('60 — الدفع: فاتورة + إيصال + سعر خاص + اعتما�
 test('61 — بيانات الدفع تُقرأ من الإعدادات وتُعرض عبر /api/payment-info', async () => {
   const r = await call('anon2', 'GET', '/api/payment-info');
   assert.strictEqual(r.status, 200);
-  assert.strictEqual(r.data.payment.swift, 'UBSIJOAXXXX');
-  assert.strictEqual(r.data.payment.iban, 'JO07UBSI1220000330111332981002');
-  assert.strictEqual(r.data.ibanValid, true);
-  assert.ok(r.data.payment.accountHolder.length > 5);
+  // لا تُضمَّن بيانات حساب مصرفي شخصية في إعدادات المصدر الافتراضية.
+  assert.strictEqual(r.data.payment.swift, '');
+  assert.strictEqual(r.data.payment.iban, '');
+  assert.strictEqual(r.data.payment.accountHolder, '');
+  assert.strictEqual(r.data.payment.cliqAlias, '');
+  assert.strictEqual(r.data.ibanValid, false);
 });
 
 test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملفات المجلد مغلقة', async () => {
@@ -903,6 +917,16 @@ test('71 — الانضمام برمز: صحيح مرة واحدة، والأد�
   assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + memberId, { body: { role: 'procurement' } })).status, 200);
   assert.strictEqual((await call(a, 'GET', '/api/org')).data.myRole, 'procurement');
   assert.strictEqual((await call(mgr, 'DELETE', '/api/org/members/' + memberId)).status, 200);
+
+  // Organization managers cannot alter members or revoke invitations belonging to another tenant.
+  const foreignManager = await newBuyer('foreign-manager', 'proc_pro');
+  const foreignMemberSession = (await joinTeam(foreignManager, 'requester', 'foreign-member')).who;
+  const foreignMemberId = (await call(foreignMemberSession, 'GET', '/api/auth/me')).data.user.id;
+  const foreignInvite = await call(foreignManager, 'POST', '/api/org/invites', { body: { role: 'finance' } });
+  assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + foreignMemberId, { body: { role: 'finance' } })).status, 404);
+  assert.strictEqual((await call(mgr, 'DELETE', '/api/org/members/' + foreignMemberId, {})).status, 404);
+  assert.strictEqual((await call(mgr, 'DELETE', '/api/org/invites/' + foreignInvite.data.invite.id)).status, 404);
+  assert.strictEqual((await call(foreignManager, 'GET', '/api/org')).data.members.some((m) => m.id === foreignMemberId), true);
 });
 
 test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مشتريات تنشر ← المقاول يرى الوثائق وFIDIC', async () => {
@@ -952,6 +976,14 @@ test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مش�
   const dl = await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + docs.data.documents[0].id, { headers: cookieFor(con) });
   assert.strictEqual(dl.status, 200);
   assert.ok(/attachment/.test(dl.headers.get('content-disposition')));
+
+  // A different organization cannot list, inspect, or download this tender's files.
+  const isolated = await newBuyer('isolated', 'proc_pro');
+  const isolatedProcurement = (await joinTeam(isolated, 'procurement', 'isolated-proc')).who;
+  assert.strictEqual((await call(isolatedProcurement, 'GET', '/api/requests/' + id)).status, 404);
+  assert.strictEqual((await call(isolatedProcurement, 'GET', '/api/requests/' + id + '/docs/' + docs.data.documents[0].id)).status, 404);
+  assert.strictEqual((await call(isolatedProcurement, 'GET', '/api/procurement/tenders/' + pub.data.tenderId)).status, 404);
+  assert.strictEqual((await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + docs.data.documents[0].id, { headers: cookieFor(isolatedProcurement) })).status, 404);
   // الوثيقة الداخلية لا تُسرَّب
   const internalId = (await call(P, 'GET', '/api/requests/' + id)).data.request.docs.find((d) => d.kind === 'internal').id;
   assert.strictEqual((await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + internalId, { headers: cookieFor(con) })).status, 404);
@@ -1016,10 +1048,243 @@ test('74 — توثيق الجهة يخص الجهة كلها، وطلبه لم�
   } finally { cfg.REQUIRE_ORG_VERIFICATION = false; }
 });
 
+
+test('78 — الانضمام لا ينقل عطاءات الحساب القديمة إلى مؤسسة أخرى', async () => {
+  const target = await newBuyer('join-target', 'proc_pro');
+  const invite = await call(target, 'POST', '/api/org/invites', { body: { role: 'requester' } });
+  const applicant = await newBuyer('join-with-tender', 'proc_pro');
+  const created = await call(applicant, 'POST', '/api/tenders', {
+    body: { name: 'عطاء سابق مستقل', authority: 'جهة اختبار', closing: '2030-01-01', notes: 'لا يجوز نقله تلقائياً' }
+  });
+  assert.strictEqual(created.status, 201, JSON.stringify(created.data));
+  assert.strictEqual((await call(applicant, 'GET', '/api/org')).status, 200);
+  const applicantId = (await call(applicant, 'GET', '/api/auth/me')).data.user.id;
+  const before = getDB().prepare('SELECT org_id,user_id FROM tenders WHERE id=?').get(created.data.tender.id);
+  const ownOrg = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(applicantId);
+  assert.ok(ownOrg && before.org_id === ownOrg.org_id);
+  const joined = await call(applicant, 'POST', '/api/org/join', { body: { code: invite.data.code } });
+  assert.strictEqual(joined.status, 409);
+  const after = getDB().prepare('SELECT org_id,user_id FROM tenders WHERE id=?').get(created.data.tender.id);
+  const membership = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get((await call(applicant, 'GET', '/api/auth/me')).data.user.id);
+  assert.strictEqual(after.org_id, before.org_id);
+  assert.strictEqual(membership.org_id, ownOrg.org_id);
+});
+
 test('75 — الانضمام لا يُسمح به لمدير جهة فيها أعضاء أو طلبات', async () => {
   const other = await newBuyer('o', 'proc_pro');
   const inv = await call(other, 'POST', '/api/org/invites', { body: { role: 'requester' } });
   const busy = await newBuyer('busy', 'proc_pro');
   await call(busy, 'POST', '/api/requests', { body: reqBody() });
   assert.strictEqual((await call(busy, 'POST', '/api/org/join', { body: { code: inv.data.code } })).status, 409);
+});
+
+
+/* ==========================================================
+   Project finance: award → PO → invoice → approval → payments
+   ========================================================== */
+test('76 — دورة الترسية وأمر الشراء والفاتورة والمالية والدفعات', async () => {
+  const manager = await newBuyer('finmgr', 'proc_pro');
+  const procurement = (await joinTeam(manager, 'procurement', 'finproc')).who;
+  const requester = (await joinTeam(manager, 'requester', 'finreq')).who;
+  const finance = (await joinTeam(manager, 'finance', 'finrole')).who;
+  const projects = (await joinTeam(manager, 'projects', 'finprojects')).who;
+
+  // Projects staff should not browse financial records merely by being in the same organization.
+  assert.strictEqual((await call(projects, 'GET', '/api/project-finance/awards')).status, 403);
+  assert.strictEqual((await call(projects, 'GET', '/api/project-finance/purchase-orders')).status, 403);
+  assert.strictEqual((await call(projects, 'GET', '/api/project-finance/invoices')).status, 403);
+
+  const tender = await publish(procurement);
+  const contractor = 'fincon' + uniq();
+  const contractorEmail = contractor + '@t.com';
+  await call(contractor, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول الدورة المالية', email: contractorEmail, password: 'Password123' }
+  });
+  const submitted = await call(contractor, 'POST', '/api/procurement/tenders/' + tender.id + '/submit', {
+    body: bidBody(tender, 300)
+  });
+  assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
+
+  // لا ترسية قبل التقييم الفني وفتح العرض المالي.
+  const premature = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 200, currency: 'JOD', awardReference: 'AWD-FIN-01' }
+  });
+  assert.strictEqual(premature.status, 422);
+
+  const evaluated = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/evaluate', {
+    body: { scores: tender.requirements.map((q) => ({ requirementId: q.id, score: 100 })) }
+  });
+  assert.strictEqual(evaluated.status, 200, JSON.stringify(evaluated.data));
+  assert.strictEqual(evaluated.data.passed, true);
+
+  const award = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 300, currency: 'JOD', awardReference: 'AWD-FIN-01' }
+  });
+  assert.strictEqual(award.status, 201, JSON.stringify(award.data));
+
+  // العملة المخالفة للترسية تُرفض، ثم يُنشأ أمر شراء صحيح.
+  const wrongCurrency = await call(manager, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
+    body: { poNumber: 'PO-FIN-BAD', currency: 'SAR', items: [{ description: 'أعمال مدنية', quantity: 1, unitPrice: 100 }] }
+  });
+  assert.strictEqual(wrongCurrency.status, 422);
+
+  const po = await call(procurement, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
+    body: { poNumber: 'PO-FIN-01', currency: 'JOD', items: [{ description: 'أعمال مدنية', quantity: 2, unitPrice: 100, unit: 'LS' }] }
+  });
+  assert.strictEqual(po.status, 201, JSON.stringify(po.data));
+  const duplicateSpend = await call(manager, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
+    body: { poNumber: 'PO-FIN-02', currency: 'JOD', items: [{ description: 'أعمال إضافية', quantity: 1, unitPrice: 101 }] }
+  });
+  assert.strictEqual(duplicateSpend.status, 422, 'لا يجوز أن يتجاوز مجموع أوامر الشراء قيمة الترسية');
+
+  // Concurrent PO creation must serialize against the award ceiling.
+  const concurrentPO = await Promise.all([1, 2].map((n) => call(procurement, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
+    body: { poNumber: 'PO-RACE-' + n, currency: 'JOD', items: [{ description: 'أعمال إضافية متزامنة', quantity: 1, unitPrice: 60 }] }
+  })));
+  assert.deepStrictEqual(concurrentPO.map((x) => x.status).sort(), [201, 422], 'يجب قبول أمر واحد فقط عند تزاحم تجاوز قيمة الترسية');
+
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/approve', { body: {} })).status, 200);
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/issue', { body: {} })).status, 200);
+
+  // تجاوز قيمة أمر الشراء مرفوض.
+  const tooLarge = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/invoices', {
+    body: { invoiceNumber: 'INV-FIN-OVER', invoiceType: 'progress', items: [{ description: 'أعمال', quantity: 1, unitPrice: 250 }] }
+  });
+  assert.strictEqual(tooLarge.status, 409);
+
+  const invoice = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/invoices', {
+    body: { invoiceNumber: 'INV-FIN-01', invoiceType: 'progress', note: 'مستخلص مرحلي', items: [{ description: 'أعمال مدنية منفذة', quantity: 1, unitPrice: 150 }] }
+  });
+  assert.strictEqual(invoice.status, 201, JSON.stringify(invoice.data));
+  const invoiceId = invoice.data.invoice.id;
+  const invoiceFiles = await call(contractor, 'POST', '/api/project-finance/invoices/' + invoiceId + '/documents', {
+    form: makeForm([{ name: 'invoice-proof.pdf', content: '%PDF-1.4 proof' }])
+  });
+  assert.strictEqual(invoiceFiles.status, 201, JSON.stringify(invoiceFiles.data));
+  const invoiceDocumentId = invoiceFiles.data.documents[0].id;
+
+  // Concurrent invoice submissions must not exceed the issued PO total.
+  const concurrentInvoices = await Promise.all([1, 2].map((n) => call(contractor, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/invoices', {
+    body: { invoiceNumber: 'INV-RACE-' + n, invoiceType: 'progress', items: [{ description: 'مستخلص متزامن', quantity: 1, unitPrice: 30 }] }
+  })));
+  assert.deepStrictEqual(concurrentInvoices.map((x) => x.status).sort(), [201, 409], 'يجب قبول فاتورة واحدة فقط عند تزاحم تجاوز أمر الشراء');
+
+  // Returned invoices must be safely editable and resubmittable.
+  const returned = await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
+    body: { decision: 'returned', note: 'يرجى إرفاق كشف الكميات المصحح' }
+  });
+  assert.strictEqual(returned.status, 200, JSON.stringify(returned.data));
+  assert.strictEqual(returned.data.status, 'returned');
+  const resubmitted = await call(contractor, 'POST', '/api/project-finance/invoices/' + invoiceId + '/resubmit', {
+    body: { invoiceNumber: 'INV-FIN-01-R1', invoiceType: 'progress', note: 'تم التصحيح', items: [{ description: 'أعمال مدنية منفذة - مصححة', quantity: 1, unitPrice: 150 }] }
+  });
+  assert.strictEqual(resubmitted.status, 200, JSON.stringify(resubmitted.data));
+  assert.strictEqual(resubmitted.data.status, 'submitted');
+  assert.strictEqual(resubmitted.data.invoice.gross_amount, 150);
+
+  // Cross-organization and unrelated-contractor reads must not expose this real invoice.
+  const otherManager = await newBuyer('finother', 'proc_pro');
+  const otherFinance = (await joinTeam(otherManager, 'finance', 'finother-role')).who;
+
+  // Tenant isolation: a second organization's manager/finance users cannot
+  // discover, read, evaluate, award, or transact against this organization's tender.
+  const otherProcurement = (await joinTeam(otherManager, 'procurement', 'finother-procurement')).who;
+  const originalInvite = await call(manager, 'POST', '/api/org/invites', { body: { role: 'requester', label: 'private-tenant-invite' } });
+  assert.strictEqual(originalInvite.status, 201, JSON.stringify(originalInvite.data));
+  const otherOrgView = await call(otherManager, 'GET', '/api/org');
+  const originalOrgView = await call(manager, 'GET', '/api/org');
+  assert.notStrictEqual(otherOrgView.data.org.id, originalOrgView.data.org.id, 'لكل مؤسسة معرّف مستقل');
+  assert.ok(!otherOrgView.data.members.some((member) => member.id === manager), 'لا تظهر عضوية المؤسسة الأولى في إدارة المؤسسة الثانية');
+  assert.ok(originalOrgView.data.invites.some((invite) => invite.id === originalInvite.data.invite.id), 'المدير يرى دعوة مؤسسته');
+  assert.ok(!otherOrgView.data.invites.some((invite) => invite.id === originalInvite.data.invite.id), 'لا تظهر دعوات المؤسسة الأولى في المؤسسة الثانية');
+  const otherTenderList = await call(otherProcurement, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(otherTenderList.status, 200);
+  assert.ok(!otherTenderList.data.tenders.some((t) => t.id === tender.id), 'العطاء لا يظهر في قائمة مشتريات جهة أخرى');
+  assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id)).status, 404);
+  assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations')).status, 404);
+  assert.strictEqual((await call(otherProcurement, 'POST', '/api/submissions/' + submitted.data.submissionId + '/evaluate', {
+    body: { scores: [] }
+  })).status, 404, 'لا يمكن تقييم عرض تابع لعطاء جهة أخرى');
+  assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id + '/documents')).status, 404);
+  assert.strictEqual((await call(otherManager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 300, currency: 'JOD' }
+  })).status, 404);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/awards')).data.awards.length, 0);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/purchase-orders')).data.purchaseOrders.length, 0);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/invoices')).data.invoices.length, 0);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/requests')).data.requests.length, 0);
+  const outsider = 'finoutsider' + uniq();
+  await call(outsider, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول غير مرتبط', email: outsider + '@t.com', password: 'Password123' }
+  });
+  assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/invoices/' + invoiceId + '/documents')).status, 404);
+  assert.strictEqual((await fetch(base + '/api/project-finance/invoice-documents/' + invoiceDocumentId + '/download', { headers: cookieFor(otherFinance) })).status, 404);
+  assert.strictEqual((await fetch(base + '/api/project-finance/invoice-documents/' + invoiceDocumentId + '/download', { headers: cookieFor(outsider) })).status, 404);
+  assert.strictEqual((await call(otherFinance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 404);
+
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
+    body: { decision: 'accepted', note: 'مطابقة لأمر الشراء' }
+  })).data.status, 'owner_confirmation');
+  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
+    body: { decision: 'confirmed', note: 'تم استلام الأعمال' }
+  })).data.status, 'finance_queue');
+  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
+  assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
+
+  const partial = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 50, paymentReference: 'PAY-FIN-01', paymentDate: '2026-11-03' }
+  });
+  assert.strictEqual(partial.status, 201, JSON.stringify(partial.data));
+  assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
+
+  const overpayment = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 101, paymentReference: 'PAY-FIN-OVER', paymentDate: '2026-11-03' }
+  });
+  assert.strictEqual(overpayment.status, 409);
+
+  const concurrentPayments = await Promise.all([1, 2].map((n) => call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 100, paymentReference: 'PAY-RACE-' + n, paymentDate: '2026-11-03' }
+  })));
+  assert.deepStrictEqual(concurrentPayments.map((x) => x.status).sort(), [201, 409], 'يجب قبول دفعة واحدة فقط حتى لا يتجاوز مجموع الدفعات قيمة الفاتورة');
+  const finalState = await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId);
+  assert.strictEqual(finalState.data.invoice.status, 'paid');
+  assert.strictEqual(finalState.data.paid, 150);
+  assert.strictEqual(finalState.data.remaining, 0);
+
+  // بيانات دورة المشروع لا تدخل في فواتير اشتراكات MMC.
+  const billing = await call(manager, 'GET', '/api/billing/invoices');
+  assert.strictEqual(billing.status, 200);
+  assert.ok(!billing.data.invoices.some((x) => x.id === invoiceId));
+});
+
+test('77 — دور المالية محصور بجهته ولا يستطيع مقاول آخر قراءة فاتورة الغير', async () => {
+  const manager = await newBuyer('finiso', 'proc_pro');
+  const finance = (await joinTeam(manager, 'finance', 'finiso-role')).who;
+  const outsider = 'finout' + uniq();
+  await call(outsider, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول خارجي', email: outsider + '@t.com', password: 'Password123' }
+  });
+  assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices')).status, 200);
+  assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices')).status, 200);
+  const denied = await call(outsider, 'POST', '/api/project-finance/invoices/fake-id/finance-approval', { body: {} });
+  assert.strictEqual(denied.status, 403);
+});
+
+
+test('79 — رمز الدعوة أحادي الاستخدام ولا يقبل عضواً ثانياً', async () => {
+  const manager = await newBuyer('single-invite-owner', 'proc_pro');
+  const invitation = await call(manager, 'POST', '/api/org/invites', { body: { role: 'requester' } });
+  assert.strictEqual(invitation.status, 201);
+  const first = await newBuyer('single-invite-first', 'proc_pro');
+  const second = await newBuyer('single-invite-second', 'proc_pro');
+  const firstJoin = await call(first, 'POST', '/api/org/join', { body: { code: invitation.data.code } });
+  assert.strictEqual(firstJoin.status, 200, JSON.stringify(firstJoin.data));
+  const secondJoin = await call(second, 'POST', '/api/org/join', { body: { code: invitation.data.code } });
+  assert.ok([404, 409].includes(secondJoin.status), JSON.stringify(secondJoin.data));
+  const targetOrg = (await call(manager, 'GET', '/api/org')).data.org.id;
+  const members = getDB().prepare('SELECT COUNT(*) n FROM org_members WHERE org_id=?').get(targetOrg).n;
+  assert.strictEqual(members, 2, 'المدير والعضو الأول فقط');
 });

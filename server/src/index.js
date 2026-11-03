@@ -22,6 +22,8 @@ const billingRoutes = require('./routes/billing');
 const verificationRoutes = require('./routes/verification');
 const orgRoutes = require('./routes/org');
 const requestRoutes = require('./routes/requests');
+const projectFinanceRoutes = require('./routes/project-finance');
+const opportunitiesRoutes = require('./routes/opportunities');
 
 function createApp() {
   const app = express();
@@ -91,6 +93,8 @@ function createApp() {
   app.use('/api/verification', verificationRoutes);
   app.use('/api/org', orgRoutes);
   app.use('/api/requests', requestRoutes);
+  app.use('/api/project-finance', projectFinanceRoutes);
+  app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
 
   app.use('/api', (req, res) => {
@@ -105,6 +109,19 @@ function createApp() {
   if (!fs.existsSync(WEB_ROOT)) {
     console.warn('  ⚠ WEB_ROOT غير موجود: ' + WEB_ROOT + ' — الواجهة لن تُخدم. اضبط WEB_ROOT.');
   }
+  // صفحة دورة المشروع تحتوي بيانات مالية؛ لا تُقدَّم كملف ثابت قبل التحقق من الجلسة.
+  // يسمح للمقاول والجهة المشترية فقط، بينما تبقى صلاحيات كل عملية مفروضة في API.
+  app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
+      if (!['buyer', 'contractor'].includes(req.user.role)) {
+        return res.status(403).type('text').send('ليس لديك صلاحية الوصول إلى هذه الصفحة.');
+      }
+      return sendFromWeb('project-finance/index.html', res, next);
+    });
+  });
+
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {
@@ -139,6 +156,8 @@ function createApp() {
   app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
+
+
   app.get(/^\/portal(\/.*)?$/, (req, res, next) => {
     let rel = req.path.replace(/^\/portal\/?/, '') || 'pt-9f3c7a1e5b2d/login.html';
     if (rel.endsWith('/')) rel += 'index.html';

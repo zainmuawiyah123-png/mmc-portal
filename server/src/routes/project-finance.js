@@ -53,6 +53,7 @@ function poForOrg(id, orgId) {
   if (!p) throw E.notFound('أمر الشراء غير موجود.');
   return p;
 }
+const FINANCE_READ_ROLES = ['manager', 'procurement', 'requester', 'finance'];
 function invoiceFor(req, id) {
   const row = db().prepare(`SELECT i.*, p.status po_status, p.total_amount po_total, p.requires_owner_confirmation, a.contractor_user_id, a.tender_id
     FROM project_invoices i JOIN purchase_orders p ON p.id=i.po_id
@@ -62,7 +63,7 @@ function invoiceFor(req, id) {
     if (row.contractor_user_id !== req.user.id) throw E.notFound('الفاتورة غير موجودة.');
   } else {
     const m = member(req);
-    if (m.org_id !== row.org_id) throw E.notFound('الفاتورة غير موجودة.');
+    if (!FINANCE_READ_ROLES.includes(m.role) || m.org_id !== row.org_id) throw E.notFound('الفاتورة غير موجودة.');
   }
   return row;
 }
@@ -91,7 +92,7 @@ router.post('/awards', wrap(async (req, res) => {
   if (tender.procurement_status !== 'published' && tender.procurement_status !== 'closed') throw E.conflict('العطاء غير مؤهل للترسية.');
   const submission = db().prepare(`SELECT s.*, u.role contractor_role FROM bid_submissions s
     JOIN users u ON u.id=s.contractor_id WHERE s.id=? AND s.tender_id=?`).get(clip(b.submissionId, 100), tender.id);
-  if (!submission || submission.contractor_role !== 'contractor' || !submission.technical_passed || !submission.financial_unlocked) throw E.validation('العرض المحدد غير مؤهل للترسية.');
+  if (!submission || submission.contractor_role !== 'contractor' || submission.status !== 'evaluated' || !submission.technical_passed || !submission.financial_unlocked || !(Number(submission.financial_amount) > 0)) throw E.validation('العرض المحدد غير مؤهل للترسية.');
   if (db().prepare('SELECT 1 FROM project_awards WHERE tender_id=? AND status=\'approved\'').get(tender.id)) throw E.conflict('سبق تسجيل ترسية معتمدة لهذا العطاء.');
   const value = amount(b.awardedAmount, 'awardedAmount');
   const currency = clip(b.currency, 3).toUpperCase() || submission.financial_currency;
@@ -113,7 +114,7 @@ router.get('/awards', wrap(async (req, res) => {
     const rows = db().prepare(`SELECT a.*, t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.contractor_user_id=? ORDER BY a.awarded_at DESC`).all(req.user.id);
     return res.json({ awards: rows });
   }
-  const m = member(req);
+  const m = requireOrg(req, FINANCE_READ_ROLES);
   res.json({ awards: db().prepare(`SELECT a.*,t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.org_id=? ORDER BY a.awarded_at DESC`).all(m.org_id) });
 }));
 
@@ -127,13 +128,17 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const items = Array.isArray(b.items) ? b.items : [];
   const total = items.reduce((s,x) => s + Math.round(amount(x.quantity,'quantity') * Number(x.unitPrice) * 100) / 100, 0);
   const rounded = Math.round(total * 100) / 100;
-  if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
+  if (!items.length || !Number.isFinite(rounded) || rounded <= 0) throw E.validation('أدخل بنود أمر شراء صحيحة.');
   db().transaction(() => {
-    db().prepare("INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by,requires_owner_confirmation) VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?,?)").run(id,a.id,m.org_id,poNumber,clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id,b.requiresOwnerConfirmation === false ? 0 : 1);
+    const committed = db().prepare("SELECT COALESCE(SUM(total_amount),0) n FROM purchase_orders WHERE award_id=? AND status NOT IN ('cancelled','void')").get(a.id).n;
+    if (committed + rounded > Number(a.awarded_amount) + 0.0001) throw E.validation('إجمالي أوامر الشراء لا يجوز أن يتجاوز قيمة الترسية المتبقية.');
+    const poCurrency = clip(b.currency,3).toUpperCase() || a.currency;
+  if (poCurrency !== a.currency) throw E.validation('عملة أمر الشراء يجب أن تطابق عملة الترسية.');
+  db().prepare("INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by,requires_owner_confirmation) VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?,?)").run(id,a.id,m.org_id,poNumber,poCurrency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id,b.requiresOwnerConfirmation === false ? 0 : 1);
     const insertedTotal = insertItems('purchase_order_items','po_id',id,items);
     if (insertedTotal !== rounded) throw E.validation('إجمالي بنود أمر الشراء غير متطابق مع القيمة المحسوبة.');
     event({orgId:m.org_id,tenderId:a.tender_id,awardId:a.id,poId:id,userId:req.user.id,role:m.role,action:'po_submitted_for_approval',to:'pending_approval',detail:{total:rounded},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({ purchaseOrder: db().prepare('SELECT * FROM purchase_orders WHERE id=?').get(id) });
 }));
 
@@ -159,7 +164,7 @@ router.post('/purchase-orders/:id/issue', wrap(async(req,res)=>{
 }));
 router.get('/purchase-orders',wrap(async(req,res)=>{
   if(req.user.role==='contractor') return res.json({purchaseOrders:db().prepare("SELECT p.*,a.tender_id FROM purchase_orders p JOIN project_awards a ON a.id=p.award_id WHERE a.contractor_user_id=? AND p.status='issued' ORDER BY p.created_at DESC").all(req.user.id)});
-  const m=member(req);
+  const m=requireOrg(req,FINANCE_READ_ROLES);
   res.json({purchaseOrders:db().prepare('SELECT * FROM purchase_orders WHERE org_id=? ORDER BY created_at DESC').all(m.org_id)});
 }));
 
@@ -172,24 +177,59 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   const items=Array.isArray(b.items)?b.items:[];
   const total=Math.round(items.reduce((s,x)=>s+Math.round(Number(x.quantity)*Number(x.unitPrice)*100)/100,0)*100)/100;
   if(!items.length||!Number.isFinite(total)||total<=0) throw E.validation('أدخل بنود الفاتورة بصورة صحيحة.');
-  const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
-  if(invoiced+total>p.total_amount+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
   const type=['materials','progress','final'].includes(b.invoiceType)?b.invoiceType:null;
   if(!type) throw E.validation('حدد نوع الفاتورة.');
   const id=uid('pin_');
+  // Serialize invoice submissions and perform the remaining-PO check in the
+  // same IMMEDIATE transaction as the insert, so concurrent requests cannot
+  // both consume the same remaining balance.
   db().transaction(()=>{
+    const current=db().prepare("SELECT total_amount,status FROM purchase_orders WHERE id=? AND status='issued'").get(p.id);
+    if(!current) throw E.conflict('أمر الشراء لم يعد متاحاً لإصدار فاتورة.');
+    const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
+    if(invoiced+total>Number(current.total_amount)+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
     db().prepare(`INSERT INTO project_invoices (id,po_id,award_id,org_id,contractor_user_id,invoice_number,invoice_type,currency,gross_amount,contractor_note)
       VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id,p.id,p.award_id,p.org_id,req.user.id,clip(b.invoiceNumber,80),type,p.currency,total,clip(b.note,2000)||null);
     const insertedTotal = insertItems('project_invoice_items','invoice_id',id,items);
     if (insertedTotal !== total) throw E.validation('إجمالي بنود الفاتورة غير متطابق مع القيمة المحسوبة.');
     event({orgId:p.org_id,tenderId:p.tender_id,awardId:p.award_id,poId:p.id,invoiceId:id,userId:req.user.id,role:'contractor',action:'invoice_submitted',to:'submitted',detail:{grossAmount:total,type},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({invoice:db().prepare('SELECT * FROM project_invoices WHERE id=?').get(id)});
+}));
+
+
+/* Contractor may revise and resubmit an invoice returned by procurement/owner. */
+router.post('/invoices/:id/resubmit',wrap(async(req,res)=>{
+  if(req.user.role!=='contractor') throw E.forbidden('إعادة تقديم الفاتورة متاحة للمقاول فقط.');
+  const i=invoiceFor(req,req.params.id);
+  if(i.status!=='returned') throw E.conflict('يمكن إعادة تقديم الفاتورة بعد إعادتها فقط.');
+  const b=req.body||{};
+  const invoiceNumber=clip(b.invoiceNumber,80)||i.invoice_number;
+  const type=['materials','progress','final'].includes(b.invoiceType)?b.invoiceType:i.invoice_type;
+  const items=Array.isArray(b.items)?b.items:[];
+  if(!items.length) throw E.validation('أدخل بنود الفاتورة المعدلة.');
+  const total=Math.round(items.reduce((sum,x)=>sum+Math.round(amount(x.quantity,'quantity')*Number(x.unitPrice)*100)/100,0)*100)/100;
+  if(!Number.isFinite(total)||total<=0) throw E.validation('قيمة الفاتورة المعدلة غير صحيحة.');
+  // Recheck invoice state and aggregate under a write-reserving transaction.
+  // This serializes resubmissions against both new invoices and other resubmissions.
+  db().transaction(()=>{
+    const current=db().prepare("SELECT i.status,i.po_id,p.total_amount FROM project_invoices i JOIN purchase_orders p ON p.id=i.po_id WHERE i.id=? AND i.contractor_user_id=?").get(i.id,req.user.id);
+    if(!current || current.status!=='returned') throw E.conflict('لم تعد الفاتورة بانتظار إعادة التقديم.');
+    const other=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND id<>? AND status NOT IN ('void','rejected')").get(current.po_id,i.id).n;
+    if(other+total>Number(current.total_amount)+0.0001) throw E.conflict('إجمالي الفواتير يتجاوز قيمة أمر الشراء.');
+    db().prepare("DELETE FROM project_invoice_items WHERE invoice_id=?").run(i.id);
+    const inserted=insertItems('project_invoice_items','invoice_id',i.id,items);
+    if(inserted!==total) throw E.validation('إجمالي بنود الفاتورة غير متطابق.');
+    db().prepare("UPDATE project_invoices SET invoice_number=?,invoice_type=?,gross_amount=?,contractor_note=?,status='submitted',submitted_at=unixepoch(),updated_at=unixepoch() WHERE id=?")
+      .run(invoiceNumber,type,total,clip(b.note,2000)||null,i.id);
+    event({orgId:i.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:'contractor',action:'invoice_resubmitted',from:i.status,to:'submitted',detail:{grossAmount:total},ip:req.ip});
+  }).immediate();
+  res.json({ok:true,status:'submitted',invoice:db().prepare('SELECT * FROM project_invoices WHERE id=?').get(i.id)});
 }));
 
 router.get('/invoices',wrap(async(req,res)=>{
   if(req.user.role==='contractor') return res.json({invoices:db().prepare('SELECT * FROM project_invoices WHERE contractor_user_id=? ORDER BY submitted_at DESC').all(req.user.id)});
-  const m=member(req);
+  const m=requireOrg(req,FINANCE_READ_ROLES);
   res.json({invoices:db().prepare('SELECT * FROM project_invoices WHERE org_id=? ORDER BY submitted_at DESC').all(m.org_id)});
 }));
 router.get('/invoices/:id',wrap(async(req,res)=>{
@@ -238,20 +278,23 @@ router.post('/invoices/:id/finance-approval',wrap(async(req,res)=>{
 }));
 router.post('/invoices/:id/payments',wrap(async(req,res)=>{
   const m=requireOrg(req,['finance']);const i=invoiceFor(req,req.params.id);
-  if(!['approved_for_payment','part_paid'].includes(i.status)) throw E.conflict('لا يمكن تسجيل دفعة قبل اعتماد المالية.');
   const value=amount(req.body?.amount,'payment amount');
-  const paid=db().prepare('SELECT COALESCE(SUM(amount),0) n FROM project_payments WHERE invoice_id=?').get(i.id).n;
-  const remaining=Math.round((Number(i.gross_amount)-Number(i.retention_amount)-paid)*100)/100;
-  if(value>remaining+0.0001) throw E.conflict('قيمة الدفعة تتجاوز الرصيد المستحق.');
   const ref=clip(req.body?.paymentReference,100);const date=clip(req.body?.paymentDate,20);
   if(!ref||!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');
   const id=uid('pay_');
+  // Check the current balance inside the same SQLite transaction as the insert.
+  // This prevents two simultaneous payment requests from both spending the same balance.
   db().transaction(()=>{
+    const current=db().prepare('SELECT status,gross_amount,retention_amount FROM project_invoices WHERE id=?').get(i.id);
+    if(!current||!['approved_for_payment','part_paid'].includes(current.status)) throw E.conflict('لا يمكن تسجيل دفعة قبل اعتماد المالية.');
+    const paid=db().prepare('SELECT COALESCE(SUM(amount),0) n FROM project_payments WHERE invoice_id=?').get(i.id).n;
+    const remaining=Math.round((Number(current.gross_amount)-Number(current.retention_amount)-paid)*100)/100;
+    if(value>remaining+0.0001) throw E.conflict('قيمة الدفعة تتجاوز الرصيد المستحق.');
     db().prepare('INSERT INTO project_payments (id,invoice_id,org_id,amount,currency,payment_reference,payment_date,recorded_by) VALUES (?,?,?,?,?,?,?,?)').run(id,i.id,m.org_id,value,i.currency,ref,date,req.user.id);
-    const newPaid=paid+value;const next=newPaid>=Number(i.gross_amount)-Number(i.retention_amount)-0.0001?'paid':'part_paid';
+    const newPaid=paid+value;const next=newPaid>=Number(current.gross_amount)-Number(current.retention_amount)-0.0001?'paid':'part_paid';
     db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);
-    event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,paymentId:id,userId:req.user.id,role:m.role,action:'payment_recorded',from:i.status,to:next,detail:{amount:value,reference:ref,date},ip:req.ip});
-  })();
+    event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,paymentId:id,userId:req.user.id,role:m.role,action:'payment_recorded',from:current.status,to:next,detail:{amount:value,reference:ref,date},ip:req.ip});
+  }).immediate();
   res.status(201).json({ok:true,payment:db().prepare('SELECT * FROM project_payments WHERE id=?').get(id)});
 }));
 

@@ -96,6 +96,9 @@ const config = {
   BACKUP_CRON: v('BACKUP_CRON', '30 2 * * *'),
   /** فحص الاشتراكات المنتهية يومياً — افتراضي 03:00 بتوقيت المنطقة */
   SUBSCRIPTION_EXPIRY_CRON: v('SUBSCRIPTION_EXPIRY_CRON', '0 3 * * *'),
+  OPPORTUNITY_SYNC_ENABLED: v('OPPORTUNITY_SYNC_ENABLED', 'false') === 'true',
+  UNGM_ACCESS_TOKEN: v('UNGM_ACCESS_TOKEN', ''),
+  OPPORTUNITY_SYNC_CRON: v('OPPORTUNITY_SYNC_CRON', '15 */6 * * *'),
   BACKUP_TZ: v('BACKUP_TZ', 'Asia/Riyadh'),
 
   /** أصل الواجهة إن كانت تُقدَّم من نطاق مختلف (مثال: موقع ثابت على /sites/). فارغ = نفس الأصل. */
@@ -106,11 +109,11 @@ const config = {
 
 /* بيانات الدفع (تُقرأ من .env وتظهر في كل الصفحات عبر GET /api/payment-info) */
 config.PAYMENT = {
-  bankName: v('PAYMENT_BANK_NAME', 'Union Bank'),
-  accountHolder: v('PAYMENT_ACCOUNT_HOLDER', 'سمر محمد بدوان عوض الزرو'),
-  iban: v('PAYMENT_IBAN', 'JO07UBSI1220000330111332981002').replace(/\s+/g, '').toUpperCase(),
-  swift: v('PAYMENT_SWIFT', 'UBSIJOAXXXX').replace(/\s+/g, '').toUpperCase(),
-  cliqAlias: v('PAYMENT_CLIQ_ALIAS', 'samarza'),
+  bankName: v('PAYMENT_BANK_NAME', ''),
+  accountHolder: v('PAYMENT_ACCOUNT_HOLDER', ''),
+  iban: v('PAYMENT_IBAN', '').replace(/\s+/g, '').toUpperCase(),
+  swift: v('PAYMENT_SWIFT', '').replace(/\s+/g, '').toUpperCase(),
+  cliqAlias: v('PAYMENT_CLIQ_ALIAS', ''),
   contactEmail: v('PAYMENT_CONTACT_EMAIL', '')
 };
 config.IS_PROD = config.NODE_ENV === 'production';
