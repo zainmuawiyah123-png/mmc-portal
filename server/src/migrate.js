@@ -579,6 +579,19 @@ function upgradeProjectFinance(db) {
 }
 
 
+function upgradeMultiCountry(db) {
+  // Additive only: existing users and organizations retain all records and receive
+  // a nullable country until explicitly selected/updated.
+  const add = (table, column, definition) => {
+    const columns = new Set(db.prepare('PRAGMA table_info(' + table + ')').all().map((c) => c.name));
+    if (!columns.has(column)) db.exec('ALTER TABLE ' + table + ' ADD COLUMN ' + column + ' ' + definition);
+  };
+  add('users', 'country', 'TEXT');
+  add('organizations', 'country', 'TEXT');
+  db.exec("CREATE INDEX IF NOT EXISTS idx_users_country ON users(country)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_organizations_country ON organizations(country)");
+}
+
 function upgradeOpportunitySyncRuns(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS opportunity_sync_runs (
@@ -653,6 +666,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
+  upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
 
