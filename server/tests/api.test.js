@@ -1091,6 +1091,19 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(invoice.status, 201, JSON.stringify(invoice.data));
   const invoiceId = invoice.data.invoice.id;
 
+  // Returned invoices must be safely editable and resubmittable.
+  const returned = await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
+    body: { decision: 'returned', note: 'يرجى إرفاق كشف الكميات المصحح' }
+  });
+  assert.strictEqual(returned.status, 200, JSON.stringify(returned.data));
+  assert.strictEqual(returned.data.status, 'returned');
+  const resubmitted = await call(contractor, 'POST', '/api/project-finance/invoices/' + invoiceId + '/resubmit', {
+    body: { invoiceNumber: 'INV-FIN-01-R1', invoiceType: 'progress', note: 'تم التصحيح', items: [{ description: 'أعمال مدنية منفذة - مصححة', quantity: 1, unitPrice: 150 }] }
+  });
+  assert.strictEqual(resubmitted.status, 200, JSON.stringify(resubmitted.data));
+  assert.strictEqual(resubmitted.data.status, 'submitted');
+  assert.strictEqual(resubmitted.data.invoice.gross_amount, 150);
+
   // Cross-organization and unrelated-contractor reads must not expose this real invoice.
   const otherManager = await newBuyer('finother', 'proc_pro');
   const otherFinance = (await joinTeam(otherManager, 'finance', 'finother-role')).who;
