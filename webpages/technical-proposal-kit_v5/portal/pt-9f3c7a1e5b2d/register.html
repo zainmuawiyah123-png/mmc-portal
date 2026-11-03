@@ -46,6 +46,15 @@
           </div>
 
           <div class="field">
+            <label for="country"><span data-ar="دولة التسجيل" data-en="Registration country">دولة التسجيل</span></label>
+            <select id="country" name="country" required>
+              <option value="JO">الأردن / Jordan</option>
+              <option value="SA">السعودية / Saudi Arabia</option>
+              <option value="AE">الإمارات / United Arab Emirates</option>
+            </select>
+          </div>
+
+          <div class="field">
             <label for="role"><span data-ar="نوع الحساب" data-en="Account type">نوع الحساب</span></label>
             <select id="role" name="role"><option value="contractor">مقاول / Contractor</option><option value="buyer">مشتريات أو مكتب استشاري / Buyer</option></select>
           </div>
@@ -128,6 +137,7 @@
     var company=document.getElementById('company').value.trim();
     var email=document.getElementById('email').value.trim();
     var role=document.getElementById('role').value;
+    var country=document.getElementById('country').value;
     var p1=document.getElementById('password').value;
     var p2=document.getElementById('password2').value;
     var bad=false;
@@ -142,7 +152,7 @@
     btn.disabled=true;
     btn.innerHTML='<span class="spinner"></span>'+T('جارٍ إنشاء الحساب…','Creating account…');
 
-    API.register({name:name, email:email, password:p1, company:company||undefined, role:role}).then(function(res){
+    API.register({name:name, email:email, password:p1, company:company||undefined, role:role, country:country}).then(function(res){
       showAlert(T('تم إنشاء الحساب. جارٍ التحويل إلى لوحة التحكم…','Account created. Redirecting to your dashboard…'),'ok');
       var qp=new URLSearchParams(location.search).get('plan')||'';var dest=(res.user&&res.user.role==='buyer')?(/^proc_[a-z]+$/.test(qp)?'billing.html?plan='+qp:'../../procurement/index.html'):'index.html';setTimeout(function(){ location.replace(dest); }, 500);
     }).catch(function(err){
