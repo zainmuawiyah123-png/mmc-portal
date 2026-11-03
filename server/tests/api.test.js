@@ -872,9 +872,9 @@ test('69 — نص العطاء بالعربية والإنجليزية: الاس
    الجهة والأدوار + دورة الطلبات (مالك ← مشاريع ← مشتريات ← مقاول)
    ========================================================== */
 let teamSeq = 0;
-async function newBuyer(name, plan) {
+async function newBuyer(name, plan, country) {
   const email = name + (++teamSeq) + uniq() + '@t.com';
-  const r = await call(name + teamSeq, 'POST', '/api/auth/register', { body: { name: 'عضو ' + name, email, password: 'Password123', role: 'buyer' } });
+  const r = await call(name + teamSeq, 'POST', '/api/auth/register', { body: { name: 'عضو ' + name, email, password: 'Password123', role: 'buyer', ...(country ? { country } : {}) } });
   assert.strictEqual(r.status, 201, JSON.stringify(r.data));
   const who = name + teamSeq;
   if (plan) await call(who, 'POST', '/api/billing/trial', { body: { planKey: plan } });
@@ -897,10 +897,13 @@ function docForm(kind, name = 'spec.pdf') {
 }
 const tenderBody = (over = {}) => ({ closing: '2030-01-01', requirements: reqs4(), ...over });
 
-test('70 — جهة جديدة: مدير تلقائي، والدعوات تحدّها مقاعد الباقة', async () => {
-  const free = await newBuyer('free');
+test('70 — جهة جديدة: تحفظ دولة الحساب على الجهة وتُدار عضويتها', async () => {
+  const free = await newBuyer('free', undefined, 'AE');
   const org = await call(free, 'GET', '/api/org');
   assert.strictEqual(org.data.myRole, 'manager');
+  const userId = (await call(free, 'GET', '/api/auth/me')).data.user.id;
+  const orgId = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(userId).org_id;
+  assert.strictEqual(getDB().prepare('SELECT country FROM organizations WHERE id=?').get(orgId).country, 'AE');
   assert.strictEqual(org.data.seats.max, 1);
   const denied = await call(free, 'POST', '/api/org/invites', { body: { role: 'requester' } });
   assert.strictEqual(denied.status, 403);
