@@ -579,6 +579,25 @@ function upgradeProjectFinance(db) {
 }
 
 
+function upgradeOpportunitySyncRuns(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS opportunity_sync_runs (
+      id TEXT PRIMARY KEY,
+      source_key TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      finished_at INTEGER NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('success','failed','skipped')),
+      received INTEGER NOT NULL DEFAULT 0,
+      added INTEGER NOT NULL DEFAULT 0,
+      updated INTEGER NOT NULL DEFAULT 0,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_opportunity_sync_runs_source
+      ON opportunity_sync_runs(source_key, finished_at DESC);
+  `);
+}
+
 function upgradeTenderOpportunities(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS tender_opportunities (
@@ -634,6 +653,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
+  upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
 
   return db;
