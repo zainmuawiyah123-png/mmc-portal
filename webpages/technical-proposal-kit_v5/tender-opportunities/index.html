@@ -14,6 +14,31 @@
 <main class="wrap">
 <section class="intro"><div class="eyebrow">MMC · TENDER DISCOVERY</div><h1 data-ar="دليل العطاءات والفرص" data-en="Tender & Opportunity Directory">دليل العطاءات والفرص</h1><p data-ar="بوابة موحدة للوصول إلى إعلانات العطاءات الحكومية والخاصة والدولية. افتح المصدر، راجع الإعلان ووثائقه، ثم قدّم من خلال القناة الرسمية التي تحددها الجهة صاحبة العطاء." data-en="A single directory to reach government, private-sector and international tender notices. Open the source, review the notice and documents, then submit through the official channel specified by the issuing entity.">بوابة موحدة للوصول إلى إعلانات العطاءات الحكومية والخاصة والدولية. افتح المصدر، راجع الإعلان ووثائقه، ثم قدّم من خلال القناة الرسمية التي تحددها الجهة صاحبة العطاء.</p></section>
 <div class="notice" data-ar="تنبيه مهم: هذه المرحلة تعرض روابط المصادر الرسمية وصفحات البحث المباشر. لا ندّعي أن كل إعلان منشور في هذه الجهات قد جرى استيراده تلقائياً إلى MMC. لا تعتمد رابط تقديم إلا بعد مطابقته مع إعلان العطاء الأصلي؛ وقد تتطلب بعض الجهات تسجيل المورد أو شراء وثائق العطاء." data-en="Important: this phase provides official source links and live search pages. It does not claim that every notice from these organizations has been automatically imported into MMC. Verify the original notice before applying; some issuers require supplier registration or purchase of tender documents.">تنبيه مهم: هذه المرحلة تعرض روابط المصادر الرسمية وصفحات البحث المباشر. لا ندّعي أن كل إعلان منشور في هذه الجهات قد جرى استيراده تلقائياً إلى MMC. لا تعتمد رابط تقديم إلا بعد مطابقته مع إعلان العطاء الأصلي؛ وقد تتطلب بعض الجهات تسجيل المورد أو شراء وثائق العطاء.</div>
+<section class="group" id="live-opportunities">
+<h2 data-ar="العطاءات المسجلة في MMC" data-en="Opportunities listed in MMC">العطاءات المسجلة في MMC</h2>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
+<input id="opp-q" type="search" placeholder="ابحث باسم العطاء أو الجهة أو الرقم" style="flex:1;min-width:220px;padding:11px;border:1px solid #d0d5dd;border-radius:9px">
+<select id="opp-country" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الدول</option><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="INT">دولي</option></select>
+<select id="opp-status" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الحالات</option><option value="open">مفتوح</option><option value="closed">مغلق</option></select>
+<button class="btn" id="opp-search">بحث</button></div>
+<div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
+<p class="muted" id="opp-count"></p>
+<div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
+<h3>إضافة إعلان إلى دليل MMC (للمسؤولين فقط)</h3>
+<p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
+<div class="grid">
+<input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
+<input id="oa-id" placeholder="رقم الإعلان في المصدر">
+<input id="oa-title" placeholder="عنوان العطاء">
+<input id="oa-authority" placeholder="الجهة صاحبة العطاء">
+<input id="oa-country" placeholder="الدولة (JO)" value="JO">
+<input id="oa-sector" placeholder="القطاع">
+<input id="oa-closing" placeholder="موعد الإغلاق YYYY-MM-DD">
+<input id="oa-url" placeholder="رابط الإعلان الرسمي https://">
+<input id="oa-apply" placeholder="رابط التقديم الرسمي https://">
+<textarea id="oa-summary" placeholder="ملخص الإعلان" style="grid-column:1/-1;min-height:80px"></textarea>
+</div><button class="btn" id="oa-save" style="margin-top:12px">حفظ الإعلان</button><span id="oa-message" class="muted"></span>
+</div></section>
 <section class="group"><h2 data-ar="الأردن — المصادر الحكومية" data-en="Jordan — Government sources">الأردن — المصادر الحكومية</h2><div class="grid">
 <article class="source"><span class="tag" data-ar="المصدر الحكومي الرئيسي" data-en="Primary government source">المصدر الحكومي الرئيسي</span><h3>JONEPS — نظام الشراء الإلكتروني الأردني</h3><p data-ar="دعوات العطاءات الحكومية، البحث برقم واسم العطاء والجهة المشترية وتاريخ الإغلاق، ومتابعة إجراءات الشراء." data-en="Government tender invitations, searchable by tender number, title, purchasing entity and closing date.">دعوات العطاءات الحكومية، البحث برقم واسم العطاء والجهة المشترية وتاريخ الإغلاق، ومتابعة إجراءات الشراء.</p><a href="https://www.joneps.gov.jo/ep/invt/selectListTendInvitAL.do" target="_blank" rel="noopener">فتح دعوات العطاءات الرسمية ↗</a></article>
 <article class="source"><span class="tag" data-ar="دائرة العطاءات الحكومية" data-en="Government Tenders Department">دائرة العطاءات الحكومية</span><h3>Government Tenders Department (GTD)</h3><p data-ar="إعلانات وإرشادات ومعلومات دائرة العطاءات الحكومية وروابط نظام JONEPS." data-en="Government Tenders Department announcements, guidance and links to JONEPS.">إعلانات وإرشادات ومعلومات دائرة العطاءات الحكومية وروابط نظام JONEPS.</p><a href="https://www.gtd.gov.jo/EN/List/Electronic_purchasing_system_JONEPS" target="_blank" rel="noopener">الموقع الرسمي للدائرة ↗</a></article>
@@ -36,6 +61,46 @@
 <p class="muted" data-ar="سياسة MMC: روابط المصادر لا تعني اعتماد الجهة أو ضمان استمرار الإعلان. يجب التحقق من تاريخ الإغلاق، شروط التأهيل، الرسوم، والجهة الرسمية التي تستقبل العروض قبل اتخاذ أي إجراء." data-en="MMC policy: source links do not imply endorsement or guarantee that a notice remains open. Verify closing dates, eligibility, fees and the official submission recipient before taking action.">سياسة MMC: روابط المصادر لا تعني اعتماد الجهة أو ضمان استمرار الإعلان. يجب التحقق من تاريخ الإغلاق، شروط التأهيل، الرسوم، والجهة الرسمية التي تستقبل العروض قبل اتخاذ أي إجراء.</p>
 </main>
 <script>
+
+(function(){
+ const results=document.getElementById('opp-results');
+ const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),status=document.getElementById('opp-status');
+ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ async function load(){
+  results.textContent='جارٍ تحميل النتائج...';
+  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);
+  try{
+   const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'});
+   if(!res.ok)throw new Error('تعذر تحميل الإعلانات');
+   const data=await res.json();
+   results.innerHTML='';
+   if(!data.opportunities.length){results.innerHTML='<p class="muted">لا توجد إعلانات مسجلة تطابق البحث حالياً.</p>';}
+   data.opportunities.forEach(o=>{
+    const card=document.createElement('article');card.className='source';
+    const state=o.status==='open'?'مفتوح':'مغلق';
+    card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'الجهة غير محددة')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted">المصدر: '+esc(o.sourceKey)+'</p><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">الإعلان الأصلي ↗</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">التقديم الرسمي ↗</a>':'');
+    results.appendChild(card);
+   });
+   document.getElementById('opp-count').textContent='عدد النتائج: '+data.count;
+  }catch(e){results.textContent=e.message;}
+ }
+ document.getElementById('opp-search').addEventListener('click',load);
+ q.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+ fetch('/api/auth/me',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(me=>{
+  if(me&&(me.user?.role==='admin'||me.role==='admin'))document.getElementById('opp-admin').hidden=false;
+ }).catch(()=>{});
+ document.getElementById('oa-save').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-message');msg.textContent='جارٍ الحفظ...';
+  const v=id=>document.getElementById(id).value.trim();
+  try{
+   const res=await fetch('/api/opportunities/admin',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({sourceKey:v('oa-source'),externalId:v('oa-id'),title:v('oa-title'),authority:v('oa-authority'),country:v('oa-country'),sector:v('oa-sector'),closingAt:v('oa-closing'),sourceUrl:v('oa-url'),applicationUrl:v('oa-apply'),summary:v('oa-summary')})});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشل الحفظ');
+   msg.textContent='تم حفظ الإعلان في دليل MMC.';document.getElementById('oa-id').value='';document.getElementById('oa-title').value='';load();
+  }catch(e){msg.textContent=e.message;}
+ });
+ load();
+})();
+
 (function(){var en=false,b=document.getElementById('lang');b.onclick=function(){en=!en;document.documentElement.lang=en?'en':'ar';document.documentElement.dir=en?'ltr':'rtl';document.querySelectorAll('[data-ar][data-en]').forEach(function(x){x.textContent=en?x.getAttribute('data-en'):x.getAttribute('data-ar')});b.textContent=en?'عربي':'EN'}})();
 </script>
 </body></html>
