@@ -202,6 +202,13 @@ router.post('/tenders/:id/submit', contractor, bidUpload.fields([{ name: 'techni
     }
   }
   const b = req.body || {};
+  let parsedAnswers;
+  try { parsedAnswers = typeof b.answers === 'string' ? JSON.parse(b.answers) : b.answers; }
+  catch (_) { throw E.validation('صيغة الإجابات الفنية غير صحيحة.'); }
+  const technicalFiles = (req.files && req.files.technicalFiles) || [];
+  const financialFiles = (req.files && req.files.financialFiles) || [];
+  if (b.declarationAccepted !== 'true') throw E.validation('يجب الموافقة على إقرار صحة المعلومات والتزام شروط العطاء.');
+  if (!technicalFiles.length || !financialFiles.length) throw E.validation('يجب إرفاق ملف واحد على الأقل لكل من العرض الفني والعرض المالي.');
   const amount = Number(b.financialAmount);
   if (!Number.isFinite(amount) || amount <= 0) throw E.validation('أدخل قيمة مالية صحيحة.');
   if (!Array.isArray(parsedAnswers) || parsedAnswers.length !== x.reqs.length) throw E.validation('يجب الإجابة عن جميع المتطلبات الفنية.');
