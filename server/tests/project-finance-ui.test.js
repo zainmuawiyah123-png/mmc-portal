@@ -227,3 +227,13 @@ test('OPP-17 — مزامنة دائرة العطاءات الحكومية مت�
   assert.ok(route.includes("router.post('/admin/sync/gtd'"));
   assert.ok(scheduler.includes("require('./gtd-sync').syncGTD()"));
 });
+
+
+test('OPP-18 — تعطل مصدر عطاءات لا يمنع تشغيل بقية المصادر في المجدول', () => {
+  const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
+  assert.ok(scheduler.includes('const runSource=async(name,fn)=>'));
+  assert.ok(scheduler.includes("await runSource('gtd'"));
+  assert.ok(scheduler.includes("await runSource('joneps'"));
+  assert.ok(scheduler.includes("await runSource('worldbank'"));
+  assert.ok(scheduler.includes('partial:failed.length>0'));
+});
