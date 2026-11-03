@@ -203,3 +203,27 @@ test('OPP-15 — مستورد JONEPS يتبع روابط ترقيم الصفحا
   assert.ok(urls[1].includes('page=2'));
   assert.ok(urls[2].includes('page=3'));
 });
+
+
+test('OPP-16 — مستورد دائرة العطاءات الحكومية يستخرج رقم العطاء والتواريخ والرابط الرسمي', () => {
+  const { parseRows, LIST_URL } = require('../src/lib/gtd-sync');
+  const html = '<table><tr><td>12/2026</td><td>تنفيذ أعمال صيانة</td><td>01/11/2026</td><td>20/11/2026</td><td><a href="/AR/Modules/TenderDetails?id=123">إعلان</a></td></tr></table>';
+  const rows = parseRows(html);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].id, '12/2026');
+  assert.equal(rows[0].title, 'تنفيذ أعمال صيانة');
+  assert.equal(rows[0].publishedAt, '2026-11-01');
+  assert.equal(rows[0].closingAt, '2026-11-20');
+  assert.ok(rows[0].sourceUrl.startsWith('https://gtd.gov.jo/'));
+  assert.equal(rows[0].country, 'JO');
+  assert.ok(LIST_URL.includes('TendersUnderOffering'));
+});
+
+test('OPP-17 — مزامنة دائرة العطاءات الحكومية متاحة للمدير وموجودة في الجدولة', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
+  assert.ok(tenderDirectory.includes('oa-sync-gtd'));
+  assert.ok(tenderDirectory.includes('/api/opportunities/admin/sync/gtd'));
+  assert.ok(route.includes("router.post('/admin/sync/gtd'"));
+  assert.ok(scheduler.includes("require('./gtd-sync').syncGTD()"));
+});
