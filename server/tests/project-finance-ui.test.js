@@ -47,3 +47,28 @@ test('PFUI-06 — لا توجد روابط أو نماذج تعتمد على loc
   assert.doesNotMatch(html, /https?:\/\/localhost(?::\d+)?/i);
   assert.doesNotMatch(html, /password\s*[:=]\s*['"][^'"]+['"]/i);
 });
+
+
+const tenderDirectoryPath = path.join(__dirname, '../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html');
+const tenderDirectory = fs.readFileSync(tenderDirectoryPath, 'utf8');
+const contractorPortal = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/index.html'), 'utf8');
+const procurementPortal = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/procurement/index.html'), 'utf8');
+
+test('MMCUI-01 — دليل العطاءات يضم مصادر الأردن والدولية والإقليمية وروابطها الرسمية', () => {
+  for (const token of ['JONEPS', 'Government Tenders Department', 'UNGM', 'World Bank', 'TED', 'Etimad', 'Tender.jo']) {
+    assert.ok(tenderDirectory.includes(token), 'مصدر مفقود من الدليل: ' + token);
+  }
+  const links = [...tenderDirectory.matchAll(/<a\\s+href="https?:\\/\\//g)];
+  assert.ok(links.length >= 10, 'يجب توفير مجموعة روابط مصادر مباشرة');
+});
+
+test('MMCUI-02 — روابط المصادر الخارجية تفتح بأمان، والدليل لا يدّعي الاستيراد الآلي', () => {
+  assert.match(tenderDirectory, /target="_blank" rel="noopener"/);
+  assert.match(tenderDirectory, /لا ندّعي أن كل إعلان/);
+  assert.match(tenderDirectory, /Verify the original notice/);
+});
+
+test('MMCUI-03 — دليل العطاءات متاح من بوابتي المقاول والمشتريات', () => {
+  assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
+  assert.match(procurementPortal, /\.\.\/tender-opportunities\/index\.html/);
+});
