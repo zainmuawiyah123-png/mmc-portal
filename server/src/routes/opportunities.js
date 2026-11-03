@@ -122,6 +122,12 @@ router.post('/admin/sync/ungm', wrap(async(req,res)=>{
  res.json({ok:true,...result});
 }));
 
+router.post('/admin/sync/mwi', wrap(async(req,res)=>{
+ const result=await require('../lib/mwi-sync').syncMWI();
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'mwi',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+
 router.post('/admin/sync/gtd', wrap(async(req,res)=>{
  const result=await require('../lib/gtd-sync').syncGTD();
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'gtd',added:result.added,updated:result.updated,received:result.received}});
