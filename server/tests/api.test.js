@@ -996,11 +996,11 @@ test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مش�
   assert.strictEqual(one.data.tender.fidic.book, 'red');
   assert.strictEqual(one.data.tender.fidic.edition, '2017');
   assert.strictEqual(one.data.tender.fidic.url, 'https://fidic.org');
-  assert.strictEqual(one.data.tender.documentsCount, 2);
+  assert.strictEqual(one.data.tender.documentsCount, 3);
   assert.strictEqual(one.data.tender.name, 'إنشاء مبنى إداري', 'الاسم يؤخذ من الطلب');
   assert.strictEqual(one.data.tender.nameEn, 'Administrative building');
   const docs = await call(con, 'GET', '/api/procurement/tenders/' + pub.data.tenderId + '/documents');
-  assert.deepStrictEqual(docs.data.documents.map((d) => d.kind).sort(), ['drawings', 'specifications']);
+  assert.deepStrictEqual(docs.data.documents.map((d) => d.kind).sort(), ['boq', 'drawings', 'specifications']);
   const dl = await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + docs.data.documents[0].id, { headers: cookieFor(con) });
   assert.strictEqual(dl.status, 200);
   assert.ok(/attachment/.test(dl.headers.get('content-disposition')));
