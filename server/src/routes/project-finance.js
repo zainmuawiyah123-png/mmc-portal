@@ -176,12 +176,17 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   const items=Array.isArray(b.items)?b.items:[];
   const total=Math.round(items.reduce((s,x)=>s+Math.round(Number(x.quantity)*Number(x.unitPrice)*100)/100,0)*100)/100;
   if(!items.length||!Number.isFinite(total)||total<=0) throw E.validation('أدخل بنود الفاتورة بصورة صحيحة.');
-  const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
-  if(invoiced+total>p.total_amount+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
   const type=['materials','progress','final'].includes(b.invoiceType)?b.invoiceType:null;
   if(!type) throw E.validation('حدد نوع الفاتورة.');
   const id=uid('pin_');
-  db().transaction(()=>{
+  // Serialize invoice submissions and perform the remaining-PO check in the
+  // same IMMEDIATE transaction as the insert, so concurrent requests cannot
+  // both consume the same remaining balance.
+  db().transaction.immediate(()=>{
+    const current=db().prepare("SELECT total_amount,status FROM purchase_orders WHERE id=? AND status='issued'").get(p.id);
+    if(!current) throw E.conflict('أمر الشراء لم يعد متاحاً لإصدار فاتورة.');
+    const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
+    if(invoiced+total>Number(current.total_amount)+0.0001) throw E.conflict('قيمة الفواتير تتجاوز الرصيد المتبقي من أمر الشراء.');
     db().prepare(`INSERT INTO project_invoices (id,po_id,award_id,org_id,contractor_user_id,invoice_number,invoice_type,currency,gross_amount,contractor_note)
       VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id,p.id,p.award_id,p.org_id,req.user.id,clip(b.invoiceNumber,80),type,p.currency,total,clip(b.note,2000)||null);
     const insertedTotal = insertItems('project_invoice_items','invoice_id',id,items);
@@ -204,9 +209,13 @@ router.post('/invoices/:id/resubmit',wrap(async(req,res)=>{
   if(!items.length) throw E.validation('أدخل بنود الفاتورة المعدلة.');
   const total=Math.round(items.reduce((sum,x)=>sum+Math.round(amount(x.quantity,'quantity')*Number(x.unitPrice)*100)/100,0)*100)/100;
   if(!Number.isFinite(total)||total<=0) throw E.validation('قيمة الفاتورة المعدلة غير صحيحة.');
-  const other=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND id<>? AND status NOT IN ('void','rejected')").get(i.po_id,i.id).n;
-  if(other+total>Number(i.po_total)+0.0001) throw E.conflict('إجمالي الفواتير يتجاوز قيمة أمر الشراء.');
-  db().transaction(()=>{
+  // Recheck invoice state and aggregate under a write-reserving transaction.
+  // This serializes resubmissions against both new invoices and other resubmissions.
+  db().transaction.immediate(()=>{
+    const current=db().prepare("SELECT i.status,i.po_id,p.total_amount FROM project_invoices i JOIN purchase_orders p ON p.id=i.po_id WHERE i.id=? AND i.contractor_user_id=?").get(i.id,req.user.id);
+    if(!current || current.status!=='returned') throw E.conflict('لم تعد الفاتورة بانتظار إعادة التقديم.');
+    const other=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND id<>? AND status NOT IN ('void','rejected')").get(current.po_id,i.id).n;
+    if(other+total>Number(current.total_amount)+0.0001) throw E.conflict('إجمالي الفواتير يتجاوز قيمة أمر الشراء.');
     db().prepare("DELETE FROM project_invoice_items WHERE invoice_id=?").run(i.id);
     const inserted=insertItems('project_invoice_items','invoice_id',i.id,items);
     if(inserted!==total) throw E.validation('إجمالي بنود الفاتورة غير متطابق.');
