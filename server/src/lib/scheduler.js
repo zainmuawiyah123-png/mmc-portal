@@ -126,7 +126,7 @@ function startScheduler() {
   }
   console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
   console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
-  return { enabled: true, jobs: ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
+  return { enabled: true, jobs: config.OPPORTUNITY_SYNC_ENABLED ? ['db-backup', 'subscription-expiry', 'opportunity-sync'] : ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
     subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON,
     opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED,
     opportunitySyncCron: config.OPPORTUNITY_SYNC_CRON, tz: config.BACKUP_TZ };
