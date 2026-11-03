@@ -29,19 +29,26 @@ function normalizeWorldBankNotice(row) {
     applicationUrl:null,status,language:'en'
   };
 }
-async function syncWorldBank({rows=100,offset=0}={}) {
-  const url=new URL(WB_URL);
-  url.searchParams.set('format','json');url.searchParams.set('rows',String(Math.min(200,Math.max(1,rows))));
-  url.searchParams.set('os',String(Math.max(0,offset)));url.searchParams.set('srt','noticedate desc,id asc');
-  const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),20000);
-  let payload;
-  try {
-    const response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'MMC-Tender-Directory/1.0'},signal:controller.signal});
-    if(!response.ok) throw new Error('World Bank API returned HTTP '+response.status);
-    payload=await response.json();
-  } finally { clearTimeout(timer); }
-  const source=payload.procnotices || payload.notices || payload;
-  const values=Array.isArray(source)?source:Object.values(source).filter(x=>x&&typeof x==='object');
+async function syncWorldBank({rows=100,offset=0,pages=5}={}) {
+  const pageSize=Math.min(200,Math.max(1,rows));
+  const all=[];
+  for(let page=0;page<Math.min(10,Math.max(1,pages));page++){
+    const url=new URL(WB_URL);
+    url.searchParams.set('format','json');url.searchParams.set('rows',String(pageSize));
+    url.searchParams.set('os',String(Math.max(0,offset)+page*pageSize));url.searchParams.set('srt','noticedate desc,id asc');
+    const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),20000);
+    let payload;
+    try {
+      const response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'MMC-Tender-Directory/1.0'},signal:controller.signal});
+      if(!response.ok) throw new Error('World Bank API returned HTTP '+response.status);
+      payload=await response.json();
+    } finally { clearTimeout(timer); }
+    const source=payload.procnotices || payload.notices || payload;
+    const values=Array.isArray(source)?source:Object.values(source).filter(x=>x&&typeof x==='object');
+    all.push(...values);
+    if(values.length<pageSize) break;
+  }
+  const values=all;
   const mapped=values.map(normalizeWorldBankNotice).filter(Boolean);
   const db=getDB();
   const upsert=db.prepare(`INSERT INTO tender_opportunities
