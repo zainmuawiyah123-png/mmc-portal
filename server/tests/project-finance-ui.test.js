@@ -248,3 +248,23 @@ test('OPP-22 — JONEPS marks cancelled tenders separately from expired tenders'
   assert.equal(rows[0].status, 'cancelled');
   assert.ok(rows[0].sourceUrl.includes('/detail?id=1'));
 });
+
+
+test('OPP-23 — سجل المزامنة محفوظ لكل مصدر ويُعرض للمسؤول فقط', () => {
+  const migration = fs.readFileSync(path.join(__dirname, '../src/migrate.js'), 'utf8');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
+  assert.ok(migration.includes('CREATE TABLE IF NOT EXISTS opportunity_sync_runs'));
+  assert.ok(route.includes("router.get('/admin/sync-history'"));
+  assert.ok(route.includes("A.requireAuth, A.requireRole('admin')"));
+  assert.ok(route.includes('runAndRecordSync'));
+  assert.ok(scheduler.includes('persistOpportunitySync'));
+});
+
+test('OPP-24 — لوحة العطاءات تعرض سجل المصدر ونتيجة المزامنة', () => {
+  assert.ok(tenderDirectory.includes('id="oa-sync-history"'));
+  assert.ok(tenderDirectory.includes('/api/opportunities/admin/sync-history?limit=30'));
+  assert.ok(tenderDirectory.includes('oa-sync-history-refresh'));
+  assert.ok(tenderDirectory.includes('received'));
+  assert.ok(tenderDirectory.includes('duration_ms'));
+});
