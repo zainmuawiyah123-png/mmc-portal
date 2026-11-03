@@ -1,6 +1,13 @@
 name: Project Finance API Tests
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "server/**"
+      - "webpages/technical-proposal-kit_v5/**"
+      - ".github/workflows/project-finance-tests.yml"
   push:
     branches:
       - feature/po-invoice-workflow
