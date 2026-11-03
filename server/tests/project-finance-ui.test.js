@@ -173,3 +173,9 @@ test('OPP-11 — زر JONEPS لا يتيح الاستيراد إلا من واج
   assert.ok(connector.includes('www.joneps.gov.jo/ep/invt/selectListTendInvitAL.do'));
   assert.ok(connector.includes('no recognizable tender rows'));
 });
+
+
+test('OPP-12 — مرشح الدول يحافظ على رمز INT الدولي كاملاً', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.ok(route.includes('clean(req.query.country,3)'));
+});
