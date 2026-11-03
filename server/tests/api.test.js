@@ -1043,9 +1043,10 @@ test('78 — الانضمام لا ينقل عطاءات الحساب القدي
     body: { name: 'عطاء سابق مستقل', authority: 'جهة اختبار', closing: '2030-01-01', notes: 'لا يجوز نقله تلقائياً' }
   });
   assert.strictEqual(created.status, 201, JSON.stringify(created.data));
-  const before = getDB().prepare('SELECT org_id,user_id FROM tenders WHERE id=?').get(created.data.tender.id);
   assert.strictEqual((await call(applicant, 'GET', '/api/org')).status, 200);
-  const ownOrg = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get((await call(applicant, 'GET', '/api/auth/me')).data.user.id);
+  const applicantId = (await call(applicant, 'GET', '/api/auth/me')).data.user.id;
+  const before = getDB().prepare('SELECT org_id,user_id FROM tenders WHERE id=?').get(created.data.tender.id);
+  const ownOrg = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(applicantId);
   assert.ok(ownOrg && before.org_id === ownOrg.org_id);
   const joined = await call(applicant, 'POST', '/api/org/join', { body: { code: invite.data.code } });
   assert.strictEqual(joined.status, 409);
