@@ -129,3 +129,23 @@ test('OPP-07 — المسؤول يستطيع تشغيل مزامنة البنك 
   assert.ok(route.includes("router.post('/admin/sync/worldbank'"));
   assert.ok(route.includes("router.post('/admin/bulk'"));
 });
+
+
+test('OPP-08 — موصل UNGM يستخدم API الرسمي ويتطلب رمز OAuth ولا ينشر المسودات', () => {
+  const connector = fs.readFileSync(path.join(__dirname, '../src/lib/ungm-sync.js'), 'utf8');
+  const config = fs.readFileSync(path.join(__dirname, '../src/config.js'), 'utf8');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.ok(connector.includes('https://www.ungm.org/API/Notices'));
+  assert.ok(connector.includes("Authorization:'Bearer '+accessToken"));
+  assert.ok(connector.includes("statusText!=='finalized'"));
+  assert.ok(connector.includes("'ungm'"));
+  assert.ok(config.includes("UNGM_ACCESS_TOKEN: v('UNGM_ACCESS_TOKEN', '')"));
+  assert.ok(route.includes("router.post('/admin/sync/ungm'"));
+  assert.ok(route.includes("UNGM_ACCESS_TOKEN"));
+});
+
+test('OPP-09 — واجهة المدير توفر زر مزامنة UNGM مع عدم كشف الرمز في الواجهة', () => {
+  assert.ok(tenderDirectory.includes('oa-sync-ungm'));
+  assert.ok(tenderDirectory.includes('/api/opportunities/admin/sync/ungm'));
+  assert.doesNotMatch(tenderDirectory, /UNGM_ACCESS_TOKEN\s*[:=]/);
+});
