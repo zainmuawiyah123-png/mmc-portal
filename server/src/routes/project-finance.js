@@ -91,7 +91,7 @@ router.post('/awards', wrap(async (req, res) => {
   if (tender.procurement_status !== 'published' && tender.procurement_status !== 'closed') throw E.conflict('العطاء غير مؤهل للترسية.');
   const submission = db().prepare(`SELECT s.*, u.role contractor_role FROM bid_submissions s
     JOIN users u ON u.id=s.contractor_id WHERE s.id=? AND s.tender_id=?`).get(clip(b.submissionId, 100), tender.id);
-  if (!submission || submission.contractor_role !== 'contractor' || !submission.technical_passed || !submission.financial_unlocked) throw E.validation('العرض المحدد غير مؤهل للترسية.');
+  if (!submission || submission.contractor_role !== 'contractor' || submission.status !== 'evaluated' || !submission.technical_passed || !submission.financial_unlocked || !(Number(submission.financial_amount) > 0)) throw E.validation('العرض المحدد غير مؤهل للترسية.');
   if (db().prepare('SELECT 1 FROM project_awards WHERE tender_id=? AND status=\'approved\'').get(tender.id)) throw E.conflict('سبق تسجيل ترسية معتمدة لهذا العطاء.');
   const value = amount(b.awardedAmount, 'awardedAmount');
   const currency = clip(b.currency, 3).toUpperCase() || submission.financial_currency;
@@ -129,7 +129,9 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const rounded = Math.round(total * 100) / 100;
   if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
   db().transaction(() => {
-    db().prepare("INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by,requires_owner_confirmation) VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?,?)").run(id,a.id,m.org_id,poNumber,clip(b.currency,3).toUpperCase()||a.currency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id,b.requiresOwnerConfirmation === false ? 0 : 1);
+    const poCurrency = clip(b.currency,3).toUpperCase() || a.currency;
+  if (poCurrency !== a.currency) throw E.validation('عملة أمر الشراء يجب أن تطابق عملة الترسية.');
+  db().prepare("INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by,requires_owner_confirmation) VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?,?)").run(id,a.id,m.org_id,poNumber,poCurrency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id,b.requiresOwnerConfirmation === false ? 0 : 1);
     const insertedTotal = insertItems('purchase_order_items','po_id',id,items);
     if (insertedTotal !== rounded) throw E.validation('إجمالي بنود أمر الشراء غير متطابق مع القيمة المحسوبة.');
     event({orgId:m.org_id,tenderId:a.tender_id,awardId:a.id,poId:id,userId:req.user.id,role:m.role,action:'po_submitted_for_approval',to:'pending_approval',detail:{total:rounded},ip:req.ip});
