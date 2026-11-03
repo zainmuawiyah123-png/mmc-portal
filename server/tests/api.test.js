@@ -1073,6 +1073,12 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   const procurement = (await joinTeam(manager, 'procurement', 'finproc')).who;
   const requester = (await joinTeam(manager, 'requester', 'finreq')).who;
   const finance = (await joinTeam(manager, 'finance', 'finrole')).who;
+  const projects = (await joinTeam(manager, 'projects', 'finprojects')).who;
+
+  // Projects staff should not browse financial records merely by being in the same organization.
+  assert.strictEqual((await call(projects, 'GET', '/api/project-finance/awards')).status, 403);
+  assert.strictEqual((await call(projects, 'GET', '/api/project-finance/purchase-orders')).status, 403);
+  assert.strictEqual((await call(projects, 'GET', '/api/project-finance/invoices')).status, 403);
 
   const tender = await publish(procurement);
   const contractor = 'fincon' + uniq();
