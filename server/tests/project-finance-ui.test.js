@@ -39,7 +39,7 @@ test('PFUI-04 — إرسال الفاتورة ورفع المرفقات منفص
 
 test('PFUI-05 — الواجهة تستخدم ترميز النصوص قبل إدراج القيم الديناميكية', () => {
   assert.match(html, /function esc\(s\)/);
-  assert.match(html, /\.replace\(\/\[&<>/);
+  assert.ok(html.includes('.replace(/[&<>'));
 });
 
 test('PFUI-06 — لا توجد روابط أو نماذج تعتمد على localhost أو بيانات اعتماد ثابتة', () => {
