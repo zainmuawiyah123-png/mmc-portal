@@ -113,7 +113,7 @@ router.delete('/members/:userId', buyerOnly, wrap(async (req, res) => {
   if (!t) throw E.notFound('العضو غير موجود.');
   if (t.user_id === m.created_by) throw E.conflict('لا يمكن إزالة صاحب الاشتراك.');
   db.prepare('DELETE FROM org_members WHERE org_id = ? AND user_id = ?').run(m.org_id, t.user_id);
-  audit({ action: 'org_member_remove', entity: 'org_member', entityId: t.user_id, userId: req.user.id, ip: req.ip });
+  audit({ action: 'org_member_remove', entity: 'org_member', entityId: t.user_id, userId: req.user.id, ip: req.ip, detail: { previousRole: t.role, organizationId: m.org_id } });
   res.json({ ok: true });
 }));
 
