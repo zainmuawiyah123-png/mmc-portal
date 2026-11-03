@@ -22,7 +22,7 @@ const shape = r => ({
 
 // Public directory: only published records; no account or internal tender fields.
 router.get('/', wrap(async (req,res) => {
-  const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,2).toUpperCase();
+  const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
   const clauses=["status IN ('open','closed')"], vals=[];
   if(country){clauses.push('country=?');vals.push(country);}
