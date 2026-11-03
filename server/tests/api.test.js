@@ -908,7 +908,6 @@ test('71 — الانضمام برمز: صحيح مرة واحدة، والأد�
   const foreignManager = await newBuyer('foreign-manager', 'proc_pro');
   const foreignMember = (await joinTeam(foreignManager, 'requester', 'foreign-member')).who;
   const foreignInvite = await call(foreignManager, 'POST', '/api/org/invites', { body: { role: 'finance' } });
-  const foreignMemberId = (await call(foreignManager, 'GET', '/api/org')).data.members.find((m) => m.id === (await call(foreignManager, 'GET', '/api/org')).data.members.find((x) => x.id !== undefined && !x.isOwner)?.id)?.id;
   assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + foreignMember, { body: { role: 'finance' } })).status, 404);
   assert.strictEqual((await call(mgr, 'DELETE', '/api/org/members/' + foreignMember, {})).status, 404);
   assert.strictEqual((await call(mgr, 'DELETE', '/api/org/invites/' + foreignInvite.data.invite.id)).status, 404);
