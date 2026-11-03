@@ -227,3 +227,24 @@ test('OPP-20 — لا يظهر زر مزامنة لدائرة العطاءات �
   assert.ok(!tenderDirectory.includes("document.getElementById('oa-sync-gtd')"));
   assert.doesNotMatch(route, /router\.post\('\/admin\/sync\/gtd'/);
 });
+
+
+test('OPP-21 — JONEPS pagination supports page numbers above the first ten without inventing URLs', () => {
+  const { extractPageUrls, LIST_URL } = require('../src/lib/joneps-sync');
+  const html = '<a href="?page=2">2</a><a href="?page=82">82</a><a href="?page=101">101</a><a href="https://evil.example/?page=90">90</a>';
+  const urls = extractPageUrls(html, 100);
+  assert.equal(urls.length, 3);
+  assert.equal(urls[0], LIST_URL);
+  assert.ok(urls.some(u => u.includes('page=82')));
+  assert.ok(!urls.some(u => u.includes('page=101')));
+  assert.ok(!urls.some(u => u.includes('evil.example')));
+});
+
+test('OPP-22 — JONEPS marks cancelled tenders separately from expired tenders', () => {
+  const { parseJonepsRows } = require('../src/lib/joneps-sync');
+  const html = '<table><tr><td>2026-1234</td><td><a href="/detail?id=1">عطاء صيانة طريق</a></td><td>وزارة الأشغال</td><td>أشغال</td><td>01/11/2026</td><td>20/11/2026</td></tr><tr><td colspan="6">تم إلغاء العطاء</td></tr></table>';
+  const rows = parseJonepsRows(html);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].status, 'cancelled');
+  assert.ok(rows[0].sourceUrl.includes('/detail?id=1'));
+});
