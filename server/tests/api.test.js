@@ -1153,6 +1153,8 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(evaluated.status, 200, JSON.stringify(evaluated.data));
   assert.strictEqual(evaluated.data.passed, true);
   assert.strictEqual(evaluated.data.financialOpened, false, 'التقييم الفني لا يفتح المالي تلقائياً');
+  const earlyOpen = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/open-financial', { body: {} });
+  assert.strictEqual(earlyOpen.status, 409, 'لا يجوز فتح المالي قبل التقييم الفني الرسمي');
   const financialOpen = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/open-financial', { body: {} });
   assert.strictEqual(financialOpen.status, 200, JSON.stringify(financialOpen.data));
   assert.strictEqual(financialOpen.data.financialOpened, true);
