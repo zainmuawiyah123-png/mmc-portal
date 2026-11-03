@@ -118,8 +118,14 @@ router.post('/admin/bulk', wrap(async(req,res)=>{
  res.json({ok:true,...result,processed:rows.length});
 }));
 
+async function runAndRecordSync(source,fn) {
+ const started=Date.now();
+ try { const result=await fn(); require('../lib/scheduler').persistOpportunitySync(source,started,{ok:true,...result}); return result; }
+ catch(err) { require('../lib/scheduler').persistOpportunitySync(source,started,{ok:false,error:err.message||String(err)}); throw err; }
+}
+
 router.post('/admin/sync/worldbank', wrap(async(req,res)=>{
- const result=await require('../lib/opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5});
+ const result=await runAndRecordSync('worldbank',()=>require('../lib/opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'worldbank',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
@@ -127,13 +133,13 @@ router.post('/admin/sync/worldbank', wrap(async(req,res)=>{
 router.post('/admin/sync/ungm', wrap(async(req,res)=>{
  const token=require('../config').UNGM_ACCESS_TOKEN;
  if(!token) throw E.conflict('لم يتم إعداد رمز UNGM في إعدادات الخادم بعد.');
- const result=await require('../lib/ungm-sync').syncUNGM({accessToken:token,rows:100,pages:5});
+ const result=await runAndRecordSync('ungm',()=>require('../lib/ungm-sync').syncUNGM({accessToken:token,rows:100,pages:5}));
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'ungm',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
 
 router.post('/admin/sync/joneps', wrap(async(req,res)=>{
- const result=await require('../lib/joneps-sync').syncJONEPS();
+ const result=await runAndRecordSync('joneps',()=>require('../lib/joneps-sync').syncJONEPS());
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'joneps',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
