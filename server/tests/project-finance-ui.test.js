@@ -179,3 +179,9 @@ test('OPP-12 — مرشح الدول يحافظ على رمز INT الدولي �
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
   assert.ok(route.includes('clean(req.query.country,3)'));
 });
+
+
+test('OPP-13 — روابط الصفحات التالية من UNGM لا تسمح بتغيير المضيف أو المسار', () => {
+  const connector = fs.readFileSync(path.join(__dirname, '../src/lib/ungm-sync.js'), 'utf8');
+  assert.ok(connector.includes("url.origin!=='https://www.ungm.org'||url.pathname!=='/API/Notices'"));
+});
