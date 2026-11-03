@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const htmlPath = path.join(__dirname, '../../webpages/technical-proposal-kit_v5/project-finance/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
+// Static UI contract checks; API workflow behavior is covered by integration tests.
 
 test('PFUI-01 — صفحة دورة المالية موجودة وتحمّل مكتبات البوابة الحالية', () => {
   assert.ok(html.includes('<title>الترسيات وأوامر الشراء والفواتير · MMC</title>'));
