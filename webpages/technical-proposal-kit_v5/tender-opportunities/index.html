@@ -24,7 +24,7 @@
 <div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
 <p class="muted" id="opp-count"></p>
 <div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
-<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>إضافة إعلان يدوياً</h3>
+<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>سجل المزامنة</h3><button class="btn" id="oa-sync-history-refresh" type="button">تحديث سجل المصادر</button><div id="oa-sync-history" class="muted">لم يتم تحميل سجل المزامنة بعد.</div><h3>إضافة إعلان يدوياً</h3>
 <p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
 <div class="grid">
 <input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
@@ -118,6 +118,18 @@
    load();
   }catch(e){msg.textContent=e.message;}
  });
+ async function loadSyncHistory(){
+  const box=document.getElementById('oa-sync-history');if(!box)return;
+  box.textContent='جارٍ تحميل سجل المزامنة...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync-history?limit=30',{credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'تعذر تحميل السجل');
+   if(!data.runs.length){box.textContent='لا توجد عمليات مزامنة مسجلة حتى الآن.';return;}
+   const labels={joneps:'JONEPS',worldbank:'البنك الدولي',ungm:'UNGM'};
+   box.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>المصدر</th><th>النتيجة</th><th>المستلم</th><th>جديد</th><th>محدّث</th><th>المدة</th><th>وقت الانتهاء</th></tr></thead><tbody>'+data.runs.map(r=>'<tr><td>'+((labels[r.source_key]||r.source_key).replace(/[&<>"]/g,''))+'</td><td>'+({success:'نجاح',failed:'فشل',skipped:'تخطي'}[r.status]||r.status)+'</td><td>'+r.received+'</td><td>'+r.added+'</td><td>'+r.updated+'</td><td>'+r.duration_ms+' ms</td><td>'+new Date(r.finishedAt).toLocaleString('ar-JO')+(r.error?'<br><span style="color:#b42318">'+String(r.error).replace(/[&<>"]/g,'')+'</span>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+  }catch(e){box.textContent=e.message;}
+ }
+ document.getElementById('oa-sync-history-refresh').addEventListener('click',loadSyncHistory);
  document.getElementById('oa-save').addEventListener('click',async()=>{
   const msg=document.getElementById('oa-message');msg.textContent='جارٍ الحفظ...';
   const v=id=>document.getElementById(id).value.trim();
@@ -128,6 +140,7 @@
   }catch(e){msg.textContent=e.message;}
  });
  load();
+ loadSyncHistory();
 })();
 
 (function(){var en=false,b=document.getElementById('lang');b.onclick=function(){en=!en;document.documentElement.lang=en?'en':'ar';document.documentElement.dir=en?'ltr':'rtl';document.querySelectorAll('[data-ar][data-en]').forEach(function(x){x.textContent=en?x.getAttribute('data-en'):x.getAttribute('data-ar')});b.textContent=en?'عربي':'EN'}})();
