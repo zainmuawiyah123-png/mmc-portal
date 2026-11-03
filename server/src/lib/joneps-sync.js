@@ -10,6 +10,18 @@ function dateISO(value){
  const m=String(value||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
  return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):null;
 }
+function extractPageUrls(html){
+ const found=new Map([[LIST_URL,1]]);
+ for(const match of String(html||'').matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)){
+  const label=clean(match[2]),number=Number(label);
+  if(!/^\\d+$/.test(label)||number<2||number>10)continue;
+  try{
+   const url=new URL(match[1],LIST_URL);
+   if(url.origin==='https://www.joneps.gov.jo'&&url.pathname==='/ep/invt/selectListTendInvitAL.do')found.set(url.toString(),number);
+  }catch(_){}
+ }
+ return [...found.entries()].sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+}
 function parseJonepsRows(html){
  const out=[];
  for(const tr of String(html||'').match(/<tr\b[\s\S]*?<\/tr>/gi)||[]){
@@ -29,14 +41,19 @@ function parseJonepsRows(html){
  return out;
 }
 async function syncJONEPS(){
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
- let html;
- try{
-  const response=await fetch(LIST_URL,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});
-  if(!response.ok)throw new Error('JONEPS returned HTTP '+response.status);
-  html=await response.text();
- }finally{clearTimeout(timer);}
- const notices=parseJonepsRows(html);
+ const fetchPage=async url=>{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+  try{
+   const response=await fetch(url,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});
+   if(!response.ok)throw new Error('JONEPS returned HTTP '+response.status);
+   return await response.text();
+  }finally{clearTimeout(timer);}
+ };
+ const firstHtml=await fetchPage(LIST_URL);
+ const pageUrls=extractPageUrls(firstHtml).slice(0,10);
+ const htmlPages=[firstHtml];
+ for(const url of pageUrls.slice(1))htmlPages.push(await fetchPage(url));
+ const notices=[...new Map(htmlPages.flatMap(parseJonepsRows).map(n=>[n.id,n])).values()];
  if(!notices.length)throw new Error('JONEPS page loaded but no recognizable tender rows were found; importer stopped without changing records.');
  const db=getDB();
  const upsert=db.prepare(`INSERT INTO tender_opportunities
@@ -57,4 +74,4 @@ async function syncJONEPS(){
  });
  return {...tx(notices),received:notices.length,normalized:notices.length,source:'joneps',sourceUrl:LIST_URL};
 }
-module.exports={parseJonepsRows,syncJONEPS,LIST_URL};
+module.exports={parseJonepsRows,extractPageUrls,syncJONEPS,LIST_URL};
