@@ -19,7 +19,6 @@ const fileRoutes = require('./routes/files');
 const accountRoutes = require('./routes/account');
 const procurementRoutes = require('./routes/procurement');
 const billingRoutes = require('./routes/billing');
-const verificationRoutes = require('./routes/verification');
 
 function createApp() {
   const app = express();
@@ -52,8 +51,6 @@ function createApp() {
     });
   }
 
-  const WEB_ROOT_HEALTH = config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5');
-
   /* ---------------- API ---------------- */
   app.get('/api/health', (req, res) => {
     const db = require('./db').getDB();
@@ -64,14 +61,7 @@ function createApp() {
       time: new Date().toISOString(),
       storage: { driver: config.STORAGE_DRIVER, signedUrlTtl: config.SIGNED_URL_TTL },
       scheduler: require('./lib/scheduler').schedulerStatus(),
-      counts: { users, tenders },
-      web: { // أعلام فقط — بلا مسارات الخادم
-        rootExists: fs.existsSync(WEB_ROOT_HEALTH),
-        login: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'portal', 'pt-9f3c7a1e5b2d', 'login.html')),
-        procurement: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'procurement', 'index.html')),
-        bid: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'bid', 'index.html')),
-        admin: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'admin', 'index.html'))
-      }
+      counts: { users, tenders }
     });
   });
 
@@ -86,7 +76,6 @@ function createApp() {
   app.use('/api', fileRoutes);
   app.use('/api', accountRoutes);
   app.use('/api/billing', billingRoutes);
-  app.use('/api/verification', verificationRoutes);
   app.use('/api/procurement', procurementRoutes);
 
   app.use('/api', (req, res) => {
@@ -113,31 +102,17 @@ function createApp() {
   app.use('/documents', (req, res, next) => {
     if (!/\.(xlsx|pdf)$/i.test(req.path)) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'غير موجود.' } });
     next();
-  }, express.static(DOCS_ROOT, {
-    index: false, dotfiles: 'deny',
-    setHeaders: (res, filePath) => {
-      if (/\.xlsx$/i.test(filePath)) {
-        // بدون هذا الرأس لا تعرض المتصفحات المدمجة (مثل متصفح التطبيقات على الآيفون) شيئاً عند فتح ملف Excel
-        res.setHeader('Content-Disposition', "attachment; filename*=UTF-8''" + encodeURIComponent(require('path').basename(filePath)));
-      }
-    }
-  }));
+  }, express.static(DOCS_ROOT, { index: false, dotfiles: 'deny' }));
 
-  // مسارات صريحة للبوابات + /portal، مع رسالة 404 واضحة (دون كشف مسارات الخادم)
-  function sendFromWeb(relPath, res, next) {
-    const root = path.resolve(WEB_ROOT);
-    const target = path.resolve(root, relPath);
-    if (!target.startsWith(root + path.sep)) return res.status(400).type('text').send('Bad path');
-    if (!fs.existsSync(target)) return res.status(404).type('text').send('File not found: /' + relPath.replace(/\\/g, '/'));
-    return res.sendFile(target, (err) => { if (err) next(err); });
-  }
-  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
-  app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
-  app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
-  app.get(/^\/portal(\/.*)?$/, (req, res, next) => {
-    let rel = req.path.replace(/^\/portal\/?/, '') || 'pt-9f3c7a1e5b2d/login.html';
-    if (rel.endsWith('/')) rel += 'index.html';
-    sendFromWeb(path.join('portal', rel), res, next);
+  // مسار مختصر: /portal/... → البوابة داخل الحزمة، حتى يطابق الرابط المعروض في الإقلاع
+  app.get(/^\/portal\/.*$/, (req, res, next) => {
+    const rel = req.path.replace(/^\/portal\/?/, '');
+    const target = path.resolve(WEB_ROOT, 'portal', rel);
+    const base = path.resolve(WEB_ROOT, 'portal');
+    if (!target.startsWith(base + path.sep) && target !== base) {
+      return res.status(400).json({ error: { code: 'BAD_PATH', message: 'مسار غير صالح.' } });
+    }
+    res.sendFile(target, (err) => { if (err) next(); });
   });
 
   app.use(errorHandler);
