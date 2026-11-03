@@ -12,7 +12,8 @@ function normalizeUNGMNotice(row){
  const id=clean(row.Id||row.ID,100),title=clean(row.Title,300);
  if(!id||!title)return null;
  const statusText=clean(row.Status,40).toLowerCase();
- if(!statusText||/draft|deleted|cancel|withdraw|rejected/.test(statusText))return null;
+ // Only finalized notices are publicly published by UNGM; never expose drafts.
+ if(statusText!=='finalized')return null;
  const deadline=clean(row.Deadline,40),published=clean(row.DatePublished,40);
  const iso=Array.isArray(row.CountryISO3Codes)?row.CountryISO3Codes.map(x=>clean(x,3).toUpperCase()):[];
  const country=iso.length===1?(ISO3_TO_ISO2[iso[0]]||'INT'):'INT';
