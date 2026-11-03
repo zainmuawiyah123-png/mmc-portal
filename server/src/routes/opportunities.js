@@ -76,4 +76,35 @@ router.patch('/admin/:id', wrap(async(req,res)=>{
  audit({action:'opportunity_update',entity:'tender_opportunity',entityId:row.id,userId:req.user.id,ip:req.ip,detail:{status:fields.status}});
  res.json({opportunity:shape(db.prepare('SELECT * FROM tender_opportunities WHERE id=?').get(row.id))});
 }));
+
+router.post('/admin/bulk', wrap(async(req,res)=>{
+ const rows=Array.isArray(req.body?.opportunities)?req.body.opportunities:null;
+ if(!rows||!rows.length||rows.length>100) throw E.badRequest('أرسل من 1 إلى 100 إعلان في الدفعة الواحدة.');
+ const db=getDB(), insert=db.prepare(`INSERT INTO tender_opportunities
+ (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language,created_by)
+ VALUES (@id,@source_key,@external_id,@title,@authority,@country,@sector,@tender_number,@summary,@published_at,@closing_at,@source_url,@application_url,@status,@language,@created_by)
+ ON CONFLICT(source_key,external_id) DO UPDATE SET
+ title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,
+ tender_number=excluded.tender_number,summary=excluded.summary,published_at=excluded.published_at,
+ closing_at=excluded.closing_at,source_url=excluded.source_url,application_url=excluded.application_url,
+ status=excluded.status,language=excluded.language,updated_at=unixepoch()`);
+ const tx=db.transaction(items=>{
+  let added=0,updated=0;
+  for(const b of items){
+   const source_key=clean(b.sourceKey,80),external_id=clean(b.externalId,160),title=clean(b.title,300),source_url=validUrl(b.sourceUrl);
+   if(!source_key||!external_id||!title||!source_url) throw E.badRequest('كل إعلان يتطلب sourceKey وexternalId وtitle وsourceUrl صحيحاً.');
+   const country=clean(b.country||'JO',2).toUpperCase();
+   if(!/^[A-Z]{2}$/.test(country)) throw E.badRequest('رمز الدولة غير صحيح.');
+   const status=['open','closed','cancelled','draft'].includes(b.status)?b.status:'open';
+   const exists=db.prepare('SELECT id FROM tender_opportunities WHERE source_key=? AND external_id=?').get(source_key,external_id);
+   const id=exists?exists.id:uid('opp_');
+   insert.run({id,source_key,external_id,title,authority:clean(b.authority,200)||null,country,sector:clean(b.sector,100)||null,tender_number:clean(b.tenderNumber,120)||null,summary:clean(b.summary,3000)||null,published_at:clean(b.publishedAt,40)||null,closing_at:clean(b.closingAt,40)||null,source_url,application_url:validUrl(b.applicationUrl),status,language:clean(b.language,5)||'ar',created_by:req.user.id});
+   if(exists)updated++;else added++;
+  }
+  return {added,updated};
+ });
+ const result=tx(rows);
+ audit({action:'opportunity_bulk_import',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:result});
+ res.json({ok:true,...result,processed:rows.length});
+}));
 module.exports=router;
