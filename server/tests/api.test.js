@@ -97,6 +97,12 @@ test('01 — /api/health يستجيب', async () => {
   assert.ok(r.data.scheduler, 'يجب أن يعرض /api/health حالة الجدولة');
 });
 
+test('01A — صفحة دورة المالية لا تُعرض دون جلسة', async () => {
+  const r = await call('anon', 'GET', '/project-finance/index.html');
+  assert.strictEqual(r.status, 302);
+  assert.match(r.headers.get('location') || '', /login\.html/);
+});
+
 test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوكي', async () => {
   const r = await call('userA', 'POST', '/api/auth/register', {
     body: { name: 'مستخدم أ', email: 'a' + uniq() + '@test.com', password: 'Password123', company: 'شركة أ' }
@@ -106,6 +112,12 @@ test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوك
   assert.strictEqual(r.data.user.planKey, 'free');
   assert.ok(cookies.userA, 'يجب أن يُضبط كوكي الجلسة');
   assert.ok(!JSON.stringify(r.data).includes('password'), 'يجب ألا تُرجع كلمة المرور');
+});
+
+test('02A — المقاول المسجل يستطيع فتح صفحة دورة المالية', async () => {
+  const r = await call('userA', 'GET', '/project-finance/index.html');
+  assert.strictEqual(r.status, 200);
+  assert.match(r.data, /MMC Project Finance Workflow/);
 });
 
 test('03 — تسجيل ببريد مكرر يُرفض 409', async () => {
