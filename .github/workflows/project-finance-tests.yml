@@ -1,0 +1,33 @@
+name: Project Finance API Tests
+
+on:
+  push:
+    branches:
+      - feature/po-invoice-workflow
+    paths:
+      - "server/**"
+      - ".github/workflows/project-finance-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run API integration tests
+        run: npm test
