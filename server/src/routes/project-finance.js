@@ -127,9 +127,10 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const items = Array.isArray(b.items) ? b.items : [];
   const total = items.reduce((s,x) => s + Math.round(amount(x.quantity,'quantity') * Number(x.unitPrice) * 100) / 100, 0);
   const rounded = Math.round(total * 100) / 100;
-  const committed = db().prepare("SELECT COALESCE(SUM(total_amount),0) n FROM purchase_orders WHERE award_id=? AND status NOT IN ('cancelled','void')").get(a.id).n;
-  if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || committed + rounded > Number(a.awarded_amount) + 0.0001) throw E.validation('إجمالي أوامر الشراء لا يجوز أن يتجاوز قيمة الترسية المتبقية.');
+  if (!items.length || !Number.isFinite(rounded) || rounded <= 0) throw E.validation('أدخل بنود أمر شراء صحيحة.');
   db().transaction(() => {
+    const committed = db().prepare("SELECT COALESCE(SUM(total_amount),0) n FROM purchase_orders WHERE award_id=? AND status NOT IN ('cancelled','void')").get(a.id).n;
+    if (committed + rounded > Number(a.awarded_amount) + 0.0001) throw E.validation('إجمالي أوامر الشراء لا يجوز أن يتجاوز قيمة الترسية المتبقية.');
     const poCurrency = clip(b.currency,3).toUpperCase() || a.currency;
   if (poCurrency !== a.currency) throw E.validation('عملة أمر الشراء يجب أن تطابق عملة الترسية.');
   db().prepare("INSERT INTO purchase_orders (id,award_id,org_id,po_number,currency,total_amount,status,payment_terms,delivery_start,delivery_end,created_by,requires_owner_confirmation) VALUES (?,?,?,?,?,?,'pending_approval',?,?,?,?,?)").run(id,a.id,m.org_id,poNumber,poCurrency,rounded,clip(b.paymentTerms,1000)||null,clip(b.deliveryStart,30)||null,clip(b.deliveryEnd,30)||null,req.user.id,b.requiresOwnerConfirmation === false ? 0 : 1);
