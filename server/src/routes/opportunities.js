@@ -46,7 +46,7 @@ router.post('/admin', wrap(async(req,res)=>{
  const sourceUrl=validUrl(b.sourceUrl), applicationUrl=validUrl(b.applicationUrl);
  if(!sourceKey||!externalId||!title||!sourceUrl) throw E.badRequest('المصدر والمعرّف والعنوان ورابط المصدر حقول إلزامية.');
  const country=clean(b.country||'JO',2).toUpperCase();
- if(!/^[A-Z]{2}$/.test(country)) throw E.badRequest('رمز الدولة يجب أن يتكون من حرفين.');
+ if(!/^(?:[A-Z]{2}|INT)$/.test(country)) throw E.badRequest('رمز الدولة يجب أن يتكون من حرفين أو INT للدولي.');
  const status=['open','closed','cancelled','draft'].includes(b.status)?b.status:'open';
  const id=uid('opp_'), db=getDB();
  try {
@@ -94,7 +94,7 @@ router.post('/admin/bulk', wrap(async(req,res)=>{
    const source_key=clean(b.sourceKey,80),external_id=clean(b.externalId,160),title=clean(b.title,300),source_url=validUrl(b.sourceUrl);
    if(!source_key||!external_id||!title||!source_url) throw E.badRequest('كل إعلان يتطلب sourceKey وexternalId وtitle وsourceUrl صحيحاً.');
    const country=clean(b.country||'JO',2).toUpperCase();
-   if(!/^[A-Z]{2}$/.test(country)) throw E.badRequest('رمز الدولة غير صحيح.');
+   if(!/^(?:[A-Z]{2}|INT)$/.test(country)) throw E.badRequest('رمز الدولة غير صحيح.');
    const status=['open','closed','cancelled','draft'].includes(b.status)?b.status:'open';
    const exists=db.prepare('SELECT id FROM tender_opportunities WHERE source_key=? AND external_id=?').get(source_key,external_id);
    const id=exists?exists.id:uid('opp_');
