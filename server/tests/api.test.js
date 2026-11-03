@@ -130,7 +130,7 @@ test('02C — رمز دولة غير مدعوم مرفوض عند التسجيل
   const r = await call('invalidCountry', 'POST', '/api/auth/register', {
     body: { name: 'مستخدم غير صحيح', email: 'bad' + uniq() + '@test.com', password: 'Password123', country: 'US' }
   });
-  assert.strictEqual(r.status, 400);
+  assert.strictEqual(r.status, 422);
 });
 
 test('02A — المقاول المسجل يستطيع فتح صفحة دورة المالية', async () => {
