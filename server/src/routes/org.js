@@ -89,6 +89,7 @@ router.delete('/invites/:id', buyerOnly, wrap(async (req, res) => {
   const m = manager(req);
   const r = getDB().prepare("UPDATE org_invites SET status = 'revoked' WHERE id = ? AND org_id = ? AND status = 'pending'").run(req.params.id, m.org_id);
   if (!r.changes) throw E.notFound('الدعوة غير موجودة.');
+  audit({ action: 'org_invite_revoke', entity: 'org_invite', entityId: req.params.id, userId: req.user.id, ip: req.ip });
   res.json({ ok: true });
 }));
 
@@ -101,7 +102,7 @@ router.patch('/members/:userId', buyerOnly, wrap(async (req, res) => {
   if (!t) throw E.notFound('العضو غير موجود.');
   if (t.user_id === m.created_by && role !== 'manager') throw E.conflict('صاحب الاشتراك يبقى مديراً للجهة.');
   db.prepare('UPDATE org_members SET role = ? WHERE org_id = ? AND user_id = ?').run(role, m.org_id, t.user_id);
-  audit({ action: 'org_member_role', entity: 'org_member', entityId: t.user_id, userId: req.user.id, ip: req.ip, detail: { role } });
+  audit({ action: 'org_member_role', entity: 'org_member', entityId: t.user_id, userId: req.user.id, ip: req.ip, detail: { from: t.role, to: role } });
   res.json({ ok: true });
 }));
 
