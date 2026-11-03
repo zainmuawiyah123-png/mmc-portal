@@ -79,23 +79,21 @@ function runSubscriptionExpiryJob() {
 
 
 async function runOpportunitySyncJob() {
-  const started=Date.now();
-  try {
-    const gtd=await require('./gtd-sync').syncGTD();
-    const joneps=await require('./joneps-sync').syncJONEPS();
-    const worldbank=await require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5});
-    let ungm=null;
-    if(config.UNGM_ACCESS_TOKEN){
-      ungm=await require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5});
-    }
-    const ms=Date.now()-started;
-    record({at:new Date().toISOString(),job:'opportunity-sync',ok:true,ms,message:'gtd added='+gtd.added+' updated='+gtd.updated+' | joneps added='+joneps.added+' updated='+joneps.updated+' | worldbank added='+worldbank.added+' updated='+worldbank.updated+(ungm?' | ungm added='+ungm.added+' updated='+ungm.updated:' | ungm skipped: no token')});
-    return {ok:true,gtd,joneps,worldbank,ungm,ms};
-  } catch(err) {
-    const ms=Date.now()-started;
-    record({at:new Date().toISOString(),job:'opportunity-sync',ok:false,ms,message:(err.message||String(err)).slice(0,300)});
-    return {ok:false,error:err.message,ms};
-  }
+  const started=Date.now(), results={};
+  const runSource=async(name,fn)=>{
+    try { results[name]={ok:true,...await fn()}; }
+    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
+  };
+  await runSource('gtd',()=>require('./gtd-sync').syncGTD());
+  await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
+  await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
+  if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
+  else results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'};
+  const ms=Date.now()-started;
+  const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+  const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
+  record({at:new Date().toISOString(),job:'opportunity-sync',ok:failed.length===0,ms,message:summary});
+  return {ok:failed.length===0,partial:failed.length>0,failed,results,ms};
 }
 
 function startScheduler() {
