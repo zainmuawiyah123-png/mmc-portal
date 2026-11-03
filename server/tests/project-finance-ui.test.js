@@ -224,6 +224,6 @@ test('OPP-19 — دليل المصادر الأردنية يعرض وزارة ا
 test('OPP-20 — لا يظهر زر مزامنة لدائرة العطاءات الحكومية دون موصل API فعال', () => {
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
   assert.doesNotMatch(tenderDirectory, /id="oa-sync-gtd"/);
-  assert.doesNotMatch(tenderDirectory, /oa-sync-gtd').addEventListener/);
+  assert.ok(!tenderDirectory.includes("document.getElementById('oa-sync-gtd')"));
   assert.doesNotMatch(route, /router\.post\('\/admin\/sync\/gtd'/);
 });
