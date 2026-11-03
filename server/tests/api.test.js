@@ -903,6 +903,16 @@ test('71 — الانضمام برمز: صحيح مرة واحدة، والأد�
   assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + memberId, { body: { role: 'procurement' } })).status, 200);
   assert.strictEqual((await call(a, 'GET', '/api/org')).data.myRole, 'procurement');
   assert.strictEqual((await call(mgr, 'DELETE', '/api/org/members/' + memberId)).status, 200);
+
+  // Organization managers cannot alter members or revoke invitations belonging to another tenant.
+  const foreignManager = await newBuyer('foreign-manager', 'proc_pro');
+  const foreignMember = (await joinTeam(foreignManager, 'requester', 'foreign-member')).who;
+  const foreignInvite = await call(foreignManager, 'POST', '/api/org/invites', { body: { role: 'finance' } });
+  const foreignMemberId = (await call(foreignManager, 'GET', '/api/org')).data.members.find((m) => m.id === (await call(foreignManager, 'GET', '/api/org')).data.members.find((x) => x.id !== undefined && !x.isOwner)?.id)?.id;
+  assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + foreignMember, { body: { role: 'finance' } })).status, 404);
+  assert.strictEqual((await call(mgr, 'DELETE', '/api/org/members/' + foreignMember, {})).status, 404);
+  assert.strictEqual((await call(mgr, 'DELETE', '/api/org/invites/' + foreignInvite.data.invite.id)).status, 404);
+  assert.strictEqual((await call(foreignManager, 'GET', '/api/org')).data.members.some((m) => m.id === foreignMember), true);
 });
 
 test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مشتريات تنشر ← المقاول يرى الوثائق وFIDIC', async () => {
