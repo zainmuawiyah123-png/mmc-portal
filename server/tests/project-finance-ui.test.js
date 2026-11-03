@@ -120,3 +120,12 @@ test('OPP-06 — مزامنة المصدر اختيارية ومجدولة دو�
   assert.ok(scheduler.includes('config.OPPORTUNITY_SYNC_ENABLED'));
   assert.ok(scheduler.includes('runOpportunitySyncJob'));
 });
+
+
+test('OPP-07 — المسؤول يستطيع تشغيل مزامنة البنك الدولي من واجهة الدليل', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.ok(tenderDirectory.includes('oa-sync-worldbank'));
+  assert.ok(tenderDirectory.includes('/api/opportunities/admin/sync/worldbank'));
+  assert.ok(route.includes("router.post('/admin/sync/worldbank'"));
+  assert.ok(route.includes("router.post('/admin/bulk'"));
+});
