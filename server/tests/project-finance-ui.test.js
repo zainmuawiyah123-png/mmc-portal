@@ -99,7 +99,7 @@ test('OPP-03 — قاعدة البيانات تدعم معرف المصدر ال
 
 test('OPP-04 — واجهة API تعرض بيانات منشورة فقط وتفرض المصادقة على الإدارة', () => {
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
-  assert.match(route, /status IN \\(\x27open\x27,\x27closed\x27\\)/);
+  assert.ok(route.includes("status IN ('open','closed')"));
   assert.match(route, /router\.use\(A\.requireAuth, A\.requireRole\('admin'\)\)/);
   assert.match(route, /protocol !== 'https:'/);
 });
