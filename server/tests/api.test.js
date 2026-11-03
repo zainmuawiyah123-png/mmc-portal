@@ -1058,7 +1058,7 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(evaluated.data.passed, true);
 
   const award = await call(manager, 'POST', '/api/project-finance/awards', {
-    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 200, currency: 'JOD', awardReference: 'AWD-FIN-01' }
+    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 300, currency: 'JOD', awardReference: 'AWD-FIN-01' }
   });
   assert.strictEqual(award.status, 201, JSON.stringify(award.data));
 
@@ -1076,6 +1076,13 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
     body: { poNumber: 'PO-FIN-02', currency: 'JOD', items: [{ description: 'أعمال إضافية', quantity: 1, unitPrice: 1 }] }
   });
   assert.strictEqual(duplicateSpend.status, 422, 'لا يجوز أن يتجاوز مجموع أوامر الشراء قيمة الترسية');
+
+  // Concurrent PO creation must serialize against the award ceiling.
+  const concurrentPO = await Promise.all([1, 2].map((n) => call(procurement, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
+    body: { poNumber: 'PO-RACE-' + n, currency: 'JOD', items: [{ description: 'أعمال إضافية متزامنة', quantity: 1, unitPrice: 60 }] }
+  })));
+  assert.deepStrictEqual(concurrentPO.map((x) => x.status).sort(), [201, 422], 'يجب قبول أمر واحد فقط عند تزاحم تجاوز قيمة الترسية');
+
   assert.strictEqual((await call(manager, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/approve', { body: {} })).status, 200);
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/issue', { body: {} })).status, 200);
 
@@ -1090,6 +1097,12 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   });
   assert.strictEqual(invoice.status, 201, JSON.stringify(invoice.data));
   const invoiceId = invoice.data.invoice.id;
+
+  // Concurrent invoice submissions must not exceed the issued PO total.
+  const concurrentInvoices = await Promise.all([1, 2].map((n) => call(contractor, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/invoices', {
+    body: { invoiceNumber: 'INV-RACE-' + n, invoiceType: 'progress', items: [{ description: 'مستخلص متزامن', quantity: 1, unitPrice: 30 }] }
+  })));
+  assert.deepStrictEqual(concurrentInvoices.map((x) => x.status).sort(), [201, 409], 'يجب قبول فاتورة واحدة فقط عند تزاحم تجاوز أمر الشراء');
 
   // Returned invoices must be safely editable and resubmittable.
   const returned = await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
@@ -1136,10 +1149,10 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   });
   assert.strictEqual(overpayment.status, 409);
 
-  const finalPayment = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
-    body: { amount: 100, paymentReference: 'PAY-FIN-02', paymentDate: '2026-11-03' }
-  });
-  assert.strictEqual(finalPayment.status, 201);
+  const concurrentPayments = await Promise.all([1, 2].map((n) => call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 100, paymentReference: 'PAY-RACE-' + n, paymentDate: '2026-11-03' }
+  })));
+  assert.deepStrictEqual(concurrentPayments.map((x) => x.status).sort(), [201, 409], 'يجب قبول دفعة واحدة فقط حتى لا يتجاوز مجموع الدفعات قيمة الفاتورة');
   const finalState = await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId);
   assert.strictEqual(finalState.data.invoice.status, 'paid');
   assert.strictEqual(finalState.data.paid, 150);
