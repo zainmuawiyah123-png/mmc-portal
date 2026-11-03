@@ -77,12 +77,28 @@ function runSubscriptionExpiryJob() {
   }
 }
 
+
+async function runOpportunitySyncJob() {
+  const started=Date.now();
+  try {
+    const result=await require('./opportunity-sync').syncWorldBank({rows:100,offset:0});
+    const ms=Date.now()-started;
+    record({at:new Date().toISOString(),job:'opportunity-sync',ok:true,ms,message:'source=worldbank added='+result.added+' updated='+result.updated});
+    return {ok:true,...result,ms};
+  } catch(err) {
+    const ms=Date.now()-started;
+    record({at:new Date().toISOString(),job:'opportunity-sync',ok:false,ms,message:(err.message||String(err)).slice(0,300)});
+    return {ok:false,error:err.message,ms};
+  }
+}
+
 function startScheduler() {
   if (!config.SCHEDULER_ENABLED) {
     console.log('[scheduler] معطّل (SCHEDULER_ENABLED=false)');
     return { enabled: false, jobs: [] };
   }
-  if (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON)) {
+  if (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON) ||
+      (config.OPPORTUNITY_SYNC_ENABLED && !cron.validate(config.OPPORTUNITY_SYNC_CRON))) {
     console.error('[scheduler] تعبير cron غير صالح — لم تُجدول المهام');
     return { enabled: false, jobs: [], error: 'invalid cron' };
   }
@@ -95,10 +111,20 @@ function startScheduler() {
     runSubscriptionExpiryJob();
   }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
   _jobs.push(backupJob, expiryJob);
+  if (config.OPPORTUNITY_SYNC_ENABLED) {
+    const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
+      console.log('[scheduler] بدء مزامنة إعلانات البنك الدولي...');
+      runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
+    },{timezone:config.BACKUP_TZ,name:'opportunity-sync-worldbank'});
+    _jobs.push(opportunityJob);
+    console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
+  }
   console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
   console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
   return { enabled: true, jobs: ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
-    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON, tz: config.BACKUP_TZ };
+    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON,
+    opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED,
+    opportunitySyncCron: config.OPPORTUNITY_SYNC_CRON, tz: config.BACKUP_TZ };
 }
 
 function stopScheduler() {
@@ -113,4 +139,4 @@ function schedulerStatus() {
     running: _jobs.length, lastRun: _lastRun };
 }
 
-module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob };
+module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob };
