@@ -97,6 +97,7 @@ const config = {
   /** فحص الاشتراكات المنتهية يومياً — افتراضي 03:00 بتوقيت المنطقة */
   SUBSCRIPTION_EXPIRY_CRON: v('SUBSCRIPTION_EXPIRY_CRON', '0 3 * * *'),
   OPPORTUNITY_SYNC_ENABLED: v('OPPORTUNITY_SYNC_ENABLED', 'false') === 'true',
+  UNGM_ACCESS_TOKEN: v('UNGM_ACCESS_TOKEN', ''),
   OPPORTUNITY_SYNC_CRON: v('OPPORTUNITY_SYNC_CRON', '15 */6 * * *'),
   BACKUP_TZ: v('BACKUP_TZ', 'Asia/Riyadh'),
 
