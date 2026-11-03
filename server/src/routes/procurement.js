@@ -229,19 +229,27 @@ router.post('/tenders/:id/submit', contractor, bidUpload.fields([{ name: 'techni
   });
   tx();
   const store = S.getStorage();
+  const storedKeys = [];
   try {
     for (const [docClass, files] of [['technical', technicalFiles], ['financial', financialFiles]]) {
       for (const file of files) {
         const key = 'submissions/' + id + '/' + docClass + '/' + S.makeStoredName(file.originalname);
         const saved = await store.put(key, file.buffer, { mime: file.mimetype, originalName: S.displayName(file.originalname) });
+        storedKeys.push(key);
         db.prepare(`INSERT INTO bid_submission_docs
           (id,submission_id,doc_class,storage_key,storage_driver,original_name,mime,size,checksum_sha256)
           VALUES (?,?,?,?,?,?,?,?,?)`).run(uid('bdoc_'), id, docClass, key, store.DRIVER, S.displayName(file.originalname), file.mimetype, file.size, saved.checksum);
       }
     }
   } catch (err) {
-    // Fail closed: mark submission as withdrawn and remove any stored files if upload was incomplete.
-    db.prepare("UPDATE bid_submissions SET status='withdrawn' WHERE id=?").run(id);
+    // Roll back the incomplete electronic submission and remove every file already written.
+    for (const key of storedKeys) {
+      try { await store.delete(key); } catch (cleanupError) {
+        console.error('[bid-submit] failed to remove partial upload:', key, cleanupError.message);
+      }
+    }
+    db.prepare('DELETE FROM bid_submissions WHERE id=?').run(id);
+    audit({ action:'bid_submit_failed', entity:'bid_submission', entityId:id, userId:req.user.id, ip:req.ip, ok:false });
     throw err;
   }
   audit({ action:'bid_submit', entity:'bid_submission', entityId:id, userId:req.user.id, ip:req.ip, detail:{ tenderId:x.t.id, receiptReference:receipt, technicalFiles:technicalFiles.length, financialFiles:financialFiles.length } });
