@@ -139,10 +139,15 @@ router.post('/join', buyerOnly, wrap(async (req, res) => {
   // الدعوة نفسها محسوبة ضمن المقاعد، فالتحقق على الأعضاء الفعليين فقط
   if (seats.max !== null && seats.members >= seats.max) throw E.forbidden('اكتمل عدد المستخدمين في باقة هذه الجهة.');
   db.transaction(() => {
+    // Claim the single-use invitation atomically. Two simultaneous join requests
+    // must never both consume the same invitation.
+    const claimed = db.prepare("UPDATE org_invites SET status = 'used', used_by = ? WHERE id = ? AND status = 'pending' AND expires_at > unixepoch()").run(req.user.id, inv.id);
+    if (!claimed.changes) throw E.conflict('تم استخدام الدعوة أو انتهت صلاحيتها. اطلب دعوة جديدة.');
+    const currentMembership = db.prepare('SELECT org_id FROM org_members WHERE user_id = ?').get(req.user.id);
+    if (!currentMembership || currentMembership.org_id !== mine.org_id) throw E.conflict('تغيرت عضويتك أثناء تنفيذ الطلب. حدّث الصفحة وحاول مجدداً.');
     db.prepare('DELETE FROM organizations WHERE id = ?').run(mine.org_id);
     db.prepare('INSERT INTO org_members (org_id, user_id, role) VALUES (?,?,?)').run(target.id, req.user.id, inv.role);
-    db.prepare("UPDATE org_invites SET status = 'used', used_by = ? WHERE id = ?").run(req.user.id, inv.id);
-  })();
+  }).immediate();
   audit({ action: 'org_join', entity: 'organization', entityId: target.id, userId: req.user.id, ip: req.ip, detail: { role: inv.role } });
   res.json({ ok: true, org: { id: target.id, name: target.name }, role: inv.role, message: 'انضممت إلى ' + target.name });
 }));
