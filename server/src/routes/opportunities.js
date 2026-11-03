@@ -121,4 +121,10 @@ router.post('/admin/sync/ungm', wrap(async(req,res)=>{
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'ungm',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
+
+router.post('/admin/sync/joneps', wrap(async(req,res)=>{
+ const result=await require('../lib/joneps-sync').syncJONEPS();
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'joneps',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
 module.exports=router;
