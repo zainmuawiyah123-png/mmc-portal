@@ -336,9 +336,10 @@ router.post('/submissions/:id/open-financial', procOnly, wrap(async (req,res)=>{
   const db=getDB();
   const s=db.prepare('SELECT s.*,t.user_id buyer_id FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
   if(!s || (req.user.role!=='admin' && !O.canManageUserTenders(req.user,s.buyer_id))) throw E.notFound('التقديم غير موجود.');
+  if(s.status !== 'evaluated' || !s.evaluated_at) throw E.conflict('يجب إكمال التقييم الفني الرسمي وتسجيل نتيجته قبل فتح العرض المالي.');
   if(!s.technical_passed) throw E.conflict('لا يمكن فتح العرض المالي قبل اجتياز التقييم الفني.');
   if(s.financial_unlocked) throw E.conflict('سبق فتح العرض المالي.');
-  const changed=db.prepare('UPDATE bid_submissions SET financial_unlocked=1 WHERE id=? AND technical_passed=1 AND financial_unlocked=0').run(s.id);
+  const changed=db.prepare("UPDATE bid_submissions SET financial_unlocked=1 WHERE id=? AND status='evaluated' AND evaluated_at IS NOT NULL AND technical_passed=1 AND financial_unlocked=0").run(s.id);
   if(!changed.changes) throw E.conflict('تعذر فتح العرض المالي؛ حدّث الصفحة وحاول مجدداً.');
   db.prepare('UPDATE tenders SET financial_opened_at=COALESCE(financial_opened_at,unixepoch()) WHERE id=?').run(s.tender_id);
   audit({action:'financial_offer_unlocked',entity:'bid_submission',entityId:s.id,userId:req.user.id,ip:req.ip,detail:{tenderId:s.tender_id,technicalPoints:s.technical_points,authorizedBy:req.user.id}});
