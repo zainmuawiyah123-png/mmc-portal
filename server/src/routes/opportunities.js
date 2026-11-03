@@ -36,6 +36,16 @@ router.get('/', wrap(async (req,res) => {
 
 // MMC administrators curate/import official notices. No public write access.
 router.use(A.requireAuth, A.requireRole('admin'));
+router.get('/admin/sync-history', wrap(async(req,res)=>{
+ const source=clean(req.query.source,80);
+ const limit=Math.min(100,Math.max(1,Number(req.query.limit)||30));
+ const clauses=[],values=[];
+ if(source){clauses.push('source_key=?');values.push(source);}
+ const where=clauses.length?' WHERE '+clauses.join(' AND '):'';
+ const rows=getDB().prepare('SELECT id,source_key,started_at,finished_at,status,received,added,updated,duration_ms,error FROM opportunity_sync_runs'+where+' ORDER BY finished_at DESC LIMIT ?').all(...values,limit);
+ res.json({runs:rows.map(r=>({...r,startedAt:new Date(r.started_at*1000).toISOString(),finishedAt:new Date(r.finished_at*1000).toISOString()})),count:rows.length});
+}));
+
 router.get('/admin', wrap(async(req,res)=>{
  const rows=getDB().prepare('SELECT * FROM tender_opportunities ORDER BY imported_at DESC LIMIT 500').all();
  res.json({opportunities:rows.map(shape),count:rows.length});
