@@ -1137,6 +1137,11 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   });
   assert.strictEqual(invoice.status, 201, JSON.stringify(invoice.data));
   const invoiceId = invoice.data.invoice.id;
+  const invoiceFiles = await call(contractor, 'POST', '/api/project-finance/invoices/' + invoiceId + '/documents', {
+    form: makeForm([{ name: 'invoice-proof.pdf', content: '%PDF-1.4 proof' }])
+  });
+  assert.strictEqual(invoiceFiles.status, 201, JSON.stringify(invoiceFiles.data));
+  const invoiceDocumentId = invoiceFiles.data.documents[0].id;
 
   // Concurrent invoice submissions must not exceed the issued PO total.
   const concurrentInvoices = await Promise.all([1, 2].map((n) => call(contractor, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/invoices', {
@@ -1186,6 +1191,9 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   });
   assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
   assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/invoices/' + invoiceId + '/documents')).status, 404);
+  assert.strictEqual((await fetch(base + '/api/project-finance/invoice-documents/' + invoiceDocumentId + '/download', { headers: cookieFor(otherFinance) })).status, 404);
+  assert.strictEqual((await fetch(base + '/api/project-finance/invoice-documents/' + invoiceDocumentId + '/download', { headers: cookieFor(outsider) })).status, 404);
   assert.strictEqual((await call(otherFinance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 404);
 
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
