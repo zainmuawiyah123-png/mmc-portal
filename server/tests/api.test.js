@@ -1034,6 +1034,27 @@ test('74 — توثيق الجهة يخص الجهة كلها، وطلبه لم�
   } finally { cfg.REQUIRE_ORG_VERIFICATION = false; }
 });
 
+
+test('78 — الانضمام لا ينقل عطاءات الحساب القديمة إلى مؤسسة أخرى', async () => {
+  const target = await newBuyer('join-target', 'proc_pro');
+  const invite = await call(target, 'POST', '/api/org/invites', { body: { role: 'requester' } });
+  const applicant = await newBuyer('join-with-tender', 'proc_pro');
+  const created = await call(applicant, 'POST', '/api/tenders', {
+    body: { name: 'عطاء سابق مستقل', authority: 'جهة اختبار', closing: '2030-01-01', notes: 'لا يجوز نقله تلقائياً' }
+  });
+  assert.strictEqual(created.status, 201, JSON.stringify(created.data));
+  const before = getDB().prepare('SELECT org_id,user_id FROM tenders WHERE id=?').get(created.data.tender.id);
+  assert.strictEqual((await call(applicant, 'GET', '/api/org')).status, 200);
+  const ownOrg = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get((await call(applicant, 'GET', '/api/auth/me')).data.user.id);
+  assert.ok(ownOrg && before.org_id === ownOrg.org_id);
+  const joined = await call(applicant, 'POST', '/api/org/join', { body: { code: invite.data.code } });
+  assert.strictEqual(joined.status, 409);
+  const after = getDB().prepare('SELECT org_id,user_id FROM tenders WHERE id=?').get(created.data.tender.id);
+  const membership = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get((await call(applicant, 'GET', '/api/auth/me')).data.user.id);
+  assert.strictEqual(after.org_id, before.org_id);
+  assert.strictEqual(membership.org_id, ownOrg.org_id);
+});
+
 test('75 — الانضمام لا يُسمح به لمدير جهة فيها أعضاء أو طلبات', async () => {
   const other = await newBuyer('o', 'proc_pro');
   const inv = await call(other, 'POST', '/api/org/invites', { body: { role: 'requester' } });
