@@ -12,9 +12,9 @@ function dateISO(value){
 }
 function extractPageUrls(html){
  const found=new Map([[LIST_URL,1]]);
- for(const match of String(html||'').matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)){
+ for(const match of String(html||'').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
   const label=clean(match[2]),number=Number(label);
-  if(!/^\\d+$/.test(label)||number<2||number>10)continue;
+  if(!/^\d+$/.test(label)||number<2||number>10)continue;
   try{
    const url=new URL(match[1],LIST_URL);
    if(url.origin==='https://www.joneps.gov.jo'&&url.pathname==='/ep/invt/selectListTendInvitAL.do')found.set(url.toString(),number);
