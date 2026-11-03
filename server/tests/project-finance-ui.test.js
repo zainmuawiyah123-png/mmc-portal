@@ -149,3 +149,27 @@ test('OPP-09 — واجهة المدير توفر زر مزامنة UNGM مع ع
   assert.ok(tenderDirectory.includes('/api/opportunities/admin/sync/ungm'));
   assert.doesNotMatch(tenderDirectory, /UNGM_ACCESS_TOKEN\s*[:=]/);
 });
+
+
+test('OPP-10 — مستورد JONEPS يقرأ صفوف دعوات العطاءات المنشورة ويطبع المواعيد', () => {
+  const { parseJonepsRows } = require('../src/lib/joneps-sync');
+  const fixture = '<table><tr><th>رقم</th></tr><tr><td><a href="/ep/invt/view.do?id=1">2026004514-00</a></td><td><a href="/ep/invt/view.do?id=1">شراء قطع غيار</a></td><td>وزارة النقل</td><td>لوازم</td><td>02/11/2026</td><td>15/11/2026</td></tr></table>';
+  const rows = parseJonepsRows(fixture);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].id, '2026004514-00');
+  assert.equal(rows[0].title, 'شراء قطع غيار');
+  assert.equal(rows[0].authority, 'وزارة النقل');
+  assert.equal(rows[0].publishedAt, '2026-11-02');
+  assert.equal(rows[0].closingAt, '2026-11-15');
+  assert.match(rows[0].sourceUrl, /^https:\/\/www\.joneps\.gov\.jo\//);
+});
+
+test('OPP-11 — زر JONEPS لا يتيح الاستيراد إلا من واجهة المدير', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const connector = fs.readFileSync(path.join(__dirname, '../src/lib/joneps-sync.js'), 'utf8');
+  assert.ok(tenderDirectory.includes('oa-sync-joneps'));
+  assert.ok(tenderDirectory.includes('/api/opportunities/admin/sync/joneps'));
+  assert.ok(route.includes("router.post('/admin/sync/joneps'"));
+  assert.ok(connector.includes('www.joneps.gov.jo/ep/invt/selectListTendInvitAL.do'));
+  assert.ok(connector.includes('no recognizable tender rows'));
+});
