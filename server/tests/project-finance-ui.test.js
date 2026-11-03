@@ -58,7 +58,7 @@ test('MMCUI-01 — دليل العطاءات يضم مصادر الأردن وا
   for (const token of ['JONEPS', 'Government Tenders Department', 'UNGM', 'World Bank', 'TED', 'Etimad', 'Tender.jo']) {
     assert.ok(tenderDirectory.includes(token), 'مصدر مفقود من الدليل: ' + token);
   }
-  const links = [...tenderDirectory.matchAll(/<a\\s+href="https?:\\/\\//g)];
+  const links = [...tenderDirectory.matchAll(/href="https?:/g)];
   assert.ok(links.length >= 10, 'يجب توفير مجموعة روابط مصادر مباشرة');
 });
 
