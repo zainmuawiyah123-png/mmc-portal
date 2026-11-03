@@ -23,6 +23,7 @@ const verificationRoutes = require('./routes/verification');
 const orgRoutes = require('./routes/org');
 const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
+const opportunitiesRoutes = require('./routes/opportunities');
 
 function createApp() {
   const app = express();
@@ -93,6 +94,7 @@ function createApp() {
   app.use('/api/org', orgRoutes);
   app.use('/api/requests', requestRoutes);
   app.use('/api/project-finance', projectFinanceRoutes);
+  app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
 
   app.use('/api', (req, res) => {
