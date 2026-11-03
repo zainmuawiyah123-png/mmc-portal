@@ -325,11 +325,24 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   }
   const points=normalized*s.technical_weight/100;
   const passed=points>=s.technical_threshold && !missing;
-  db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL ${passed ? ', financial_unlocked=1' : ''} WHERE id=?`)
-    .run(normalized, points, passed?1:0, passed?1:0, s.id);
-  if (passed) db.prepare('UPDATE tenders SET financial_opened_at=COALESCE(financial_opened_at,unixepoch()) WHERE id=?').run(s.tender_id);
-  audit({ action: passed ? 'financial_offer_unlocked' : 'technical_evaluation_completed', entity:'bid_submission', entityId:s.id, userId:req.user.id, ip:req.ip, detail:{ tenderId:s.tender_id, technicalPoints:points, threshold:s.technical_threshold, financialUnlocked:passed } });
-  res.json({ ok:true, technicalScore:normalized, technicalPoints:points, passed, financialOpened:passed, message:passed?'اجتاز العرض الفني؛ تم فتح المالي آلياً.':'لم يبلغ العرض الحد الفني؛ بقي المالي مقفلاً.' });
+  db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=0,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL WHERE id=?`)
+    .run(normalized, points, passed?1:0, s.id);
+  audit({ action:'technical_evaluation_completed', entity:'bid_submission', entityId:s.id, userId:req.user.id, ip:req.ip, detail:{ tenderId:s.tender_id, technicalPoints:points, threshold:s.technical_threshold, qualified:passed, financialUnlocked:false } });
+  res.json({ ok:true, technicalScore:normalized, technicalPoints:points, passed, financialOpened:false, message:passed?'اجتاز العرض الفني. يلزم إجراء فتح مالي مستقل ومصرّح به.':'لم يبلغ العرض الحد الفني؛ بقي المالي مقفلاً.' });
+}));
+
+/* فتح مالي مستقل بعد اعتماد النتيجة الفنية — إجراء صريح مسجل في سجل التدقيق */
+router.post('/submissions/:id/open-financial', procOnly, wrap(async (req,res)=>{
+  const db=getDB();
+  const s=db.prepare('SELECT s.*,t.user_id buyer_id FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
+  if(!s || (req.user.role!=='admin' && !O.canManageUserTenders(req.user,s.buyer_id))) throw E.notFound('التقديم غير موجود.');
+  if(!s.technical_passed) throw E.conflict('لا يمكن فتح العرض المالي قبل اجتياز التقييم الفني.');
+  if(s.financial_unlocked) throw E.conflict('سبق فتح العرض المالي.');
+  const changed=db.prepare('UPDATE bid_submissions SET financial_unlocked=1 WHERE id=? AND technical_passed=1 AND financial_unlocked=0').run(s.id);
+  if(!changed.changes) throw E.conflict('تعذر فتح العرض المالي؛ حدّث الصفحة وحاول مجدداً.');
+  db.prepare('UPDATE tenders SET financial_opened_at=COALESCE(financial_opened_at,unixepoch()) WHERE id=?').run(s.tender_id);
+  audit({action:'financial_offer_unlocked',entity:'bid_submission',entityId:s.id,userId:req.user.id,ip:req.ip,detail:{tenderId:s.tender_id,technicalPoints:s.technical_points,authorizedBy:req.user.id}});
+  res.json({ok:true,financialOpened:true,message:'تم فتح العرض المالي بعد اعتماد التأهيل الفني.'});
 }));
 
 /* وثائق العطاء (المخططات والمواصفات والشروط) — للمقاول بعد النشر ولأعضاء الجهة */
