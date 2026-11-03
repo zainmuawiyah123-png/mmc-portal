@@ -34,7 +34,7 @@ async function syncUNGM({accessToken,rows=100,pages=5}={}){
  let next='https://www.ungm.org/API/Notices';
  for(let page=0;page<Math.min(10,Math.max(1,pages))&&next;page++){
   const url=new URL(next);
-  if(url.origin!=='https://www.ungm.org'||!url.pathname.startsWith('/API/Notices'))throw new Error('UNGM returned an unexpected pagination URL.');
+  if(url.origin!=='https://www.ungm.org'||url.pathname!=='/API/Notices')throw new Error('UNGM returned an unexpected pagination URL.');
   if(page===0){url.searchParams.set('$top',String(pageSize));url.searchParams.set('$orderby','DatePublished desc');}
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
   let payload;
