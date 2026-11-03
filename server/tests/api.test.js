@@ -1041,7 +1041,7 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
     body: { name: 'مقاول الدورة المالية', email: contractorEmail, password: 'Password123' }
   });
   const submitted = await call(contractor, 'POST', '/api/procurement/tenders/' + tender.id + '/submit', {
-    body: bidBody(tender, 200)
+    body: bidBody(tender, 300)
   });
   assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
 
