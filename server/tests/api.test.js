@@ -708,7 +708,7 @@ function grantPlan(email, planKey) {
   getDB().prepare("INSERT INTO subscriptions (id,user_id,plan_key,status,source,started_at,ends_at) VALUES (?,?,?,?,?,unixepoch(),unixepoch()+2592000)").run('sub_t' + uniq(), u.id, planKey, 'active', 'manual');
   getDB().prepare('UPDATE users SET plan_key=? WHERE id=?').run(planKey, u.id);
 }
-const bidBody = (t, amount = 1000) => { const fd = new FormData(); fd.append('answers', JSON.stringify(t.requirements.map((q) => ({ requirementId: q.id, answer: 'إجابة' })))); fd.append('financialAmount', String(amount)); fd.append('financialCurrency', 'JOD'); fd.append('declarationAccepted', 'true'); fd.append('technicalFiles', new Blob(['technical test document'], { type: 'application/pdf' }), 'technical.pdf'); fd.append('financialFiles', new Blob(['financial test document'], { type: 'application/pdf' }), 'financial.pdf'); return fd; };
+const bidBody = (t, amount = 1000, currency = 'JOD') => { const fd = new FormData(); fd.append('answers', JSON.stringify(t.requirements.map((q) => ({ requirementId: q.id, answer: 'إجابة' })))); fd.append('financialAmount', String(amount)); fd.append('financialCurrency', currency); fd.append('declarationAccepted', 'true'); fd.append('technicalFiles', new Blob(['technical test document'], { type: 'application/pdf' }), 'technical.pdf'); fd.append('financialFiles', new Blob(['financial test document'], { type: 'application/pdf' }), 'financial.pdf'); return fd; };
 
 test('63 — لا تقديم بعد موعد الإغلاق، ويُقبل في يوم الإغلاق نفسه وبدون موعد', async () => {
   const ymd = (d) => new Date(d).toISOString().slice(0, 10);
@@ -812,7 +812,7 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
     const seen = open.data.tenders.find((t) => t.id === pub.data.tender.id);
     assert.ok(seen && seen.issuer.verified === true && seen.issuer.country === 'AE' && seen.issuer.name.includes('ذ.م.م'));
     // عملة العرض: KWD مقبولة، وغير المعروفة تعود لعملة دولة الجهة
-    const ok = await call('vc', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: { ...bidBody(pub.data.tender), financialCurrency: 'KWD' } });
+    const ok = await call('vc', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: bidBody(pub.data.tender, 1000, 'KWD') });
     assert.strictEqual(ok.status, 201);
     assert.strictEqual(getDB().prepare('SELECT financial_currency c FROM bid_submissions WHERE id=?').get(ok.data.submissionId).c, 'KWD');
     // سحب التوثيق: يختفي العطاء ويُمنع التقديم
