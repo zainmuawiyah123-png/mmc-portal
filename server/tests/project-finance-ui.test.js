@@ -103,3 +103,20 @@ test('OPP-04 — واجهة API تعرض بيانات منشورة فقط وتف
   assert.match(route, /router\.use\(A\.requireAuth, A\.requireRole\('admin'\)\)/);
   assert.match(route, /protocol !== 'https:'/);
 });
+
+
+test('OPP-05 — موصل البنك الدولي يستخدم واجهة الإعلانات الرسمية العامة مع مهلة اتصال', () => {
+  const connector = fs.readFileSync(path.join(__dirname, '../src/lib/opportunity-sync.js'), 'utf8');
+  assert.ok(connector.includes('https://search.worldbank.org/api/v2/procnotices'));
+  assert.ok(connector.includes('AbortController'));
+  assert.ok(connector.includes("source_key='worldbank'") || connector.includes("'worldbank'"));
+  assert.ok(connector.includes('ON CONFLICT(source_key,external_id) DO UPDATE'));
+});
+
+test('OPP-06 — مزامنة المصدر اختيارية ومجدولة دون تغيير إعدادات الإنتاج تلقائياً', () => {
+  const config = fs.readFileSync(path.join(__dirname, '../src/config.js'), 'utf8');
+  const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
+  assert.ok(config.includes("OPPORTUNITY_SYNC_ENABLED: v('OPPORTUNITY_SYNC_ENABLED', 'false') === 'true'"));
+  assert.ok(scheduler.includes('config.OPPORTUNITY_SYNC_ENABLED'));
+  assert.ok(scheduler.includes('runOpportunitySyncJob'));
+});
