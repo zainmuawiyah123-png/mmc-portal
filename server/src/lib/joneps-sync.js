@@ -10,11 +10,11 @@ function dateISO(value){
  const m=String(value||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
  return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):null;
 }
-function extractPageUrls(html){
+function extractPageUrls(html,maxPage=100){
  const found=new Map([[LIST_URL,1]]);
  for(const match of String(html||'').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
   const label=clean(match[2]),number=Number(label);
-  if(!/^\d+$/.test(label)||number<2||number>10)continue;
+  if(!/^\d+$/.test(label)||number<2||number>Math.min(500,Math.max(2,Number(maxPage)||100)))continue;
   try{
    const url=new URL(match[1],LIST_URL);
    if(url.origin==='https://www.joneps.gov.jo'&&url.pathname==='/ep/invt/selectListTendInvitAL.do')found.set(url.toString(),number);
@@ -23,8 +23,9 @@ function extractPageUrls(html){
  return [...found.entries()].sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
 }
 function parseJonepsRows(html){
- const out=[];
- for(const tr of String(html||'').match(/<tr\b[\s\S]*?<\/tr>/gi)||[]){
+ const out=[],trs=String(html||'').match(/<tr\b[\s\S]*?<\/tr>/gi)||[];
+ for(let rowIndex=0;rowIndex<trs.length;rowIndex++){
+  const tr=trs[rowIndex];
   const cells=[...tr.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m=>m[1]);
   if(cells.length<6)continue;
   const number=clean(cells[0]),title=clean(cells[1]),authority=clean(cells[2]),sector=clean(cells[3]);
@@ -35,12 +36,15 @@ function parseJonepsRows(html){
   if(hrefMatch){
    try{const u=new URL(hrefMatch,LIST_URL);if(u.origin==='https://www.joneps.gov.jo')sourceUrl=u.toString();}catch(_){}
   }
-  const expired=deadline&&deadline<new Date().toISOString().slice(0,10);
-  out.push({id:number,title,authority:authority||'جهة حكومية أردنية',country:'JO',sector:sector||null,tenderNumber:number,summary:'إعلان عطاء منشور على نظام الشراء الإلكتروني الأردني JONEPS.',publishedAt:published,closingAt:deadline,sourceUrl,applicationUrl:null,status:expired?'closed':'open',language:'ar'});
+  const nextCells=[...(trs[rowIndex+1]||'').matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)];
+  const stateText=clean(tr)+(nextCells.length<6?clean(trs[rowIndex+1]||''):'');
+  const cancelled=/ملغي|ملغى|cancelled|canceled/i.test(stateText);
+  const expired=deadline&&deadline<new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
+  out.push({id:number,title,authority:authority||'جهة حكومية أردنية',country:'JO',sector:sector||null,tenderNumber:number,summary:'إعلان عطاء منشور على نظام الشراء الإلكتروني الأردني JONEPS.',publishedAt:published,closingAt:deadline,sourceUrl,applicationUrl:null,status:cancelled?'cancelled':expired?'closed':'open',language:'ar'});
  }
  return out;
 }
-async function syncJONEPS(){
+async function syncJONEPS({maxPages=100}={}){
  const fetchPage=async url=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
   try{
@@ -50,7 +54,7 @@ async function syncJONEPS(){
   }finally{clearTimeout(timer);}
  };
  const firstHtml=await fetchPage(LIST_URL);
- const pageUrls=extractPageUrls(firstHtml).slice(0,10);
+ const pageUrls=extractPageUrls(firstHtml,maxPages).slice(0,Math.min(100,Math.max(1,maxPages)));
  const htmlPages=[firstHtml];
  for(const url of pageUrls.slice(1))htmlPages.push(await fetchPage(url));
  const notices=[...new Map(htmlPages.flatMap(parseJonepsRows).map(n=>[n.id,n])).values()];
