@@ -107,4 +107,10 @@ router.post('/admin/bulk', wrap(async(req,res)=>{
  audit({action:'opportunity_bulk_import',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:result});
  res.json({ok:true,...result,processed:rows.length});
 }));
+
+router.post('/admin/sync/worldbank', wrap(async(req,res)=>{
+ const result=await require('../lib/opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5});
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'worldbank',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
 module.exports=router;
