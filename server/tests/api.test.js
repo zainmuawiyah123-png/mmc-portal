@@ -1091,6 +1091,17 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(invoice.status, 201, JSON.stringify(invoice.data));
   const invoiceId = invoice.data.invoice.id;
 
+  // Cross-organization and unrelated-contractor reads must not expose this real invoice.
+  const otherManager = await newBuyer('finother', 'proc_pro');
+  const otherFinance = (await joinTeam(otherManager, 'finance', 'finother-role')).who;
+  const outsider = 'finoutsider' + uniq();
+  await call(outsider, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول غير مرتبط', email: outsider + '@t.com', password: 'Password123' }
+  });
+  assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/invoices/' + invoiceId)).status, 404);
+  assert.strictEqual((await call(otherFinance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 404);
+
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
     body: { decision: 'accepted', note: 'مطابقة لأمر الشراء' }
   })).data.status, 'owner_confirmation');
