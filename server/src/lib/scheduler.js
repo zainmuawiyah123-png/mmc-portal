@@ -90,6 +90,7 @@ function persistOpportunitySync(source, startedAt, result) {
       Number(result.received)||0, Number(result.added)||0, Number(result.updated)||0,
       Math.max(0,Date.now()-startedAt), result.error?String(result.error).slice(0,500):null
     );
+    db.prepare(`DELETE FROM opportunity_sync_runs WHERE source_key=? AND id NOT IN (SELECT id FROM opportunity_sync_runs WHERE source_key=? ORDER BY finished_at DESC LIMIT 1000)`).run(source,source);
   } catch(err) {
     console.error('[scheduler] تعذر حفظ سجل مزامنة '+source+':',err.message);
   }
