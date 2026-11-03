@@ -47,7 +47,8 @@ const ORG_ROLES = {
   manager: { ar: 'مدير الجهة', en: 'Organization manager' },
   requester: { ar: 'مالك / طالب الخدمة', en: 'Owner / requester' },
   projects: { ar: 'دائرة المشاريع', en: 'Projects department' },
-  procurement: { ar: 'المشتريات', en: 'Procurement' }
+  procurement: { ar: 'المشتريات', en: 'Procurement' },
+  finance: { ar: 'المالية', en: 'Finance' }
 };
 const PUBLIC_DOC_KINDS = ['drawings', 'specifications', 'boq', 'conditions', 'particular_conditions'];
 const DOC_KINDS = ['brief', ...PUBLIC_DOC_KINDS, 'internal'];
