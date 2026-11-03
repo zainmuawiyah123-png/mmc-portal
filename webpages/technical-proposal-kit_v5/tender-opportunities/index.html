@@ -24,7 +24,7 @@
 <div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
 <p class="muted" id="opp-count"></p>
 <div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
-<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>إضافة إعلان يدوياً</h3>
+<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-gtd" type="button">مزامنة دائرة العطاءات الحكومية</button><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>إضافة إعلان يدوياً</h3>
 <p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
 <div class="grid">
 <input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
@@ -95,6 +95,15 @@
    const res=await fetch('/api/opportunities/admin/sync/worldbank',{method:'POST',credentials:'same-origin'});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت المزامنة');
    msg.textContent='اكتملت المزامنة: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
+   load();
+  }catch(e){msg.textContent=e.message;}
+ });
+ document.getElementById('oa-sync-gtd').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ قراءة العطاءات المطروحة لدى دائرة العطاءات الحكومية...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync/gtd',{method:'POST',credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت مزامنة دائرة العطاءات الحكومية');
+   msg.textContent='دائرة العطاءات الحكومية: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
    load();
   }catch(e){msg.textContent=e.message;}
  });
