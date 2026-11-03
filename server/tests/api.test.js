@@ -1120,6 +1120,23 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   // Cross-organization and unrelated-contractor reads must not expose this real invoice.
   const otherManager = await newBuyer('finother', 'proc_pro');
   const otherFinance = (await joinTeam(otherManager, 'finance', 'finother-role')).who;
+
+  // Tenant isolation: a second organization's manager/finance users cannot
+  // discover, read, evaluate, award, or transact against this organization's tender.
+  const otherProcurement = (await joinTeam(otherManager, 'procurement', 'finother-procurement')).who;
+  const otherTenderList = await call(otherProcurement, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(otherTenderList.status, 200);
+  assert.ok(!otherTenderList.data.tenders.some((t) => t.id === tender.id), 'العطاء لا يظهر في قائمة مشتريات جهة أخرى');
+  assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id)).status, 404);
+  assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id + '/evaluations')).status, 404);
+  assert.strictEqual((await call(otherProcurement, 'GET', '/api/procurement/tenders/' + tender.id + '/documents')).status, 404);
+  assert.strictEqual((await call(otherManager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 300, currency: 'JOD' }
+  })).status, 404);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/awards')).data.awards.length, 0);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/purchase-orders')).data.purchaseOrders.length, 0);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/project-finance/invoices')).data.invoices.length, 0);
+  assert.strictEqual((await call(otherFinance, 'GET', '/api/requests')).data.requests.length, 0);
   const outsider = 'finoutsider' + uniq();
   await call(outsider, 'POST', '/api/auth/register', {
     body: { name: 'مقاول غير مرتبط', email: outsider + '@t.com', password: 'Password123' }
