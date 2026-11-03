@@ -24,7 +24,7 @@
 <div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
 <p class="muted" id="opp-count"></p>
 <div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
-<h3>إضافة إعلان إلى دليل MMC (للمسؤولين فقط)</h3>
+<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><span id="oa-sync-message" class="muted"></span><h3>إضافة إعلان يدوياً</h3>
 <p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
 <div class="grid">
 <input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
@@ -89,6 +89,15 @@
  fetch('/api/auth/me',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(me=>{
   if(me&&(me.user?.role==='admin'||me.role==='admin'))document.getElementById('opp-admin').hidden=false;
  }).catch(()=>{});
+ document.getElementById('oa-sync-worldbank').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ جلب أحدث الإعلانات من البنك الدولي...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync/worldbank',{method:'POST',credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت المزامنة');
+   msg.textContent='اكتملت المزامنة: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
+   load();
+  }catch(e){msg.textContent=e.message;}
+ });
  document.getElementById('oa-save').addEventListener('click',async()=>{
   const msg=document.getElementById('oa-message');msg.textContent='جارٍ الحفظ...';
   const v=id=>document.getElementById(id).value.trim();
