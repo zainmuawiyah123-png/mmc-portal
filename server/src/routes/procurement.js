@@ -4,6 +4,11 @@
  * المالي لا يعاد من API التقييم إلا بعد اجتياز الحد الفني.
  */
 const express = require('express');
+const multer = require('multer');
+const crypto = require('crypto');
+const config = require('../config');
+const S = require('../lib/storage');
+const { audit } = require('../lib/audit');
 const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
@@ -21,6 +26,9 @@ const procOnly = [buyer, (req, res, next) => {
   return next();
 }];
 const contractor = A.requireRole('contractor', 'admin');
+const bidUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.MAX_FILE_BYTES, files: config.MAX_FILES_PER_REQUEST * 2 },
+  fileFilter: (req, file, cb) => { try { S.assertAllowed(file.originalname, 0); cb(null, true); } catch (e) { cb(e); } }
+});
 
 function cleanRequirement(r, i) {
   return {
@@ -182,7 +190,7 @@ router.get('/tenders/:id', wrap(async (req, res) => {
 }));
 
 /* تقديم فني ومالي؛ المالي يخزن في القاعدة لكنه لا يخرج للمقيم قبل الفتح */
-router.post('/tenders/:id/submit', contractor, wrap(async (req, res) => {
+router.post('/tenders/:id/submit', contractor, bidUpload.fields([{ name: 'technicalFiles', maxCount: config.MAX_FILES_PER_REQUEST }, { name: 'financialFiles', maxCount: config.MAX_FILES_PER_REQUEST }]), wrap(async (req, res) => {
   const x = getTender(req.params.id);
   if (x.t.procurement_status !== 'published') throw E.conflict('العطاء غير منشور أو مغلق.');
   if (!O.ownerVerified(x.t.user_id)) throw E.conflict('جهة هذا العطاء غير موثّقة حالياً، فلا تُقبل عروض جديدة عليه.');
@@ -196,22 +204,69 @@ router.post('/tenders/:id/submit', contractor, wrap(async (req, res) => {
   const b = req.body || {};
   const amount = Number(b.financialAmount);
   if (!Number.isFinite(amount) || amount <= 0) throw E.validation('أدخل قيمة مالية صحيحة.');
-  if (!Array.isArray(b.answers) || b.answers.length !== x.reqs.length) throw E.validation('يجب الإجابة عن جميع المتطلبات الفنية.');
+  if (!Array.isArray(parsedAnswers) || parsedAnswers.length !== x.reqs.length) throw E.validation('يجب الإجابة عن جميع المتطلبات الفنية.');
   if (getDB().prepare('SELECT id FROM bid_submissions WHERE tender_id = ? AND contractor_id = ?').get(x.t.id, req.user.id)) throw E.conflict('سبق تقديم العرض لهذا العطاء.');
-  const calc = calculateTechnical(x.reqs, b.answers, x.t.technical_weight);
+  const calc = calculateTechnical(x.reqs, parsedAnswers, x.t.technical_weight);
   const db = getDB();
   const id = uid('sub_');
+  const receipt = 'MMC-' + crypto.randomBytes(5).toString('hex').toUpperCase();
   const tx = db.transaction(() => {
     db.prepare(`INSERT INTO bid_submissions
-      (id,tender_id,contractor_id,technical_score,technical_points,technical_passed,financial_amount,financial_currency)
-      VALUES (?,?,?,?,?,?,?,?)`).run(id, x.t.id, req.user.id, calc.normalized, calc.points,
+      (id,tender_id,contractor_id,technical_score,technical_points,technical_passed,financial_amount,financial_currency,receipt_reference,declaration_accepted,submitted_ip)
+      VALUES (?,?,?,?,?,?,?,?,?,1,?)`).run(id, x.t.id, req.user.id, calc.normalized, calc.points,
       calc.points >= x.t.technical_threshold && !calc.missingMandatory ? 1 : 0, amount,
-      O.BID_CURRENCIES.includes(String(b.financialCurrency || '').toUpperCase()) ? String(b.financialCurrency).toUpperCase() : (O.COUNTRIES[x.t.country] || O.COUNTRIES.JO).currency);
+      O.BID_CURRENCIES.includes(String(b.financialCurrency || '').toUpperCase()) ? String(b.financialCurrency).toUpperCase() : (O.COUNTRIES[x.t.country] || O.COUNTRIES.JO).currency,
+      receipt, String(req.ip || '').slice(0, 64));
     const ins = db.prepare('INSERT INTO bid_responses (id,submission_id,requirement_id,answer,score) VALUES (?,?,?,?,?)');
     calc.details.forEach((d) => ins.run(uid('rsp_'), id, d.requirementId, d.answer, d.score));
   });
   tx();
-  res.status(201).json({ submissionId: id, technicalPoints: calc.points, message: 'تم استلام العرض الفني والمالي، والمالي محفوظ ومقفل أمام لجنة التقييم.' });
+  const store = S.getStorage();
+  try {
+    for (const [docClass, files] of [['technical', technicalFiles], ['financial', financialFiles]]) {
+      for (const file of files) {
+        const key = 'submissions/' + id + '/' + docClass + '/' + S.makeStoredName(file.originalname);
+        const saved = await store.put(key, file.buffer, { mime: file.mimetype, originalName: S.displayName(file.originalname) });
+        db.prepare(`INSERT INTO bid_submission_docs
+          (id,submission_id,doc_class,storage_key,storage_driver,original_name,mime,size,checksum_sha256)
+          VALUES (?,?,?,?,?,?,?,?,?)`).run(uid('bdoc_'), id, docClass, key, store.DRIVER, S.displayName(file.originalname), file.mimetype, file.size, saved.checksum);
+      }
+    }
+  } catch (err) {
+    // Fail closed: mark submission as withdrawn and remove any stored files if upload was incomplete.
+    db.prepare("UPDATE bid_submissions SET status='withdrawn' WHERE id=?").run(id);
+    throw err;
+  }
+  audit({ action:'bid_submit', entity:'bid_submission', entityId:id, userId:req.user.id, ip:req.ip, detail:{ tenderId:x.t.id, receiptReference:receipt, technicalFiles:technicalFiles.length, financialFiles:financialFiles.length } });
+  res.status(201).json({ submissionId: id, receiptReference:receipt, submittedAt:db.prepare('SELECT submitted_at FROM bid_submissions WHERE id=?').get(id).submitted_at,
+    technicalPoints: calc.points, message: 'تم استلام العرضين الفني والمالي والملفات المرفقة. احتفظ برقم الإيصال.' });
+}));
+
+/* إيصال إلكتروني وتفاصيل المرفقات — المالي لا يظهر إلا للمقاول نفسه أو بعد فتحه رسمياً */
+router.get('/submissions/:id/receipt', contractor, wrap(async (req,res)=>{
+  const row=getDB().prepare(`SELECT s.id,s.receipt_reference,s.submitted_at,s.technical_points,s.technical_passed,s.contractor_id,t.reference tender_reference,t.name tender_name
+    FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?`).get(req.params.id);
+  if(!row || (req.user.role!=='admin' && row.contractor_id!==req.user.id)) throw E.notFound('الإيصال غير موجود.');
+  const docs=getDB().prepare('SELECT doc_class,original_name,size,uploaded_at FROM bid_submission_docs WHERE submission_id=? ORDER BY doc_class,uploaded_at').all(row.id);
+  res.setHeader('Cache-Control','private, no-store');
+  res.json({receipt:{reference:row.receipt_reference,submittedAt:row.submitted_at,submissionId:row.id,tenderReference:row.tender_reference,tenderName:row.tender_name,technicalPoints:row.technical_points,technicalPassed:!!row.technical_passed,documents:docs}});
+}));
+
+router.get('/submissions/:id/documents/:docId', procOnly.concat(wrap(async (req,res,next)=>next())), wrap(async(req,res)=>{
+  const db=getDB();
+  const d=db.prepare(`SELECT d.*,s.contractor_id,s.tender_id,s.financial_unlocked,t.user_id buyer_id
+    FROM bid_submission_docs d JOIN bid_submissions s ON s.id=d.submission_id JOIN tenders t ON t.id=s.tender_id
+    WHERE d.id=? AND s.id=?`).get(req.params.docId,req.params.id);
+  if(!d) throw E.notFound('الملف غير موجود.');
+  const own=req.user.role==='contractor' && d.contractor_id===req.user.id;
+  const staff=req.user.role==='admin' || (req.user.role==='buyer' && O.canManageUserTenders(req.user,d.buyer_id));
+  if(!own && !staff) throw E.notFound('الملف غير موجود.');
+  if(d.doc_class==='financial' && !own && !d.financial_unlocked) throw E.forbidden('العرض المالي مقفل حتى اعتماد فتحه رسمياً.');
+  const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+  if(!(await store.exists(d.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+  audit({action:'download',entity:'bid_submission_document',entityId:d.id,userId:req.user.id,ip:req.ip,detail:{class:d.doc_class}});
+  res.setHeader('Cache-Control','private, no-store');res.setHeader('Content-Type',d.mime||'application/octet-stream');
+  res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));store.stream(d.storage_key).pipe(res);
 }));
 
 /* التقييم/الفتح والترتيب */
