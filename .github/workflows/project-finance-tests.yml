@@ -6,6 +6,7 @@ on:
       - feature/po-invoice-workflow
     paths:
       - "server/**"
+      - "webpages/technical-proposal-kit_v5/**"
       - ".github/workflows/project-finance-tests.yml"
   workflow_dispatch:
 
