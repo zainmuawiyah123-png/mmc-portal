@@ -328,6 +328,7 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   db.prepare(`UPDATE bid_submissions SET technical_score=?,technical_points=?,technical_passed=?,financial_unlocked=?,status='evaluated',evaluated_at=unixepoch(),financial_score=NULL,total_score=NULL ${passed ? ', financial_unlocked=1' : ''} WHERE id=?`)
     .run(normalized, points, passed?1:0, passed?1:0, s.id);
   if (passed) db.prepare('UPDATE tenders SET financial_opened_at=COALESCE(financial_opened_at,unixepoch()) WHERE id=?').run(s.tender_id);
+  audit({ action: passed ? 'financial_offer_unlocked' : 'technical_evaluation_completed', entity:'bid_submission', entityId:s.id, userId:req.user.id, ip:req.ip, detail:{ tenderId:s.tender_id, technicalPoints:points, threshold:s.technical_threshold, financialUnlocked:passed } });
   res.json({ ok:true, technicalScore:normalized, technicalPoints:points, passed, financialOpened:passed, message:passed?'اجتاز العرض الفني؛ تم فتح المالي آلياً.':'لم يبلغ العرض الحد الفني؛ بقي المالي مقفلاً.' });
 }));
 
