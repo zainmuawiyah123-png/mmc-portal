@@ -53,6 +53,7 @@ function poForOrg(id, orgId) {
   if (!p) throw E.notFound('أمر الشراء غير موجود.');
   return p;
 }
+const FINANCE_READ_ROLES = ['manager', 'procurement', 'requester', 'finance'];
 function invoiceFor(req, id) {
   const row = db().prepare(`SELECT i.*, p.status po_status, p.total_amount po_total, p.requires_owner_confirmation, a.contractor_user_id, a.tender_id
     FROM project_invoices i JOIN purchase_orders p ON p.id=i.po_id
@@ -62,7 +63,7 @@ function invoiceFor(req, id) {
     if (row.contractor_user_id !== req.user.id) throw E.notFound('الفاتورة غير موجودة.');
   } else {
     const m = member(req);
-    if (m.org_id !== row.org_id) throw E.notFound('الفاتورة غير موجودة.');
+    if (!FINANCE_READ_ROLES.includes(m.role) || m.org_id !== row.org_id) throw E.notFound('الفاتورة غير موجودة.');
   }
   return row;
 }
@@ -113,7 +114,7 @@ router.get('/awards', wrap(async (req, res) => {
     const rows = db().prepare(`SELECT a.*, t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.contractor_user_id=? ORDER BY a.awarded_at DESC`).all(req.user.id);
     return res.json({ awards: rows });
   }
-  const m = member(req);
+  const m = requireOrg(req, FINANCE_READ_ROLES);
   res.json({ awards: db().prepare(`SELECT a.*,t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id WHERE a.org_id=? ORDER BY a.awarded_at DESC`).all(m.org_id) });
 }));
 
@@ -163,7 +164,7 @@ router.post('/purchase-orders/:id/issue', wrap(async(req,res)=>{
 }));
 router.get('/purchase-orders',wrap(async(req,res)=>{
   if(req.user.role==='contractor') return res.json({purchaseOrders:db().prepare("SELECT p.*,a.tender_id FROM purchase_orders p JOIN project_awards a ON a.id=p.award_id WHERE a.contractor_user_id=? AND p.status='issued' ORDER BY p.created_at DESC").all(req.user.id)});
-  const m=member(req);
+  const m=requireOrg(req,FINANCE_READ_ROLES);
   res.json({purchaseOrders:db().prepare('SELECT * FROM purchase_orders WHERE org_id=? ORDER BY created_at DESC').all(m.org_id)});
 }));
 
@@ -228,7 +229,7 @@ router.post('/invoices/:id/resubmit',wrap(async(req,res)=>{
 
 router.get('/invoices',wrap(async(req,res)=>{
   if(req.user.role==='contractor') return res.json({invoices:db().prepare('SELECT * FROM project_invoices WHERE contractor_user_id=? ORDER BY submitted_at DESC').all(req.user.id)});
-  const m=member(req);
+  const m=requireOrg(req,FINANCE_READ_ROLES);
   res.json({invoices:db().prepare('SELECT * FROM project_invoices WHERE org_id=? ORDER BY submitted_at DESC').all(m.org_id)});
 }));
 router.get('/invoices/:id',wrap(async(req,res)=>{
