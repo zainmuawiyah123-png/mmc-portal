@@ -81,6 +81,7 @@ function runSubscriptionExpiryJob() {
 async function runOpportunitySyncJob() {
   const started=Date.now();
   try {
+    const gtd=await require('./gtd-sync').syncGTD();
     const joneps=await require('./joneps-sync').syncJONEPS();
     const worldbank=await require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5});
     let ungm=null;
@@ -88,8 +89,8 @@ async function runOpportunitySyncJob() {
       ungm=await require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5});
     }
     const ms=Date.now()-started;
-    record({at:new Date().toISOString(),job:'opportunity-sync',ok:true,ms,message:'joneps added='+joneps.added+' updated='+joneps.updated+' | worldbank added='+worldbank.added+' updated='+worldbank.updated+(ungm?' | ungm added='+ungm.added+' updated='+ungm.updated:' | ungm skipped: no token')});
-    return {ok:true,joneps,worldbank,ungm,ms};
+    record({at:new Date().toISOString(),job:'opportunity-sync',ok:true,ms,message:'gtd added='+gtd.added+' updated='+gtd.updated+' | joneps added='+joneps.added+' updated='+joneps.updated+' | worldbank added='+worldbank.added+' updated='+worldbank.updated+(ungm?' | ungm added='+ungm.added+' updated='+ungm.updated:' | ungm skipped: no token')});
+    return {ok:true,gtd,joneps,worldbank,ungm,ms};
   } catch(err) {
     const ms=Date.now()-started;
     record({at:new Date().toISOString(),job:'opportunity-sync',ok:false,ms,message:(err.message||String(err)).slice(0,300)});
