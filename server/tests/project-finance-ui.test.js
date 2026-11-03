@@ -212,3 +212,18 @@ test('OPP-18 — تعطل مصدر عطاءات لا يمنع تشغيل بقي�
   assert.ok(scheduler.includes("await runSource('worldbank'"));
   assert.ok(scheduler.includes('partial:failed.length>0'));
 });
+
+
+test('OPP-19 — دليل المصادر الأردنية يعرض وزارة الأشغال والمياه وروابطها الرسمية', () => {
+  assert.ok(tenderDirectory.includes('https://www.mpwh.gov.jo/Ar/Modules/Tenders'));
+  assert.ok(tenderDirectory.includes('https://www.mwi.gov.jo/AR/Modules/tenders'));
+  assert.ok(tenderDirectory.includes('https://www.gtd.gov.jo/AR/List/'));
+  assert.ok(tenderDirectory.includes('https://www.gamtenders.gov.jo/'));
+});
+
+test('OPP-20 — لا يظهر زر مزامنة لدائرة العطاءات الحكومية دون موصل API فعال', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.doesNotMatch(tenderDirectory, /id="oa-sync-gtd"/);
+  assert.doesNotMatch(tenderDirectory, /oa-sync-gtd').addEventListener/);
+  assert.doesNotMatch(route, /router\.post\('\/admin\/sync\/gtd'/);
+});
