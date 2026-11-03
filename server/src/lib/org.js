@@ -63,7 +63,7 @@ const FIDIC_EDITIONS = ['1999', '2017', 'other'];
 const FIDIC_URL = 'https://fidic.org';
 
 function membership(userId) {
-  return getDB().prepare(`SELECT m.org_id, m.role, o.name org_name, o.created_by, o.require_approval
+  return getDB().prepare(`SELECT m.org_id, m.role, o.name org_name, o.created_by, o.require_approval, o.country org_country
     FROM org_members m JOIN organizations o ON o.id = m.org_id WHERE m.user_id = ?`).get(userId) || null;
 }
 /** يضمن أن لحساب المشتريات جهة (ينشئ جهة بصفة مدير إن لم توجد) */
