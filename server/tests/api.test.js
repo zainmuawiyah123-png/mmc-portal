@@ -111,7 +111,26 @@ test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوك
   assert.ok(r.data.user.id.startsWith('usr_'));
   assert.strictEqual(r.data.user.planKey, 'free');
   assert.ok(cookies.userA, 'يجب أن يُضبط كوكي الجلسة');
+  assert.strictEqual(r.data.user.country, 'JO');
   assert.ok(!JSON.stringify(r.data).includes('password'), 'يجب ألا تُرجع كلمة المرور');
+});
+
+test('02B — التسجيل يحفظ دولة الحساب المختارة', async () => {
+  const r = await call('userCountry', 'POST', '/api/auth/register', {
+    body: { name: 'مستخدم الإمارات', email: 'ae' + uniq() + '@test.com', password: 'Password123', country: 'AE' }
+  });
+  assert.strictEqual(r.status, 201, JSON.stringify(r.data));
+  assert.strictEqual(r.data.user.country, 'AE');
+  const me = await call('userCountry', 'GET', '/api/auth/me');
+  assert.strictEqual(me.status, 200);
+  assert.strictEqual(me.data.user.country, 'AE');
+});
+
+test('02C — رمز دولة غير مدعوم مرفوض عند التسجيل', async () => {
+  const r = await call('invalidCountry', 'POST', '/api/auth/register', {
+    body: { name: 'مستخدم غير صحيح', email: 'bad' + uniq() + '@test.com', password: 'Password123', country: 'US' }
+  });
+  assert.strictEqual(r.status, 400);
 });
 
 test('02A — المقاول المسجل يستطيع فتح صفحة دورة المالية', async () => {
