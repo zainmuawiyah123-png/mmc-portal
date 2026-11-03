@@ -34,6 +34,7 @@ async function call(name, method, p, { body, form, headers } = {}) {
   const h = Object.assign({}, cookieFor(name), headers || {});
   let payload;
   if (form) payload = form;
+  else if (body instanceof FormData) payload = body;
   else if (body !== undefined) { h['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
 
   const res = await fetch(base + p, { method, headers: h, body: payload, redirect: 'manual' });
@@ -707,7 +708,7 @@ function grantPlan(email, planKey) {
   getDB().prepare("INSERT INTO subscriptions (id,user_id,plan_key,status,source,started_at,ends_at) VALUES (?,?,?,?,?,unixepoch(),unixepoch()+2592000)").run('sub_t' + uniq(), u.id, planKey, 'active', 'manual');
   getDB().prepare('UPDATE users SET plan_key=? WHERE id=?').run(planKey, u.id);
 }
-const bidBody = (t, amount = 1000) => ({ answers: t.requirements.map((q) => ({ requirementId: q.id, answer: 'إجابة' })), financialAmount: amount, financialCurrency: 'JOD' });
+const bidBody = (t, amount = 1000) => { const fd = new FormData(); fd.append('answers', JSON.stringify(t.requirements.map((q) => ({ requirementId: q.id, answer: 'إجابة' })))); fd.append('financialAmount', String(amount)); fd.append('financialCurrency', 'JOD'); fd.append('declarationAccepted', 'true'); fd.append('technicalFiles', new Blob(['technical test document'], { type: 'application/pdf' }), 'technical.pdf'); fd.append('financialFiles', new Blob(['financial test document'], { type: 'application/pdf' }), 'financial.pdf'); return fd; };
 
 test('63 — لا تقديم بعد موعد الإغلاق، ويُقبل في يوم الإغلاق نفسه وبدون موعد', async () => {
   const ymd = (d) => new Date(d).toISOString().slice(0, 10);
