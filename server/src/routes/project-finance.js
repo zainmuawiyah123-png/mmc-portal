@@ -137,7 +137,7 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
     const insertedTotal = insertItems('purchase_order_items','po_id',id,items);
     if (insertedTotal !== rounded) throw E.validation('إجمالي بنود أمر الشراء غير متطابق مع القيمة المحسوبة.');
     event({orgId:m.org_id,tenderId:a.tender_id,awardId:a.id,poId:id,userId:req.user.id,role:m.role,action:'po_submitted_for_approval',to:'pending_approval',detail:{total:rounded},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({ purchaseOrder: db().prepare('SELECT * FROM purchase_orders WHERE id=?').get(id) });
 }));
 
@@ -211,7 +211,7 @@ router.post('/invoices/:id/resubmit',wrap(async(req,res)=>{
   if(!Number.isFinite(total)||total<=0) throw E.validation('قيمة الفاتورة المعدلة غير صحيحة.');
   // Recheck invoice state and aggregate under a write-reserving transaction.
   // This serializes resubmissions against both new invoices and other resubmissions.
-  db().transaction.immediate(()=>{
+  db().transaction(()=>{
     const current=db().prepare("SELECT i.status,i.po_id,p.total_amount FROM project_invoices i JOIN purchase_orders p ON p.id=i.po_id WHERE i.id=? AND i.contractor_user_id=?").get(i.id,req.user.id);
     if(!current || current.status!=='returned') throw E.conflict('لم تعد الفاتورة بانتظار إعادة التقديم.');
     const other=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND id<>? AND status NOT IN ('void','rejected')").get(current.po_id,i.id).n;
@@ -293,7 +293,7 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
     const newPaid=paid+value;const next=newPaid>=Number(current.gross_amount)-Number(current.retention_amount)-0.0001?'paid':'part_paid';
     db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);
     event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,paymentId:id,userId:req.user.id,role:m.role,action:'payment_recorded',from:current.status,to:next,detail:{amount:value,reference:ref,date},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({ok:true,payment:db().prepare('SELECT * FROM project_payments WHERE id=?').get(id)});
 }));
 
