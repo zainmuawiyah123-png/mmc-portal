@@ -978,6 +978,8 @@ test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مش�
   await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '' } });
   assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).status, 422, 'إصدار FIDIC مطلوب');
   await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '2017' } });
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).status, 422, 'جدول الكميات مطلوب لأعمال الإنشاء');
+  await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('boq', 'boq.pdf') });
   assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).data.request.status, 'ready');
   // المشتريات ترى الجاهز فقط وتنشر؛ الطالب لا ينشر
   assert.strictEqual((await call(C, 'GET', '/api/requests')).data.requests.length, 1);
@@ -1040,6 +1042,8 @@ test('73 — الاعتماد الاختياري، الإعادة من المش�
   await call(R, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'submit' } });
   await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'take' } });
   await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('boq', 'boq.pdf') });
+  await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('specifications', 'spec.pdf') });
+  await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('drawings', 'drawings.pdf') });
   await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'yellow', fidicEdition: '1999' } });
   const aw = await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } });
   assert.strictEqual(aw.data.request.status, 'awaiting_approval');
