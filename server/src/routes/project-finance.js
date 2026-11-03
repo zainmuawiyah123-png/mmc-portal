@@ -182,7 +182,7 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
   // Serialize invoice submissions and perform the remaining-PO check in the
   // same IMMEDIATE transaction as the insert, so concurrent requests cannot
   // both consume the same remaining balance.
-  db().transaction.immediate(()=>{
+  db().transaction(()=>{
     const current=db().prepare("SELECT total_amount,status FROM purchase_orders WHERE id=? AND status='issued'").get(p.id);
     if(!current) throw E.conflict('أمر الشراء لم يعد متاحاً لإصدار فاتورة.');
     const invoiced=db().prepare("SELECT COALESCE(SUM(gross_amount),0) n FROM project_invoices WHERE po_id=? AND status NOT IN ('void','rejected')").get(p.id).n;
@@ -192,7 +192,7 @@ router.post('/purchase-orders/:id/invoices',wrap(async(req,res)=>{
     const insertedTotal = insertItems('project_invoice_items','invoice_id',id,items);
     if (insertedTotal !== total) throw E.validation('إجمالي بنود الفاتورة غير متطابق مع القيمة المحسوبة.');
     event({orgId:p.org_id,tenderId:p.tender_id,awardId:p.award_id,poId:p.id,invoiceId:id,userId:req.user.id,role:'contractor',action:'invoice_submitted',to:'submitted',detail:{grossAmount:total,type},ip:req.ip});
-  })();
+  }).immediate();
   res.status(201).json({invoice:db().prepare('SELECT * FROM project_invoices WHERE id=?').get(id)});
 }));
 
@@ -222,7 +222,7 @@ router.post('/invoices/:id/resubmit',wrap(async(req,res)=>{
     db().prepare("UPDATE project_invoices SET invoice_number=?,invoice_type=?,gross_amount=?,contractor_note=?,status='submitted',submitted_at=unixepoch(),updated_at=unixepoch() WHERE id=?")
       .run(invoiceNumber,type,total,clip(b.note,2000)||null,i.id);
     event({orgId:i.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:'contractor',action:'invoice_resubmitted',from:i.status,to:'submitted',detail:{grossAmount:total},ip:req.ip});
-  })();
+  }).immediate();
   res.json({ok:true,status:'submitted',invoice:db().prepare('SELECT * FROM project_invoices WHERE id=?').get(i.id)});
 }));
 
