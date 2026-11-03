@@ -23,7 +23,7 @@ jobs:
                '*/.env' '.env' '*/.env.local' '.env.local' \
                '*/data/*' '*/uploads/*' '*/backups/*' \
                '*.sqlite' '*.sqlite3' '*.db' '*.db-*' \
-               'dist/*'
+               'dist/*' 'ADMIN-CREDENTIALS_AR.md' 'mmc-proposal-kit/ADMIN-CREDENTIALS_AR.md'
       - name: Upload source package
         uses: actions/upload-artifact@v4
         with:
