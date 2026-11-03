@@ -96,6 +96,8 @@ const config = {
   BACKUP_CRON: v('BACKUP_CRON', '30 2 * * *'),
   /** فحص الاشتراكات المنتهية يومياً — افتراضي 03:00 بتوقيت المنطقة */
   SUBSCRIPTION_EXPIRY_CRON: v('SUBSCRIPTION_EXPIRY_CRON', '0 3 * * *'),
+  OPPORTUNITY_SYNC_ENABLED: v('OPPORTUNITY_SYNC_ENABLED', 'false') === 'true',
+  OPPORTUNITY_SYNC_CRON: v('OPPORTUNITY_SYNC_CRON', '15 */6 * * *'),
   BACKUP_TZ: v('BACKUP_TZ', 'Asia/Riyadh'),
 
   /** أصل الواجهة إن كانت تُقدَّم من نطاق مختلف (مثال: موقع ثابت على /sites/). فارغ = نفس الأصل. */
