@@ -1023,3 +1023,115 @@ test('75 — الانضمام لا يُسمح به لمدير جهة فيها أ
   await call(busy, 'POST', '/api/requests', { body: reqBody() });
   assert.strictEqual((await call(busy, 'POST', '/api/org/join', { body: { code: inv.data.code } })).status, 409);
 });
+
+
+/* ==========================================================
+   Project finance: award → PO → invoice → approval → payments
+   ========================================================== */
+test('76 — دورة الترسية وأمر الشراء والفاتورة والمالية والدفعات', async () => {
+  const manager = await newBuyer('finmgr', 'proc_pro');
+  const procurement = (await joinTeam(manager, 'procurement', 'finproc')).who;
+  const requester = (await joinTeam(manager, 'requester', 'finreq')).who;
+  const finance = (await joinTeam(manager, 'finance', 'finrole')).who;
+
+  const tender = await publish(procurement);
+  const contractor = 'fincon' + uniq();
+  const contractorEmail = contractor + '@t.com';
+  await call(contractor, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول الدورة المالية', email: contractorEmail, password: 'Password123' }
+  });
+  const submitted = await call(contractor, 'POST', '/api/procurement/tenders/' + tender.id + '/submit', {
+    body: bidBody(tender, 200)
+  });
+  assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
+
+  // لا ترسية قبل التقييم الفني وفتح العرض المالي.
+  const premature = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 200, currency: 'JOD', awardReference: 'AWD-FIN-01' }
+  });
+  assert.strictEqual(premature.status, 422);
+
+  const evaluated = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/evaluate', {
+    body: { scores: tender.requirements.map((q) => ({ requirementId: q.id, score: 100 })) }
+  });
+  assert.strictEqual(evaluated.status, 200, JSON.stringify(evaluated.data));
+  assert.strictEqual(evaluated.data.passed, true);
+
+  const award = await call(manager, 'POST', '/api/project-finance/awards', {
+    body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 200, currency: 'JOD', awardReference: 'AWD-FIN-01' }
+  });
+  assert.strictEqual(award.status, 201, JSON.stringify(award.data));
+
+  // العملة المخالفة للترسية تُرفض، ثم يُنشأ أمر شراء صحيح.
+  const wrongCurrency = await call(manager, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
+    body: { poNumber: 'PO-FIN-BAD', currency: 'SAR', items: [{ description: 'أعمال مدنية', quantity: 1, unitPrice: 100 }] }
+  });
+  assert.strictEqual(wrongCurrency.status, 422);
+
+  const po = await call(procurement, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
+    body: { poNumber: 'PO-FIN-01', currency: 'JOD', items: [{ description: 'أعمال مدنية', quantity: 2, unitPrice: 100, unit: 'LS' }] }
+  });
+  assert.strictEqual(po.status, 201, JSON.stringify(po.data));
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/approve', { body: {} })).status, 200);
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/issue', { body: {} })).status, 200);
+
+  // تجاوز قيمة أمر الشراء مرفوض.
+  const tooLarge = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/invoices', {
+    body: { invoiceNumber: 'INV-FIN-OVER', invoiceType: 'progress', items: [{ description: 'أعمال', quantity: 1, unitPrice: 250 }] }
+  });
+  assert.strictEqual(tooLarge.status, 409);
+
+  const invoice = await call(contractor, 'POST', '/api/project-finance/purchase-orders/' + po.data.purchaseOrder.id + '/invoices', {
+    body: { invoiceNumber: 'INV-FIN-01', invoiceType: 'progress', note: 'مستخلص مرحلي', items: [{ description: 'أعمال مدنية منفذة', quantity: 1, unitPrice: 150 }] }
+  });
+  assert.strictEqual(invoice.status, 201, JSON.stringify(invoice.data));
+  const invoiceId = invoice.data.invoice.id;
+
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
+    body: { decision: 'accepted', note: 'مطابقة لأمر الشراء' }
+  })).data.status, 'owner_confirmation');
+  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
+    body: { decision: 'confirmed', note: 'تم استلام الأعمال' }
+  })).data.status, 'finance_queue');
+  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
+  assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
+  assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
+
+  const partial = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 50, paymentReference: 'PAY-FIN-01', paymentDate: '2026-11-03' }
+  });
+  assert.strictEqual(partial.status, 201, JSON.stringify(partial.data));
+  assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
+
+  const overpayment = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 101, paymentReference: 'PAY-FIN-OVER', paymentDate: '2026-11-03' }
+  });
+  assert.strictEqual(overpayment.status, 409);
+
+  const finalPayment = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+    body: { amount: 100, paymentReference: 'PAY-FIN-02', paymentDate: '2026-11-03' }
+  });
+  assert.strictEqual(finalPayment.status, 201);
+  const finalState = await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId);
+  assert.strictEqual(finalState.data.invoice.status, 'paid');
+  assert.strictEqual(finalState.data.paid, 150);
+  assert.strictEqual(finalState.data.remaining, 0);
+
+  // بيانات دورة المشروع لا تدخل في فواتير اشتراكات MMC.
+  const billing = await call(manager, 'GET', '/api/billing/invoices');
+  assert.strictEqual(billing.status, 200);
+  assert.ok(!billing.data.invoices.some((x) => x.id === invoiceId));
+});
+
+test('77 — دور المالية محصور بجهته ولا يستطيع مقاول آخر قراءة فاتورة الغير', async () => {
+  const manager = await newBuyer('finiso', 'proc_pro');
+  const finance = (await joinTeam(manager, 'finance', 'finiso-role')).who;
+  const outsider = 'finout' + uniq();
+  await call(outsider, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول خارجي', email: outsider + '@t.com', password: 'Password123' }
+  });
+  assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices')).status, 200);
+  assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices')).status, 200);
+  const denied = await call(outsider, 'POST', '/api/project-finance/invoices/fake-id/finance-approval', { body: {} });
+  assert.strictEqual(denied.status, 403);
+});
