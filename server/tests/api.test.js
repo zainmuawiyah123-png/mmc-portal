@@ -1258,3 +1258,19 @@ test('77 — دور المالية محصور بجهته ولا يستطيع م�
   const denied = await call(outsider, 'POST', '/api/project-finance/invoices/fake-id/finance-approval', { body: {} });
   assert.strictEqual(denied.status, 403);
 });
+
+
+test('79 — رمز الدعوة أحادي الاستخدام ولا يقبل عضواً ثانياً', async () => {
+  const manager = await newBuyer('single-invite-owner', 'proc_pro');
+  const invitation = await call(manager, 'POST', '/api/org/invites', { body: { role: 'requester' } });
+  assert.strictEqual(invitation.status, 201);
+  const first = await newBuyer('single-invite-first', 'proc_pro');
+  const second = await newBuyer('single-invite-second', 'proc_pro');
+  const firstJoin = await call(first, 'POST', '/api/org/join', { body: { code: invitation.data.code } });
+  assert.strictEqual(firstJoin.status, 200, JSON.stringify(firstJoin.data));
+  const secondJoin = await call(second, 'POST', '/api/org/join', { body: { code: invitation.data.code } });
+  assert.ok([404, 409].includes(secondJoin.status), JSON.stringify(secondJoin.data));
+  const targetOrg = (await call(manager, 'GET', '/api/org')).data.org.id;
+  const members = getDB().prepare('SELECT COUNT(*) n FROM org_members WHERE org_id=?').get(targetOrg).n;
+  assert.strictEqual(members, 2, 'المدير والعضو الأول فقط');
+});
