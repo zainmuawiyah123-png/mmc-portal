@@ -252,7 +252,7 @@ router.get('/submissions/:id/receipt', contractor, wrap(async (req,res)=>{
   res.json({receipt:{reference:row.receipt_reference,submittedAt:row.submitted_at,submissionId:row.id,tenderReference:row.tender_reference,tenderName:row.tender_name,technicalPoints:row.technical_points,technicalPassed:!!row.technical_passed,documents:docs}});
 }));
 
-router.get('/submissions/:id/documents/:docId', procOnly.concat(wrap(async (req,res,next)=>next())), wrap(async(req,res)=>{
+router.get('/submissions/:id/documents/:docId', A.requireAuth, wrap(async(req,res)=>{
   const db=getDB();
   const d=db.prepare(`SELECT d.*,s.contractor_id,s.tender_id,s.financial_unlocked,t.user_id buyer_id
     FROM bid_submission_docs d JOIN bid_submissions s ON s.id=d.submission_id JOIN tenders t ON t.id=s.tender_id
