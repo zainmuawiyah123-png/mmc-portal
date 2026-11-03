@@ -38,7 +38,7 @@ function parseJonepsRows(html){
   }
   const nextCells=[...(trs[rowIndex+1]||'').matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)];
   const stateText=clean(tr)+(nextCells.length<6?clean(trs[rowIndex+1]||''):'');
-  const cancelled=/ملغي|ملغى|cancelled|canceled/i.test(stateText);
+  const cancelled=/ملغي|ملغى|إلغاء|الغاء|cancelled|canceled/i.test(stateText);
   const expired=deadline&&deadline<new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
   out.push({id:number,title,authority:authority||'جهة حكومية أردنية',country:'JO',sector:sector||null,tenderNumber:number,summary:'إعلان عطاء منشور على نظام الشراء الإلكتروني الأردني JONEPS.',publishedAt:published,closingAt:deadline,sourceUrl,applicationUrl:null,status:cancelled?'cancelled':expired?'closed':'open',language:'ar'});
  }
