@@ -127,7 +127,8 @@ router.post('/awards/:id/purchase-orders', wrap(async (req, res) => {
   const items = Array.isArray(b.items) ? b.items : [];
   const total = items.reduce((s,x) => s + Math.round(amount(x.quantity,'quantity') * Number(x.unitPrice) * 100) / 100, 0);
   const rounded = Math.round(total * 100) / 100;
-  if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || rounded > a.awarded_amount) throw E.validation('قيمة بنود أمر الشراء يجب أن تكون موجبة ولا تتجاوز قيمة الترسية.');
+  const committed = db().prepare("SELECT COALESCE(SUM(total_amount),0) n FROM purchase_orders WHERE award_id=? AND status NOT IN ('cancelled','void')").get(a.id).n;
+  if (!items.length || !Number.isFinite(rounded) || rounded <= 0 || committed + rounded > Number(a.awarded_amount) + 0.0001) throw E.validation('إجمالي أوامر الشراء لا يجوز أن يتجاوز قيمة الترسية المتبقية.');
   db().transaction(() => {
     const poCurrency = clip(b.currency,3).toUpperCase() || a.currency;
   if (poCurrency !== a.currency) throw E.validation('عملة أمر الشراء يجب أن تطابق عملة الترسية.');
