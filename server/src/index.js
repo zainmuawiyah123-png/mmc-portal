@@ -143,6 +143,19 @@ function createApp() {
   app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
+
+  // صفحة دورة المشروع تحتوي بيانات مالية؛ لا تُقدَّم كملف ثابت قبل التحقق من الجلسة.
+  // يسمح للمقاول والجهة المشترية فقط، بينما تبقى صلاحيات كل عملية مفروضة في API.
+  app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
+      if (!['buyer', 'contractor'].includes(req.user.role)) {
+        return res.status(403).type('text').send('ليس لديك صلاحية الوصول إلى هذه الصفحة.');
+      }
+      return sendFromWeb('project-finance/index.html', res, next);
+    });
+  });
   app.get(/^\/portal(\/.*)?$/, (req, res, next) => {
     let rel = req.path.replace(/^\/portal\/?/, '') || 'pt-9f3c7a1e5b2d/login.html';
     if (rel.endsWith('/')) rel += 'index.html';
