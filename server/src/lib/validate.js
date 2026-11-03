@@ -15,7 +15,8 @@ const registerSchema = z.object({
   password,
   company: z.union([z.string().trim().max(160), z.null()]).optional()
     .transform((v) => (v === undefined || v === null || v === '' ? null : v)),
-  role: z.enum(['contractor', 'buyer']).default('contractor')
+  role: z.enum(['contractor', 'buyer']).default('contractor'),
+  country: z.enum(['JO', 'SA', 'AE']).default('JO')
 });
 
 const loginSchema = z.object({

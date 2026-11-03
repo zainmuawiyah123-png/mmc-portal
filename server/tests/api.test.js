@@ -111,7 +111,26 @@ test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوك
   assert.ok(r.data.user.id.startsWith('usr_'));
   assert.strictEqual(r.data.user.planKey, 'free');
   assert.ok(cookies.userA, 'يجب أن يُضبط كوكي الجلسة');
+  assert.strictEqual(r.data.user.country, 'JO');
   assert.ok(!JSON.stringify(r.data).includes('password'), 'يجب ألا تُرجع كلمة المرور');
+});
+
+test('02B — التسجيل يحفظ دولة الحساب المختارة', async () => {
+  const r = await call('userCountry', 'POST', '/api/auth/register', {
+    body: { name: 'مستخدم الإمارات', email: 'ae' + uniq() + '@test.com', password: 'Password123', country: 'AE' }
+  });
+  assert.strictEqual(r.status, 201, JSON.stringify(r.data));
+  assert.strictEqual(r.data.user.country, 'AE');
+  const me = await call('userCountry', 'GET', '/api/auth/me');
+  assert.strictEqual(me.status, 200);
+  assert.strictEqual(me.data.user.country, 'AE');
+});
+
+test('02C — رمز دولة غير مدعوم مرفوض عند التسجيل', async () => {
+  const r = await call('invalidCountry', 'POST', '/api/auth/register', {
+    body: { name: 'مستخدم غير صحيح', email: 'bad' + uniq() + '@test.com', password: 'Password123', country: 'US' }
+  });
+  assert.strictEqual(r.status, 422);
 });
 
 test('02A — المقاول المسجل يستطيع فتح صفحة دورة المالية', async () => {
@@ -853,9 +872,9 @@ test('69 — نص العطاء بالعربية والإنجليزية: الاس
    الجهة والأدوار + دورة الطلبات (مالك ← مشاريع ← مشتريات ← مقاول)
    ========================================================== */
 let teamSeq = 0;
-async function newBuyer(name, plan) {
+async function newBuyer(name, plan, country) {
   const email = name + (++teamSeq) + uniq() + '@t.com';
-  const r = await call(name + teamSeq, 'POST', '/api/auth/register', { body: { name: 'عضو ' + name, email, password: 'Password123', role: 'buyer' } });
+  const r = await call(name + teamSeq, 'POST', '/api/auth/register', { body: { name: 'عضو ' + name, email, password: 'Password123', role: 'buyer', ...(country ? { country } : {}) } });
   assert.strictEqual(r.status, 201, JSON.stringify(r.data));
   const who = name + teamSeq;
   if (plan) await call(who, 'POST', '/api/billing/trial', { body: { planKey: plan } });
@@ -878,10 +897,13 @@ function docForm(kind, name = 'spec.pdf') {
 }
 const tenderBody = (over = {}) => ({ closing: '2030-01-01', requirements: reqs4(), ...over });
 
-test('70 — جهة جديدة: مدير تلقائي، والدعوات تحدّها مقاعد الباقة', async () => {
-  const free = await newBuyer('free');
+test('70 — جهة جديدة: تحفظ دولة الحساب على الجهة وتُدار عضويتها', async () => {
+  const free = await newBuyer('free', undefined, 'AE');
   const org = await call(free, 'GET', '/api/org');
   assert.strictEqual(org.data.myRole, 'manager');
+  const userId = (await call(free, 'GET', '/api/auth/me')).data.user.id;
+  const orgId = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(userId).org_id;
+  assert.strictEqual(getDB().prepare('SELECT country FROM organizations WHERE id=?').get(orgId).country, 'AE');
   assert.strictEqual(org.data.seats.max, 1);
   const denied = await call(free, 'POST', '/api/org/invites', { body: { role: 'requester' } });
   assert.strictEqual(denied.status, 403);

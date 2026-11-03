@@ -47,7 +47,7 @@ function extractToken(req) {
 
 function loadUser(id) {
   return getDB().prepare(
-    'SELECT id, email, name, company, role, plan_key, plan_started_at, created_at, last_login_at FROM users WHERE id = ?'
+    'SELECT id, email, name, company, role, country, plan_key, plan_started_at, created_at, last_login_at FROM users WHERE id = ?'
   ).get(id);
 }
 

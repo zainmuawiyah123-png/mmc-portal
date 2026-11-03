@@ -63,7 +63,7 @@ const FIDIC_EDITIONS = ['1999', '2017', 'other'];
 const FIDIC_URL = 'https://fidic.org';
 
 function membership(userId) {
-  return getDB().prepare(`SELECT m.org_id, m.role, o.name org_name, o.created_by, o.require_approval
+  return getDB().prepare(`SELECT m.org_id, m.role, o.name org_name, o.created_by, o.require_approval, o.country org_country
     FROM org_members m JOIN organizations o ON o.id = m.org_id WHERE m.user_id = ?`).get(userId) || null;
 }
 /** يضمن أن لحساب المشتريات جهة (ينشئ جهة بصفة مدير إن لم توجد) */
@@ -75,7 +75,7 @@ function ensureOrg(user) {
   const id = uid('org_');
   const v = db.prepare('SELECT org_name FROM org_verifications WHERE user_id = ?').get(user.id);
   db.transaction(() => {
-    db.prepare('INSERT INTO organizations (id, name, created_by) VALUES (?,?,?)').run(id, (v && v.org_name) || user.company || user.name || 'جهة', user.id);
+    db.prepare('INSERT INTO organizations (id, name, created_by, country) VALUES (?,?,?,?)').run(id, (v && v.org_name) || user.company || user.name || 'جهة', user.id, user.country || null);
     db.prepare("INSERT INTO org_members (org_id, user_id, role) VALUES (?,?,'manager')").run(id, user.id);
     db.prepare('UPDATE org_verifications SET org_id = ? WHERE user_id = ? AND org_id IS NULL').run(id, user.id);
     db.prepare('UPDATE tenders SET org_id = ? WHERE user_id = ? AND org_id IS NULL').run(id, user.id);

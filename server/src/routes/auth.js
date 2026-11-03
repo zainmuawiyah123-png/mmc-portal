@@ -47,7 +47,7 @@ const registerLimiter = rateLimit({
 function publicUser(u) {
   return {
     id: u.id, email: u.email, name: u.name, company: u.company,
-    role: u.role || 'contractor', planKey: u.plan_key, createdAt: u.created_at, lastLoginAt: u.last_login_at
+    role: u.role || 'contractor', country: u.country || 'JO', planKey: u.plan_key, createdAt: u.created_at, lastLoginAt: u.last_login_at
   };
 }
 
@@ -62,8 +62,8 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
   const id = uid('usr_');
   const hash = await A.hashPassword(body.password);
 
-  db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, plan_key)
-              VALUES (?, ?, ?, ?, ?, ?, 'free')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor');
+  db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, country, plan_key)
+              VALUES (?, ?, ?, ?, ?, ?, ?, 'free')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
 
   db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
               VALUES (?, ?, 'free', 'active', 'trial')`).run(uid('sub_'), id);
