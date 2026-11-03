@@ -654,10 +654,12 @@ test('60 — الدفع: فاتورة + إيصال + سعر خاص + اعتما�
 test('61 — بيانات الدفع تُقرأ من الإعدادات وتُعرض عبر /api/payment-info', async () => {
   const r = await call('anon2', 'GET', '/api/payment-info');
   assert.strictEqual(r.status, 200);
-  assert.strictEqual(r.data.payment.swift, 'UBSIJOAXXXX');
-  assert.strictEqual(r.data.payment.iban, 'JO07UBSI1220000330111332981002');
-  assert.strictEqual(r.data.ibanValid, true);
-  assert.ok(r.data.payment.accountHolder.length > 5);
+  // لا تُضمَّن بيانات حساب مصرفي شخصية في إعدادات المصدر الافتراضية.
+  assert.strictEqual(r.data.payment.swift, '');
+  assert.strictEqual(r.data.payment.iban, '');
+  assert.strictEqual(r.data.payment.accountHolder, '');
+  assert.strictEqual(r.data.payment.cliqAlias, '');
+  assert.strictEqual(r.data.ibanValid, false);
 });
 
 test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملفات المجلد مغلقة', async () => {
