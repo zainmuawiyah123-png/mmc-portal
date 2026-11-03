@@ -1158,7 +1158,7 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(financialOpen.data.financialOpened, true);
   assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + financialDoc.id)).status, 200,
     'يسمح للمشتريات بتنزيل المالي بعد الفتح الرسمي');
-  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/receipt')).status, 404,
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/receipt')).status, 403,
     'الإيصال الخاص بالمقاول لا يُكشف لحساب المشتريات');
 
   const award = await call(manager, 'POST', '/api/project-finance/awards', {
