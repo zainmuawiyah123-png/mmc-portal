@@ -72,3 +72,34 @@ test('MMCUI-03 — دليل العطاءات متاح من بوابتي المق
   assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
   assert.match(procurementPortal, /\.\.\/tender-opportunities\/index\.html/);
 });
+
+
+test('OPP-01 — دليل العطاءات مربوط بواجهة API عامة قابلة للبحث والتصفية', () => {
+  assert.ok(tenderDirectory.includes("fetch('/api/opportunities?"));
+  assert.ok(tenderDirectory.includes("opp-q"));
+  assert.ok(tenderDirectory.includes("opp-country"));
+  assert.ok(tenderDirectory.includes("opp-status"));
+  assert.ok(tenderDirectory.includes("opp-results"));
+});
+
+test('OPP-02 — إدخال الإعلانات متاح للمسؤول فقط ومن خلال واجهة موثقة', () => {
+  assert.ok(tenderDirectory.includes("fetch('/api/auth/me'"));
+  assert.ok(tenderDirectory.includes("me.user?.role==='admin'"));
+  assert.ok(tenderDirectory.includes("fetch('/api/opportunities/admin'"));
+  assert.ok(tenderDirectory.includes('externalId'));
+  assert.ok(tenderDirectory.includes('sourceUrl'));
+});
+
+test('OPP-03 — قاعدة البيانات تدعم معرف المصدر الفريد وروابط التقديم وحالات الإعلان', () => {
+  const migration = fs.readFileSync(path.join(__dirname, '../src/migrate.js'), 'utf8');
+  for (const token of ['tender_opportunities','source_key','external_id','application_url','closing_at','UNIQUE(source_key, external_id)']) {
+    assert.ok(migration.includes(token), 'حقل أو قيد مفقود: ' + token);
+  }
+});
+
+test('OPP-04 — واجهة API تعرض بيانات منشورة فقط وتفرض المصادقة على الإدارة', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.match(route, /status IN \\(\x27open\x27,\x27closed\x27\\)/);
+  assert.match(route, /router\.use\(A\.requireAuth, A\.requireRole\('admin'\)\)/);
+  assert.match(route, /protocol !== 'https:'/);
+});
