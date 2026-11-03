@@ -1073,7 +1073,7 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   });
   assert.strictEqual(po.status, 201, JSON.stringify(po.data));
   const duplicateSpend = await call(manager, 'POST', '/api/project-finance/awards/' + award.data.award.id + '/purchase-orders', {
-    body: { poNumber: 'PO-FIN-02', currency: 'JOD', items: [{ description: 'أعمال إضافية', quantity: 1, unitPrice: 1 }] }
+    body: { poNumber: 'PO-FIN-02', currency: 'JOD', items: [{ description: 'أعمال إضافية', quantity: 1, unitPrice: 101 }] }
   });
   assert.strictEqual(duplicateSpend.status, 422, 'لا يجوز أن يتجاوز مجموع أوامر الشراء قيمة الترسية');
 
