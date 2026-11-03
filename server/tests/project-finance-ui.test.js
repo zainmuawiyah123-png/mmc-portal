@@ -185,3 +185,10 @@ test('OPP-13 — روابط الصفحات التالية من UNGM لا تسم�
   const connector = fs.readFileSync(path.join(__dirname, '../src/lib/ungm-sync.js'), 'utf8');
   assert.ok(connector.includes("url.origin!=='https://www.ungm.org'||url.pathname!=='/API/Notices'"));
 });
+
+
+test('OPP-14 — حالة المجدول تعرض مهمة مزامنة العطاءات عند تفعيلها', () => {
+  const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
+  assert.ok(scheduler.includes("'opportunity-sync'"));
+  assert.ok(scheduler.includes("config.OPPORTUNITY_SYNC_ENABLED ?"));
+});
