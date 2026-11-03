@@ -8,7 +8,7 @@ const htmlPath = path.join(__dirname, '../../webpages/technical-proposal-kit_v5/
 const html = fs.readFileSync(htmlPath, 'utf8');
 
 test('PFUI-01 — صفحة دورة المالية موجودة وتحمّل مكتبات البوابة الحالية', () => {
-  assert.match(html, /<title>الترسيات وأوامر الشراء والفواتير · MMC<\\/title>/i);
+  assert.ok(html.includes('<title>الترسيات وأوامر الشراء والفواتير · MMC</title>'));
   assert.match(html, /assets\/api\.js/);
   assert.match(html, /assets\/i18n\.js/);
 });
