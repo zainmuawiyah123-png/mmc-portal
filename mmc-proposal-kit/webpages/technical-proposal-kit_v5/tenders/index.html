@@ -16,13 +16,13 @@ body{background:#f4f6f8}.wrap{max-width:1240px;margin:28px auto;padding:0 18px}.
 <div class="actions" style="margin-bottom:14px"><button class="btn light" id="refresh">تحديث مصدر البوتاس (تجريبي)</button><span class="muted" id="updated"></span></div>
 <div id="status" class="notice">جارٍ تحميل فهرس العطاءات...</div>
 <section class="sources"><b>مصادر MMC المدرجة</b><p class="muted">حالة المصدر موضحة بشفافية؛ المصدر المدرج لا يعني أن الربط الآلي معه اكتمل.</p><div id="sourceList" class="source-list"></div></section>
-<div id="results" class="grid"></div>
+<div id="results" class="grid"></div><div class="actions" style="justify-content:center;margin:18px 0"><button class="btn light" id="loadMore" hidden>عرض المزيد من العطاءات</button></div>
 </main>
 <script>
 (function(){
 const status=document.getElementById('status'),results=document.getElementById('results'),sourceSelect=document.getElementById('source');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let sources=[],all=[];
+let sources=[],all=[],total=0,loadingMore=false;
 async function loadSources(){
  const r=await fetch('/api/public-tenders/sources');const d=await r.json();sources=d.sources||[];
  sourceSelect.innerHTML='<option value="">كل الجهات</option>'+sources.map(s=>'<option value="'+esc(s.sourceKey)+'">'+esc(s.nameAr)+'</option>').join('');
@@ -56,8 +56,8 @@ function render(){
 }
 async function loadTenders(){
  status.className='notice';status.textContent='جارٍ تحميل الفرص المحفوظة في فهرس MMC...';
- const params=new URLSearchParams();if(document.getElementById('q').value.trim())params.set('q',document.getElementById('q').value.trim());if(document.getElementById('country').value)params.set('country',document.getElementById('country').value);if(document.getElementById('market').value)params.set('market',document.getElementById('market').value);if(sourceSelect.value)params.set('source',sourceSelect.value);params.set('limit','100');
- try{const r=await fetch('/api/public-tenders?'+params.toString());const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحميل الفهرس');all=d.tenders||[];render();document.getElementById('updated').textContent='إجمالي السجلات المنشورة: '+d.total;}
+ const params=new URLSearchParams();if(document.getElementById('q').value.trim())params.set('q',document.getElementById('q').value.trim());if(document.getElementById('country').value)params.set('country',document.getElementById('country').value);if(document.getElementById('market').value)params.set('market',document.getElementById('market').value);if(sourceSelect.value)params.set('source',sourceSelect.value);params.set('limit','100');params.set('offset','0');
+ try{const r=await fetch('/api/public-tenders?'+params.toString());const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحميل الفهرس');all=d.tenders||[];total=Number(d.total)||0;render();document.getElementById('loadMore').hidden=all.length>=total;total=Number(d.total)||0;document.getElementById('updated').textContent='إجمالي السجلات المنشورة: '+total+' — المعروض: '+all.length;document.getElementById('loadMore').hidden=all.length>=total;}
  catch(e){status.className='notice error';status.textContent=e.message;}
 }
 async function refresh(){
@@ -65,7 +65,7 @@ async function refresh(){
  try{const r=await fetch('/api/public-tenders/apc');const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحديث APC');document.getElementById('updated').textContent='تم جلب '+d.count+' سجلاً من APC';await loadTenders();}
  catch(e){status.className='notice error';status.textContent='تعذر تحديث مصدر البوتاس الآن: '+e.message+' — بقية الفهرس المحفوظ يبقى متاحاً.';await loadTenders();}
 }
-document.getElementById('search').onclick=loadTenders;document.getElementById('refresh').onclick=refresh;
+async function loadMore(){if(loadingMore||all.length>=total)return;loadingMore=true;const b=document.getElementById('loadMore');b.disabled=true;b.textContent='جارٍ التحميل...';try{const params=new URLSearchParams();const q=document.getElementById('q').value.trim();const country=document.getElementById('country').value;const market=document.getElementById('market').value;if(q)params.set('q',q);if(country)params.set('country',country);if(market)params.set('market',market);if(sourceSelect.value)params.set('source',sourceSelect.value);params.set('limit','100');params.set('offset',String(all.length));const r=await fetch('/api/public-tenders?'+params.toString());const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحميل المزيد');all=all.concat(d.tenders||[]);total=Number(d.total)||total;render();document.getElementById('updated').textContent='إجمالي السجلات المنشورة: '+total+' — المعروض: '+all.length;b.hidden=all.length>=total;}catch(e){status.className='notice error';status.textContent=e.message;}finally{loadingMore=false;b.disabled=false;b.textContent='عرض المزيد من العطاءات';}}\ndocument.getElementById('loadMore').onclick=loadMore;document.getElementById('search').onclick=loadTenders;document.getElementById('refresh').onclick=refresh;
 document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')loadTenders()});
 loadSources().then(loadTenders).catch(e=>{status.className='notice error';status.textContent=e.message;});
 })();
