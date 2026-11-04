@@ -719,7 +719,7 @@ test('64 — موصل البنك الدولي يحول الإشعارات الع
     assert.match(String(url), /search\.worldbank\.org\/api\/v2\/procnotices/);
     return {
       ok: true, status: 200,
-      json: async () => ({ results: [
+      json: async () => ({ rows: 2, os: 0, page: 1, total: 2, procnotices: [
         { id: 'WB-TEST-2026-001', bid_description: 'Road rehabilitation and drainage works', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-12-15', noticedate: '2026-10-20', project_name: 'Municipal infrastructure project' },
         { id: 'WB-TEST-2026-002', bid_description: 'Incomplete procurement notice', project_ctry_name: 'Unknown country', notice_type: 'Request for Information', noticedate: '2026-10-21' }
       ] })
