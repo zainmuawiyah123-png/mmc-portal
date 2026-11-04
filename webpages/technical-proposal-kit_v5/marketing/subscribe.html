@@ -1,139 +1,90 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Request a MMC Technical Proposal Kit subscription — demonstrated interface, no payment processed.">
-<title>Subscribe</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="الاشتراك في منصة MMC وإصدار الفاتورة ورفع إيصال الدفع إلكترونياً.">
+<title>الاشتراك والدفع | MMC</title>
 <link rel="stylesheet" href="../assets/en.css">
+<style>
+.sub-wrap{max-width:920px;margin:36px auto 64px;padding:0 18px}.sub-card{background:#fff;border:1px solid #dbe3ea;border-radius:14px;padding:24px;margin:18px 0;box-shadow:0 8px 26px #0d1b2a0b}.sub-card h2{margin:0 0 12px;color:#10263d}.sub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.sub-field{display:flex;flex-direction:column;gap:7px;margin:12px 0}.sub-field label{font-weight:700;color:#263b50}.sub-field input,.sub-field select,.sub-field textarea{width:100%;padding:11px;border:1px solid #cbd5df;border-radius:8px;font:inherit;background:#fff}.plan-card{border:1px solid #cbd5df;border-radius:10px;padding:15px;display:flex;gap:10px;align-items:flex-start;cursor:pointer}.plan-card:has(input:checked){border:2px solid #b45309;background:#fffaf2}.plan-card input{margin-top:5px}.plan-card b{display:block}.muted{color:#657789;font-size:13px}.sub-alert{padding:12px 14px;border-radius:8px;margin:12px 0;background:#eff6ff;color:#1e3a5f}.sub-alert.error{background:#fef2f2;color:#991b1b}.sub-alert.success{background:#ecfdf5;color:#065f46}.sub-btn{border:0;border-radius:8px;padding:12px 18px;background:#b45309;color:white;font:inherit;font-weight:800;cursor:pointer}.sub-btn:disabled{opacity:.55;cursor:wait}.sub-btn.secondary{background:#0f766e}.invoice{border:1px solid #dbe3ea;border-radius:10px;padding:15px;margin:12px 0}.invoice-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.status-pill{border-radius:20px;padding:3px 10px;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:800}.status-pill.paid{background:#dcfce7;color:#166534}.status-pill.rejected{background:#fee2e2;color:#991b1b}.hidden{display:none!important}.payment-data{background:#f8fafc;padding:14px;border-radius:8px;line-height:1.9;overflow-wrap:anywhere}.payment-data strong{color:#10263d}.ltr{direction:ltr;unicode-bidi:embed;display:inline-block}.sub-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.sub-top a{color:#0f766e}@media(max-width:600px){.sub-card{padding:17px}.sub-wrap{margin-top:20px}}
+</style>
 </head>
-<body class="mk" data-doc="mk-Subscribe">
+<body class="mk">
 <div class="mk-nav no-print">
-  <a class="logo" href="landing.html"><span class="mark">M</span> Proposal Kit</a>
+  <a class="logo" href="landing.html"><span class="mark">M</span> MMC</a>
   <div class="spacer"></div>
-  <a class="btn amber" href="../portal/pt-9f3c7a1e5b2d/index.html" title="MMC Portal — upload drawings and produce the proposal">🔓 MMC Portal</a>
-  <a class="navlink" href="landing.html#what">What's inside</a>
-  <a class="navlink" href="compare.html">Compare plans</a>
-  <a class="navlink" href="pricing.html">Pricing</a>
-  <a class="navlink" href="faq.html">FAQ</a>
-  <a class="navlink" href="../en/index.html">Open the kit</a>
-  <a class="btn amber" href="subscribe.html">Subscribe</a>
-  <div class="switch" role="group" aria-label="Language" style="margin-left:6px">
-    <a href="../index.html" title="الفهرس العربي">AR</a>
-    <button class="on" type="button">EN</button>
-  </div>
+  <a class="navlink" href="pricing.html">الأسعار</a>
+  <a class="navlink" href="../index-ar.html">الرئيسية العربية</a>
+  <a class="btn amber" href="../portal/pt-9f3c7a1e5b2d/login.html">بوابة MMC</a>
+  
 </div>
-
-<div style="padding:44px 0 10px;text-align:center">
-  <div class="wrap">
-    <div class="eyebrow2">Subscribe</div>
-    <h2 class="mkh center">Tell us where to send access</h2>
-    <p class="lede2 center">Choose a plan and enter your details. This form is a working interface only — see the
-    note below before you submit.</p>
-  </div>
+<div class="sub-wrap">
+  <div class="sub-top"><div><div class="eyebrow2">MMC · الاشتراكات</div><h1 style="margin:6px 0">اختر باقتك وأكمل الدفع</h1><p class="muted">إنشاء الفاتورة ورفع إيصال التحويل يتمان من حسابك مباشرة.</p></div><div id="accountInfo" class="muted"></div></div>
+  <div id="notice" class="sub-alert hidden" role="status" aria-live="polite"></div>
+  <section id="signInCard" class="sub-card hidden">
+    <h2>سجّل الدخول للمتابعة</h2>
+    <p>يجب أن يكون لديك حساب في MMC حتى ترتبط الفاتورة والدفعة بحسابك وتُفعّل الباقة بعد اعتماد الإيصال.</p>
+    <div class="sub-grid">
+      <a id="loginLink" class="sub-btn" style="text-align:center;text-decoration:none" href="../portal/pt-9f3c7a1e5b2d/login.html">تسجيل الدخول</a>
+      <a id="registerLink" class="sub-btn secondary" style="text-align:center;text-decoration:none" href="../portal/pt-9f3c7a1e5b2d/register.html">إنشاء حساب جديد</a>
+    </div>
+  </section>
+  <section id="subscribeCard" class="sub-card hidden">
+    <h2>1. تفاصيل الاشتراك</h2>
+    <div class="sub-field"><label>نوع الاشتراك</label><select id="audience"><option value="contractor">مقاول / Contractor</option><option value="buyer">مشتريات / Buyer</option></select></div>
+    <div id="plans" class="sub-grid"><p class="muted">جارٍ تحميل الباقات من النظام…</p></div>
+    <div class="sub-grid">
+      <div class="sub-field"><label for="cycle">دورة الفوترة</label><select id="cycle"><option value="monthly">شهري</option><option value="annual">سنوي</option></select></div>
+      <div class="sub-field"><label for="currency">عملة الفاتورة</label><select id="currency"><option value="USD">USD — دولار أمريكي</option><option value="JOD">JOD — دينار أردني</option><option value="SAR">SAR — ريال سعودي</option><option value="AED">AED — درهم إماراتي</option></select><span class="muted">أسعار الباقات الأساسية بالدولار الأمريكي، ويحسب الخادم قيمة الفاتورة بالعملة التي تختارها وفق سعر التحويل المعتمد لديه.</span></div>
+      <div class="sub-field"><label for="method">طريقة الدفع</label><select id="method"><option value="cliq">CliQ</option><option value="bank_transfer">تحويل بنكي</option></select></div>
+    </div>
+    <div class="sub-field"><label for="notes">ملاحظات (اختياري)</label><textarea id="notes" rows="2" maxlength="1000" placeholder="أي تفاصيل تخص الاشتراك أو الجهة"></textarea></div>
+    <button id="createInvoice" class="sub-btn" type="button">إنشاء الفاتورة</button>
+  </section>
+  <section id="paymentCard" class="sub-card hidden">
+    <h2>2. تعليمات الدفع ورفع الإيصال</h2>
+    <div id="paymentInfo" class="payment-data">جارٍ تحميل بيانات الدفع المعتمدة…</div>
+    <div id="activeInvoice"></div>
+    <div class="sub-field"><label for="receipt">إرفاق إيصال التحويل (PDF / JPG / PNG / WEBP — حتى 10MB)</label><input id="receipt" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></div>
+    <button id="uploadReceipt" class="sub-btn secondary" type="button">رفع الإيصال وإرساله للمراجعة</button>
+    <p class="muted">لا يتم تفعيل الاشتراك تلقائياً عند رفع الإيصال. تقوم الإدارة بمراجعته واعتماد التحويل أولاً.</p>
+  </section>
+  <section id="invoicesCard" class="sub-card hidden">
+    <div class="sub-top"><h2>3. فواتيري</h2><button id="refreshInvoices" class="sub-btn secondary" type="button">تحديث</button></div>
+    <div id="invoiceList"><p class="muted">جارٍ تحميل الفواتير…</p></div>
+  </section>
 </div>
-<div class="wrap narrow">
-  <div class="formcard">
-    <h2>Subscription request</h2>
-    <p class="fsub">All fields marked with an asterisk are required.</p>
-    <form id="subscribeForm" novalidate>
-      <div class="frow">
-        <label for="fName">Full name <span class="req">*</span></label>
-        <input id="fName" name="name" type="text" placeholder="Your name" autocomplete="name">
-      </div>
-      <div class="frow">
-        <label for="fCompany">Company</label>
-        <input id="fCompany" name="company" type="text" placeholder="Company or trading name" autocomplete="organization">
-      </div>
-      <div class="frow">
-        <label for="fEmail">Work email <span class="req">*</span></label>
-        <input id="fEmail" name="email" type="email" placeholder="you@company.com" autocomplete="email">
-        <div class="hint">We use this only to reply about this request.</div>
-      </div>
-      <div class="frow">
-        <label for="fPhone">Telephone <span style="font-weight:500;text-transform:none;letter-spacing:0;color:#8b98a5">(optional)</span></label>
-        <input id="fPhone" name="phone" type="tel" placeholder="+000 000 0000" autocomplete="tel">
-      </div>
-
-      <div class="frow">
-        <label>Plan <span class="req">*</span></label>
-        <div class="plan-pick">
-          <label><input type="radio" name="plan" value="starter"><b>Starter</b><span>$39 / month</span></label>
-          <label><input type="radio" name="plan" value="pro" checked><b>Professional</b><span>$89 / month</span></label>
-          <label><input type="radio" name="plan" value="ent"><b>Enterprise</b><span>$199 / month</span></label>
-        </div>
-      </div>
-
-      <div class="frow">
-        <label for="fBilling">Billing cycle</label>
-        <select id="fBilling" name="billing">
-          <option value="monthly">Monthly — billed each month</option>
-          <option value="annual">Annual — two months free</option>
-        </select>
-      </div>
-
-      <div class="frow">
-        <label for="fNotes">Anything we should know?</label>
-        <textarea id="fNotes" name="notes" rows="3" placeholder="Number of users, branches, whether you need the Arabic edition, tender format to match…"></textarea>
-      </div>
-
-      <div class="form-note" style="border-color:#0f766e;background:#ecfdf5">
-        <strong>Payment instructions</strong><br>
-        Jordan: pay by <strong>CliQ</strong> to alias <strong><span data-pay="cliq">samarza</span></strong>, or transfer to <strong>Union Bank</strong>.
-        <span style="direction:ltr;display:inline-block">IBAN: <span data-pay="iban">JO07UBSI1220000330111332981002</span><span data-pay="extra"> — SWIFT: UBSIJOAXXXX — Beneficiary: سمر محمد بدوان عوض الزرو</span></span><br>
-        Gulf customers: use an international transfer to the same IBAN. Contact us before payment for the applicable
-        SWIFT/BIC and correspondent-bank details, and include your plan and invoice reference in the transfer note.
-        Access is activated after receipt and confirmation of payment.
-      </div>
-
-      <div class="form-note">
-        <strong>This is a demonstration form.</strong> No payment is taken, no card details are requested and no
-        account is created. Nothing is sent anywhere — the confirmation below appears locally so you can see the
-        intended behaviour. Connect it to your own CRM or billing provider before going live.
-      </div>
-
-      <button class="btn amber lg" type="submit" style="width:100%;justify-content:center">Submit request</button>
-    </form>
-    <div id="formResult" class="box teal" style="display:none;margin-top:18px"></div>
-  </div>
-
-  <div class="two-col" style="margin:34px 0 56px">
-    <div class="box">
-      <h4>What happens next (in production)</h4>
-      <ul style="margin-bottom:0">
-        <li>You receive an acknowledgement with a link to the plan you chose.</li>
-        <li>An invoice and payment instructions are issued; access opens when the transfer is settled.</li>
-        <li>Your branding is applied on request for Professional and Enterprise.</li>
-      </ul>
-    </div>
-    <div class="box teal">
-      <h4>Not ready to choose?</h4>
-      <p style="margin-bottom:8px">Open the full kit first — every form is printable and the take-off sheet calculates,
-      so you can judge the output before paying anything.</p>
-      <a class="btn" href="../en/index.html" style="background:#0f766e;border-color:#0f766e;color:#fff">Open the kit preview</a>
-    </div>
-  </div>
-</div>
-
-<footer style="background:#0d1b2a;color:#9fb3c8;padding:34px 0;font-size:12px">
-  <div class="wrap" style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
-    <div>
-      <strong style="color:#fff;display:block;margin-bottom:4px">MMC Technical Proposal Kit</strong>
-      Fillable tender forms, drawing-reading guide and quantity take-off for contractors.
-    </div>
-    <div style="display:flex;gap:22px;flex-wrap:wrap">
-      <a href="landing.html" style="color:#9fb3c8">Overview</a>
-      <a href="pricing.html" style="color:#9fb3c8">Pricing</a>
-      <a href="compare.html" style="color:#9fb3c8">Compare</a>
-      <a href="faq.html" style="color:#9fb3c8">FAQ</a>
-      <a href="subscribe.html" style="color:#9fb3c8">Subscribe</a>
-    </div>
-  </div>
-  <div class="wrap" style="margin-top:18px;border-top:1px solid #253c55;padding-top:14px;font-size:10.5px;color:#7d90a4">
-    Prices shown in USD for illustration. Subscription tiers describe a proposed commercial model; the pages are a
-    working front-end prototype and no payment is processed anywhere in this kit.
-  </div>
-</footer>
-<script src="../assets/en.js"></script>
-<script src="../assets/payment.js"></script></body>
+<script src="../portal/pt-9f3c7a1e5b2d/assets/api.js"></script>
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)}, user=null, selectedPlan='', currentInvoice=null, planCache=[];
+var login='../portal/pt-9f3c7a1e5b2d/login.html', register='../portal/pt-9f3c7a1e5b2d/register.html';
+function notice(message,kind){var n=$('notice');n.textContent=message;n.className='sub-alert'+(kind?' '+kind:'');n.classList.remove('hidden');}
+function clearNotice(){$('notice').classList.add('hidden');}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function money(v,c){return esc(c)+' '+Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+function statusLabel(s){return s==='paid'?'مدفوعة ومفعّلة':s==='rejected'?'مرفوضة — راجع الملاحظات':'بانتظار مراجعة الدفع';}
+function setBusy(btn,on,label){btn.disabled=on;btn.textContent=on?'جارٍ التنفيذ…':label;}
+$('loginLink').href=login;$('registerLink').href=register;
+function planPrice(p){return $('cycle').value==='annual'?p.priceYear:p.priceMonth;}
+function renderPlans(){var host=$('plans');if(!planCache.length){host.innerHTML='<p class="muted">لا توجد باقات متاحة لهذا النوع من الحسابات.</p>';return;}
+host.innerHTML=planCache.map(function(p){var chosen=p.key===selectedPlan;return '<label class="plan-card"><input type="radio" name="plan" value="'+esc(p.key)+'" '+(chosen?'checked':'')+'><span><b>'+esc(p.nameAr||p.nameEn||p.key)+'</b><span class="muted">'+esc(p.nameEn||'')+'</span><br><strong>'+money(planPrice(p),'USD')+'</strong> <span class="muted">'+($('cycle').value==='annual'?'سنوياً':'شهرياً')+'</span></span></label>';}).join('');
+host.querySelectorAll('input[name="plan"]').forEach(function(r){r.addEventListener('change',function(){selectedPlan=this.value;});});}
+function loadPlans(){var aud=$('audience').value;return API.request('GET','/billing/plans',null,{query:{audience:aud}}).then(function(d){planCache=d.plans||[];var q=new URLSearchParams(location.search).get('plan');selectedPlan=(planCache.some(function(p){return p.key===q;})?q:(planCache[0]&&planCache[0].key)||'');renderPlans();}).catch(function(e){$('plans').textContent=e.message;});}
+function showInvoice(inv){currentInvoice=inv;$('paymentCard').classList.remove('hidden');$('activeInvoice').innerHTML='<div class="invoice"><div class="invoice-head"><strong>رقم الفاتورة: <span class="ltr">'+esc(inv.invoiceNumber)+'</span></strong><span class="status-pill '+esc(inv.status)+'">'+statusLabel(inv.status)+'</span></div><p>الباقة: <b>'+esc(inv.planKey)+'</b> · '+esc(inv.billingCycle==='annual'?'سنوي':'شهري')+'</p><p>المبلغ المطلوب: <strong>'+money(inv.amount,inv.currency)+'</strong></p><p class="muted">يرجى إدراج رقم الفاتورة في وصف التحويل.</p></div>';$('uploadReceipt').disabled=inv.status==='paid';$('uploadReceipt').textContent=inv.status==='paid'?'تم اعتماد الفاتورة':'رفع الإيصال وإرساله للمراجعة';}
+function renderInvoices(items){var host=$('invoiceList');if(!items||!items.length){host.innerHTML='<p class="muted">لا توجد فواتير حتى الآن.</p>';return;}host.innerHTML=items.map(function(i){return '<div class="invoice"><div class="invoice-head"><strong class="ltr">'+esc(i.invoiceNumber)+'</strong><span class="status-pill '+esc(i.status)+'">'+statusLabel(i.status)+'</span></div><p>'+esc(i.planKey)+' · '+money(i.amount,i.currency)+' · '+esc(i.billingCycle==='annual'?'سنوي':'شهري')+'</p>'+(i.receiptName?'<p class="muted">تم إرفاق: '+esc(i.receiptName)+'</p>':'<p class="muted">لم يتم رفع الإيصال بعد.</p>')+(i.status==='rejected'&&i.notes?'<p class="sub-alert error">'+esc(i.notes)+'</p>':'')+'<button type="button" class="sub-btn secondary" data-invoice="'+esc(i.id)+'">عرض الفاتورة / متابعة الدفع</button></div>';}).join('');
+host.querySelectorAll('[data-invoice]').forEach(function(b){b.addEventListener('click',function(){var inv=items.find(function(x){return x.id===b.dataset.invoice;});if(inv){showInvoice(inv);$('paymentCard').scrollIntoView({behavior:'smooth',block:'start'});}});});}
+function refreshInvoices(){return API.listInvoices().then(function(d){renderInvoices(d.invoices||[]);});}
+function loadPaymentInfo(){return API.request('GET','/payment-info').then(function(d){var p=d.payment||d;var lines=[];if(p.cliqAlias)lines.push('<div><strong>CliQ:</strong> <span class="ltr">'+esc(p.cliqAlias)+'</span></div>');if(p.bankName)lines.push('<div><strong>البنك:</strong> '+esc(p.bankName)+'</div>');if(p.accountHolder)lines.push('<div><strong>اسم المستفيد:</strong> '+esc(p.accountHolder)+'</div>');if(p.iban)lines.push('<div><strong>IBAN:</strong> <span class="ltr">'+esc(p.iban)+'</span></div>');if(p.swift)lines.push('<div><strong>SWIFT/BIC:</strong> <span class="ltr">'+esc(p.swift)+'</span></div>');if(p.contactEmail)lines.push('<div><strong>للاستفسار:</strong> '+esc(p.contactEmail)+'</div>');$('paymentInfo').innerHTML=lines.length?lines.join(''):'<span>لم تُضبط بيانات الدفع على الخادم بعد. يرجى التواصل مع إدارة MMC قبل التحويل.</span>';}).catch(function(){$('paymentInfo').textContent='تعذر جلب بيانات الدفع المعتمدة. لا تحوّل أي مبلغ قبل التواصل مع الإدارة.';});}
+function init(){API.me().then(function(d){user=d.user;$('accountInfo').textContent='مسجل الدخول: '+(user.name||user.email);$('subscribeCard').classList.remove('hidden');$('invoicesCard').classList.remove('hidden');$('audience').value=user.role==='buyer'?'buyer':'contractor';$('audience').disabled=true;return Promise.all([loadPlans(),refreshInvoices(),loadPaymentInfo()]);}).catch(function(){$('signInCard').classList.remove('hidden');$('accountInfo').textContent='يلزم تسجيل الدخول';});}
+$('audience').addEventListener('change',loadPlans);$('cycle').addEventListener('change',renderPlans);
+$('createInvoice').addEventListener('click',function(){clearNotice();if(!selectedPlan){notice('اختر باقة أولاً.','error');return;}var btn=this;setBusy(btn,true,'إنشاء الفاتورة');API.createInvoice({planKey:selectedPlan,billingCycle:$('cycle').value,currency:$('currency').value,paymentMethod:$('method').value,notes:$('notes').value.trim()}).then(function(d){showInvoice(d.invoice);notice(d.message||'تم إنشاء الفاتورة.','success');return refreshInvoices();}).catch(function(e){notice(e.message,'error');}).finally(function(){setBusy(btn,false,'إنشاء الفاتورة');});});
+$('uploadReceipt').addEventListener('click',function(){clearNotice();if(!currentInvoice){notice('اختر فاتورة أو أنشئ فاتورة أولاً.','error');return;}var f=$('receipt').files[0];if(!f){notice('يرجى اختيار ملف الإيصال.','error');return;}if(f.size>10*1024*1024){notice('حجم الإيصال يتجاوز 10MB.','error');return;}var btn=this;setBusy(btn,true,'رفع الإيصال');API.uploadReceipt(currentInvoice.id,f).then(function(d){showInvoice(d.invoice);notice(d.message||'تم رفع الإيصال بنجاح.','success');$('receipt').value='';return refreshInvoices();}).catch(function(e){notice(e.message,'error');}).finally(function(){setBusy(btn,false,'رفع الإيصال وإرساله للمراجعة');});});
+$('refreshInvoices').addEventListener('click',function(){refreshInvoices().then(function(){notice('تم تحديث الفواتير.','success');}).catch(function(e){notice(e.message,'error');});});
+init();
+})();
+</script>
+</body>
 </html>

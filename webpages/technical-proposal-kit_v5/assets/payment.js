@@ -1,12 +1,17 @@
-/* يملأ بيانات الدفع من الخادم (.env). عند فتح الصفحة بلا خادم تبقى القيم المكتوبة داخل الصفحة. */
+/* Public payment instructions are sourced only from live server configuration. */
 (function(){
-  var ar=(document.documentElement.lang||'').indexOf('ar')===0;
-  fetch('/api/payment-info',{credentials:'same-origin'}).then(function(r){return r.ok?r.json():null}).then(function(d){
-    if(!d||!d.payment) return;
-    var p=d.payment;
-    function fill(k,v){ if(!v) return; [].forEach.call(document.querySelectorAll('[data-pay="'+k+'"]'),function(el){el.textContent=v}); }
-    fill('iban',p.iban); fill('cliq',p.cliqAlias);
-    var extra=(ar?' — SWIFT: ':' — SWIFT: ')+p.swift+' — '+(ar?'المستفيد: ':'Beneficiary: ')+p.accountHolder+(p.contactEmail?(' — '+p.contactEmail):'');
-    fill('extra',extra);
-  }).catch(function(){});
+  [].forEach.call(document.querySelectorAll('[data-pay]'),function(el){el.textContent='';});
+  fetch('/api/payment-info',{credentials:'same-origin',cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('Payment details unavailable');return r.json();})
+    .then(function(d){
+      if(!d||!d.payment)return;
+      var p=d.payment;
+      function fill(k,v){if(!v)return;[].forEach.call(document.querySelectorAll('[data-pay="'+k+'"]'),function(el){el.textContent=String(v);});}
+      fill('iban',p.iban);fill('cliq',p.cliqAlias);
+      var extra=[];if(p.swift)extra.push('SWIFT: '+p.swift);if(p.accountHolder)extra.push('Beneficiary: '+p.accountHolder);if(p.contactEmail)extra.push(p.contactEmail);
+      fill('extra',extra.join(' — '));
+    })
+    .catch(function(){
+      [].forEach.call(document.querySelectorAll('[data-pay]'),function(el){el.textContent='Available during authenticated checkout';});
+    });
 })();
