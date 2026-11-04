@@ -102,9 +102,16 @@ function hasValidClosingDate(value) {
 function toIsoDate(value) {
   const text = String(value || '').trim();
   let m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
-  m = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? m[0] : null;
+  let day, month, year;
+  if (m) { day = Number(m[1]); month = Number(m[2]); year = Number(m[3]); }
+  else {
+    m = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    year = Number(m[1]); month = Number(m[2]); day = Number(m[3]);
+  }
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
 }
 
 function persistTenders(tenders, failures = []) {
@@ -134,8 +141,9 @@ function persistTenders(tenders, failures = []) {
     const reviewStatus = t.title && hasValidClosingDate(t.closingDate) && /^https:\/\/www\.arabpotash\.com\//i.test(t.detailUrl) ? 'published' : 'needs-review';
     const closingDateIso = toIsoDate(t.closingDate);
     const purchaseDateIso = toIsoDate(t.purchaseDate);
-    const isClosed = closingDateIso && closingDateIso < new Date().toISOString().slice(0,10);
-    upsert.run({...t,reviewStatus,purchaseDateIso,closingDateIso,status:isClosed ? 'closed' : 'open',sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
+    const isClosed = Boolean(closingDateIso && closingDateIso < new Date().toISOString().slice(0,10));
+    const status = !closingDateIso ? 'unknown' : (isClosed ? 'closed' : 'open');
+    upsert.run({...t,reviewStatus,purchaseDateIso,closingDateIso,status,sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
     for(const d of (t.documents||[])) doc.run({id:'apc-doc-'+require('crypto').createHash('sha1').update(t.id+d.url).digest('hex'),tenderId:t.id,label:d.label||'Tender document',url:d.url});
   }))();
 }
