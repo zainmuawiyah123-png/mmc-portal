@@ -192,13 +192,11 @@ router.get('/', async (req, res) => {
     const filtered = tenders.filter((t) => {
       const haystack = [t.title, t.tenderNumber, t.qualifications, t.remarks].filter(Boolean).join(' ').toLocaleLowerCase();
       if (q && !haystack.includes(q)) return false;
-      if (status === 'open' && t.closingDate) {
-        const parts = t.closingDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-        if (parts) {
-          const close = new Date(Number(parts[3]), Number(parts[2]) - 1, Number(parts[1]), 23, 59, 59);
-          if (close < new Date()) return false;
-        }
-      }
+      const closingDateIso = toIsoDate(t.closingDate);
+      const today = new Date().toISOString().slice(0, 10);
+      if (status === 'open' && (!closingDateIso || closingDateIso < today)) return false;
+      if (status === 'closed' && (!closingDateIso || closingDateIso >= today)) return false;
+      if (status === 'unknown' && closingDateIso) return false;
       return true;
     });
     res.set('Cache-Control', 'private, max-age=60');
