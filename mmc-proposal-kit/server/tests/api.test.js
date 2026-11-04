@@ -735,21 +735,21 @@ test('64 — موصل البنك الدولي يحول الإشعارات الع
       ok: true, status: 200,
       json: async () => ({ rows: 2, os: 0, page: 1, total: 2, procnotices: [
         { id: 'WB-TEST-2026-001', bid_description: 'Road rehabilitation and drainage works', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-12-15', noticedate: '2026-10-20', project_name: 'Municipal infrastructure project' },
-        { id: 'WB-TEST-2026-002', bid_description: 'Incomplete procurement notice', project_ctry_name: 'Unknown country', notice_type: 'Request for Information', noticedate: '2026-10-21' }
+        { id: 'WB-TEST-2026-002', bid_description: 'Incomplete procurement notice', project_ctry_name: 'Unknown country', notice_type: 'Request for Information', noticedate: '2026-10-21' },\n        { id: 'WB-TEST-2026-003', bid_description: 'Expired road works notice', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-10-01', noticedate: '2026-09-01' },\n        { id: 'WB-TEST-2026-004', bid_description: 'Invalid deadline notice', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-02-30', noticedate: '2026-01-01' }
       ] })
     };
   };
   try {
     const response = await call('wb-anon', 'GET', '/api/public-tenders/world-bank?refresh=1');
     assert.strictEqual(response.status, 200, JSON.stringify(response.data));
-    assert.strictEqual(response.data.count, 2, 'source response retains incomplete notices for review');
+    assert.strictEqual(response.data.count, 4, 'source response retains incomplete and invalid notices for review');\n    assert.strictEqual(response.data.publishedCount, 2, 'complete target-country notices, including expired notices, are indexed');\n    assert.strictEqual(response.data.needsReviewCount, 2, 'incomplete and invalid notices remain held for review');
     assert.strictEqual(response.data.tenders[0].countryCode, 'JO');
     assert.strictEqual(response.data.tenders[0].closingAt, '2026-12-15');
     const indexed = await call('wb-index', 'GET', '/api/public-tenders?source=world-bank-procurement&q=Road%20rehabilitation');
     assert.strictEqual(indexed.status, 200);
     assert.strictEqual(indexed.data.total, 1, 'only complete notices for target countries are published');
     const held = getDB().prepare("SELECT review_status FROM public_tenders WHERE id='wb-WB-TEST-2026-002'").get();
-    assert.strictEqual(held.review_status, 'needs-review');
+    assert.strictEqual(held.review_status, 'needs-review');\n    const expired = getDB().prepare(\"SELECT review_status,closing_at,status FROM public_tenders WHERE id='wb-WB-TEST-2026-003'\").get();\n    assert.strictEqual(expired.review_status, 'published');\n    assert.strictEqual(expired.status, 'closed', 'past World Bank deadlines must never be labelled open');\n    assert.strictEqual(expired.closing_at, '2026-10-01');\n    const invalid = getDB().prepare(\"SELECT review_status,closing_at,status FROM public_tenders WHERE id='wb-WB-TEST-2026-004'\").get();\n    assert.strictEqual(invalid.review_status, 'needs-review');\n    assert.strictEqual(invalid.closing_at, null, 'impossible World Bank dates must not be normalized');\n    assert.strictEqual(invalid.status, 'unknown');
     const source = getDB().prepare("SELECT connector_status,last_sync_status FROM tender_sources WHERE source_key='world-bank-procurement'").get();
     assert.strictEqual(source.connector_status, 'active');
     assert.strictEqual(source.last_sync_status, 'success');
