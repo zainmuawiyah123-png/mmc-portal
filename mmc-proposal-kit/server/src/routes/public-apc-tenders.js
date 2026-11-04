@@ -82,6 +82,36 @@ function extractDetails(html, pid) {
   };
 }
 
+
+function persistTenders(tenders) {
+  const db = require('../db').getDB();
+  db.prepare(`INSERT INTO tender_sources
+    (source_key,name_ar,name_en,country_code,market_scope,publisher_type,organization_family,source_url,connector_status,access_mode,last_synced_at,last_sync_status,last_sync_message)
+    VALUES ('arab-potash-company','شركة البوتاس العربية','Arab Potash Company (APC)','JO','private-sector','private-company','jordanian-industrial-companies',?,'prototype','public-listing',unixepoch(),'success',?)
+    ON CONFLICT(source_key) DO UPDATE SET last_synced_at=unixepoch(),last_sync_status='success',last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
+    .run(LIST_URL,'Fetched '+tenders.length+' public tender records');
+  const upsert = db.prepare(`INSERT INTO public_tenders
+    (id,source_key,source_ref,country_code,market_scope,publisher_type,organization_family,publisher_name,
+     tender_number,title,purchase_deadline,closing_at,status,bid_bond,document_fee,qualification,official_url,
+     last_verified_at,review_status,raw_metadata)
+    VALUES (@id,'arab-potash-company',@sourceRef,'JO','private-sector','private-company',
+     'jordanian-industrial-companies','شركة البوتاس العربية',@tenderNumber,@title,@purchaseDate,@closingDate,
+     'unknown',@bidBond,@copyPrice,@qualifications,@detailUrl,unixepoch(),'published',@rawMetadata)
+    ON CONFLICT(source_key,source_ref) DO UPDATE SET title=excluded.title,tender_number=excluded.tender_number,
+     purchase_deadline=excluded.purchase_deadline,closing_at=excluded.closing_at,status=excluded.status,
+     bid_bond=excluded.bid_bond,document_fee=excluded.document_fee,qualification=excluded.qualification,
+     official_url=excluded.official_url,last_verified_at=unixepoch(),fetched_at=unixepoch(),
+     review_status='published',raw_metadata=excluded.raw_metadata,updated_at=unixepoch()`);
+  const doc = db.prepare(`INSERT INTO public_tender_documents
+    (id,public_tender_id,label,document_url,availability)
+    VALUES (@id,@tenderId,@label,@url,'source-link')
+    ON CONFLICT(public_tender_id,document_url) DO UPDATE SET label=excluded.label`);
+  db.transaction(()=>tenders.forEach(t=>{
+    upsert.run({...t,sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
+    for(const d of (t.documents||[])) doc.run({id:'apc-doc-'+require('crypto').createHash('sha1').update(t.id+d.url).digest('hex'),tenderId:t.id,label:d.label||'Tender document',url:d.url});
+  }))();
+}
+
 async function fetchText(url) {
   const response = await fetch(url, {
     headers: { 'user-agent': 'MMC-Tender-Directory/1.0 (public tender index)', accept: 'text/html' },
@@ -115,6 +145,7 @@ async function loadTenders(force) {
       });
     }
   }
+  persistTenders(tenders);
   cache = { at: Date.now(), tenders, error: null };
   return tenders;
 }
