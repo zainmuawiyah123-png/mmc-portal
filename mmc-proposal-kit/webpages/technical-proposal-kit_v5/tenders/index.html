@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>دليل العطاءات العامة | MMC</title>
+<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
+<style>
+body{background:#f4f6f8}.wrap{max-width:1180px;margin:28px auto;padding:0 18px}.hero,.filters,.tender{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;margin-bottom:16px}.hero h1{margin:6px 0}.muted{color:#64748b}.filters{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end}.filters label{display:block;font-size:12px;margin-bottom:5px}.filters input,.filters select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.tender h3{margin:0 0 10px}.meta{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.tag{font-size:11px;background:#eef2ff;color:#3730a3;padding:5px 8px;border-radius:20px}.detail{display:none;border-top:1px solid #e2e8f0;margin-top:14px;padding-top:12px;line-height:1.8}.detail.show{display:block}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{cursor:pointer}.notice{padding:14px;border-radius:10px;background:#fffbeb;color:#92400e}.error{background:#fef2f2;color:#991b1b}@media(max-width:700px){.filters{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="p-top"><div class="brand"><span class="mark">M</span><span>MMC <small>دليل العطاءات العامة</small></span></div><div class="spacer"></div><a class="btn ghost" href="../index.html">الرئيسية</a><a class="btn ghost" href="../portal/pt-9f3c7a1e5b2d/login.html">بوابة MMC</a></div>
+<main class="wrap">
+<section class="hero"><div class="eyebrow">MMC TENDER INTELLIGENCE</div><h1>ابحث عن فرصك من داخل MMC</h1><p class="muted">دليل موحد للعطاءات المحلية والدولية. البحث والتصفح داخل MMC؛ وتظهر روابط المصدر الرسمي للتوثيق والتقديم عند الحاجة.</p><div class="meta"><span class="tag">الأردن</span><span class="tag">القطاع الخاص</span><span class="tag">شركة البوتاس العربية APC</span></div></section>
+<section class="filters"><div><label for="q">ابحث بالعنوان أو الرقم أو التخصص</label><input id="q" placeholder="مثال: أعمال مدنية، صيانة، توريد..."></div><div><label for="source">المصدر</label><select id="source"><option value="apc">شركة البوتاس العربية</option></select></div><button class="btn amber" id="search">بحث داخل MMC</button></section>
+<div id="status" class="notice">جارٍ تحميل العطاءات المنشورة في المصدر العام لشركة البوتاس...</div>
+<div id="results" class="grid"></div>
+</main>
+<script>
+(function(){
+const status=document.getElementById('status'),results=document.getElementById('results');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let all=[];
+function render(){
+ const q=document.getElementById('q').value.trim().toLocaleLowerCase();
+ const list=all.filter(t=>[t.title,t.tenderNumber,t.qualifications,t.remarks].filter(Boolean).join(' ').toLocaleLowerCase().includes(q));
+ status.className='notice';status.textContent=list.length+' عطاء/عطاءات من شركة البوتاس ضمن النتائج المعروضة.';
+ results.innerHTML=list.map((t,i)=>'<article class="tender"><h3>'+esc(t.title)+'</h3><div class="muted">'+esc(t.tenderNumber||t.id)+' · شركة البوتاس العربية · الأردن</div><div class="meta">'+(t.closingDate?'<span class="tag">الإغلاق: '+esc(t.closingDate)+'</span>':'')+(t.bidBond?'<span class="tag">الكفالة: '+esc(t.bidBond)+'</span>':'')+(t.copyPrice?'<span class="tag">سعر النسخة: '+esc(t.copyPrice)+'</span>':'')+'</div><div class="actions"><button class="btn light" data-detail="'+i+'">تفاصيل العطاء</button><a class="btn ghost" href="'+esc(t.detailUrl)+'" target="_blank" rel="noopener">المصدر الرسمي</a></div><div class="detail" id="detail-'+i+'">'+(t.purchaseDate?'<p><b>بدء شراء الوثائق:</b> '+esc(t.purchaseDate)+'</p>':'')+(t.qualifications?'<p><b>تأهيل المقاول:</b> '+esc(t.qualifications)+'</p>':'')+(t.remarks?'<p><b>ملاحظات:</b> '+esc(t.remarks)+'</p>':'')+(t.documents&&t.documents.length?'<p><b>الوثائق المتاحة:</b></p>'+t.documents.map(d=>'<p><a href="'+esc(d.url)+'" target="_blank" rel="noopener">'+esc(d.label||'فتح الوثيقة')+'</a></p>').join(''):'<p class="muted">لم تُكتشف مرفقات عامة قابلة للعرض من الصفحة المفتوحة. قد تتطلب الوثائق شراء نسخة أو تسجيل المورد.</p>')+'</div></article>').join('')||'<div class="tender">لا توجد نتائج مطابقة لعبارة البحث.</div>';
+ results.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>document.getElementById('detail-'+b.dataset.detail).classList.toggle('show'));
+}
+async function load(){
+ status.className='notice';status.textContent='جارٍ تحديث بيانات عطاءات APC من المصدر العام...';
+ try{const r=await fetch('/api/public-tenders/apc',{headers:{accept:'application/json'}});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر جلب البيانات');all=d.tenders||[];render();status.textContent='تم تحميل '+all.length+' عطاء/سجل من صفحة العطاءات العامة. آخر جلب: '+new Date(d.fetchedAt).toLocaleString('ar-JO');}
+ catch(e){status.className='notice error';status.textContent=e.message+' — حاول لاحقاً. لا نعرض بيانات قديمة على أنها محدثة.';}
+}
+document.getElementById('search').onclick=render;document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')render()});load();
+})();
+</script></body></html>
