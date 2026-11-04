@@ -1,5 +1,11 @@
 name: MMC server tests
 on:
+  push:
+    branches:
+      - 'feature/tender-intelligence-jo-sa-uae'
+    paths:
+      - 'mmc-proposal-kit/server/**'
+      - '.github/workflows/mmc-server-tests.yml'
   pull_request:
     paths:
       - 'mmc-proposal-kit/server/**'
