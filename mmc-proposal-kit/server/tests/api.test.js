@@ -700,6 +700,12 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     assert.strictEqual(sourceList.status, 200);
     assert.ok(sourceList.data.sources.some(s => s.sourceKey === 'joneps-jordan'));
     assert.ok(sourceList.data.sources.some(s => s.sourceKey === 'ungm'));
+    // Source registry coverage: listing a source must not imply its connector is active.
+    for (const key of ['nepco-jordan','jopetrol-jordan','adc-jordan','aramco-saudi','maaden-saudi','dubai-procurement-uae','abudhabi-procurement-uae']) {
+      const source = sourceList.data.sources.find(s => s.sourceKey === key);
+      assert.ok(source, 'expected registered source: ' + key);
+      assert.strictEqual(source.connectorStatus, 'planned', key + ' must not be presented as automatically synchronized');
+    }
   } finally {
     global.fetch = originalFetch;
   }
