@@ -361,21 +361,35 @@ function migrate(dbPath = config.DB_PATH) {
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-  db.exec(SCHEMA);
 
-  const ins = db.prepare(`
-    INSERT INTO plans (key, name_ar, name_en, max_tenders, max_bytes, price_month, price_year, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(key) DO NOTHING`);
-  const tx = db.transaction((rows) => rows.forEach((r) => ins.run(...r)));
-  tx(PLANS_SEED);
+  // SQLite schema changes are transactional. Keep all schema creation,
+  // plan seeding and upgrades in one transaction so a failed migration
+  // cannot leave a half-upgraded database behind.
+  const schemaStatements = SCHEMA
+    .replace(/^\\s*PRAGMA journal_mode = WAL;\\s*/m, '')
+    .replace(/^\\s*PRAGMA foreign_keys = ON;\\s*/m, '');
+  const runMigration = db.transaction(() => {
+    db.exec(schemaStatements);
 
-  upgradeProcurement(db);
-  upgradePlans(db);
-  upgradeV5(db);
-  upgradePublicTenderIntelligence(db);
+    const ins = db.prepare(`
+      INSERT INTO plans (key, name_ar, name_en, max_tenders, max_bytes, price_month, price_year, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(key) DO NOTHING`);
+    PLANS_SEED.forEach((row) => ins.run(...row));
 
-  return db;
+    upgradeProcurement(db);
+    upgradePlans(db);
+    upgradeV5(db);
+    upgradePublicTenderIntelligence(db);
+  });
+
+  try {
+    runMigration();
+    return db;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
 }
 
 /** يُشغَّل مباشرة: node src/migrate.js */
