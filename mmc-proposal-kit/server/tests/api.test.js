@@ -708,7 +708,8 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
 
 test('64 — موصل البنك الدولي يحول الإشعارات العامة إلى فهرس MMC', async () => {
   const originalFetch = global.fetch;
-  global.fetch = async (url) => {
+  global.fetch = async (url, options) => {
+    if (String(url).startsWith('http://127.0.0.1:')) return originalFetch(url, options);
     assert.match(String(url), /search\.worldbank\.org\/api\/v2\/procnotices/);
     return {
       ok: true, status: 200,
