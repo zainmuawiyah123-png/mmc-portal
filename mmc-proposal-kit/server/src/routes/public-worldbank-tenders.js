@@ -41,22 +41,27 @@ function asDate(value) {
 }
 
 function normalizeCountry(value) {
-  const c = asText(value).toLowerCase();
-  if (c.includes('jordan')) return 'JO';
-  if (c.includes('saudi')) return 'SA';
-  if (c.includes('united arab emirates') || c === 'uae') return 'AE';
+  const c = asText(value).trim().toLowerCase();
+  if (c === 'jo' || c.includes('jordan')) return 'JO';
+  if (c === 'sa' || c.includes('saudi')) return 'SA';
+  if (c === 'ae' || c === 'uae' || c.includes('united arab emirates')) return 'AE';
   return null;
 }
 
 function normalizeNotice(raw) {
   const id = asText(first(raw, ['id','notice_id','noticeid','noticeId','notice_number']));
   const title = asText(first(raw, ['bid_description','notice_title','title','description','bidDescription']));
-  const country = asText(first(raw, ['project_ctry_name','country_name','country','projectCountry']));
+  const country = first(raw, ['country_code','project_ctry_code','project_ctry_name','country_name','country','projectCountry']);
   const noticeType = asText(first(raw, ['notice_type','noticeType','type']));
-  const deadline = asDate(first(raw, ['submission_deadline_date','deadline_date','submission_deadline','deadline']));
-  const published = asDate(first(raw, ['noticedate','notice_date','publication_date','published_date']));
+  const deadline = asDate(first(raw, ['deadline_date','submission_deadline_date','submission_deadline','deadline']));
+  const published = asDate(first(raw, ['publication_date','noticedate','notice_date','published_date']));
   if (!id || !title) return null;
-  const officialUrl = 'https://projects.worldbank.org/en/projects-operations/procurement-detail/' + encodeURIComponent(id);
+  const suppliedUrl = asText(first(raw, ['url','notice_url','noticeUrl']));
+  let officialUrl = 'https://projects.worldbank.org/en/projects-operations/procurement-detail/' + encodeURIComponent(id);
+  try {
+    const parsed = new URL(suppliedUrl);
+    if (parsed.protocol === 'https:' && ['projects.worldbank.org','www.worldbank.org'].includes(parsed.hostname)) officialUrl = parsed.toString();
+  } catch (_) { /* retain the canonical World Bank detail URL */ }
   return {
     id: 'wb-' + id,
     sourceKey: 'world-bank-procurement',
@@ -68,7 +73,7 @@ function normalizeNotice(raw) {
     publisherName: 'World Bank Group',
     tenderNumber: id,
     title,
-    description: [asText(first(raw,['project_name','projectname','project_title'])), noticeType, country].filter(Boolean).join(' — ') || null,
+    description: [asText(first(raw,['project_name','projectname','project_title'])), asText(first(raw,['procurement_category','sector'])), noticeType, asText(country)].filter(Boolean).join(' — ') || null,
     noticeType: noticeType || null,
     publishedAt: published,
     closingAt: deadline,
