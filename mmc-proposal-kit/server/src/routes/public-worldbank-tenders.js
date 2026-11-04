@@ -131,11 +131,14 @@ function persist(items) {
 
   const upsert = db.prepare(`INSERT INTO public_tenders
     (id,source_key,source_ref,country_code,market_scope,publisher_type,organization_family,publisher_name,tender_number,title,description,published_at,closing_at,status,official_url,last_verified_at,review_status,raw_metadata)
-    VALUES (@id,'world-bank-procurement',@sourceRef,@countryCode,'development-financed','multilateral-bank','development-banks','World Bank Group',@tenderNumber,@title,@description,@publishedAt,@closingAt,@status,@officialUrl,unixepoch(),'published',@rawMetadata)
-    ON CONFLICT(source_key,source_ref) DO UPDATE SET country_code=excluded.country_code,title=excluded.title,description=excluded.description,published_at=excluded.published_at,closing_at=excluded.closing_at,status=excluded.status,official_url=excluded.official_url,last_verified_at=unixepoch(),fetched_at=unixepoch(),review_status='published',raw_metadata=excluded.raw_metadata,updated_at=unixepoch()`);
-  const tx = db.transaction(() => items.forEach(item => upsert.run({
-    ...item, rawMetadata: JSON.stringify(item.raw)
-  })));
+    VALUES (@id,'world-bank-procurement',@sourceRef,@countryCode,'development-financed','multilateral-bank','development-banks','World Bank Group',@tenderNumber,@title,@description,@publishedAt,@closingAt,@status,@officialUrl,unixepoch(),@reviewStatus,@rawMetadata)
+    ON CONFLICT(source_key,source_ref) DO UPDATE SET country_code=excluded.country_code,title=excluded.title,description=excluded.description,published_at=excluded.published_at,closing_at=excluded.closing_at,status=excluded.status,official_url=excluded.official_url,last_verified_at=unixepoch(),fetched_at=unixepoch(),review_status=excluded.review_status,raw_metadata=excluded.raw_metadata,updated_at=unixepoch()`);
+  const tx = db.transaction(() => items.forEach(item => {
+    // Only publish notices with a supported target country and a validated closing date.
+    // Keep incomplete source records for review, but never expose them in the public index.
+    const reviewStatus = ['JO','SA','AE'].includes(item.countryCode) && Boolean(item.closingAt) ? 'published' : 'needs-review';
+    upsert.run({ ...item, reviewStatus, rawMetadata: JSON.stringify(item.raw) });
+  }));
   tx();
 }
 
