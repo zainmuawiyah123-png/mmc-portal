@@ -35,13 +35,28 @@ router.get('/', wrap(async (req,res) => {
 }));
 
 // Internal tender detail and document index. The browser stays on MMC.
-router.get('/:id', wrap(async(req,res)=>{
+router.get('/detail/:id', wrap(async(req,res)=>{
  const db=getDB(), row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
  if(!row) throw E.notFound('العطاء غير موجود في دليل MMC.');
  const detail=db.prepare('SELECT details_json,verified_at FROM tender_opportunity_details WHERE opportunity_id=?').get(row.id);
  const documents=db.prepare('SELECT id,label,availability FROM tender_opportunity_documents WHERE opportunity_id=? ORDER BY label').all(row.id);
  let details={}; try{details=detail?JSON.parse(detail.details_json):{};}catch(_){}
  res.json({opportunity:shape(row),details:{purchaseDate:details.purchase||null,closingDate:details.closing||null,documentFee:details.fee||null,bidBond:details.bond||null,qualification:details.qual||null,remarks:details.remarks||null,verifiedAt:detail?.verified_at||null},documents});
+}));
+
+router.get('/documents/:docId', wrap(async(req,res)=>{
+ const row=getDB().prepare(`SELECT document_url,label FROM tender_opportunity_documents WHERE id=? AND availability='public'`).get(req.params.docId);
+ if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
+ const target=new URL(row.document_url);
+ if(target.protocol!=='https:'||!['www.arabpotash.com','arabpotash.com'].includes(target.hostname)) throw E.badRequest('مصدر الوثيقة غير معتمد.');
+ const upstream=await fetch(target,{headers:{'user-agent':'MMC-Tender-Directory/1.0','accept':'application/pdf,application/octet-stream,*/*'},signal:AbortSignal.timeout(20000)});
+ if(!upstream.ok) throw E.conflict('تعذر جلب الملف من المصدر العام حالياً.');
+ const type=upstream.headers.get('content-type')||'application/octet-stream';
+ if(!/^(application\\/pdf|application\\/octet-stream|application\\/zip|image\\/)/i.test(type)) throw E.conflict('المصدر لم يُرجع ملفاً قابلاً للتنزيل.');
+ res.setHeader('Content-Type',type);
+ res.setHeader('Content-Disposition','inline; filename="MMC-tender-document"');
+ res.setHeader('Cache-Control','private, max-age=300');
+ const {Readable}=require('stream'); Readable.fromWeb(upstream.body).pipe(res);
 }));
 
 // MMC administrators curate/import official notices. No public write access.
