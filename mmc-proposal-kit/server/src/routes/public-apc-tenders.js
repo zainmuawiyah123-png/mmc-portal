@@ -201,7 +201,9 @@ router.get('/:id', async (req, res) => {
     const tenders = await loadTenders(false);
     const tender = tenders.find((item) => item.id === req.params.id);
     if (!tender) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'العطاء غير موجود في المصدر العام.' } });
-    res.json({ tender });
+    const db = require('../db').getDB();
+    const documents = db.prepare('SELECT label,document_url AS url,mime_type AS mimeType,availability FROM public_tender_documents WHERE public_tender_id=?').all(tender.id);
+    res.json({ tender, documents });
   } catch (error) {
     res.status(502).json({ error: { code: 'SOURCE_UNAVAILABLE', message: 'تعذر الوصول إلى مصدر العطاءات.' } });
   }
