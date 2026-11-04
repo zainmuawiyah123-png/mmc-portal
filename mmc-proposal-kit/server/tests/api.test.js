@@ -662,8 +662,9 @@ test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملف
 
 test('63 — دليل APC العام يعمل داخل MMC دون تسجيل دخول ويعرض بيانات العطاء', async () => {
   const originalFetch = global.fetch;
-  global.fetch = async (url) => {
+  global.fetch = async (url, ...args) => {
     const u = String(url);
+    if (!u.includes('arabpotash.com')) return originalFetch(url, ...args);
     const html = u.includes('/Modules/Tenders')
       ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a></html>'
       : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2026</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
