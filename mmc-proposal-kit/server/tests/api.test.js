@@ -704,3 +704,32 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     global.fetch = originalFetch;
   }
 });
+
+
+test('64 — موصل البنك الدولي يحول الإشعارات العامة إلى فهرس MMC', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    assert.match(String(url), /search\.worldbank\.org\/api\/v2\/procnotices/);
+    return {
+      ok: true, status: 200,
+      json: async () => ({ results: [
+        { id: 'WB-TEST-2026-001', bid_description: 'Road rehabilitation and drainage works', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-12-15', noticedate: '2026-10-20', project_name: 'Municipal infrastructure project' }
+      ] })
+    };
+  };
+  try {
+    const response = await call('wb-anon', 'GET', '/api/public-tenders/world-bank?refresh=1');
+    assert.strictEqual(response.status, 200, JSON.stringify(response.data));
+    assert.strictEqual(response.data.count, 1);
+    assert.strictEqual(response.data.tenders[0].countryCode, 'JO');
+    assert.strictEqual(response.data.tenders[0].closingAt, '2026-12-15');
+    const indexed = await call('wb-index', 'GET', '/api/public-tenders?source=world-bank-procurement&q=Road%20rehabilitation');
+    assert.strictEqual(indexed.status, 200);
+    assert.strictEqual(indexed.data.total, 1);
+    const source = getDB().prepare("SELECT connector_status,last_sync_status FROM tender_sources WHERE source_key='world-bank-procurement'").get();
+    assert.strictEqual(source.connector_status, 'active');
+    assert.strictEqual(source.last_sync_status, 'success');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
