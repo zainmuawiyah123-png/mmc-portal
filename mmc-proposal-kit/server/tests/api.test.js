@@ -16,6 +16,9 @@ process.env.DB_PATH = path.join(TMP, 'test.db');
 process.env.UPLOAD_DIR = path.join(TMP, 'uploads');
 process.env.JWT_SECRET = 'test-secret-not-for-production';
 process.env.BCRYPT_ROUNDS = '4';      // أسرع في الاختبارات
+process.env.PAYMENT_SWIFT = 'UBSIJOAXXXX';
+process.env.PAYMENT_IBAN = 'JO07UBSI1220000330111332981002';
+process.env.PAYMENT_ACCOUNT_HOLDER = 'MMC Test Account';
 
 const { migrate } = require('../src/migrate');
 const { createApp } = require('../src/index');
@@ -208,7 +211,7 @@ test('13 — إنشاء عطاء بتاريخ إغلاق بصيغة خاطئة �
 test('14 — قائمة العطاءات تعيد عطاءات المستخدم فقط', async () => {
   const r = await call('userA', 'GET', '/api/tenders');
   assert.strictEqual(r.status, 200);
-  assert.strictEqual(r.data.count, 1);
+  assert.strictEqual(r.data.count, 2, 'complete and incomplete source records are retained');
   assert.strictEqual(r.data.tenders[0].id, tenderA.id);
 });
 
@@ -666,8 +669,10 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     const u = String(url);
     if (!u.includes('arabpotash.com')) return originalFetch(url, ...args);
     const html = u.includes('/Modules/Tenders')
-      ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a></html>'
-      : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2026</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
+      ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a><a href="/En/TendersDetails?PID=98766">Incomplete tender</a></html>'
+      : u.includes('PID=98766')
+        ? '<html><body><h1>Tender title and number: Incomplete civil works</h1><div>Purchase Date: 01/11/2026</div><div>Copy Price: 50 JOD</div></body></html>'
+        : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2026</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
     return { ok: true, status: 200, text: async () => html };
   };
   try {
@@ -684,7 +689,9 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     assert.match(tender.documents[0].url, /apc-announcement\.pdf$/);
     const indexed = await call('apc-index', 'GET', '/api/public-tenders?q=APC-2026-01');
     assert.strictEqual(indexed.status, 200, JSON.stringify(indexed.data));
-    assert.strictEqual(indexed.data.total, 1, 'APC tender must be searchable in the unified MMC index');
+    assert.strictEqual(indexed.data.total, 1, 'only the verified APC tender should be searchable publicly');
+    const incomplete = getDB().prepare("SELECT review_status FROM public_tenders WHERE id='apc-98766'").get();
+    assert.strictEqual(incomplete.review_status, 'needs-review');
     assert.strictEqual(indexed.data.tenders[0].sourceKey, 'arab-potash-company');
     const details = await call('apc-details', 'GET', '/api/public-tenders/apc-98765');
     assert.strictEqual(details.status, 200, JSON.stringify(details.data));
