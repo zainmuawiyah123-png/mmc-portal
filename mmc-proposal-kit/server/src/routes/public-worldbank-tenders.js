@@ -7,7 +7,6 @@
  */
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
 const API_URL = 'https://search.worldbank.org/api/v2/procnotices';
 const SOURCE_URL = 'https://projects.worldbank.org/en/projects-operations/procurement';
 const CACHE_MS = 10 * 60 * 1000;
