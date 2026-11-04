@@ -57,6 +57,23 @@ const CATEGORIES = [
   { key: 'other-services', nameAr: 'خدمات أخرى', nameEn: 'Other Services', tags: [] }
 ];
 
+const SOURCES = [
+  {
+    key: 'arab-potash-company',
+    nameAr: 'شركة البوتاس العربية',
+    nameEn: 'Arab Potash Company (APC)',
+    countryCode: 'JO',
+    marketScope: 'private-sector',
+    publisherType: 'private-company',
+    organizationFamily: 'jordanian-industrial-companies',
+    listingUrl: 'https://www.arabpotash.com/EN/Modules/Tenders',
+    awardedUrl: 'https://arabpotash.com/en/modules/archivedtenders',
+    sourceMode: 'public-listing',
+    documentAccess: 'public-detail-page-links',
+    notes: 'Public tender listings and public detail-page attachments only; secured supplier portal is not crawled or bypassed.'
+  }
+];
+
 const STATUSES = [
   { key: 'open', nameAr: 'مفتوح', nameEn: 'Open' },
   { key: 'closing-soon', nameAr: 'قريب الإغلاق', nameEn: 'Closing Soon' },
@@ -78,4 +95,4 @@ function suggestCategories(text) {
   }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score);
 }
 
-module.exports = { COUNTRIES, MARKET_SCOPES, PUBLISHER_TYPES, ORGANIZATION_FAMILIES, CATEGORIES, STATUSES, normalizeText, suggestCategories };
+module.exports = { COUNTRIES, MARKET_SCOPES, PUBLISHER_TYPES, ORGANIZATION_FAMILIES, SOURCES, CATEGORIES, STATUSES, normalizeText, suggestCategories };
