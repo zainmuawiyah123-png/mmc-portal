@@ -26,7 +26,7 @@ router.get('/', wrap(async (req,res) => {
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
   const authority=clean(req.query.authority,120);
   const closingFrom=clean(req.query.closingFrom,10), closingTo=clean(req.query.closingTo,10);
-  const validDate=v=>!v||(/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v);
+  const validDate=v=>!v||(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v);
   if(!validDate(closingFrom)||!validDate(closingTo)) throw E.badRequest('صيغة تاريخ الإغلاق يجب أن تكون YYYY-MM-DD.');
   if(closingFrom&&closingTo&&closingFrom>closingTo) throw E.badRequest('بداية فترة الإغلاق يجب ألا تتجاوز نهايتها.');
   const clauses=["status IN ('open','closed')"], vals=[];
