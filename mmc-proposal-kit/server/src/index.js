@@ -15,6 +15,9 @@ const { errorHandler } = require('./lib/errors');
 
 const authRoutes = require('./routes/auth');
 const { router: tenderRoutes } = require('./routes/tenders');
+const publicApcTenderRoutes = require('./routes/public-apc-tenders');
+const publicTenderRoutes = require('./routes/public-tenders');
+const publicWorldBankTenderRoutes = require('./routes/public-worldbank-tenders');
 const fileRoutes = require('./routes/files');
 const accountRoutes = require('./routes/account');
 const procurementRoutes = require('./routes/procurement');
@@ -72,6 +75,10 @@ function createApp() {
   });
 
   app.use('/api/auth', authRoutes);
+  // Public tender discovery is separate from each customer's private tender workspace.
+  app.use('/api/public-tenders/world-bank', publicWorldBankTenderRoutes);
+  app.use('/api/public-tenders/apc', publicApcTenderRoutes);
+  app.use('/api/public-tenders', publicTenderRoutes);
   app.use('/api/tenders', tenderRoutes);
   app.use('/api', fileRoutes);
   app.use('/api', accountRoutes);

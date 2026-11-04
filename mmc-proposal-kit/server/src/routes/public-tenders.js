@@ -12,7 +12,7 @@ function ensureSources() {
     ON CONFLICT(source_key) DO UPDATE SET name_ar=excluded.name_ar,name_en=excluded.name_en,
     country_code=excluded.country_code,market_scope=excluded.market_scope,publisher_type=excluded.publisher_type,
     organization_family=excluded.organization_family,source_url=excluded.source_url,
-    connector_status=excluded.connector_status,access_mode=excluded.access_mode,updated_at=unixepoch()`);
+    connector_status=CASE WHEN tender_sources.connector_status IN ('active','degraded') THEN tender_sources.connector_status ELSE excluded.connector_status END,access_mode=excluded.access_mode,updated_at=unixepoch()`);
   const tx = db.transaction(() => SOURCES.forEach(s => insert.run({
     key:s.key,nameAr:s.nameAr,nameEn:s.nameEn,countryCode:s.countryCode,marketScope:s.marketScope,
     publisherType:s.publisherType,organizationFamily:s.organizationFamily||null,url:s.url,
@@ -20,6 +20,7 @@ function ensureSources() {
   })));
   tx();
 }
+
 router.get('/sources', (req,res) => {
   ensureSources();
   const rows=getDB().prepare(`SELECT source_key AS sourceKey,name_ar AS nameAr,name_en AS nameEn,

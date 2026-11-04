@@ -16,6 +16,9 @@ process.env.DB_PATH = path.join(TMP, 'test.db');
 process.env.UPLOAD_DIR = path.join(TMP, 'uploads');
 process.env.JWT_SECRET = 'test-secret-not-for-production';
 process.env.BCRYPT_ROUNDS = '4';      // أسرع في الاختبارات
+process.env.PAYMENT_SWIFT = 'UBSIJOAXXXX';
+process.env.PAYMENT_IBAN = 'JO07UBSI1220000330111332981002';
+process.env.PAYMENT_ACCOUNT_HOLDER = 'MMC Test Account';
 
 const { migrate } = require('../src/migrate');
 const { createApp } = require('../src/index');
@@ -656,5 +659,101 @@ test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملف
   assert.strictEqual((await fetch(b + '/documents/technical-proposal-kit_v5/technical-proposal-kit-en.pdf')).status, 200);
   for (const hidden of ['/documents/billing-implementation-ar.md', '/documents/technical-proposal-kit_v5/env.example', '/documents/technical-proposal-kit_v5/test-results.txt', '/documents/technical-proposal-kit_v2/quantity-takeoff-en.xlsx']) {
     assert.notStrictEqual((await fetch(b + hidden)).status, 200, hidden);
+  }
+});
+
+
+test('63 — دليل APC العام يعمل داخل MMC دون تسجيل دخول ويعرض بيانات العطاء', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async (url, ...args) => {
+    const u = String(url);
+    if (!u.includes('arabpotash.com')) return originalFetch(url, ...args);
+    const html = u.includes('/Modules/Tenders')
+      ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a><a href="/En/TendersDetails?PID=98766">Incomplete tender</a><a href="/En/TendersDetails?PID=98767">Invalid date tender</a></html>'
+      : u.includes('PID=98766')
+        ? '<html><body><h1>Tender title and number: Incomplete civil works</h1><div>Purchase Date: 01/11/2026</div><div>Copy Price: 50 JOD</div></body></html>'
+        : u.includes('PID=98767')
+          ? '<html><body><h1>Tender title and number: Invalid date civil works</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 31/02/2027</div><div>Copy Price: 50 JOD</div></body></html>'
+        : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2099</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
+    return { ok: true, status: 200, text: async () => html };
+  };
+  try {
+    const r = await call('apc-anon', 'GET', '/api/public-tenders/apc');
+    assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+    assert.strictEqual(r.data.source, 'Arab Potash Company (APC)');
+    assert.strictEqual(r.data.count, 3, 'all source records, including incomplete and invalid-date notices, are retained');
+    const tender = r.data.tenders[0];
+    assert.strictEqual(tender.id, 'apc-98765');
+    assert.match(tender.title, /APC-2026-01/);
+    assert.match(tender.closingDate, /20\/11\/2099/);
+    const apcStored = getDB().prepare("SELECT closing_at,status FROM public_tenders WHERE id='apc-98765'").get();
+    assert.strictEqual(apcStored.closing_at, '2099-11-20', 'APC dates must be stored in sortable ISO format');
+    assert.strictEqual(apcStored.status, 'open', 'future APC closing dates must remain open');
+    assert.match(tender.bidBond, /5,000 JOD/);
+    assert.strictEqual(tender.documents.length, 1);
+    assert.match(tender.documents[0].url, /apc-announcement\.pdf$/);
+    const indexed = await call('apc-index', 'GET', '/api/public-tenders?q=APC-2026-01');
+    assert.strictEqual(indexed.status, 200, JSON.stringify(indexed.data));
+    assert.strictEqual(indexed.data.total, 1, 'only the verified APC tender should be searchable publicly');
+    const incomplete = getDB().prepare("SELECT review_status,closing_at,status FROM public_tenders WHERE id='apc-98766'").get();
+    assert.strictEqual(incomplete.review_status, 'needs-review');
+    assert.strictEqual(incomplete.closing_at, null, 'missing APC closing dates must not be fabricated');
+    assert.strictEqual(incomplete.status, 'unknown', 'APC tenders without a valid closing date must not be marked open');
+    const invalidDate = getDB().prepare("SELECT review_status,closing_at,status FROM public_tenders WHERE id='apc-98767'").get();
+    assert.strictEqual(invalidDate.review_status, 'needs-review');
+    assert.strictEqual(invalidDate.closing_at, null, 'impossible APC dates must not be normalized');
+    assert.strictEqual(invalidDate.status, 'unknown');
+    const openOnly = await call('apc-open', 'GET', '/api/public-tenders/apc?status=open');
+    assert.strictEqual(openOnly.status, 200);
+    assert.strictEqual(openOnly.data.count, 1, 'open filter must exclude missing and impossible closing dates');
+    assert.strictEqual(indexed.data.tenders[0].sourceKey, 'arab-potash-company');
+    const details = await call('apc-details', 'GET', '/api/public-tenders/apc-98765');
+    assert.strictEqual(details.status, 200, JSON.stringify(details.data));
+    assert.strictEqual(details.data.documents.length, 1);
+    const sourceList = await call('sources', 'GET', '/api/public-tenders/sources');
+    assert.strictEqual(sourceList.status, 200);
+    assert.ok(sourceList.data.sources.some(s => s.sourceKey === 'joneps-jordan'));
+    assert.ok(sourceList.data.sources.some(s => s.sourceKey === 'ungm'));
+    // Source registry coverage: listing a source must not imply its connector is active.
+    for (const key of ['nepco-jordan','jopetrol-jordan','adc-jordan','aramco-saudi','maaden-saudi','dubai-procurement-uae','abudhabi-procurement-uae']) {
+      const source = sourceList.data.sources.find(s => s.sourceKey === key);
+      assert.ok(source, 'expected registered source: ' + key);
+      assert.strictEqual(source.connectorStatus, 'planned', key + ' must not be presented as automatically synchronized');
+    }
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+
+test('64 — موصل البنك الدولي يحول الإشعارات العامة إلى فهرس MMC', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    if (String(url).startsWith('http://127.0.0.1:')) return originalFetch(url, options);
+    assert.match(String(url), /search\.worldbank\.org\/api\/v2\/procnotices/);
+    return {
+      ok: true, status: 200,
+      json: async () => ({ rows: 2, os: 0, page: 1, total: 2, procnotices: [
+        { id: 'WB-TEST-2026-001', bid_description: 'Road rehabilitation and drainage works', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-12-15', noticedate: '2026-10-20', project_name: 'Municipal infrastructure project' },
+        { id: 'WB-TEST-2026-002', bid_description: 'Incomplete procurement notice', project_ctry_name: 'Unknown country', notice_type: 'Request for Information', noticedate: '2026-10-21' }
+      ] })
+    };
+  };
+  try {
+    const response = await call('wb-anon', 'GET', '/api/public-tenders/world-bank?refresh=1');
+    assert.strictEqual(response.status, 200, JSON.stringify(response.data));
+    assert.strictEqual(response.data.count, 2, 'source response retains incomplete notices for review');
+    assert.strictEqual(response.data.tenders[0].countryCode, 'JO');
+    assert.strictEqual(response.data.tenders[0].closingAt, '2026-12-15');
+    const indexed = await call('wb-index', 'GET', '/api/public-tenders?source=world-bank-procurement&q=Road%20rehabilitation');
+    assert.strictEqual(indexed.status, 200);
+    assert.strictEqual(indexed.data.total, 1, 'only complete notices for target countries are published');
+    const held = getDB().prepare("SELECT review_status FROM public_tenders WHERE id='wb-WB-TEST-2026-002'").get();
+    assert.strictEqual(held.review_status, 'needs-review');
+    const source = getDB().prepare("SELECT connector_status,last_sync_status FROM tender_sources WHERE source_key='world-bank-procurement'").get();
+    assert.strictEqual(source.connector_status, 'active');
+    assert.strictEqual(source.last_sync_status, 'success');
+  } finally {
+    global.fetch = originalFetch;
   }
 });

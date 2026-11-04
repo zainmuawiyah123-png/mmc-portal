@@ -265,6 +265,84 @@ function upgradeV5(db) {
   return added;
 }
 
+
+function upgradePublicTenderIntelligence(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tender_sources (
+      source_key TEXT PRIMARY KEY,
+      name_ar TEXT NOT NULL,
+      name_en TEXT NOT NULL,
+      country_code TEXT,
+      market_scope TEXT NOT NULL,
+      publisher_type TEXT NOT NULL,
+      organization_family TEXT,
+      source_url TEXT NOT NULL,
+      connector_status TEXT NOT NULL DEFAULT 'planned',
+      access_mode TEXT,
+      last_synced_at INTEGER,
+      last_sync_status TEXT,
+      last_sync_message TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS public_tenders (
+      id TEXT PRIMARY KEY,
+      source_key TEXT NOT NULL REFERENCES tender_sources(source_key),
+      source_ref TEXT NOT NULL,
+      country_code TEXT,
+      market_scope TEXT NOT NULL,
+      publisher_type TEXT NOT NULL,
+      organization_family TEXT,
+      publisher_name TEXT NOT NULL,
+      tender_number TEXT,
+      title TEXT NOT NULL,
+      description TEXT,
+      category_key TEXT,
+      tender_type TEXT,
+      published_at TEXT,
+      purchase_deadline TEXT,
+      closing_at TEXT,
+      status TEXT NOT NULL DEFAULT 'unknown',
+      currency TEXT,
+      estimated_value REAL,
+      bid_bond TEXT,
+      document_fee TEXT,
+      qualification TEXT,
+      official_url TEXT NOT NULL,
+      content_hash TEXT,
+      source_updated_at TEXT,
+      last_verified_at INTEGER,
+      fetched_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      review_status TEXT NOT NULL DEFAULT 'needs-review',
+      raw_metadata TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(source_key, source_ref)
+    );
+    CREATE INDEX IF NOT EXISTS idx_public_tenders_country ON public_tenders(country_code, status, closing_at);
+    CREATE INDEX IF NOT EXISTS idx_public_tenders_market ON public_tenders(market_scope, publisher_type);
+    CREATE INDEX IF NOT EXISTS idx_public_tenders_category ON public_tenders(category_key, status);
+    CREATE INDEX IF NOT EXISTS idx_public_tenders_closing ON public_tenders(closing_at);
+    CREATE INDEX IF NOT EXISTS idx_public_tenders_search ON public_tenders(title, tender_number, publisher_name);
+    CREATE TABLE IF NOT EXISTS public_tender_documents (
+      id TEXT PRIMARY KEY,
+      public_tender_id TEXT NOT NULL REFERENCES public_tenders(id) ON DELETE CASCADE,
+      source_document_ref TEXT,
+      label TEXT NOT NULL,
+      document_url TEXT NOT NULL,
+      mime_type TEXT,
+      availability TEXT NOT NULL DEFAULT 'source-link',
+      storage_key TEXT,
+      checksum_sha256 TEXT,
+      fetched_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(public_tender_id, document_url)
+    );
+    CREATE INDEX IF NOT EXISTS idx_public_tender_docs_tender ON public_tender_documents(public_tender_id);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -286,6 +364,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeProcurement(db);
   upgradePlans(db);
   upgradeV5(db);
+  upgradePublicTenderIntelligence(db);
 
   return db;
 }
@@ -306,4 +385,4 @@ if (require.main === module) {
   db.close();
 }
 
-module.exports = { migrate, PLANS_SEED, SCHEMA, TRIAL_DAYS };
+module.exports = { migrate, PLANS_SEED, SCHEMA, TRIAL_DAYS, upgradePublicTenderIntelligence };
