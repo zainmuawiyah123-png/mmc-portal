@@ -123,7 +123,7 @@ async function fetchText(url) {
 
 async function loadTenders(force) {
   if (!force && cache.at && Date.now() - cache.at < CACHE_MS) {
-    if (cache.error) throw new Error(cache.error);
+    if (cache.error && !cache.tenders.length) throw new Error(cache.error);
     return cache.tenders;
   }
   const html = await fetchText(LIST_URL);
