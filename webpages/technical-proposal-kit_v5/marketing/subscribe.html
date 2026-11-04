@@ -17,7 +17,7 @@
   <a class="navlink" href="pricing.html">الأسعار</a>
   <a class="navlink" href="../index-ar.html">الرئيسية العربية</a>
   <a class="btn amber" href="../portal/pt-9f3c7a1e5b2d/login.html">بوابة MMC</a>
-  <button id="langToggle" class="navlink" type="button" style="border:0;background:transparent;cursor:pointer">English</button>
+  
 </div>
 <div class="sub-wrap">
   <div class="sub-top"><div><div class="eyebrow2">MMC · الاشتراكات</div><h1 style="margin:6px 0">اختر باقتك وأكمل الدفع</h1><p class="muted">إنشاء الفاتورة ورفع إيصال التحويل يتمان من حسابك مباشرة.</p></div><div id="accountInfo" class="muted"></div></div>
@@ -67,8 +67,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function money(v,c){return esc(c)+' '+Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
 function statusLabel(s){return s==='paid'?'مدفوعة ومفعّلة':s==='rejected'?'مرفوضة — راجع الملاحظات':'بانتظار مراجعة الدفع';}
 function setBusy(btn,on,label){btn.disabled=on;btn.textContent=on?'جارٍ التنفيذ…':label;}
-function loginRedirect(url){var next='../marketing/subscribe.html'+location.search;return url+'?next='+encodeURIComponent(next);}
-$('loginLink').href=loginRedirect(login);$('registerLink').href=register+location.search;
+$('loginLink').href=login;$('registerLink').href=register;
 function planPrice(p){return $('cycle').value==='annual'?p.priceYear:p.priceMonth;}
 function renderPlans(){var host=$('plans');if(!planCache.length){host.innerHTML='<p class="muted">لا توجد باقات متاحة لهذا النوع من الحسابات.</p>';return;}
 host.innerHTML=planCache.map(function(p){var chosen=p.key===selectedPlan;return '<label class="plan-card"><input type="radio" name="plan" value="'+esc(p.key)+'" '+(chosen?'checked':'')+'><span><b>'+esc(p.nameAr||p.nameEn||p.key)+'</b><span class="muted">'+esc(p.nameEn||'')+'</span><br><strong>'+money(planPrice(p),'USD')+'</strong> <span class="muted">'+($('cycle').value==='annual'?'سنوياً':'شهرياً')+'</span></span></label>';}).join('');
@@ -84,7 +83,6 @@ $('audience').addEventListener('change',loadPlans);$('cycle').addEventListener('
 $('createInvoice').addEventListener('click',function(){clearNotice();if(!selectedPlan){notice('اختر باقة أولاً.','error');return;}var btn=this;setBusy(btn,true,'إنشاء الفاتورة');API.createInvoice({planKey:selectedPlan,billingCycle:$('cycle').value,currency:$('currency').value,paymentMethod:$('method').value,notes:$('notes').value.trim()}).then(function(d){showInvoice(d.invoice);notice(d.message||'تم إنشاء الفاتورة.','success');return refreshInvoices();}).catch(function(e){notice(e.message,'error');}).finally(function(){setBusy(btn,false,'إنشاء الفاتورة');});});
 $('uploadReceipt').addEventListener('click',function(){clearNotice();if(!currentInvoice){notice('اختر فاتورة أو أنشئ فاتورة أولاً.','error');return;}var f=$('receipt').files[0];if(!f){notice('يرجى اختيار ملف الإيصال.','error');return;}if(f.size>10*1024*1024){notice('حجم الإيصال يتجاوز 10MB.','error');return;}var btn=this;setBusy(btn,true,'رفع الإيصال');API.uploadReceipt(currentInvoice.id,f).then(function(d){showInvoice(d.invoice);notice(d.message||'تم رفع الإيصال بنجاح.','success');$('receipt').value='';return refreshInvoices();}).catch(function(e){notice(e.message,'error');}).finally(function(){setBusy(btn,false,'رفع الإيصال وإرساله للمراجعة');});});
 $('refreshInvoices').addEventListener('click',function(){refreshInvoices().then(function(){notice('تم تحديث الفواتير.','success');}).catch(function(e){notice(e.message,'error');});});
-$('langToggle').addEventListener('click',function(){notice('واجهة الاشتراك الحالية باللغة العربية. النسخة الإنجليزية ستُستكمل ضمن مرحلة الترجمة.');});
 init();
 })();
 </script>
