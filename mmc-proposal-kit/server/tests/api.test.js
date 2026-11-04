@@ -682,6 +682,17 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     assert.match(tender.bidBond, /5,000 JOD/);
     assert.strictEqual(tender.documents.length, 1);
     assert.match(tender.documents[0].url, /apc-announcement\.pdf$/);
+    const indexed = await call('apc-index', 'GET', '/api/public-tenders?q=APC-2026-01');
+    assert.strictEqual(indexed.status, 200, JSON.stringify(indexed.data));
+    assert.strictEqual(indexed.data.total, 1, 'APC tender must be searchable in the unified MMC index');
+    assert.strictEqual(indexed.data.tenders[0].sourceKey, 'arab-potash-company');
+    const details = await call('apc-details', 'GET', '/api/public-tenders/apc-98765');
+    assert.strictEqual(details.status, 200, JSON.stringify(details.data));
+    assert.strictEqual(details.data.documents.length, 1);
+    const sourceList = await call('sources', 'GET', '/api/public-tenders/sources');
+    assert.strictEqual(sourceList.status, 200);
+    assert.ok(sourceList.data.sources.some(s => s.sourceKey === 'joneps-jordan'));
+    assert.ok(sourceList.data.sources.some(s => s.sourceKey === 'ungm'));
   } finally {
     global.fetch = originalFetch;
   }
