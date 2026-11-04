@@ -88,9 +88,9 @@ function persistTenders(tenders, failures = []) {
   const db = require('../db').getDB();
   db.prepare(`INSERT INTO tender_sources
     (source_key,name_ar,name_en,country_code,market_scope,publisher_type,organization_family,source_url,connector_status,access_mode,last_synced_at,last_sync_status,last_sync_message)
-    VALUES ('arab-potash-company','شركة البوتاس العربية','Arab Potash Company (APC)','JO','private-sector','private-company','jordanian-industrial-companies',?,'active','public-listing',unixepoch(),?,?)
-    ON CONFLICT(source_key) DO UPDATE SET connector_status='active',last_synced_at=unixepoch(),last_sync_status=excluded.last_sync_status,last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
-    .run(LIST_URL,failures.length ? 'partial' : 'success','Fetched '+tenders.length+' tender records; '+failures.length+' detail pages failed');
+    VALUES ('arab-potash-company','شركة البوتاس العربية','Arab Potash Company (APC)','JO','private-sector','private-company','jordanian-industrial-companies',?,?,'public-listing',unixepoch(),?,?)
+    ON CONFLICT(source_key) DO UPDATE SET connector_status=excluded.connector_status,last_synced_at=unixepoch(),last_sync_status=excluded.last_sync_status,last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
+    .run(LIST_URL,failures.length ? 'degraded' : 'active',failures.length ? 'partial' : 'success','Fetched '+tenders.length+' tender records; '+failures.length+' detail pages failed');
   const upsert = db.prepare(`INSERT INTO public_tenders
     (id,source_key,source_ref,country_code,market_scope,publisher_type,organization_family,publisher_name,
      tender_number,title,purchase_deadline,closing_at,status,bid_bond,document_fee,qualification,official_url,
