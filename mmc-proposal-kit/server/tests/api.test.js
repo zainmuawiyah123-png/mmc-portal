@@ -769,3 +769,25 @@ test('64 — موصل البنك الدولي يحول الإشعارات الع
     global.fetch = originalFetch;
   }
 });
+
+
+test('65 — إعادة تشغيل الترحيل تحفظ بيانات العملاء والعطاءات العامة', () => {
+  const beforeUsers = getDB().prepare('SELECT COUNT(*) AS n FROM users').get().n;
+  const beforePublic = getDB().prepare('SELECT COUNT(*) AS n FROM public_tenders').get().n;
+  const beforePlans = getDB().prepare('SELECT COUNT(*) AS n FROM plans').get().n;
+  const second = migrate(process.env.DB_PATH);
+  try {
+    assert.strictEqual(second.prepare('SELECT COUNT(*) AS n FROM users').get().n, beforeUsers,
+      'rerunning migrations must preserve existing customer accounts');
+    assert.strictEqual(second.prepare('SELECT COUNT(*) AS n FROM public_tenders').get().n, beforePublic,
+      'rerunning migrations must preserve public tender records');
+    assert.strictEqual(second.prepare('SELECT COUNT(*) AS n FROM plans').get().n, beforePlans,
+      'rerunning migrations must not duplicate subscription plans');
+    for (const table of ['tender_sources','public_tenders','public_tender_documents']) {
+      const exists = second.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table);
+      assert.ok(exists, 'expected migration table: ' + table);
+    }
+  } finally {
+    second.close();
+  }
+});
