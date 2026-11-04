@@ -42,7 +42,8 @@ function field(text, label, nextLabels) {
 
 function extractDetails(html, pid) {
   const text = plainText(html);
-  const title = (text.match(/Tender title and number:\s*(.*?)(?=\s*Purchase Date:)/i) || [])[1] || null;
+  const title = ((text.match(/Tender title and number:\s*(.*?)(?=\s*Purchase Date:)/i) || [])[1] || '').trim();
+  if (!title) throw new Error('APC detail page did not contain a verifiable tender title and number');
   const purchaseDate = field(text, 'Purchase Date', ['Closing date']);
   const closingDate = field(text, 'Closing date', ['Copy Price']);
   const copyPrice = field(text, 'Copy Price', ['Bid Bond Value']);
@@ -68,7 +69,7 @@ function extractDetails(html, pid) {
     marketScope: 'private-sector',
     publisherType: 'private-company',
     tenderNumber: title ? (title.match(/(?:IFB|Tender|Prequalification)[^:]*\s*(?:No\.?|Number)?\s*:?\s*([\w/-]+)/i) || [])[1] || null : null,
-    title: title || ('APC Tender ' + pid),
+    title,
     purchaseDate,
     closingDate,
     copyPrice,
@@ -83,13 +84,13 @@ function extractDetails(html, pid) {
 }
 
 
-function persistTenders(tenders) {
+function persistTenders(tenders, failures = []) {
   const db = require('../db').getDB();
   db.prepare(`INSERT INTO tender_sources
     (source_key,name_ar,name_en,country_code,market_scope,publisher_type,organization_family,source_url,connector_status,access_mode,last_synced_at,last_sync_status,last_sync_message)
-    VALUES ('arab-potash-company','شركة البوتاس العربية','Arab Potash Company (APC)','JO','private-sector','private-company','jordanian-industrial-companies',?,'active','public-listing',unixepoch(),'success',?)
-    ON CONFLICT(source_key) DO UPDATE SET connector_status='active',last_synced_at=unixepoch(),last_sync_status='success',last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
-    .run(LIST_URL,'Fetched '+tenders.length+' public tender records');
+    VALUES ('arab-potash-company','شركة البوتاس العربية','Arab Potash Company (APC)','JO','private-sector','private-company','jordanian-industrial-companies',?,'active','public-listing',unixepoch(),?,?)
+    ON CONFLICT(source_key) DO UPDATE SET connector_status='active',last_synced_at=unixepoch(),last_sync_status=excluded.last_sync_status,last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
+    .run(LIST_URL,failures.length ? 'partial' : 'success','Fetched '+tenders.length+' tender records; '+failures.length+' detail pages failed');
   const upsert = db.prepare(`INSERT INTO public_tenders
     (id,source_key,source_ref,country_code,market_scope,publisher_type,organization_family,publisher_name,
      tender_number,title,purchase_deadline,closing_at,status,bid_bond,document_fee,qualification,official_url,
@@ -143,7 +144,7 @@ async function loadTenders(force) {
     }
   }
   if (!tenders.length) throw new Error('APC listing found ' + ids.size + ' tender links but no detail page could be read');
-  persistTenders(tenders);
+  persistTenders(tenders, failures);
   cache = { at: Date.now(), tenders, error: failures.length ? (failures.length + ' detail pages could not be fetched') : null };
   return tenders;
 }
