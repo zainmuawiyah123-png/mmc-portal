@@ -672,7 +672,7 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
       ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a><a href="/En/TendersDetails?PID=98766">Incomplete tender</a></html>'
       : u.includes('PID=98766')
         ? '<html><body><h1>Tender title and number: Incomplete civil works</h1><div>Purchase Date: 01/11/2026</div><div>Copy Price: 50 JOD</div></body></html>'
-        : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2026</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
+        : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2099</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
     return { ok: true, status: 200, text: async () => html };
   };
   try {
@@ -685,7 +685,7 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     assert.match(tender.title, /APC-2026-01/);
     assert.match(tender.closingDate, /20\/11\/2026/);
     const apcStored = getDB().prepare("SELECT closing_at,status FROM public_tenders WHERE id='apc-98765'").get();
-    assert.strictEqual(apcStored.closing_at, '2026-11-20', 'APC dates must be stored in sortable ISO format');
+    assert.strictEqual(apcStored.closing_at, '2099-11-20', 'APC dates must be stored in sortable ISO format');
     assert.strictEqual(apcStored.status, 'open', 'future APC closing dates must remain open');
     assert.match(tender.bidBond, /5,000 JOD/);
     assert.strictEqual(tender.documents.length, 1);
