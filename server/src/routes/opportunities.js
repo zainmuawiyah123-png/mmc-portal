@@ -52,7 +52,7 @@ router.get('/documents/:docId', wrap(async(req,res)=>{
  const upstream=await fetch(target,{headers:{'user-agent':'MMC-Tender-Directory/1.0','accept':'application/pdf,application/octet-stream,*/*'},signal:AbortSignal.timeout(20000)});
  if(!upstream.ok) throw E.conflict('تعذر جلب الملف من المصدر العام حالياً.');
  const type=upstream.headers.get('content-type')||'application/octet-stream';
- if(!/^(application\\/pdf|application\\/octet-stream|application\\/zip|image\\/)/i.test(type)) throw E.conflict('المصدر لم يُرجع ملفاً قابلاً للتنزيل.');
+ if(!(type.startsWith('application/pdf')||type.startsWith('application/octet-stream')||type.startsWith('application/zip')||type.startsWith('image/'))) throw E.conflict('المصدر لم يُرجع ملفاً قابلاً للتنزيل.');
  res.setHeader('Content-Type',type);
  res.setHeader('Content-Disposition','inline; filename="MMC-tender-document"');
  res.setHeader('Cache-Control','private, max-age=300');
