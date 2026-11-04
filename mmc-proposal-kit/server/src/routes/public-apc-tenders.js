@@ -99,6 +99,14 @@ function hasValidClosingDate(value) {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
+function toIsoDate(value) {
+  const text = String(value || '').trim();
+  let m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  m = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? m[0] : null;
+}
+
 function persistTenders(tenders, failures = []) {
   const db = require('../db').getDB();
   db.prepare(`INSERT INTO tender_sources
@@ -111,7 +119,7 @@ function persistTenders(tenders, failures = []) {
      tender_number,title,purchase_deadline,closing_at,status,bid_bond,document_fee,qualification,official_url,
      last_verified_at,review_status,raw_metadata)
     VALUES (@id,'arab-potash-company',@sourceRef,'JO','private-sector','private-company',
-     'jordanian-industrial-companies','شركة البوتاس العربية',@tenderNumber,@title,@purchaseDate,@closingDate,
+     'jordanian-industrial-companies','شركة البوتاس العربية',@tenderNumber,@title,@purchaseDateIso,@closingDateIso,
      'unknown',@bidBond,@copyPrice,@qualifications,@detailUrl,unixepoch(),@reviewStatus,@rawMetadata)
     ON CONFLICT(source_key,source_ref) DO UPDATE SET title=excluded.title,tender_number=excluded.tender_number,
      purchase_deadline=excluded.purchase_deadline,closing_at=excluded.closing_at,status=excluded.status,
@@ -124,7 +132,7 @@ function persistTenders(tenders, failures = []) {
     ON CONFLICT(public_tender_id,document_url) DO UPDATE SET label=excluded.label`);
   db.transaction(()=>tenders.forEach(t=>{
     const reviewStatus = t.title && hasValidClosingDate(t.closingDate) && /^https:\/\/www\.arabpotash\.com\//i.test(t.detailUrl) ? 'published' : 'needs-review';
-    upsert.run({...t,reviewStatus,sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
+    const closingDateIso = toIsoDate(t.closingDate);\n    const purchaseDateIso = toIsoDate(t.purchaseDate);\n    const isClosed = closingDateIso && closingDateIso < new Date().toISOString().slice(0,10);\n    upsert.run({...t,reviewStatus,purchaseDateIso,closingDateIso,status:isClosed ? 'closed' : 'open',sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
     for(const d of (t.documents||[])) doc.run({id:'apc-doc-'+require('crypto').createHash('sha1').update(t.id+d.url).digest('hex'),tenderId:t.id,label:d.label||'Tender document',url:d.url});
   }))();
 }
