@@ -669,9 +669,11 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     const u = String(url);
     if (!u.includes('arabpotash.com')) return originalFetch(url, ...args);
     const html = u.includes('/Modules/Tenders')
-      ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a><a href="/En/TendersDetails?PID=98766">Incomplete tender</a></html>'
+      ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a><a href="/En/TendersDetails?PID=98766">Incomplete tender</a><a href="/En/TendersDetails?PID=98767">Invalid date tender</a></html>'
       : u.includes('PID=98766')
         ? '<html><body><h1>Tender title and number: Incomplete civil works</h1><div>Purchase Date: 01/11/2026</div><div>Copy Price: 50 JOD</div></body></html>'
+        : u.includes('PID=98767')
+          ? '<html><body><h1>Tender title and number: Invalid date civil works</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 31/02/2027</div><div>Copy Price: 50 JOD</div></body></html>'
         : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2099</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
     return { ok: true, status: 200, text: async () => html };
   };
@@ -679,7 +681,7 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     const r = await call('apc-anon', 'GET', '/api/public-tenders/apc');
     assert.strictEqual(r.status, 200, JSON.stringify(r.data));
     assert.strictEqual(r.data.source, 'Arab Potash Company (APC)');
-    assert.strictEqual(r.data.count, 2, 'both source records, including incomplete ones, are retained');
+    assert.strictEqual(r.data.count, 3, 'all source records, including incomplete and invalid-date notices, are retained');
     const tender = r.data.tenders[0];
     assert.strictEqual(tender.id, 'apc-98765');
     assert.match(tender.title, /APC-2026-01/);
@@ -697,6 +699,13 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     assert.strictEqual(incomplete.review_status, 'needs-review');
     assert.strictEqual(incomplete.closing_at, null, 'missing APC closing dates must not be fabricated');
     assert.strictEqual(incomplete.status, 'unknown', 'APC tenders without a valid closing date must not be marked open');
+    const invalidDate = getDB().prepare("SELECT review_status,closing_at,status FROM public_tenders WHERE id='apc-98767'").get();
+    assert.strictEqual(invalidDate.review_status, 'needs-review');
+    assert.strictEqual(invalidDate.closing_at, null, 'impossible APC dates must not be normalized');
+    assert.strictEqual(invalidDate.status, 'unknown');
+    const openOnly = await call('apc-open', 'GET', '/api/public-tenders/apc?status=open');
+    assert.strictEqual(openOnly.status, 200);
+    assert.strictEqual(openOnly.data.count, 1, 'open filter must exclude missing and impossible closing dates');
     assert.strictEqual(indexed.data.tenders[0].sourceKey, 'arab-potash-company');
     const details = await call('apc-details', 'GET', '/api/public-tenders/apc-98765');
     assert.strictEqual(details.status, 200, JSON.stringify(details.data));
