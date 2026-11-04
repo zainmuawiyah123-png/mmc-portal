@@ -1,6 +1,6 @@
 'use strict';
 
-// Registry of source discovery endpoints. Only APC has an implemented scraper prototype.
+// Registry of official source endpoints. APC and World Bank have connector prototypes; all others remain planned.
 // Planned sources must not be presented as automatically synchronized until a connector passes tests.
 const SOURCES = [
  {key:'joneps-jordan',nameAr:'نظام الشراء الإلكتروني الأردني',nameEn:'Jordan Online E-Procurement System (JONEPS)',countryCode:'JO',marketScope:'national',publisherType:'government',url:'https://www.joneps.gov.jo/ep/invt/selectListTendInvitAL.do',connectorStatus:'planned',accessMode:'public-listing; validate terms and stable data interface'},
