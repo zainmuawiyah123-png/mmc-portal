@@ -693,8 +693,10 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     const indexed = await call('apc-index', 'GET', '/api/public-tenders?q=APC-2026-01');
     assert.strictEqual(indexed.status, 200, JSON.stringify(indexed.data));
     assert.strictEqual(indexed.data.total, 1, 'only the verified APC tender should be searchable publicly');
-    const incomplete = getDB().prepare("SELECT review_status FROM public_tenders WHERE id='apc-98766'").get();
+    const incomplete = getDB().prepare("SELECT review_status,closing_at,status FROM public_tenders WHERE id='apc-98766'").get();
     assert.strictEqual(incomplete.review_status, 'needs-review');
+    assert.strictEqual(incomplete.closing_at, null, 'missing APC closing dates must not be fabricated');
+    assert.strictEqual(incomplete.status, 'unknown', 'APC tenders without a valid closing date must not be marked open');
     assert.strictEqual(indexed.data.tenders[0].sourceKey, 'arab-potash-company');
     const details = await call('apc-details', 'GET', '/api/public-tenders/apc-98765');
     assert.strictEqual(details.status, 200, JSON.stringify(details.data));
