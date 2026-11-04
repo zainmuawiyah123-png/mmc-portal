@@ -141,7 +141,8 @@ function persist(items) {
   const tx = db.transaction(() => items.forEach(item => {
     // Only publish notices with a supported target country and a validated closing date.
     // Keep incomplete source records for review, but never expose them in the public index.
-    const validClosingDate = Boolean(item.closingAt) && /^\\d{4}-\\d{2}-\\d{2}$/.test(item.closingAt);\n    const reviewStatus = ['JO','SA','AE'].includes(item.countryCode) && validClosingDate ? 'published' : 'needs-review';
+    const validClosingDate = Boolean(item.closingAt) && /^\d{4}-\d{2}-\d{2}$/.test(item.closingAt);
+    const reviewStatus = ['JO','SA','AE'].includes(item.countryCode) && validClosingDate ? 'published' : 'needs-review';
     upsert.run({ ...item, reviewStatus, rawMetadata: JSON.stringify(item.raw) });
   }));
   tx();
