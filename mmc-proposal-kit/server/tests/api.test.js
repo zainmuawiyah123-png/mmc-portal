@@ -211,7 +211,7 @@ test('13 — إنشاء عطاء بتاريخ إغلاق بصيغة خاطئة �
 test('14 — قائمة العطاءات تعيد عطاءات المستخدم فقط', async () => {
   const r = await call('userA', 'GET', '/api/tenders');
   assert.strictEqual(r.status, 200);
-  assert.strictEqual(r.data.count, 2, 'complete and incomplete source records are retained');
+  assert.strictEqual(r.data.count, 1);
   assert.strictEqual(r.data.tenders[0].id, tenderA.id);
 });
 
@@ -244,7 +244,7 @@ test('18 — رفع ملف PDF يعمل ويعيد 201', async () => {
   const form = makeForm([{ name: 'arch-plan.pdf', content: 'PDF-FAKE-CONTENT-' + 'x'.repeat(200), type: 'application/pdf' }], { category: 'arch' });
   const r = await call('userA', 'POST', '/api/tenders/' + tenderA.id + '/files', { form });
   assert.strictEqual(r.status, 201, JSON.stringify(r.data));
-  assert.strictEqual(r.data.count, 2, 'complete and incomplete source records are retained');
+  assert.strictEqual(r.data.count, 1);
   assert.strictEqual(r.data.files[0].name, 'arch-plan.pdf');
   assert.strictEqual(r.data.files[0].category, 'arch');
   assert.ok(r.data.files[0].size > 0);
@@ -679,7 +679,7 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     const r = await call('apc-anon', 'GET', '/api/public-tenders/apc');
     assert.strictEqual(r.status, 200, JSON.stringify(r.data));
     assert.strictEqual(r.data.source, 'Arab Potash Company (APC)');
-    assert.strictEqual(r.data.count, 1);
+    assert.strictEqual(r.data.count, 2, 'both source records, including incomplete ones, are retained');
     const tender = r.data.tenders[0];
     assert.strictEqual(tender.id, 'apc-98765');
     assert.match(tender.title, /APC-2026-01/);
