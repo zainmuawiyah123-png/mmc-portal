@@ -49,7 +49,8 @@ router.get('/documents/:docId', wrap(async(req,res)=>{
  if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
  const target=new URL(row.document_url);
  if(target.protocol!=='https:'||!['www.arabpotash.com','arabpotash.com'].includes(target.hostname)) throw E.badRequest('مصدر الوثيقة غير معتمد.');
- const upstream=await fetch(target,{headers:{'user-agent':'MMC-Tender-Directory/1.0','accept':'application/pdf,application/octet-stream,*/*'},signal:AbortSignal.timeout(20000)});
+ const upstream=await fetch(target,{headers:{'user-agent':'MMC-Tender-Directory/1.0','accept':'application/pdf,application/octet-stream,*/*'},signal:AbortSignal.timeout(20000),redirect:'manual'});
+ if(upstream.status>=300&&upstream.status<400) throw E.conflict('رفض MMC إعادة توجيه ملف العطاء إلى مصدر آخر غير متحقق منه.');
  if(!upstream.ok) throw E.conflict('تعذر جلب الملف من المصدر العام حالياً.');
  const type=upstream.headers.get('content-type')||'application/octet-stream';
  if(!(type.startsWith('application/pdf')||type.startsWith('application/octet-stream')||type.startsWith('application/zip')||type.startsWith('image/'))) throw E.conflict('المصدر لم يُرجع ملفاً قابلاً للتنزيل.');
