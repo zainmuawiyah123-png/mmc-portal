@@ -735,14 +735,18 @@ test('64 — موصل البنك الدولي يحول الإشعارات الع
       ok: true, status: 200,
       json: async () => ({ rows: 2, os: 0, page: 1, total: 2, procnotices: [
         { id: 'WB-TEST-2026-001', bid_description: 'Road rehabilitation and drainage works', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-12-15', noticedate: '2026-10-20', project_name: 'Municipal infrastructure project' },
-        { id: 'WB-TEST-2026-002', bid_description: 'Incomplete procurement notice', project_ctry_name: 'Unknown country', notice_type: 'Request for Information', noticedate: '2026-10-21' }
+        { id: 'WB-TEST-2026-002', bid_description: 'Incomplete procurement notice', project_ctry_name: 'Unknown country', notice_type: 'Request for Information', noticedate: '2026-10-21' },
+        { id: 'WB-TEST-2026-003', bid_description: 'Expired road works notice', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-10-01', noticedate: '2026-09-01' },
+        { id: 'WB-TEST-2026-004', bid_description: 'Invalid deadline notice', project_ctry_name: 'Jordan', notice_type: 'Request for Bids', submission_deadline_date: '2026-02-30', noticedate: '2026-01-01' }
       ] })
     };
   };
   try {
     const response = await call('wb-anon', 'GET', '/api/public-tenders/world-bank?refresh=1');
     assert.strictEqual(response.status, 200, JSON.stringify(response.data));
-    assert.strictEqual(response.data.count, 2, 'source response retains incomplete notices for review');
+    assert.strictEqual(response.data.count, 4, 'source response retains incomplete and invalid notices for review');
+    assert.strictEqual(response.data.publishedCount, 2, 'complete target-country notices, including expired notices, are indexed');
+    assert.strictEqual(response.data.needsReviewCount, 2, 'incomplete and invalid notices remain held for review');
     assert.strictEqual(response.data.tenders[0].countryCode, 'JO');
     assert.strictEqual(response.data.tenders[0].closingAt, '2026-12-15');
     const indexed = await call('wb-index', 'GET', '/api/public-tenders?source=world-bank-procurement&q=Road%20rehabilitation');
@@ -750,10 +754,108 @@ test('64 — موصل البنك الدولي يحول الإشعارات الع
     assert.strictEqual(indexed.data.total, 1, 'only complete notices for target countries are published');
     const held = getDB().prepare("SELECT review_status FROM public_tenders WHERE id='wb-WB-TEST-2026-002'").get();
     assert.strictEqual(held.review_status, 'needs-review');
+    const expired = getDB().prepare("SELECT review_status,closing_at,status FROM public_tenders WHERE id='wb-WB-TEST-2026-003'").get();
+    assert.strictEqual(expired.review_status, 'published');
+    assert.strictEqual(expired.status, 'closed', 'past World Bank deadlines must never be labelled open');
+    assert.strictEqual(expired.closing_at, '2026-10-01');
+    const invalid = getDB().prepare("SELECT review_status,closing_at,status FROM public_tenders WHERE id='wb-WB-TEST-2026-004'").get();
+    assert.strictEqual(invalid.review_status, 'needs-review');
+    assert.strictEqual(invalid.closing_at, null, 'impossible World Bank dates must not be normalized');
+    assert.strictEqual(invalid.status, 'unknown');
     const source = getDB().prepare("SELECT connector_status,last_sync_status FROM tender_sources WHERE source_key='world-bank-procurement'").get();
     assert.strictEqual(source.connector_status, 'active');
     assert.strictEqual(source.last_sync_status, 'success');
   } finally {
     global.fetch = originalFetch;
+  }
+});
+
+
+test('65 — إعادة تشغيل الترحيل تحفظ بيانات العملاء والعطاءات العامة', () => {
+  const beforeUsers = getDB().prepare('SELECT COUNT(*) AS n FROM users').get().n;
+  const beforePublic = getDB().prepare('SELECT COUNT(*) AS n FROM public_tenders').get().n;
+  const beforePlans = getDB().prepare('SELECT COUNT(*) AS n FROM plans').get().n;
+  const second = migrate(process.env.DB_PATH);
+  try {
+    assert.strictEqual(second.prepare('SELECT COUNT(*) AS n FROM users').get().n, beforeUsers,
+      'rerunning migrations must preserve existing customer accounts');
+    assert.strictEqual(second.prepare('SELECT COUNT(*) AS n FROM public_tenders').get().n, beforePublic,
+      'rerunning migrations must preserve public tender records');
+    assert.strictEqual(second.prepare('SELECT COUNT(*) AS n FROM plans').get().n, beforePlans,
+      'rerunning migrations must not duplicate subscription plans');
+    for (const table of ['tender_sources','public_tenders','public_tender_documents']) {
+      const exists = second.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table);
+      assert.ok(exists, 'expected migration table: ' + table);
+    }
+  } finally {
+    second.close();
+  }
+});
+
+
+test('66 — إعادة تشغيل الترحيل لا تغيّر أي بيانات عملاء أو إعدادات باقات أو معاملات', () => {
+  const db = getDB();
+  // Put distinctive administrator-managed values in existing plan rows. A
+  // startup migration must preserve them rather than reseeding defaults.
+  db.prepare("UPDATE plans SET name_ar='اسم مخصص', name_en='Custom plan', max_tenders=77, max_bytes=987654321, price_month=123.45, price_year=1200, sort_order=77, max_users=23, trial_days=9, audience='buyer' WHERE key='starter'").run();
+
+  const protectedTables = [
+    'users', 'plans', 'subscriptions', 'invoices', 'tenders',
+    'tender_requirements', 'bid_submissions', 'bid_responses',
+    'files', 'requests'
+  ];
+  const before = Object.fromEntries(protectedTables.map((table) => [
+    table,
+    db.prepare('SELECT * FROM ' + table + ' ORDER BY rowid').all()
+  ]));
+
+  const second = migrate(process.env.DB_PATH);
+  try {
+    for (const table of protectedTables) {
+      const after = second.prepare('SELECT * FROM ' + table + ' ORDER BY rowid').all();
+      assert.deepStrictEqual(after, before[table],
+        'startup migration must preserve every existing row and value in ' + table);
+    }
+    const custom = second.prepare("SELECT name_ar,name_en,max_tenders,max_bytes,price_month,price_year,sort_order,max_users,trial_days,audience FROM plans WHERE key='starter'").get();
+    assert.deepStrictEqual(custom, {
+      name_ar: 'اسم مخصص', name_en: 'Custom plan', max_tenders: 77,
+      max_bytes: 987654321, price_month: 123.45, price_year: 1200,
+      sort_order: 77, max_users: 23, trial_days: 9, audience: 'buyer'
+    });
+  } finally {
+    second.close();
+  }
+});
+
+
+test('67 — فشل الترحيل يعيد قاعدة البيانات إلى حالتها السابقة دون تغييرات جزئية', () => {
+  const Database = require('better-sqlite3');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mmc-migration-rollback-'));
+  const dbPath = path.join(dir, 'rollback.db');
+  const seed = new Database(dbPath);
+  seed.exec(`
+    CREATE TABLE plans (key TEXT PRIMARY KEY, name_ar TEXT NOT NULL, name_en TEXT NOT NULL,
+      max_tenders INTEGER NOT NULL, max_bytes INTEGER NOT NULL, price_month REAL NOT NULL,
+      price_year REAL NOT NULL, sort_order INTEGER NOT NULL);
+    INSERT INTO plans VALUES ('starter','اسم محفوظ','Saved name',3,123456,11,110,2);
+    CREATE TRIGGER force_seed_failure BEFORE INSERT ON plans
+    BEGIN SELECT RAISE(ABORT, 'forced migration failure'); END;
+  `);
+  seed.close();
+
+  assert.throws(() => migrate(dbPath), /forced migration failure/);
+  const verify = new Database(dbPath);
+  try {
+    const tables = verify.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(x => x.name);
+    assert.deepStrictEqual(tables.sort(), ['plans']);
+    const plan = verify.prepare('SELECT * FROM plans WHERE key=?').get('starter');
+    assert.deepStrictEqual(plan, {
+      key: 'starter', name_ar: 'اسم محفوظ', name_en: 'Saved name',
+      max_tenders: 3, max_bytes: 123456, price_month: 11, price_year: 110, sort_order: 2
+    });
+    assert.ok(verify.prepare("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='force_seed_failure'").get());
+  } finally {
+    verify.close();
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });

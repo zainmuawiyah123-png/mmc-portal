@@ -242,12 +242,25 @@ function upgradeProcurement(db) {
 
 function upgradePlans(db) {
   const cols = new Set(db.prepare('PRAGMA table_info(plans)').all().map((c) => c.name));
-  if (!cols.has('audience')) db.exec("ALTER TABLE plans ADD COLUMN audience TEXT NOT NULL DEFAULT 'contractor'");
-  if (!cols.has('max_users')) db.exec('ALTER TABLE plans ADD COLUMN max_users INTEGER NOT NULL DEFAULT 1');
-  if (!cols.has('trial_days')) db.exec('ALTER TABLE plans ADD COLUMN trial_days INTEGER NOT NULL DEFAULT 0');
-  db.prepare("UPDATE plans SET audience='buyer', trial_days=? WHERE key LIKE 'proc\\_%' ESCAPE '\\'").run(TRIAL_DAYS);
-  const up = db.prepare('UPDATE plans SET max_users=? WHERE key=?');
-  Object.entries(PLAN_SEATS).forEach(([k, v]) => up.run(v, k));
+  const addedAudience = !cols.has('audience');
+  const addedMaxUsers = !cols.has('max_users');
+  const addedTrialDays = !cols.has('trial_days');
+  if (addedAudience) db.exec("ALTER TABLE plans ADD COLUMN audience TEXT NOT NULL DEFAULT 'contractor'");
+  if (addedMaxUsers) db.exec('ALTER TABLE plans ADD COLUMN max_users INTEGER NOT NULL DEFAULT 1');
+  if (addedTrialDays) db.exec('ALTER TABLE plans ADD COLUMN trial_days INTEGER NOT NULL DEFAULT 0');
+
+  // Backfill only when each column is first introduced. Re-running startup
+  // migrations must never overwrite plan settings edited by an administrator.
+  if (addedAudience || addedTrialDays) {
+    const sets = [];
+    if (addedAudience) sets.push("audience='buyer'");
+    if (addedTrialDays) sets.push('trial_days=' + TRIAL_DAYS);
+    db.exec("UPDATE plans SET " + sets.join(', ') + " WHERE key LIKE 'proc\\_%' ESCAPE '\\'");
+  }
+  if (addedMaxUsers) {
+    const up = db.prepare('UPDATE plans SET max_users=? WHERE key=?');
+    Object.entries(PLAN_SEATS).forEach(([k, v]) => up.run(v, k));
+  }
 }
 
 function upgradeV5(db) {
@@ -348,25 +361,35 @@ function migrate(dbPath = config.DB_PATH) {
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-  db.exec(SCHEMA);
 
-  const ins = db.prepare(`
-    INSERT INTO plans (key, name_ar, name_en, max_tenders, max_bytes, price_month, price_year, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(key) DO UPDATE SET
-      name_ar=excluded.name_ar, name_en=excluded.name_en,
-      max_tenders=excluded.max_tenders, max_bytes=excluded.max_bytes,
-      price_month=excluded.price_month, price_year=excluded.price_year,
-      sort_order=excluded.sort_order`);
-  const tx = db.transaction((rows) => rows.forEach((r) => ins.run(...r)));
-  tx(PLANS_SEED);
+  // SQLite schema changes are transactional. Keep all schema creation,
+  // plan seeding and upgrades in one transaction so a failed migration
+  // cannot leave a half-upgraded database behind.
+  const schemaStatements = SCHEMA
+    .replace(/^\\s*PRAGMA journal_mode = WAL;\\s*/m, '')
+    .replace(/^\\s*PRAGMA foreign_keys = ON;\\s*/m, '');
+  const runMigration = db.transaction(() => {
+    db.exec(schemaStatements);
 
-  upgradeProcurement(db);
-  upgradePlans(db);
-  upgradeV5(db);
-  upgradePublicTenderIntelligence(db);
+    const ins = db.prepare(`
+      INSERT INTO plans (key, name_ar, name_en, max_tenders, max_bytes, price_month, price_year, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(key) DO NOTHING`);
+    PLANS_SEED.forEach((row) => ins.run(...row));
 
-  return db;
+    upgradeProcurement(db);
+    upgradePlans(db);
+    upgradeV5(db);
+    upgradePublicTenderIntelligence(db);
+  });
+
+  try {
+    runMigration();
+    return db;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
 }
 
 /** يُشغَّل مباشرة: node src/migrate.js */
