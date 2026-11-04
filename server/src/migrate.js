@@ -641,6 +641,27 @@ function upgradeTenderOpportunities(db) {
   `);
 }
 
+function upgradePublicTenderDetails(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tender_opportunity_details (
+      opportunity_id TEXT PRIMARY KEY REFERENCES tender_opportunities(id) ON DELETE CASCADE,
+      details_json TEXT NOT NULL,
+      verified_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS tender_opportunity_documents (
+      id TEXT PRIMARY KEY,
+      opportunity_id TEXT NOT NULL REFERENCES tender_opportunities(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      document_url TEXT NOT NULL,
+      availability TEXT NOT NULL DEFAULT 'public',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(opportunity_id, document_url)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tender_opportunity_documents
+      ON tender_opportunity_documents(opportunity_id);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -666,6 +687,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
+  upgradePublicTenderDetails(db);
   upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
