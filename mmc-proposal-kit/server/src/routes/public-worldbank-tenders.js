@@ -95,18 +95,32 @@ function extractRows(payload) {
 }
 
 async function fetchNotices() {
-  const url = API_URL + '?format=json&rows=100&os=0&srt=noticedate%20desc,id%20asc';
-  const response = await fetch(url, {
-    headers: { accept: 'application/json', 'user-agent': 'MMC-Tender-Directory/1.0' },
-    signal: AbortSignal.timeout(20000)
-  });
-  if (!response.ok) throw new Error('World Bank API returned HTTP ' + response.status);
-  const payload = await response.json();
-  const rows = extractRows(payload);
-  if (!rows.length) throw new Error('World Bank API response did not contain recognizable notice records');
-  return rows.map(normalizeNotice).filter(Boolean);
+  const pageSize = 100;
+  const maxPages = 5;
+  const allRows = [];
+  for (let page = 0; page < maxPages; page++) {
+    const url = API_URL + '?format=json&rows=' + pageSize + '&os=' + (page * pageSize) + '&srt=noticedate%20desc,id%20asc';
+    const response = await fetch(url, {
+      headers: { accept: 'application/json', 'user-agent': 'MMC-Tender-Directory/1.0' },
+      signal: AbortSignal.timeout(20000)
+    });
+    if (!response.ok) throw new Error('World Bank API returned HTTP ' + response.status + ' on page ' + (page + 1));
+    const payload = await response.json();
+    const rows = extractRows(payload);
+    if (!rows.length) {
+      if (page === 0) throw new Error('World Bank API response did not contain recognizable notice records');
+      break;
+    }
+    allRows.push(...rows);
+    if (rows.length < pageSize) break;
+  }
+  const unique = new Map();
+  for (const raw of allRows) {
+    const notice = normalizeNotice(raw);
+    if (notice) unique.set(notice.sourceRef, notice);
+  }
+  return [...unique.values()];
 }
-
 function persist(items) {
   const db = require('../db').getDB();
   db.prepare(`INSERT INTO tender_sources
