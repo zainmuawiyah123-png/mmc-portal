@@ -120,7 +120,7 @@ function persistTenders(tenders, failures = []) {
      last_verified_at,review_status,raw_metadata)
     VALUES (@id,'arab-potash-company',@sourceRef,'JO','private-sector','private-company',
      'jordanian-industrial-companies','شركة البوتاس العربية',@tenderNumber,@title,@purchaseDateIso,@closingDateIso,
-     'unknown',@bidBond,@copyPrice,@qualifications,@detailUrl,unixepoch(),@reviewStatus,@rawMetadata)
+     @status,@bidBond,@copyPrice,@qualifications,@detailUrl,unixepoch(),@reviewStatus,@rawMetadata)
     ON CONFLICT(source_key,source_ref) DO UPDATE SET title=excluded.title,tender_number=excluded.tender_number,
      purchase_deadline=excluded.purchase_deadline,closing_at=excluded.closing_at,status=excluded.status,
      bid_bond=excluded.bid_bond,document_fee=excluded.document_fee,qualification=excluded.qualification,
@@ -134,7 +134,8 @@ function persistTenders(tenders, failures = []) {
     const reviewStatus = t.title && hasValidClosingDate(t.closingDate) && /^https:\/\/www\.arabpotash\.com\//i.test(t.detailUrl) ? 'published' : 'needs-review';
     const closingDateIso = toIsoDate(t.closingDate);
     const purchaseDateIso = toIsoDate(t.purchaseDate);
-    const isClosed = closingDateIso && closingDateIso < new Date().toISOString().slice(0,10);\n    upsert.run({...t,reviewStatus,purchaseDateIso,closingDateIso,status:isClosed ? 'closed' : 'open',sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
+    const isClosed = closingDateIso && closingDateIso < new Date().toISOString().slice(0,10);
+    upsert.run({...t,reviewStatus,purchaseDateIso,closingDateIso,status:isClosed ? 'closed' : 'open',sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
     for(const d of (t.documents||[])) doc.run({id:'apc-doc-'+require('crypto').createHash('sha1').update(t.id+d.url).digest('hex'),tenderId:t.id,label:d.label||'Tender document',url:d.url});
   }))();
 }
