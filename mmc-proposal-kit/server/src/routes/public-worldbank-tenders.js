@@ -167,7 +167,9 @@ router.get('/', async (req,res) => {
       (!country || item.countryCode === country)
     );
     res.set('Cache-Control','no-store');
-    const db = require('../db').getDB();\n    const counts = db.prepare(\"SELECT SUM(CASE WHEN review_status='published' THEN 1 ELSE 0 END) AS published, SUM(CASE WHEN review_status='needs-review' THEN 1 ELSE 0 END) AS needsReview FROM public_tenders WHERE source_key='world-bank-procurement'\").get();\n    res.json({ source:'World Bank Procurement', fetchedAt:new Date(data.at).toISOString(), count:items.length, scanned:data.items.length, publishedCount:Number(counts.published||0), needsReviewCount:Number(counts.needsReview||0), tenders:items });
+    const db = require('../db').getDB();
+    const counts = db.prepare("SELECT SUM(CASE WHEN review_status='published' THEN 1 ELSE 0 END) AS published, SUM(CASE WHEN review_status='needs-review' THEN 1 ELSE 0 END) AS needsReview FROM public_tenders WHERE source_key='world-bank-procurement'").get();
+    res.json({ source:'World Bank Procurement', fetchedAt:new Date(data.at).toISOString(), count:items.length, scanned:data.items.length, publishedCount:Number(counts.published||0), needsReviewCount:Number(counts.needsReview||0), tenders:items });
   } catch (error) {
     res.status(502).json({ error:{code:'SOURCE_UNAVAILABLE',message:'تعذر تحديث إشعارات البنك الدولي حالياً.'}, detail:error.message });
   }
