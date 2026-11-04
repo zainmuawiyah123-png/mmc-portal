@@ -77,7 +77,7 @@ function normalizeNotice(raw) {
     noticeType: noticeType || null,
     publishedAt: published,
     closingAt: deadline,
-    status: /award/i.test(noticeType) ? 'awarded' : (deadline ? 'open' : 'unknown'),
+    status: /award/i.test(noticeType) ? 'awarded' : (!deadline ? 'unknown' : (deadline < new Date().toISOString().slice(0, 10) ? 'closed' : 'open')),
     officialUrl,
     raw
   };
@@ -141,7 +141,7 @@ function persist(items) {
   const tx = db.transaction(() => items.forEach(item => {
     // Only publish notices with a supported target country and a validated closing date.
     // Keep incomplete source records for review, but never expose them in the public index.
-    const reviewStatus = ['JO','SA','AE'].includes(item.countryCode) && Boolean(item.closingAt) ? 'published' : 'needs-review';
+    const validClosingDate = Boolean(item.closingAt) && /^\\d{4}-\\d{2}-\\d{2}$/.test(item.closingAt);\n    const reviewStatus = ['JO','SA','AE'].includes(item.countryCode) && validClosingDate ? 'published' : 'needs-review';
     upsert.run({ ...item, reviewStatus, rawMetadata: JSON.stringify(item.raw) });
   }));
   tx();
@@ -166,7 +166,7 @@ router.get('/', async (req,res) => {
       (!country || item.countryCode === country)
     );
     res.set('Cache-Control','no-store');
-    res.json({ source:'World Bank Procurement', fetchedAt:new Date(data.at).toISOString(), count:items.length, scanned:data.items.length, tenders:items });
+    const db = require('../db').getDB();\n    const counts = db.prepare(\"SELECT SUM(CASE WHEN review_status='published' THEN 1 ELSE 0 END) AS published, SUM(CASE WHEN review_status='needs-review' THEN 1 ELSE 0 END) AS needsReview FROM public_tenders WHERE source_key='world-bank-procurement'\").get();\n    res.json({ source:'World Bank Procurement', fetchedAt:new Date(data.at).toISOString(), count:items.length, scanned:data.items.length, publishedCount:Number(counts.published||0), needsReviewCount:Number(counts.needsReview||0), tenders:items });
   } catch (error) {
     res.status(502).json({ error:{code:'SOURCE_UNAVAILABLE',message:'تعذر تحديث إشعارات البنك الدولي حالياً.'}, detail:error.message });
   }
