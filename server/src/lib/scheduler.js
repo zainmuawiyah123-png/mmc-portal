@@ -137,7 +137,7 @@ function startScheduler() {
   _jobs.push(backupJob, expiryJob);
   if (config.OPPORTUNITY_SYNC_ENABLED) {
     const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
-      console.log('[scheduler] بدء مزامنة إعلانات البنك الدولي...');
+      console.log('[scheduler] بدء مزامنة العطاءات العامة: APC وJONEPS والبنك الدولي وUNGM...');
       runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
     },{timezone:config.BACKUP_TZ,name:'opportunity-sync-worldbank'});
     _jobs.push(opportunityJob);
