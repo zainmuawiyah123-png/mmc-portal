@@ -34,6 +34,16 @@ router.get('/', wrap(async (req,res) => {
   res.json({opportunities:rows.map(shape),count:rows.length});
 }));
 
+// Internal tender detail and document index. The browser stays on MMC.
+router.get('/:id', wrap(async(req,res)=>{
+ const db=getDB(), row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
+ if(!row) throw E.notFound('العطاء غير موجود في دليل MMC.');
+ const detail=db.prepare('SELECT details_json,verified_at FROM tender_opportunity_details WHERE opportunity_id=?').get(row.id);
+ const documents=db.prepare('SELECT id,label,availability FROM tender_opportunity_documents WHERE opportunity_id=? ORDER BY label').all(row.id);
+ let details={}; try{details=detail?JSON.parse(detail.details_json):{};}catch(_){}
+ res.json({opportunity:shape(row),details:{purchaseDate:details.purchase||null,closingDate:details.closing||null,documentFee:details.fee||null,bidBond:details.bond||null,qualification:details.qual||null,remarks:details.remarks||null,verifiedAt:detail?.verified_at||null},documents});
+}));
+
 // MMC administrators curate/import official notices. No public write access.
 router.use(A.requireAuth, A.requireRole('admin'));
 router.get('/admin/sync-history', wrap(async(req,res)=>{
@@ -143,4 +153,10 @@ router.post('/admin/sync/joneps', wrap(async(req,res)=>{
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'joneps',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
+router.post('/admin/sync/apc', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('arab-potash-company',()=>require('../lib/apc-sync').syncAPC());
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'arab-potash-company',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+
 module.exports=router;
