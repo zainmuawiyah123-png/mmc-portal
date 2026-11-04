@@ -87,8 +87,8 @@ function persistTenders(tenders) {
   const db = require('../db').getDB();
   db.prepare(`INSERT INTO tender_sources
     (source_key,name_ar,name_en,country_code,market_scope,publisher_type,organization_family,source_url,connector_status,access_mode,last_synced_at,last_sync_status,last_sync_message)
-    VALUES ('arab-potash-company','شركة البوتاس العربية','Arab Potash Company (APC)','JO','private-sector','private-company','jordanian-industrial-companies',?,'prototype','public-listing',unixepoch(),'success',?)
-    ON CONFLICT(source_key) DO UPDATE SET last_synced_at=unixepoch(),last_sync_status='success',last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
+    VALUES ('arab-potash-company','شركة البوتاس العربية','Arab Potash Company (APC)','JO','private-sector','private-company','jordanian-industrial-companies',?,'active','public-listing',unixepoch(),'success',?)
+    ON CONFLICT(source_key) DO UPDATE SET connector_status='active',last_synced_at=unixepoch(),last_sync_status='success',last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
     .run(LIST_URL,'Fetched '+tenders.length+' public tender records');
   const upsert = db.prepare(`INSERT INTO public_tenders
     (id,source_key,source_ref,country_code,market_scope,publisher_type,organization_family,publisher_name,
@@ -133,20 +133,18 @@ async function loadTenders(force) {
   while ((match = linkRe.exec(html))) ids.add(match[1]);
   if (!ids.size) throw new Error('Could not identify public tender detail links on APC listing page');
   const tenders = [];
+  const failures = [];
   for (const id of ids) {
     try {
       const detail = await fetchText(DETAIL_BASE + encodeURIComponent(id));
       tenders.push(extractDetails(detail, id));
     } catch (error) {
-      tenders.push({
-        id: 'apc-' + id, sourceKey: 'arab-potash-company', source: 'Arab Potash Company (APC)',
-        countryCode: 'JO', title: 'APC Tender ' + id, detailUrl: DETAIL_BASE + id,
-        documents: [], status: 'unverified', fetchError: error.message
-      });
+      failures.push({ id, message: error.message });
     }
   }
+  if (!tenders.length) throw new Error('APC listing found ' + ids.size + ' tender links but no detail page could be read');
   persistTenders(tenders);
-  cache = { at: Date.now(), tenders, error: null };
+  cache = { at: Date.now(), tenders, error: failures.length ? (failures.length + ' detail pages could not be fetched') : null };
   return tenders;
 }
 
@@ -170,7 +168,8 @@ router.get('/', async (req, res) => {
     res.set('Cache-Control', 'private, max-age=60');
     res.json({
       source: 'Arab Potash Company (APC)', fetchedAt: new Date(cache.at).toISOString(),
-      count: filtered.length, tenders: filtered
+      count: filtered.length, scanned: tenders.length, partial: Boolean(cache.error), warning: cache.error,
+      tenders: filtered
     });
   } catch (error) {
     res.status(502).json({
