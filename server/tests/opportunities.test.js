@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { parseJonepsRows, extractPageUrls, LIST_URL } = require('../src/lib/joneps-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
 const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
+const { parseDetail, dateISO } = require('../src/lib/apc-sync');
 
 test('JONEPS parser maps an official tender row and keeps its source on the JONEPS domain', () => {
   const html = '<table><tr><td>2026-001</td><td><a href="/ep/invt/viewTender.do?id=2026-001">أعمال طرق</a></td><td>وزارة الأشغال</td><td>أشغال</td><td>01/11/2026</td><td>31/12/2099</td></tr></table>';
@@ -76,4 +77,22 @@ test('UNGM normalizer imports finalized notices and maps Jordan country codes', 
 
 test('UNGM normalizer never imports draft or non-finalized notices', () => {
   assert.equal(normalizeUNGMNotice({ Id: 'UN-2', Title: 'Draft', Status: 'Draft' }), null);
+});
+
+test('APC parser extracts public tender details, dates, bond, fees and same-host documents', () => {
+  const html = '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2099</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5%</div><div>Vendor Qualifications: Class 1 civil contractor</div><div>Remarks: Site visit required</div><a href="/files/tender.pdf">Tender Documents</a><a href="https://evil.example/steal.pdf">Announcement</a></body></html>';
+  const row = parseDetail(html, '98765');
+  assert.equal(row.title, 'Civil works package APC-2026-01');
+  assert.equal(row.purchase, '01/11/2026');
+  assert.equal(row.closing, '20/11/2099');
+  assert.equal(row.fee, '50 JOD');
+  assert.equal(row.bond, '5%');
+  assert.equal(row.qual, 'Class 1 civil contractor');
+  assert.equal(row.docs.length, 1);
+  assert.equal(new URL(row.docs[0].url).hostname, 'www.arabpotash.com');
+});
+
+test('APC date parser rejects impossible dates', () => {
+  assert.equal(dateISO('31/02/2027'), null);
+  assert.equal(dateISO('20/11/2099'), '2099-11-20');
 });
