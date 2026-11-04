@@ -20,9 +20,9 @@ function ensureSources() {
   })));
   tx();
 }
-ensureSources();
 
 router.get('/sources', (req,res) => {
+  ensureSources();
   const rows=getDB().prepare(`SELECT source_key AS sourceKey,name_ar AS nameAr,name_en AS nameEn,
     country_code AS countryCode,market_scope AS marketScope,publisher_type AS publisherType,
     organization_family AS organizationFamily,source_url AS url,connector_status AS connectorStatus,
@@ -32,6 +32,7 @@ router.get('/sources', (req,res) => {
 });
 
 router.get('/', (req,res) => {
+  ensureSources();
   const db=getDB();
   const where=['t.review_status = ?']; const params=['published'];
   const filters=[['country','country_code'],['market','market_scope'],['publisherType','publisher_type'],['category','category_key'],['status','status']];
@@ -59,6 +60,7 @@ router.get('/', (req,res) => {
 });
 
 router.get('/:id', (req,res) => {
+  ensureSources();
   const db=getDB();
   const tender=db.prepare(`SELECT t.*,s.name_ar AS source_name_ar,s.name_en AS source_name_en
     FROM public_tenders t JOIN tender_sources s ON s.source_key=t.source_key
