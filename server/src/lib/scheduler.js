@@ -104,6 +104,7 @@ async function runOpportunitySyncJob() {
     catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
   };
+  await runSource('arab-potash-company',()=>require('./apc-sync').syncAPC());
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
