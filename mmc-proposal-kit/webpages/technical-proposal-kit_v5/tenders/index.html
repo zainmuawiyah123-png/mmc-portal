@@ -26,7 +26,7 @@ let sources=[],all=[];
 async function loadSources(){
  const r=await fetch('/api/public-tenders/sources');const d=await r.json();sources=d.sources||[];
  sourceSelect.innerHTML='<option value="">كل الجهات</option>'+sources.map(s=>'<option value="'+esc(s.sourceKey)+'">'+esc(s.nameAr)+'</option>').join('');
- document.getElementById('sourceList').innerHTML=sources.map(s=>'<span class="source-chip '+(s.connectorStatus==='prototype'?'live':'planned')+'">'+esc(s.nameAr)+' — '+(s.connectorStatus==='prototype'?'موصل تجريبي':'قيد الربط')+'</span>').join('');
+ document.getElementById('sourceList').innerHTML=sources.map(s=>'<span class="source-chip '+(s.connectorStatus==='active'?'live':'planned')+'">'+esc(s.nameAr)+' — '+(s.connectorStatus==='active'?'يعمل — آخر مزامنة':'قيد الربط / الاختبار')+'</span>').join('');
 }
 function render(){
  const q=document.getElementById('q').value.trim().toLocaleLowerCase(),country=document.getElementById('country').value,market=document.getElementById('market').value,source=sourceSelect.value;
