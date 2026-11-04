@@ -41,8 +41,10 @@ function persist(items,failures){
    const detail=JSON.stringify(t);
    db.prepare(`INSERT INTO tender_opportunity_details (opportunity_id,details_json,verified_at) VALUES (?,?,unixepoch())
     ON CONFLICT(opportunity_id) DO UPDATE SET details_json=excluded.details_json,verified_at=unixepoch()`).run(id,detail);
+   // Replace the public document index on each verified refresh so removed links do not linger.
+   db.prepare('DELETE FROM tender_opportunity_documents WHERE opportunity_id=?').run(id);
    const docInsert=db.prepare(`INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability)
-    VALUES (?,?,?,?,'public') ON CONFLICT(opportunity_id,document_url) DO UPDATE SET label=excluded.label`);
+    VALUES (?,?,?,?,'public')`);
    for(const d of t.docs){const crypto=require('crypto');docInsert.run('apcdoc_'+crypto.createHash('sha1').update(id+d.url).digest('hex'),id,d.label,d.url);}
    if(old)updated++;else added++;
   }
