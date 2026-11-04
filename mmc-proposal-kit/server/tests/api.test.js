@@ -826,3 +826,36 @@ test('66 — إعادة تشغيل الترحيل لا تغيّر أي بيان�
     second.close();
   }
 });
+
+
+test('67 — فشل الترحيل يعيد قاعدة البيانات إلى حالتها السابقة دون تغييرات جزئية', () => {
+  const Database = require('better-sqlite3');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mmc-migration-rollback-'));
+  const dbPath = path.join(dir, 'rollback.db');
+  const seed = new Database(dbPath);
+  seed.exec(`
+    CREATE TABLE plans (key TEXT PRIMARY KEY, name_ar TEXT NOT NULL, name_en TEXT NOT NULL,
+      max_tenders INTEGER NOT NULL, max_bytes INTEGER NOT NULL, price_month REAL NOT NULL,
+      price_year REAL NOT NULL, sort_order INTEGER NOT NULL);
+    INSERT INTO plans VALUES ('starter','اسم محفوظ','Saved name',3,123456,11,110,2);
+    CREATE TRIGGER force_seed_failure BEFORE INSERT ON plans
+    BEGIN SELECT RAISE(ABORT, 'forced migration failure'); END;
+  `);
+  seed.close();
+
+  assert.throws(() => migrate(dbPath), /forced migration failure/);
+  const verify = new Database(dbPath);
+  try {
+    const tables = verify.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(x => x.name);
+    assert.deepStrictEqual(tables.sort(), ['plans']);
+    const plan = verify.prepare('SELECT * FROM plans WHERE key=?').get('starter');
+    assert.deepStrictEqual(plan, {
+      key: 'starter', name_ar: 'اسم محفوظ', name_en: 'Saved name',
+      max_tenders: 3, max_bytes: 123456, price_month: 11, price_year: 110, sort_order: 2
+    });
+    assert.ok(verify.prepare("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='force_seed_failure'").get());
+  } finally {
+    verify.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
