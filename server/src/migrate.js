@@ -641,6 +641,30 @@ function upgradeTenderOpportunities(db) {
   `);
 }
 
+
+function upgradeBidSubmissionDocuments(db) {
+  const cols = new Set(db.prepare('PRAGMA table_info(bid_submissions)').all().map((c) => c.name));
+  if (!cols.has('receipt_reference')) db.exec('ALTER TABLE bid_submissions ADD COLUMN receipt_reference TEXT');
+  if (!cols.has('declaration_accepted')) db.exec('ALTER TABLE bid_submissions ADD COLUMN declaration_accepted INTEGER NOT NULL DEFAULT 0');
+  if (!cols.has('submitted_ip')) db.exec('ALTER TABLE bid_submissions ADD COLUMN submitted_ip TEXT');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bid_submission_docs (
+      id TEXT PRIMARY KEY,
+      submission_id TEXT NOT NULL REFERENCES bid_submissions(id) ON DELETE CASCADE,
+      doc_class TEXT NOT NULL CHECK (doc_class IN ('technical','financial')),
+      storage_key TEXT NOT NULL,
+      storage_driver TEXT NOT NULL DEFAULT 'local',
+      original_name TEXT NOT NULL,
+      mime TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      checksum_sha256 TEXT,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_bid_docs_submission_class
+      ON bid_submission_docs(submission_id, doc_class, uploaded_at);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -669,6 +693,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
+  upgradeBidSubmissionDocuments(db);
 
   return db;
 }

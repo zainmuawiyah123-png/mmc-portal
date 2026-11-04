@@ -185,9 +185,15 @@ router.post('/:id/transition', buyerOnly, wrap(async (req, res) => {
   if (t.note && note.length < 3) throw E.validation('اكتب ملاحظة توضح السبب.');
   const db = getDB();
   if (action === 'ready') {
-    const publicDocs = db.prepare('SELECT COUNT(*) n FROM request_docs WHERE request_id = ? AND kind IN (' + O.PUBLIC_DOC_KINDS.map(() => '?').join(',') + ')').get(r.id, ...O.PUBLIC_DOC_KINDS).n;
-    if (!publicDocs) throw E.validation('أرفق وثيقة واحدة على الأقل من وثائق العطاء (مخططات أو مواصفات أو جدول كميات أو شروط).');
+    const kinds = new Set(db.prepare('SELECT DISTINCT kind FROM request_docs WHERE request_id = ?').all(r.id).map((d) => d.kind));
+    const requiredDocs = r.service_type === 'works' ? ['specifications', 'drawings', 'boq']
+      : r.service_type === 'supply' ? ['specifications', 'boq']
+      : r.service_type === 'consultancy' ? ['specifications', 'conditions']
+      : ['specifications'];
+    const missingDocs = requiredDocs.filter((kind) => !kinds.has(kind));
+    if (missingDocs.length) throw E.validation('لا يمكن تجهيز الحزمة قبل إرفاق الوثائق الأساسية: ' + missingDocs.join('، '));
     if (!r.fidic_book) throw E.validation('حدّد نوع عقد FIDIC (أو «عقد آخر») قبل تجهيز الحزمة.');
+    if (!r.fidic_edition) throw E.validation('حدّد إصدار عقد FIDIC (1999 أو 2017 أو إصدار آخر) قبل تجهيز الحزمة.');
   }
   const to = t.to(m);
   db.prepare(`UPDATE project_requests SET status = ?, review_note = ?, assigned_to = CASE WHEN ? = 'take' THEN ? ELSE assigned_to END,
