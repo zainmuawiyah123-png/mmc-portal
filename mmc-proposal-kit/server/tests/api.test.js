@@ -658,3 +658,30 @@ test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملف
     assert.notStrictEqual((await fetch(b + hidden)).status, 200, hidden);
   }
 });
+
+
+test('63 — دليل APC العام يعمل داخل MMC دون تسجيل دخول ويعرض بيانات العطاء', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    const u = String(url);
+    const html = u.includes('/Modules/Tenders')
+      ? '<html><a href="/En/TendersDetails?PID=98765">Tender details</a></html>'
+      : '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2026</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5,000 JOD</div><div>Vendor Qualifications: Grade 1 contractor</div><div>Remarks: Submit technical offer</div><a href="/files/apc-announcement.pdf">Announcement PDF</a></body></html>';
+    return { ok: true, status: 200, text: async () => html };
+  };
+  try {
+    const r = await call('apc-anon', 'GET', '/api/public-tenders/apc');
+    assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+    assert.strictEqual(r.data.source, 'Arab Potash Company (APC)');
+    assert.strictEqual(r.data.count, 1);
+    const tender = r.data.tenders[0];
+    assert.strictEqual(tender.id, 'apc-98765');
+    assert.match(tender.title, /APC-2026-01/);
+    assert.match(tender.closingDate, /20\/11\/2026/);
+    assert.match(tender.bidBond, /5,000 JOD/);
+    assert.strictEqual(tender.documents.length, 1);
+    assert.match(tender.documents[0].url, /apc-announcement\.pdf$/);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
