@@ -791,3 +791,38 @@ test('65 — إعادة تشغيل الترحيل تحفظ بيانات العم
     second.close();
   }
 });
+
+
+test('66 — إعادة تشغيل الترحيل لا تغيّر أي بيانات عملاء أو إعدادات باقات أو معاملات', () => {
+  const db = getDB();
+  // Put distinctive administrator-managed values in existing plan rows. A
+  // startup migration must preserve them rather than reseeding defaults.
+  db.prepare("UPDATE plans SET name_ar='اسم مخصص', name_en='Custom plan', max_tenders=77, max_bytes=987654321, price_month=123.45, price_year=1200, sort_order=77, max_users=23, trial_days=9, audience='buyer' WHERE key='starter'").run();
+
+  const protectedTables = [
+    'users', 'plans', 'subscriptions', 'invoices', 'tenders',
+    'tender_requirements', 'bid_submissions', 'bid_responses',
+    'files', 'requests'
+  ];
+  const before = Object.fromEntries(protectedTables.map((table) => [
+    table,
+    db.prepare('SELECT * FROM ' + table + ' ORDER BY rowid').all()
+  ]));
+
+  const second = migrate(process.env.DB_PATH);
+  try {
+    for (const table of protectedTables) {
+      const after = second.prepare('SELECT * FROM ' + table + ' ORDER BY rowid').all();
+      assert.deepStrictEqual(after, before[table],
+        'startup migration must preserve every existing row and value in ' + table);
+    }
+    const custom = second.prepare("SELECT name_ar,name_en,max_tenders,max_bytes,price_month,price_year,sort_order,max_users,trial_days,audience FROM plans WHERE key='starter'").get();
+    assert.deepStrictEqual(custom, {
+      name_ar: 'اسم مخصص', name_en: 'Custom plan', max_tenders: 77,
+      max_bytes: 987654321, price_month: 123.45, price_year: 1200,
+      sort_order: 77, max_users: 23, trial_days: 9, audience: 'buyer'
+    });
+  } finally {
+    second.close();
+  }
+});
