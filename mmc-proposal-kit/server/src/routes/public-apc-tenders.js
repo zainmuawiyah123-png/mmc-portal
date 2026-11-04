@@ -84,6 +84,21 @@ function extractDetails(html, pid) {
 }
 
 
+
+function hasValidClosingDate(value) {
+  const text = String(value || '').trim();
+  let m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  let day, month, year;
+  if (m) { day = Number(m[1]); month = Number(m[2]); year = Number(m[3]); }
+  else {
+    m = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return false;
+    year = Number(m[1]); month = Number(m[2]); day = Number(m[3]);
+  }
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 function persistTenders(tenders, failures = []) {
   const db = require('../db').getDB();
   db.prepare(`INSERT INTO tender_sources
@@ -97,18 +112,19 @@ function persistTenders(tenders, failures = []) {
      last_verified_at,review_status,raw_metadata)
     VALUES (@id,'arab-potash-company',@sourceRef,'JO','private-sector','private-company',
      'jordanian-industrial-companies','شركة البوتاس العربية',@tenderNumber,@title,@purchaseDate,@closingDate,
-     'unknown',@bidBond,@copyPrice,@qualifications,@detailUrl,unixepoch(),'published',@rawMetadata)
+     'unknown',@bidBond,@copyPrice,@qualifications,@detailUrl,unixepoch(),@reviewStatus,@rawMetadata)
     ON CONFLICT(source_key,source_ref) DO UPDATE SET title=excluded.title,tender_number=excluded.tender_number,
      purchase_deadline=excluded.purchase_deadline,closing_at=excluded.closing_at,status=excluded.status,
      bid_bond=excluded.bid_bond,document_fee=excluded.document_fee,qualification=excluded.qualification,
      official_url=excluded.official_url,last_verified_at=unixepoch(),fetched_at=unixepoch(),
-     review_status='published',raw_metadata=excluded.raw_metadata,updated_at=unixepoch()`);
+     review_status=excluded.review_status,raw_metadata=excluded.raw_metadata,updated_at=unixepoch()`);
   const doc = db.prepare(`INSERT INTO public_tender_documents
     (id,public_tender_id,label,document_url,availability)
     VALUES (@id,@tenderId,@label,@url,'source-link')
     ON CONFLICT(public_tender_id,document_url) DO UPDATE SET label=excluded.label`);
   db.transaction(()=>tenders.forEach(t=>{
-    upsert.run({...t,sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
+    const reviewStatus = t.title && hasValidClosingDate(t.closingDate) && /^https:\/\/www\.arabpotash\.com\//i.test(t.detailUrl) ? 'published' : 'needs-review';
+    upsert.run({...t,reviewStatus,sourceRef:t.id.replace('apc-',''),rawMetadata:JSON.stringify(t)});
     for(const d of (t.documents||[])) doc.run({id:'apc-doc-'+require('crypto').createHash('sha1').update(t.id+d.url).digest('hex'),tenderId:t.id,label:d.label||'Tender document',url:d.url});
   }))();
 }
