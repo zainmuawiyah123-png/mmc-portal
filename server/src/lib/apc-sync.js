@@ -57,14 +57,14 @@ async function mapLimit(items,limit,fn){
  await Promise.all(workers);return out;
 }
 function listingPages(html){
- const pages=new Map([[LIST_URL,1]]),re=/<a\\b[^>]*href=["']([^"']+)["'][^>]*>\\s*(\\d+)\\s*<\\/a>/gi;let m;
+ const pages=new Map([[LIST_URL,1]]),re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>\s*(\d+)\s*<\/a>/gi;let m;
  while((m=re.exec(html))){const n=Number(m[2]);if(n<2||n>100)continue;try{const u=new URL(decode(m[1]),LIST_URL);if(u.protocol==='https:'&&HOSTS.has(u.hostname)&&u.pathname.toLowerCase().endsWith('/modules/tenders'))pages.set(u.toString(),n);}catch(_){}}
  return [...pages.entries()].sort((a,b)=>a[1]-b[1]).slice(0,100);
 }
 async function syncAPC(){
  const first=await fetchText(LIST_URL),pages=listingPages(first),pageResults=await mapLimit(pages.slice(1),5,async([url])=>fetchText(url));
  const ids=new Set(),failures=[];
- const collect=html=>{for(const m of String(html||'').matchAll(/(?:TendersDetails\\?PID=|TendersDetails%3fPID%3d)(\\d+)/gi))ids.add(m[1]);};
+ const collect=html=>{for(const m of String(html||'').matchAll(/(?:TendersDetails\?PID=|TendersDetails%3fPID%3d)(\d+)/gi))ids.add(m[1]);};
  collect(first);
  pageResults.forEach((r,i)=>{if(r&&r.error)failures.push({id:'listing-page-'+pages[i+1][1],message:r.error.message});else collect(r);});
  if(!ids.size)throw new Error('APC public listing returned no recognizable tender detail links; no records changed.');
