@@ -51,13 +51,27 @@ function persist(items,failures){
  const counts=tx();
  return {...counts,received:items.length+failures.length,normalized:items.length,failed:failures.length};
 }
+async function mapLimit(items,limit,fn){
+ const out=new Array(items.length);let next=0;
+ const workers=Array.from({length:Math.min(limit,items.length)},async()=>{while(true){const i=next++;if(i>=items.length)return;try{out[i]=await fn(items[i],i);}catch(error){out[i]={error};}}});
+ await Promise.all(workers);return out;
+}
+function listingPages(html){
+ const pages=new Map([[LIST_URL,1]]),re=/<a\\b[^>]*href=["']([^"']+)["'][^>]*>\\s*(\\d+)\\s*<\\/a>/gi;let m;
+ while((m=re.exec(html))){const n=Number(m[2]);if(n<2||n>100)continue;try{const u=new URL(decode(m[1]),LIST_URL);if(u.protocol==='https:'&&HOSTS.has(u.hostname)&&u.pathname.toLowerCase().endsWith('/modules/tenders'))pages.set(u.toString(),n);}catch(_){}}
+ return [...pages.entries()].sort((a,b)=>a[1]-b[1]).slice(0,100);
+}
 async function syncAPC(){
- const html=await fetchText(LIST_URL),ids=new Set();
- for(const m of html.matchAll(/(?:TendersDetails\?PID=|TendersDetails%3fPID%3d)(\d+)/gi))ids.add(m[1]);
+ const first=await fetchText(LIST_URL),pages=listingPages(first),pageResults=await mapLimit(pages.slice(1),5,async([url])=>fetchText(url));
+ const ids=new Set(),failures=[];
+ const collect=html=>{for(const m of String(html||'').matchAll(/(?:TendersDetails\\?PID=|TendersDetails%3fPID%3d)(\\d+)/gi))ids.add(m[1]);};
+ collect(first);
+ pageResults.forEach((r,i)=>{if(r&&r.error)failures.push({id:'listing-page-'+pages[i+1][1],message:r.error.message});else collect(r);});
  if(!ids.size)throw new Error('APC public listing returned no recognizable tender detail links; no records changed.');
- const items=[],failures=[];
- for(const pid of ids){try{items.push(parseDetail(await fetchText(DETAIL_BASE+encodeURIComponent(pid)),pid));}catch(e){failures.push({id:pid,message:e.message});}}
+ const detailResults=await mapLimit([...ids],8,async pid=>parseDetail(await fetchText(DETAIL_BASE+encodeURIComponent(pid)),pid));
+ const items=[];
+ detailResults.forEach((r,i)=>{if(r&&r.error)failures.push({id:[...ids][i],message:r.error.message});else items.push(r);});
  if(!items.length)throw new Error('APC listing was reached but no tender detail could be verified; no records changed.');
- return {...persist(items,failures),source:'arab-potash-company',sourceUrl:LIST_URL};
+ return {...persist(items,failures),source:'arab-potash-company',sourceUrl:LIST_URL,pagesScanned:pages.length};
 }
 module.exports={syncAPC,parseDetail,dateISO,LIST_URL};
