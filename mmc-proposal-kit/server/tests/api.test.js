@@ -684,6 +684,9 @@ test('63 — دليل APC العام يعمل داخل MMC دون تسجيل د�
     assert.strictEqual(tender.id, 'apc-98765');
     assert.match(tender.title, /APC-2026-01/);
     assert.match(tender.closingDate, /20\/11\/2026/);
+    const apcStored = getDB().prepare("SELECT closing_at,status FROM public_tenders WHERE id='apc-98765'").get();
+    assert.strictEqual(apcStored.closing_at, '2026-11-20', 'APC dates must be stored in sortable ISO format');
+    assert.strictEqual(apcStored.status, 'open', 'future APC closing dates must remain open');
     assert.match(tender.bidBond, /5,000 JOD/);
     assert.strictEqual(tender.documents.length, 1);
     assert.match(tender.documents[0].url, /apc-announcement\.pdf$/);
