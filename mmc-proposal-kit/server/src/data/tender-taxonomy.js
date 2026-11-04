@@ -3,12 +3,40 @@
 /**
  * MMC Public Tender Intelligence taxonomy.
  * Stable machine keys are persisted; labels are bilingual and may evolve.
- * Countries enabled in the first release: JO, SA, AE.
+ * First-release coverage: JO, SA, AE, international markets and multilateral/NGO procurement.
  */
 const COUNTRIES = [
   { code: 'JO', nameAr: 'الأردن', nameEn: 'Jordan', currency: 'JOD' },
   { code: 'SA', nameAr: 'السعودية', nameEn: 'Saudi Arabia', currency: 'SAR' },
   { code: 'AE', nameAr: 'الإمارات', nameEn: 'United Arab Emirates', currency: 'AED' }
+];
+
+const MARKET_SCOPES = [
+  { key: 'national', nameAr: 'عطاءات حكومية ومحلية', nameEn: 'National & Government Tenders' },
+  { key: 'private-sector', nameAr: 'القطاع الخاص والشركات', nameEn: 'Private Sector & Corporate Tenders' },
+  { key: 'international', nameAr: 'عطاءات دولية', nameEn: 'International Tenders' },
+  { key: 'development-financed', nameAr: 'مشاريع ممولة دولياً', nameEn: 'Internationally Financed Projects' }
+];
+
+const PUBLISHER_TYPES = [
+  { key: 'government', nameAr: 'جهة حكومية', nameEn: 'Government Entity' },
+  { key: 'private-company', nameAr: 'شركة من القطاع الخاص', nameEn: 'Private Company' },
+  { key: 'un-agency', nameAr: 'وكالة أو منظمة تابعة للأمم المتحدة', nameEn: 'United Nations Agency' },
+  { key: 'multilateral-bank', nameAr: 'بنك أو مؤسسة تمويل دولية', nameEn: 'Multilateral Development Bank' },
+  { key: 'international-organization', nameAr: 'منظمة دولية', nameEn: 'International Organization' },
+  { key: 'ngo-ingo', nameAr: 'منظمة غير حكومية / دولية', nameEn: 'NGO / INGO' },
+  { key: 'donor-agency', nameAr: 'جهة مانحة أو وكالة تنمية', nameEn: 'Donor / Development Agency' },
+  { key: 'university-institution', nameAr: 'جامعة أو مؤسسة تعليمية', nameEn: 'University / Institution' },
+  { key: 'other', nameAr: 'جهة أخرى', nameEn: 'Other Publisher' }
+];
+
+const ORGANIZATION_FAMILIES = [
+  { key: 'un-system', nameAr: 'منظومة الأمم المتحدة', nameEn: 'United Nations System', examples: ['UNDP', 'UNICEF', 'UNOPS', 'UNHCR', 'WFP', 'WHO', 'FAO', 'UN Women', 'UNESCO', 'IOM'] },
+  { key: 'development-banks', nameAr: 'بنوك التنمية والمؤسسات المالية الدولية', nameEn: 'Development Banks & IFIs', examples: ['World Bank', 'EBRD', 'EIB', 'IsDB', 'AfDB', 'ADB'] },
+  { key: 'bilateral-donors', nameAr: 'الوكالات والجهات المانحة الثنائية', nameEn: 'Bilateral Donors & Agencies', examples: ['USAID', 'FCDO', 'GIZ', 'JICA', 'KfW', 'Sida', 'AFD'] },
+  { key: 'international-ngos', nameAr: 'المنظمات الدولية غير الحكومية', nameEn: 'International NGOs', examples: ['Norwegian Refugee Council', 'International Rescue Committee', 'Save the Children', 'CARE', 'Mercy Corps'] },
+  { key: 'regional-organizations', nameAr: 'المنظمات والمؤسسات الإقليمية', nameEn: 'Regional Organizations', examples: ['GCC', 'Arab Fund', 'OPEC Fund'] },
+  { key: 'other-international', nameAr: 'جهات دولية أخرى', nameEn: 'Other International Publishers', examples: [] }
 ];
 
 const CATEGORIES = [
@@ -50,4 +78,4 @@ function suggestCategories(text) {
   }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score);
 }
 
-module.exports = { COUNTRIES, CATEGORIES, STATUSES, normalizeText, suggestCategories };
+module.exports = { COUNTRIES, MARKET_SCOPES, PUBLISHER_TYPES, ORGANIZATION_FAMILIES, CATEGORIES, STATUSES, normalizeText, suggestCategories };
