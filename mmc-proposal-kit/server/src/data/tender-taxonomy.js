@@ -84,7 +84,7 @@ const STATUSES = [
 ];
 
 function normalizeText(value) {
-  return String(value || '').toLocaleLowerCase().replace(/[إأآ]/g, 'ا').replace(/ى/g, 'ي').replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();
+  return String(value || '').toLocaleLowerCase().replace(/[إأآ]/g, 'ا').replace(/ى/g, 'ي').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
 
 function suggestCategories(text) {
