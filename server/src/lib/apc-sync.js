@@ -49,8 +49,6 @@ function persist(items,failures){
   return {added,updated};
  });
  const counts=tx();
- db.prepare(`INSERT INTO opportunity_sync_runs (id,source_key,started_at,finished_at,status,received,added,updated,duration_ms,error)
- VALUES (?,?,?,?,?,?,?,?,?,?)`).run(uid('sync_'),'arab-potash-company',Math.floor(Date.now()/1000),Math.floor(Date.now()/1000),failures.length?'failed':'success',items.length+failures.length,counts.added,counts.updated,0,failures.length?failures.length+' detail page(s) failed: '+failures.slice(0,5).map(x=>x.id).join(', '):null);
  return {...counts,received:items.length+failures.length,normalized:items.length,failed:failures.length};
 }
 async function syncAPC(){
