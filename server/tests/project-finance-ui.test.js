@@ -304,6 +304,7 @@ test('OPP-27 — APC public documents open only verified HTTPS source hosts', ()
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
   const connector = fs.readFileSync(path.join(__dirname, '../src/lib/apc-sync.js'), 'utf8');
   assert.ok(connector.includes('arabpotash-my.sharepoint.com'));
+  assert.ok(connector.includes("'arab-potash-company:'+t.pid+':'+d.url"), 'APC document IDs must remain stable when the opportunity row is recreated');
   assert.ok(route.includes('arabpotash-my.sharepoint.com'));
   assert.ok(route.includes("target.protocol!=='https:'"));
   assert.ok(route.includes("approvedHosts.has(target.hostname)"));
