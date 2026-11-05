@@ -147,6 +147,26 @@ router.post('/clarifications/:id/answer', procOnly, wrap(async(req,res)=>{
   res.status(201).json({answer:{id,text:answer,createdAt:Math.floor(Date.now()/1000)},status:'closed'});
 }));
 
+
+/* Tender addenda: issued by procurement and visible to all eligible bidders. */
+router.get('/tenders/:id/addenda', wrap(async(req,res)=>{
+ const x=getTender(req.params.id),isBuyer=['buyer','admin'].includes(req.user.role);
+ if(isBuyer)ensureBuyerOwn(req,req.params.id);
+ else if(req.user.role!=='contractor'||x.t.procurement_status!=='published'||!O.ownerVerified(x.t.user_id))throw E.notFound('العطاء غير متاح.');
+ const rows=x.db.prepare('SELECT id,title,body,created_at FROM tender_addenda WHERE tender_id=? ORDER BY created_at,id').all(x.t.id);
+ res.json({addenda:rows.map(r=>({...r,createdAt:r.created_at}))});
+}));
+router.post('/tenders/:id/addenda',procOnly,wrap(async(req,res)=>{
+ const x=ensureBuyerOwn(req,req.params.id);
+ if(x.t.procurement_status!=='published')throw E.conflict('لا يمكن إصدار ملحق قبل نشر العطاء.');
+ const title=String(req.body?.title||'').trim().slice(0,200),body=String(req.body?.body||'').trim().slice(0,5000);
+ if(title.length<3||body.length<5)throw E.validation('عنوان الملحق ونصه مطلوبان.');
+ const id=uid('add_');
+ x.db.prepare('INSERT INTO tender_addenda (id,tender_id,user_id,title,body) VALUES (?,?,?,?,?)').run(id,x.t.id,req.user.id,title,body);
+ audit({action:'tender_addendum_issued',entity:'tender',entityId:x.t.id,userId:req.user.id,ip:req.ip,detail:{addendumId:id,title}});
+ res.status(201).json({addendum:{id,title,body,createdAt:Math.floor(Date.now()/1000)}});
+}));
+
 /* قائمة العطاءات المنشورة للمقاول */
 router.get('/open-tenders', contractor, wrap(async (req, res) => {
   const db = getDB();
