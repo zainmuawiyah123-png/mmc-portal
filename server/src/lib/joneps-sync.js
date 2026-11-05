@@ -108,7 +108,9 @@ async function syncJONEPS({maxPages=100}={}){
  const fetchPage=async url=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
   try{
-   const response=await fetch(url,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});
+   const u=new URL(url);if(u.protocol!=='https:'||!JONEPS_HOSTS.has(u.hostname))throw new Error('Blocked non-JONEPS listing URL');
+   const response=await fetch(u,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal,redirect:'manual'});
+   if(response.status>=300&&response.status<400)throw new Error('JONEPS listing redirect refused');
    if(!response.ok)throw new Error('JONEPS returned HTTP '+response.status);
    return await response.text();
   }finally{clearTimeout(timer);}
@@ -121,7 +123,7 @@ async function syncJONEPS({maxPages=100}={}){
  if(!notices.length)throw new Error('JONEPS page loaded but no recognizable tender rows were found; importer stopped without changing records.');
  const detailTargets=notices.filter(n=>n.sourceUrl&&n.sourceUrl!==LIST_URL);
  const detailResults=await mapLimit(detailTargets,5,async n=>({id:n.id,detail:await fetchJonepsDetail(n.sourceUrl)}));
- const detailFailures=detailResults.filter(x=>x&&x.error).map((x,i)=>({id:detailTargets[i]?.id,message:x.error.message}));
+ const detailFailures=detailResults.flatMap((x,i)=>x&&x.error?[{id:detailTargets[i].id,message:x.error.message}]:[]);
  const verifiedDetails=detailResults.filter(x=>x&&!x.error);
  const db=getDB();
  const upsert=db.prepare(`INSERT INTO tender_opportunities
@@ -142,6 +144,6 @@ async function syncJONEPS({maxPages=100}={}){
  });
  const counts=tx(notices);
  const detailStats=persistJonepsDetails(notices,verifiedDetails);
- return {...counts,...detailStats,received:notices.length+detailFailures.length,normalized:notices.length,detailFailures:detailFailures.length,failed:detailFailures.length,source:'joneps',sourceUrl:LIST_URL};
+ return {...counts,...detailStats,received:notices.length,normalized:notices.length,detailFailures:detailFailures.length,failed:detailFailures.length,source:'joneps',sourceUrl:LIST_URL};
 }
 module.exports={parseJonepsRows,extractPageUrls,parseJonepsDetail,syncJONEPS,LIST_URL};
