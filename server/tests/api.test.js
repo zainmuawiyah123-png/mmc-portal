@@ -1443,6 +1443,11 @@ test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة
   const download=await call(contractor,'GET','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
   assert.strictEqual(download.status,200);
   assert.match(String(download.data),/private technical bid file/);
+  const removed=await call(contractor,'DELETE','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
+  assert.strictEqual(removed.status,200,JSON.stringify(removed.data));
+  const afterDelete=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
+  assert.strictEqual(afterDelete.data.workspace.files.length,0);
+  assert.strictEqual(afterDelete.data.workspace.status,'draft');
   const otherView=await call(other,'GET','/api/opportunities/'+id+'/workspace');
   assert.strictEqual(otherView.status,200);
   assert.notStrictEqual(otherView.data.workspace.id,saved.data.workspace.id);
