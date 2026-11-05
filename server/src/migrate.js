@@ -728,6 +728,9 @@ function upgradeOpportunityBidWorkspaces(db) {
     CREATE INDEX IF NOT EXISTS idx_opp_bid_files_workspace
       ON opportunity_bid_files(workspace_id, uploaded_at);
   `);
+  const fileColumns = new Set(db.prepare('PRAGMA table_info(opportunity_bid_files)').all().map((c) => c.name));
+  if (!fileColumns.has('file_kind')) db.exec("ALTER TABLE opportunity_bid_files ADD COLUMN file_kind TEXT NOT NULL DEFAULT 'supporting'");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_opp_bid_files_kind ON opportunity_bid_files(workspace_id,file_kind)");
 }
 
 function migrate(dbPath = config.DB_PATH) {
