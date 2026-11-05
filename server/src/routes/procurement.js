@@ -4,6 +4,9 @@
  * المالي لا يعاد من API التقييم إلا بعد اجتياز الحد الفني.
  */
 const express = require('express');
+const multer = require('multer');
+const config = require('../config');
+const S = require('../lib/storage');
 const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
@@ -22,6 +25,14 @@ const procOnly = [buyer, (req, res, next) => {
   return next();
 }];
 const contractor = A.requireRole('contractor', 'admin');
+const addendumUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: config.MAX_FILE_BYTES, files: 5 },
+  fileFilter: (req, file, cb) => {
+    try { S.assertAllowed(file.originalname, 0); cb(null, true); }
+    catch (err) { cb(err); }
+  }
+});
 
 function cleanRequirement(r, i) {
   return {
@@ -148,23 +159,53 @@ router.post('/clarifications/:id/answer', procOnly, wrap(async(req,res)=>{
 }));
 
 
-/* Tender addenda: issued by procurement and visible to all eligible bidders. */
+/* Tender addenda: text and files are attached to one tender/addendum, not orphaned request documents. */
 router.get('/tenders/:id/addenda', wrap(async(req,res)=>{
  const x=getTender(req.params.id),isBuyer=['buyer','admin'].includes(req.user.role);
  if(isBuyer)ensureBuyerOwn(req,req.params.id);
  else if(req.user.role!=='contractor'||x.t.procurement_status!=='published'||!O.ownerVerified(x.t.user_id))throw E.notFound('العطاء غير متاح.');
  const rows=x.db.prepare('SELECT id,title,body,created_at FROM tender_addenda WHERE tender_id=? ORDER BY created_at,id').all(x.t.id);
- res.json({addenda:rows.map(r=>({...r,createdAt:r.created_at}))});
+ const docs=x.db.prepare('SELECT id,addendum_id,original_name name,mime,size FROM tender_addendum_documents WHERE addendum_id IN (SELECT id FROM tender_addenda WHERE tender_id=?) ORDER BY uploaded_at,id').all(x.t.id);
+ const byId=new Map();
+ for(const d of docs){if(!byId.has(d.addendum_id))byId.set(d.addendum_id,[]);byId.get(d.addendum_id).push({id:d.id,name:d.name,mime:d.mime,size:d.size});}
+ res.json({addenda:rows.map(r=>({...r,createdAt:r.created_at,documents:byId.get(r.id)||[]}))});
 }));
-router.post('/tenders/:id/addenda',procOnly,wrap(async(req,res)=>{
+router.post('/tenders/:id/addenda',procOnly,addendumUpload.array('files',5),wrap(async(req,res)=>{
  const x=ensureBuyerOwn(req,req.params.id);
  if(x.t.procurement_status!=='published')throw E.conflict('لا يمكن إصدار ملحق قبل نشر العطاء.');
  const title=String(req.body?.title||'').trim().slice(0,200),body=String(req.body?.body||'').trim().slice(0,5000);
- if(title.length<3||body.length<5)throw E.validation('عنوان الملحق ونصه مطلوبان.');
- const id=uid('add_');
- x.db.prepare('INSERT INTO tender_addenda (id,tender_id,user_id,title,body) VALUES (?,?,?,?,?)').run(id,x.t.id,req.user.id,title,body);
- audit({action:'tender_addendum_issued',entity:'tender',entityId:x.t.id,userId:req.user.id,ip:req.ip,detail:{addendumId:id,title}});
- res.status(201).json({addendum:{id,title,body,createdAt:Math.floor(Date.now()/1000)}});
+ const files=req.files||[];
+ if(title.length<3||(!body||body.length<5)&&!files.length)throw E.validation('أدخل عنوان الملحق ونصاً واضحاً أو أرفق ملفاً واحداً على الأقل.');
+ const id=uid('add_'),db=x.db,store=S.getStorage(),saved=[];
+ try{
+  for(const f of files){
+   const key=`tender-addenda/${x.t.id}/${id}/${S.makeStoredName(f.originalname)}`;
+   const put=await store.put(key,f.buffer,{mime:f.mimetype,originalName:S.displayName(f.originalname)});
+   saved.push({id:uid('adddoc_'),key,driver:store.DRIVER,name:S.displayName(f.originalname),mime:f.mimetype,size:f.size,checksum:put.checksum});
+  }
+  db.transaction(()=>{
+   db.prepare('INSERT INTO tender_addenda (id,tender_id,user_id,title,body) VALUES (?,?,?,?,?)').run(id,x.t.id,req.user.id,title,body||'مرفق وثيقة ملحق العطاء.');
+   const ins=db.prepare('INSERT INTO tender_addendum_documents (id,addendum_id,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?)');
+   for(const d of saved)ins.run(d.id,id,d.key,d.driver,d.name,d.mime,d.size,d.checksum,req.user.id);
+  })();
+ }catch(err){
+  for(const d of saved){try{await store.delete(d.key);}catch(_){}}
+  throw err;
+ }
+ audit({action:'tender_addendum_issued',entity:'tender',entityId:x.t.id,userId:req.user.id,ip:req.ip,detail:{addendumId:id,title,documents:saved.length}});
+ res.status(201).json({addendum:{id,title,body:body||'مرفق وثيقة ملحق العطاء.',createdAt:Math.floor(Date.now()/1000),documents:saved.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size}))}});
+}));
+router.get('/tenders/:id/addenda/:addendumId/documents/:docId',wrap(async(req,res)=>{
+ const x=getTender(req.params.id);
+ if(!docsAccess(req,x.t))throw E.notFound('العطاء غير متاح.');
+ const d=x.db.prepare('SELECT * FROM tender_addendum_documents WHERE id=? AND addendum_id=? AND addendum_id IN (SELECT id FROM tender_addenda WHERE tender_id=?)').get(req.params.docId,req.params.addendumId,x.t.id);
+ if(!d)throw E.notFound('وثيقة الملحق غير موجودة.');
+ const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+ if(!(await store.exists(d.storage_key)))throw E.notFound('ملف الوثيقة غير موجود في التخزين.');
+ res.setHeader('Content-Type',d.mime||'application/octet-stream');
+ res.setHeader('Content-Disposition','attachment; filename*=UTF-8\\'\\''+encodeURIComponent(d.original_name));
+ res.setHeader('Cache-Control','private, no-store');
+ store.stream(d.storage_key).pipe(res);
 }));
 
 /* قائمة العطاءات المنشورة للمقاول */
