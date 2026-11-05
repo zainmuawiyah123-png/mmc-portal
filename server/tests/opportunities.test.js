@@ -109,6 +109,7 @@ test('JONEPS detail parser extracts public tender dates and fees and filters doc
   assert.equal(detail.remarks, 'زيارة موقع');
   assert.equal(detail.docs.length, 1);
   assert.equal(new URL(detail.docs[0].url).hostname, 'www.joneps.gov.jo');
+  assert.equal(detail.verified, true);
 });
 
 test('JONEPS detail parser does not trust non-HTTPS or external document URLs', () => {
