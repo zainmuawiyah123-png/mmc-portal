@@ -310,7 +310,7 @@ test('OPP-27 — APC public SharePoint documents are proxied with same-host-only
 });
 
 test('OPP-28 — بوابة المقاول والمشتريات تعرضان دورة الاستفسار والإجابة', () => {
-  assert.ok(contractorPortal.includes('/procurement/tenders/'+current.id+'/clarifications'));
+  assert.ok(contractorPortal.includes("'/procurement/tenders/'+current.id+'/clarifications'"));
   assert.ok(contractorPortal.includes('clarification-question'));
   assert.ok(procurementPortal.includes('/procurement/clarifications/'));
   assert.ok(procurementPortal.includes('qa-answer'));
