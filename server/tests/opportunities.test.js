@@ -116,3 +116,10 @@ test('JONEPS detail parser does not trust non-HTTPS or external document URLs', 
   const detail = parseJonepsDetail('<a href="http://www.joneps.gov.jo/files/a.pdf">Download</a><a href="https://evil.example/a.pdf">Documents</a>', 'https://www.joneps.gov.jo/ep/invt/viewTender.do?id=1');
   assert.equal(detail.docs.length, 0);
 });
+
+test('APC detail parser indexes official public SharePoint document links without accepting unrelated hosts', () => {
+  const html = '<h1>Tender title and number: Prequalification Earthworks</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2099</div><a href="https://arabpotash-my.sharepoint.com/:b:/p/public/abc?e=123">Prequalification Documents</a><a href="https://evil.example/file.pdf">Tender Documents</a>';
+  const row = parseDetail(html, '2279');
+  assert.equal(row.docs.length, 1);
+  assert.equal(new URL(row.docs[0].url).hostname, 'arabpotash-my.sharepoint.com');
+});
