@@ -300,13 +300,16 @@ test('OPP-26 — JONEPS detail parser separates Arabic fee, bond and qualificati
   assert.equal(detail.docs.length, 1);
 });
 
-test('OPP-27 — APC public SharePoint documents are proxied with same-host-only redirects', () => {
+test('OPP-27 — APC public documents open only verified HTTPS source hosts', () => {
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
   const connector = fs.readFileSync(path.join(__dirname, '../src/lib/apc-sync.js'), 'utf8');
   assert.ok(connector.includes('arabpotash-my.sharepoint.com'));
   assert.ok(route.includes('arabpotash-my.sharepoint.com'));
-  assert.ok(route.includes("next.hostname!==approvedHost"));
-  assert.ok(route.includes("redirect:'manual'"));
+  assert.ok(route.includes("target.protocol!=='https:'"));
+  assert.ok(route.includes("approvedHosts.has(target.hostname)"));
+  assert.ok(route.includes("return res.redirect(302,target.toString())"));
+  assert.ok(route.includes("Referrer-Policy','no-referrer"));
+  assert.ok(!route.includes("redirect:'manual'"), 'the MMC server must not proxy external SharePoint downloads');
 });
 
 test('OPP-28 — بوابة المقاول والمشتريات تعرضان دورة الاستفسار والإجابة', () => {
