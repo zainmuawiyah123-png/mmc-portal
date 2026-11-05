@@ -27,7 +27,7 @@ const shape = r => ({
 router.get('/', wrap(async (req,res) => {
   const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
-  const authority=clean(req.query.authority,120);
+  const authority=clean(req.query.authority,120), sourceKey=clean(req.query.sourceKey,80);
   const closingFrom=clean(req.query.closingFrom,10), closingTo=clean(req.query.closingTo,10);
   const pageRaw=Number.parseInt(req.query.page,10), pageSizeRaw=Number.parseInt(req.query.pageSize,10);
   const page=Number.isSafeInteger(pageRaw)&&pageRaw>0?Math.min(pageRaw,100000):1;
@@ -39,6 +39,7 @@ router.get('/', wrap(async (req,res) => {
   if(country){clauses.push('country=?');vals.push(country);}
   if(sector){clauses.push('sector LIKE ?');vals.push('%'+sector+'%');}
   if(authority){clauses.push('authority LIKE ?');vals.push('%'+authority+'%');}
+  if(sourceKey){clauses.push('source_key=?');vals.push(sourceKey);}
   if(closingFrom){clauses.push('closing_at>=?');vals.push(closingFrom);}
   if(closingTo){clauses.push('closing_at<=?');vals.push(closingTo);}
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
