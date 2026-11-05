@@ -92,6 +92,17 @@ test('APC parser extracts public tender details, dates, bond, fees and same-host
   assert.equal(new URL(row.docs[0].url).hostname, 'www.arabpotash.com');
 });
 
+
+test('APC detail parser deduplicates repeated public document URLs', () => {
+  const url = 'https://www.arabpotash.com/En/TendersDetails?PID=2279';
+  const html = '<h1>Tender title and number: Prequalification Earthworks</h1>' +
+    '<a href="/files/boq.pdf">Tender Documents</a>' +
+    '<a href="https://www.arabpotash.com/files/boq.pdf">Announcement Documents</a>';
+  const row = parseDetail(html, '2279');
+  assert.equal(row.docs.length, 1);
+  assert.equal(row.docs[0].url, 'https://www.arabpotash.com/files/boq.pdf');
+});
+
 test('APC date parser rejects impossible dates', () => {
   assert.equal(dateISO('31/02/2027'), null);
   assert.equal(dateISO('20/11/2099'), '2099-11-20');
