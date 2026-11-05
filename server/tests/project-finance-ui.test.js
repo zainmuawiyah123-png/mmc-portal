@@ -317,3 +317,13 @@ test('OPP-28 — بوابة المقاول والمشتريات تعرضان د�
   const migration = fs.readFileSync(path.join(__dirname, '../src/migrate.js'), 'utf8');
   assert.ok(migration.includes('CREATE TABLE IF NOT EXISTS request_answers'));
 });
+
+test('OPP-29 — الملاحق العامة تظهر للمقاول ويمكن رفع ملفاتها كوثائق عامة', () => {
+  assert.ok(contractorPortal.includes("'/procurement/tenders/'+current.id+'/addenda'"));
+  assert.ok(procurementPortal.includes("'/procurement/tenders/'+id+'/addenda'"));
+  assert.ok(procurementPortal.includes("'/procurement/tenders/'+id+'/addenda'"));
+  const org = fs.readFileSync(path.join(__dirname, '../src/lib/org.js'), 'utf8');
+  const requests = fs.readFileSync(path.join(__dirname, '../src/routes/requests.js'), 'utf8');
+  assert.ok(org.includes("'addenda'"));
+  assert.ok(requests.includes("kind === 'addenda'"));
+});
