@@ -27,6 +27,7 @@
 <button class="btn" id="opp-search">بحث</button></div>
 <div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
 <p class="muted" id="opp-count"></p>
+<div id="opp-pagination" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0" hidden><button class="btn ghost" id="opp-prev" type="button">السابق</button><span class="muted" id="opp-page-label"></span><button class="btn ghost" id="opp-next" type="button">التالي</button></div>
 <div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
 <h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-apc" type="button">مزامنة عطاءات شركة البوتاس</button><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>سجل المزامنة</h3><button class="btn" id="oa-sync-history-refresh" type="button">تحديث سجل المصادر</button><div id="oa-sync-history" class="muted">لم يتم تحميل سجل المزامنة بعد.</div><h3>إضافة إعلان يدوياً</h3>
 <p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
@@ -74,10 +75,13 @@
 (function(){
  const results=document.getElementById('opp-results');
  const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),status=document.getElementById('opp-status'),authority=document.getElementById('opp-authority'),sector=document.getElementById('opp-sector'),closingFrom=document.getElementById('opp-from'),closingTo=document.getElementById('opp-to');
+ const pagination=document.getElementById('opp-pagination'),prevPage=document.getElementById('opp-prev'),nextPage=document.getElementById('opp-next'),pageLabel=document.getElementById('opp-page-label');
+ let currentPage=1,totalPages=1;
  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- async function load(){
+ async function load(requestedPage=currentPage){
+  currentPage=Math.max(1,requestedPage);
   results.textContent='جارٍ تحميل النتائج...';
-  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);if(authority.value.trim())p.set('authority',authority.value.trim());if(sector.value.trim())p.set('sector',sector.value.trim());if(closingFrom.value)p.set('closingFrom',closingFrom.value);if(closingTo.value)p.set('closingTo',closingTo.value);
+  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);if(authority.value.trim())p.set('authority',authority.value.trim());if(sector.value.trim())p.set('sector',sector.value.trim());if(closingFrom.value)p.set('closingFrom',closingFrom.value);if(closingTo.value)p.set('closingTo',closingTo.value);p.set('page',String(currentPage));p.set('pageSize','50');
   try{
    const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin',cache:'no-store'});
    if(!res.ok)throw new Error('تعذر تحميل الإعلانات');
@@ -90,11 +94,19 @@
     card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'الجهة غير محددة')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted">المصدر: '+esc(o.sourceKey)+'</p><button class="btn" type="button" data-detail="'+esc(o.id)+'">عرض تفاصيل العطاء داخل MMC</button>';
     results.appendChild(card);
    });
-   document.getElementById('opp-count').textContent='عدد النتائج: '+data.count;
+   totalPages=Math.max(1,Number(data.pages)||1);
+   currentPage=Math.min(currentPage,totalPages);
+   document.getElementById('opp-count').textContent='عدد النتائج: '+(data.total??data.count);
+   pagination.hidden=totalPages<=1;
+   pageLabel.textContent='الصفحة '+currentPage+' من '+totalPages;
+   prevPage.disabled=currentPage<=1;
+   nextPage.disabled=currentPage>=totalPages;
   }catch(e){results.textContent=e.message;}
  }
- document.getElementById('opp-search').addEventListener('click',load);
- q.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+ document.getElementById('opp-search').addEventListener('click',()=>load(1));
+ q.addEventListener('keydown',e=>{if(e.key==='Enter')load(1)});
+ prevPage.addEventListener('click',()=>{if(currentPage>1)load(currentPage-1)});
+ nextPage.addEventListener('click',()=>{if(currentPage<totalPages)load(currentPage+1)});
  fetch('/api/auth/me',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(me=>{
   if(me&&(me.user?.role==='admin'||me.role==='admin'))document.getElementById('opp-admin').hidden=false;
  }).catch(()=>{});
