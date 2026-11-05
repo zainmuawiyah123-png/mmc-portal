@@ -134,6 +134,8 @@ router.post('/:id/workspace/files',contractorOnly,workspaceUpload.array('files',
  const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,true),files=req.files||[];
  if(!files.length) throw E.badRequest('اختر ملفاً واحداً على الأقل.');
  const db=getDB(),store=S.getStorage(),saved=[];
+ const existing=db.prepare('SELECT COUNT(*) n FROM opportunity_bid_files WHERE workspace_id=?').get(row.id).n;
+ if(existing+files.length>20) throw E.conflict('الحد الأقصى 20 ملفاً لمساحة العرض الواحدة.');
  try {
   for(const f of files){
    S.assertAllowed(f.originalname,f.size);
@@ -148,6 +150,18 @@ router.post('/:id/workspace/files',contractorOnly,workspaceUpload.array('files',
  db.prepare("UPDATE opportunity_bid_workspaces SET status='draft',updated_at=unixepoch(),ready_at=NULL WHERE id=?").run(row.id);
  audit({action:'external_bid_files_uploaded',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,count:saved.length}});
  res.status(201).json({files:saved.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size}))});
+}));
+router.delete('/:id/workspace/files/:fileId',contractorOnly,wrap(async(req,res)=>{
+ const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,false);
+ if(!row) throw E.notFound('الملف غير موجود.');
+ const db=getDB(),d=db.prepare('SELECT * FROM opportunity_bid_files WHERE id=? AND workspace_id=?').get(req.params.fileId,row.id);
+ if(!d) throw E.notFound('الملف غير موجود.');
+ const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+ await store.delete(d.storage_key);
+ db.prepare('DELETE FROM opportunity_bid_files WHERE id=? AND workspace_id=?').run(d.id,row.id);
+ db.prepare("UPDATE opportunity_bid_workspaces SET status='draft',updated_at=unixepoch(),ready_at=NULL WHERE id=?").run(row.id);
+ audit({action:'external_bid_file_deleted',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,fileId:d.id}});
+ res.json({ok:true});
 }));
 router.get('/:id/workspace/files/:fileId',contractorOnly,wrap(async(req,res)=>{
  const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,false);
