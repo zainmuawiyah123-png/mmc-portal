@@ -79,7 +79,7 @@
   results.textContent='جارٍ تحميل النتائج...';
   const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);if(authority.value.trim())p.set('authority',authority.value.trim());if(sector.value.trim())p.set('sector',sector.value.trim());if(closingFrom.value)p.set('closingFrom',closingFrom.value);if(closingTo.value)p.set('closingTo',closingTo.value);
   try{
-   const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'});
+   const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin',cache:'no-store'});
    if(!res.ok)throw new Error('تعذر تحميل الإعلانات');
    const data=await res.json();
    results.innerHTML='';
