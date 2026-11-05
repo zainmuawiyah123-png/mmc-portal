@@ -12,6 +12,7 @@ process.env.DB_PATH = path.join(TMP, 'apc-test.sqlite');
 const { migrate } = require('../src/migrate');
 const { getDB, closeDB } = require('../src/db');
 const { persist } = require('../src/lib/apc-sync');
+const { persistJonepsDetails } = require('../src/lib/joneps-sync');
 
 test.before(() => { const migrated = migrate(process.env.DB_PATH); migrated.close(); });
 test.after(() => {
@@ -88,4 +89,24 @@ test('APC persistence records failed detail fetches without inserting fake notic
     getDB().prepare("SELECT COUNT(*) AS n FROM tender_opportunities WHERE source_key='arab-potash-company' AND external_id='APC-UNREADABLE'").get().n,
     0
   );
+});
+
+test('JONEPS verified detail refresh updates the searchable closing date and indexes public files', () => {
+  const db = getDB();
+  const id = 'joneps-test-001';
+  db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(id,'joneps','JONEPS-TEST-001','Road works','Public Works','JO','Civil','JONEPS-TEST-001','Imported notice','2099-01-01','https://www.joneps.gov.jo/ep/invt/view.do?id=1','open','ar');
+  const stats = persistJonepsDetails([{id:'JONEPS-TEST-001',sourceUrl:'https://www.joneps.gov.jo/ep/invt/view.do?id=1'}], [{
+    id:'JONEPS-TEST-001',
+    detail:{purchase:'01/11/2026',closing:'20/12/2099',fee:'25 JOD',bond:'5%',qualification:'Class 1',remarks:'Site visit',docs:[{label:'BOQ',url:'https://www.joneps.gov.jo/docs/boq.pdf'}],verified:true}
+  }]);
+  assert.deepEqual(stats,{detailsSaved:1,documentsSaved:1});
+  const row=db.prepare('SELECT closing_at,status FROM tender_opportunities WHERE id=?').get(id);
+  assert.equal(row.closing_at,'2099-12-20');
+  assert.equal(row.status,'open');
+  const docs=db.prepare('SELECT label,document_url FROM tender_opportunity_documents WHERE opportunity_id=?').all(id);
+  assert.equal(docs.length,1);
+  assert.equal(docs[0].document_url,'https://www.joneps.gov.jo/docs/boq.pdf');
 });
