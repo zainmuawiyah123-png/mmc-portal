@@ -79,6 +79,25 @@ test('APC refresh updates the same notice and removes stale public document link
   assert.deepEqual(docs.map(d => d.document_url), ['https://www.arabpotash.com/files/apc-test-v2.pdf']);
 });
 
+
+test('APC persistence safely stores duplicate document URLs only once', () => {
+  const result = persist([{
+    pid: 'APC-TEST-DUP-DOCS',
+    title: 'Duplicate document link test',
+    closing: '20/11/2099',
+    detailUrl: 'https://www.arabpotash.com/En/TendersDetails?PID=APC-TEST-DUP-DOCS',
+    docs: [
+      { label: 'Tender Documents', url: 'https://www.arabpotash.com/files/shared.pdf' },
+      { label: 'Announcement Documents', url: 'https://www.arabpotash.com/files/shared.pdf' }
+    ]
+  }], []);
+  assert.equal(result.added, 1);
+  const row = getDB().prepare("SELECT id FROM tender_opportunities WHERE source_key='arab-potash-company' AND external_id='APC-TEST-DUP-DOCS'").get();
+  const docs = getDB().prepare('SELECT document_url FROM tender_opportunity_documents WHERE opportunity_id=?').all(row.id);
+  assert.equal(docs.length, 1);
+  assert.equal(docs[0].document_url, 'https://www.arabpotash.com/files/shared.pdf');
+});
+
 test('APC persistence records failed detail fetches without inserting fake notices', () => {
   const result = persist([], [{ id: 'APC-UNREADABLE', message: 'HTTP 403' }]);
   assert.deepEqual(
