@@ -327,3 +327,16 @@ test('OPP-29 — الملاحق العامة تظهر للمقاول ويمكن 
   assert.ok(org.includes("'addenda'"));
   assert.ok(requests.includes("kind === 'addenda'"));
 });
+
+
+test('OPP-30 — مساحة تجهيز عروض العطاءات الخارجية محمية ومتصلة بواجهة الدليل', () => {
+  const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
+  const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
+  for(const token of ['data-workspace','wb-summary','wb-method','wb-exp','wb-amount','wb-files','wb-ready','data-delete-file']) assert.ok(tenderDirectory.includes(token),'واجهة مساحة التجهيز: '+token);
+  for(const token of ["router.get('/:id/workspace'","router.put('/:id/workspace'","router.post('/:id/workspace/files'","router.delete('/:id/workspace/files/:fileId'","router.get('/:id/workspace/files/:fileId'"]) assert.ok(route.includes(token),'مسار مفقود: '+token);
+  for(const token of ['opportunity_bid_workspaces','opportunity_bid_files','UNIQUE(opportunity_id, contractor_id)']) assert.ok(migration.includes(token),'مخطط مفقود: '+token);
+  assert.match(route,/const contractorOnly = \[A\.requireAuth, A\.requireRole\('contractor'\)\]/);
+  assert.match(route,/external_bid_workspace_updated/);
+  assert.match(route,/external_bid_file_deleted/);
+  assert.match(tenderDirectory,/لا يعني الإرسال الرسمي/);
+});
