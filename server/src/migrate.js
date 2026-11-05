@@ -694,6 +694,42 @@ function upgradePublicTenderDetails(db) {
   `);
 }
 
+function upgradeOpportunityBidWorkspaces(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS opportunity_bid_workspaces (
+      id TEXT PRIMARY KEY,
+      opportunity_id TEXT NOT NULL REFERENCES tender_opportunities(id) ON DELETE CASCADE,
+      contractor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      technical_summary TEXT NOT NULL DEFAULT '',
+      methodology TEXT NOT NULL DEFAULT '',
+      experience TEXT NOT NULL DEFAULT '',
+      financial_amount REAL,
+      financial_currency TEXT NOT NULL DEFAULT 'JOD',
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','ready_for_external_submission','archived')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      ready_at INTEGER,
+      UNIQUE(opportunity_id, contractor_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_opp_bid_workspaces_contractor
+      ON opportunity_bid_workspaces(contractor_id, updated_at DESC);
+    CREATE TABLE IF NOT EXISTS opportunity_bid_files (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL REFERENCES opportunity_bid_workspaces(id) ON DELETE CASCADE,
+      storage_key TEXT NOT NULL UNIQUE,
+      storage_driver TEXT NOT NULL DEFAULT 'local',
+      original_name TEXT NOT NULL,
+      mime TEXT,
+      size INTEGER NOT NULL DEFAULT 0 CHECK(size >= 0),
+      checksum TEXT,
+      uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_opp_bid_files_workspace
+      ON opportunity_bid_files(workspace_id, uploaded_at);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -720,6 +756,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
   upgradePublicTenderDetails(db);
+  upgradeOpportunityBidWorkspaces(db);
   upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
