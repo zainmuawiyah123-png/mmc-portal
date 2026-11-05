@@ -64,7 +64,7 @@ router.get('/detail/:id', wrap(async(req,res)=>{
 router.get('/documents/:docId', wrap(async(req,res)=>{
  const row=getDB().prepare(`SELECT document_url,label FROM tender_opportunity_documents WHERE id=? AND availability='public'`).get(req.params.docId);
  if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
- const target=new URL(row.document_url);
+ let target=new URL(row.document_url);
  if(target.protocol!=='https:'||!['www.arabpotash.com','arabpotash.com','www.joneps.gov.jo','joneps.gov.jo','arabpotash-my.sharepoint.com'].includes(target.hostname)) throw E.badRequest('مصدر الوثيقة غير معتمد.');
  const approvedHost=target.hostname;
  let upstream=null;
