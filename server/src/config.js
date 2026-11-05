@@ -113,7 +113,7 @@ config.PAYMENT = {
   accountHolder: v('PAYMENT_ACCOUNT_HOLDER', ''),
   iban: v('PAYMENT_IBAN', '').replace(/\s+/g, '').toUpperCase(),
   swift: v('PAYMENT_SWIFT', '').replace(/\s+/g, '').toUpperCase(),
-  cliqAlias: v('PAYMENT_CLIQ_ALIAS', ''),
+  cliqAlias: v('PAYMENT_CLIQ_ALIAS', 'samarza'),
   contactEmail: v('PAYMENT_CONTACT_EMAIL', '')
 };
 config.IS_PROD = config.NODE_ENV === 'production';
