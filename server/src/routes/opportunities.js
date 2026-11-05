@@ -94,7 +94,15 @@ const contractorOnly = [A.requireAuth, A.requireRole('contractor')];
 function getPublicOpportunity(id) {
  const row=getDB().prepare("SELECT * FROM tender_opportunities WHERE id=? AND status='open'").get(id);
  if(!row) throw E.notFound('العطاء غير متاح للتجهيز حالياً.');
- if(row.closing_at && /^\\d{4}-\\d{2}-\\d{2}/.test(row.closing_at) && row.closing_at.slice(0,10)<new Date().toISOString().slice(0,10)) throw E.conflict('انتهى موعد العطاء؛ يمكن مراجعة الإعلان فقط.');
+ if(row.closing_at) {
+  const match=String(row.closing_at).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+  if(match) {
+   const closeDate=new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])));
+   if(Number.isNaN(closeDate.getTime()) || closeDate.toISOString().slice(0,10)!==match[0]) throw E.conflict('تاريخ إغلاق العطاء غير صالح؛ راجع الجهة الطارحة.');
+   const today=new Date().toISOString().slice(0,10);
+   if(match[0]<today) throw E.conflict('انتهى موعد العطاء؛ يمكن مراجعة الإعلان فقط.');
+  }
+ }
  return row;
 }
 function workspaceFor(opportunityId,userId,create) {
@@ -111,7 +119,7 @@ function workspaceShape(row,files) {
 }
 router.get('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
  const opportunity=getPublicOpportunity(req.params.id), row=workspaceFor(opportunity.id,req.user.id,true),db=getDB();
- const files=db.prepare('SELECT id,original_name name,mime,size,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
+ const files=db.prepare('SELECT id,original_name name,mime,size,file_kind fileKind,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
  res.json({opportunity:shape(opportunity),workspace:workspaceShape(row,files)});
 }));
 router.put('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
@@ -122,7 +130,11 @@ router.put('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
  if(!['JOD','SAR','AED','KWD','QAR','BHD','OMR','USD'].includes(currency)) throw E.badRequest('العملة غير مدعومة.');
  const status=b.status==='ready_for_external_submission'?'ready_for_external_submission':'draft';
  const filesCount=getDB().prepare('SELECT COUNT(*) n FROM opportunity_bid_files WHERE workspace_id=?').get(row.id).n;
- if(status==='ready_for_external_submission' && (!String(b.technicalSummary||row.technical_summary||'').trim() || !filesCount)) throw E.conflict('أضف ملخصاً فنياً وملفاً واحداً على الأقل قبل اعتماد جاهزية العرض.');
+ const fileKinds=getDB().prepare('SELECT file_kind,COUNT(*) n FROM opportunity_bid_files WHERE workspace_id=? GROUP BY file_kind').all(row.id);
+ const kindCounts=Object.fromEntries(fileKinds.map(x=>[x.file_kind,x.n]));
+ if(status==='ready_for_external_submission' && (!String(b.technicalSummary||row.technical_summary||'').trim() || !(amount>0) || !kindCounts.technical || !kindCounts.financial)) {
+  throw E.conflict('لا يمكن اعتماد الجاهزية قبل استكمال الملخص الفني والقيمة المالية وملف فني واحد وملف مالي واحد على الأقل.');
+ }
  getDB().prepare(`UPDATE opportunity_bid_workspaces SET technical_summary=?,methodology=?,experience=?,financial_amount=?,financial_currency=?,status=?,updated_at=unixepoch(),ready_at=? WHERE id=?`)
  .run(clean(b.technicalSummary,8000),clean(b.methodology,12000),clean(b.experience,8000),amount,currency,status,status==='ready_for_external_submission'?Math.floor(Date.now()/1000):null,row.id);
  const updated=getDB().prepare('SELECT * FROM opportunity_bid_workspaces WHERE id=?').get(row.id);
@@ -141,15 +153,17 @@ router.post('/:id/workspace/files',contractorOnly,workspaceUpload.array('files',
    S.assertAllowed(f.originalname,f.size);
    const key=`external-bids/${req.user.id}/${opportunity.id}/${row.id}/${S.makeStoredName(f.originalname)}`;
    const put=await store.put(key,f.buffer,{mime:f.mimetype,originalName:S.displayName(f.originalname)});
-   saved.push({id:uid('obf_'),key,driver:store.DRIVER,name:S.displayName(f.originalname),mime:f.mimetype,size:f.size,checksum:put.checksum});
+   const kind=String(req.body?.fileKind||'supporting').toLowerCase();
+   if(!['technical','financial','supporting'].includes(kind)) throw E.badRequest('تصنيف الملف يجب أن يكون فنياً أو مالياً أو داعماً.');
+   saved.push({id:uid('obf_'),key,driver:store.DRIVER,name:S.displayName(f.originalname),mime:f.mimetype,size:f.size,checksum:put.checksum,kind});
   }
-  const ins=db.prepare('INSERT INTO opportunity_bid_files (id,workspace_id,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?)');
-  const tx=db.transaction(()=>saved.forEach(d=>ins.run(d.id,row.id,d.key,d.driver,d.name,d.mime,d.size,d.checksum,req.user.id)));
+  const ins=db.prepare('INSERT INTO opportunity_bid_files (id,workspace_id,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by,file_kind) VALUES (?,?,?,?,?,?,?,?,?,?)');
+  const tx=db.transaction(()=>saved.forEach(d=>ins.run(d.id,row.id,d.key,d.driver,d.name,d.mime,d.size,d.checksum,req.user.id,d.kind)));
   tx();
  } catch(err){for(const d of saved){try{await store.delete(d.key);}catch(_){}}throw err;}
  db.prepare("UPDATE opportunity_bid_workspaces SET status='draft',updated_at=unixepoch(),ready_at=NULL WHERE id=?").run(row.id);
  audit({action:'external_bid_files_uploaded',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,count:saved.length}});
- res.status(201).json({files:saved.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size}))});
+ res.status(201).json({files:saved.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size,fileKind:d.kind}))});
 }));
 router.delete('/:id/workspace/files/:fileId',contractorOnly,wrap(async(req,res)=>{
  const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,false);
