@@ -1310,3 +1310,33 @@ test('79 — رمز الدعوة أحادي الاستخدام ولا يقبل �
   const members = getDB().prepare('SELECT COUNT(*) n FROM org_members WHERE org_id=?').get(targetOrg).n;
   assert.strictEqual(members, 2, 'المدير والعضو الأول فقط');
 });
+
+test('80 — دليل العطاءات العام يرشح حسب الجهة وفترة الإغلاق ويعرض التفاصيل داخل MMC', async () => {
+  await makeAdmin('opportunity-admin');
+  const db = getDB();
+  const firstId = 'opp_' + uniq();
+  const secondId = 'opp_' + uniq();
+  const insert = db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  insert.run(firstId,'test-source','FILTER-1','أعمال طرق داخل MMC','APC Test Authority','JO','أعمال مدنية','FILTER-1','عطاء تجريبي','2026-12-20','https://example.com/tender/1','open','ar');
+  insert.run(secondId,'test-source','FILTER-2','توريد معدات','APC Test Authority','JO','توريدات','FILTER-2','عطاء لاحق','2027-01-20','https://example.com/tender/2','open','ar');
+  db.prepare('INSERT INTO tender_opportunity_details (opportunity_id,details_json) VALUES (?,?)')
+    .run(firstId,JSON.stringify({purchase:'01/11/2026',closing:'20/12/2026',fee:'25 JOD',bond:'5%',qual:'تصنيف أول',remarks:'زيارة موقع'}));
+  db.prepare('INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)')
+    .run('doc_'+uniq(),firstId,'وثائق العطاء','https://www.arabpotash.com/files/test.pdf','public');
+
+  const filtered = await call('anon', 'GET', '/api/opportunities?authority=APC%20Test%20Authority&closingFrom=2026-12-01&closingTo=2026-12-31');
+  assert.strictEqual(filtered.status, 200, JSON.stringify(filtered.data));
+  assert.strictEqual(filtered.data.count, 1);
+  assert.strictEqual(filtered.data.opportunities[0].id, firstId);
+
+  const detail = await call('anon', 'GET', '/api/opportunities/detail/' + firstId);
+  assert.strictEqual(detail.status, 200, JSON.stringify(detail.data));
+  assert.strictEqual(detail.data.details.documentFee, '25 JOD');
+  assert.strictEqual(detail.data.details.bidBond, '5%');
+  assert.strictEqual(detail.data.documents.length, 1);
+
+  const invalidRange = await call('anon', 'GET', '/api/opportunities?closingFrom=2026-12-31&closingTo=2026-12-01');
+  assert.strictEqual(invalidRange.status, 400);
+});
