@@ -24,11 +24,11 @@ async function fetchText(url){const u=new URL(url);if(!HOSTS.has(u.hostname)||u.
 function parseDetail(html,pid){
  // Exclude the public site chrome: APC appends its global navigation/footer after the tender content.
  const contentHtml=String(html||'')
-  .replace(/<(header|nav|footer|aside)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi,' ')
-  .replace(/<(script|style)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi,' ');
+  .replace(/<(header|nav|footer|aside)\b[^>]*>[\s\S]*?<\/\1>/gi,' ')
+  .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,' ');
  let text=plain(contentHtml);
  // Defensive fallback for pages where navigation is rendered without semantic HTML elements.
- text=text.replace(/\\s+Home\\s+Work With Us\\s+Contact Us\\s+E-service\\s+Follow us\\s+About Us[\\s\\S]*$/i,'').trim();
+ text=text.replace(/\s+Home\s+Work With Us\s+Contact Us\s+E-service\s+Follow us\s+About Us[\s\S]*$/i,'').trim();
  const title=extractField(text,'Tender title and number',['Purchase Date']);if(!title)throw new Error('APC detail page has no verifiable title');
  const purchase=extractField(text,'Purchase Date',['Closing date']),closing=extractField(text,'Closing date',['Copy Price']),fee=extractField(text,'Copy Price',['Bid Bond Value']),bond=extractField(text,'Bid Bond Value',['Vendor Qualifications']),qual=extractField(text,'Vendor Qualifications',['Remarks','Announcement','Tender Documents']),remarks=extractField(text,'Remarks',['Announcement','Tender Documents']);
  const docs=[],seenDocs=new Set(),re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
