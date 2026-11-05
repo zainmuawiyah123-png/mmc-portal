@@ -138,8 +138,8 @@
   try{
    const res=await fetch('/api/opportunities/admin/sync/joneps',{method:'POST',credentials:'same-origin'});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت مزامنة JONEPS');
-   msg.textContent='JONEPS: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
-   load();
+   msg.textContent='JONEPS: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم؛ '+(data.detailsSaved||0)+' تفاصيل موثقة، '+(data.documentsSaved||0)+' وثيقة عامة مفهرسة، '+(data.detailFailures||0)+' صفحة تعذر التحقق منها.';
+   load();loadSyncHistory();
   }catch(e){msg.textContent=e.message;}
  });
  document.getElementById('oa-sync-ungm').addEventListener('click',async()=>{
