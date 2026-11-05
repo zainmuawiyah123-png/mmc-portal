@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseJonepsRows, extractPageUrls, parseJonepsDetail, LIST_URL } = require('../src/lib/joneps-sync');
+const { parseJonepsRows, extractPageUrls, parseJonepsDetail, mapLimit, LIST_URL } = require('../src/lib/joneps-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
 const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
 const { parseDetail, dateISO } = require('../src/lib/apc-sync');
@@ -122,4 +122,15 @@ test('APC detail parser indexes official public SharePoint document links withou
   const row = parseDetail(html, '2279');
   assert.equal(row.docs.length, 1);
   assert.equal(new URL(row.docs[0].url).hostname, 'arabpotash-my.sharepoint.com');
+});
+
+test('JONEPS mapLimit runs bounded tasks and preserves result order', async () => {
+  let active = 0, maximum = 0;
+  const results = await mapLimit([3, 1, 2, 4], 2, async value => {
+    active++; maximum = Math.max(maximum, active);
+    await new Promise(resolve => setTimeout(resolve, value === 3 ? 8 : 2));
+    active--; return value * 2;
+  });
+  assert.deepEqual(results, [6, 2, 4, 8]);
+  assert.equal(maximum, 2);
 });
