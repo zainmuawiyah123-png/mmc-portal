@@ -1326,7 +1326,7 @@ test('80 — دليل العطاءات العام يرشح حسب الجهة و�
   db.prepare('INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)')
     .run('doc_'+uniq(),firstId,'وثائق العطاء','https://www.arabpotash.com/files/test.pdf','public');
 
-  const filtered = await call('anon', 'GET', '/api/opportunities?authority=APC%20Test%20Authority&closingFrom=2026-12-01&closingTo=2026-12-31');
+  const filtered = await call('anon', 'GET', '/api/opportunities?authority=APC%20Test%20Authority&sector=%D8%A3%D8%B9%D9%85%D8%A7%D9%84%20%D9%85%D8%AF%D9%86%D9%8A%D8%A9&closingFrom=2026-12-01&closingTo=2026-12-31');
   assert.strictEqual(filtered.status, 200, JSON.stringify(filtered.data));
   assert.strictEqual(filtered.data.count, 1);
   assert.strictEqual(filtered.data.opportunities[0].id, firstId);
