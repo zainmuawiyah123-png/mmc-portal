@@ -348,3 +348,18 @@ test('OPP-31 — متطلبات تكامل اعتماد والإمارات مو�
   assert.match(tenderDirectory,/يتطلب ربط الإنتاج التسجيل وطلب الاشتراك/);
   assert.match(tenderDirectory,/UAE PASS/);
 });
+
+
+test('OPP-32 — جاهزية العرض الخارجي تتطلب مستندات فنية ومالية وفحص موعد الإغلاق', () => {
+  const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
+  const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
+  assert.match(route,/file_kind/);
+  assert.match(route,/kindCounts\.technical/);
+  assert.match(route,/kindCounts\.financial/);
+  assert.match(route,/amount>0/);
+  assert.match(route,/match\(/);
+  assert.ok(migration.includes("ADD COLUMN file_kind TEXT NOT NULL DEFAULT 'supporting'"));
+  assert.ok(tenderDirectory.includes('wb-file-kind'));
+  assert.ok(tenderDirectory.includes('مرفقات العرض الفني'));
+  assert.ok(tenderDirectory.includes('مرفقات العرض المالي'));
+});
