@@ -20,13 +20,13 @@ async function checkJONEPS() {
   const html = await (await get(JONEPS_URL)).text();
   const rows = parseJonepsRows(html);
   if (!rows.length) throw new Error('public listing loaded but no recognizable tender rows');
-  let detail = null;
-  const candidate = rows.find(x => x.sourceUrl && x.sourceUrl !== JONEPS_URL);
-  if (candidate) {
+  const candidates = rows.filter(x => x.sourceUrl && x.sourceUrl !== JONEPS_URL).slice(0, 5);
+  const details = await Promise.all(candidates.map(async candidate => {
     const detailHtml = await (await get(candidate.sourceUrl)).text();
-    detail = parseJonepsDetail(detailHtml, candidate.sourceUrl);
-  }
-  return { ok: true, listingRows: rows.length, detailParsed: !!detail, publicDocuments: detail ? detail.docs.length : null };
+    return parseJonepsDetail(detailHtml, candidate.sourceUrl);
+  }));
+  if (!details.length) throw new Error('listing parsed but no detail links were available to verify');
+  return { ok: true, listingRows: rows.length, detailsChecked: details.length, parsedDetails: details.filter(Boolean).length, publicDocuments: details.reduce((n, detail) => n + detail.docs.length, 0) };
 }
 async function checkAPC() {
   const html = await (await get(APC_URL)).text();
