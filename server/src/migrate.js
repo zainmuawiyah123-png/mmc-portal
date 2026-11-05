@@ -188,6 +188,15 @@ CREATE TABLE IF NOT EXISTS requests (
 );
 CREATE INDEX IF NOT EXISTS idx_requests_tender ON requests(tender_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_requests_user   ON requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_requests_tender_kind ON requests(tender_id, kind, created_at);
+CREATE TABLE IF NOT EXISTS request_answers (
+  id         TEXT PRIMARY KEY,
+  request_id TEXT NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text       TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_request_answers_request ON request_answers(request_id, created_at);
 `;
 
 const PLANS_SEED = [
