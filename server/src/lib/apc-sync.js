@@ -13,8 +13,8 @@ async function fetchText(url){const u=new URL(url);if(!HOSTS.has(u.hostname)||u.
 function parseDetail(html,pid){
  const text=plain(html),title=extractField(text,'Tender title and number',['Purchase Date']);if(!title)throw new Error('APC detail page has no verifiable title');
  const purchase=extractField(text,'Purchase Date',['Closing date']),closing=extractField(text,'Closing date',['Copy Price']),fee=extractField(text,'Copy Price',['Bid Bond Value']),bond=extractField(text,'Bid Bond Value',['Vendor Qualifications']),qual=extractField(text,'Vendor Qualifications',['Remarks','Announcement','Tender Documents']),remarks=extractField(text,'Remarks',['Announcement','Tender Documents']);
- const docs=[],re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
- while((m=re.exec(html))){const label=plain(m[2]);if(!/announcement|document|وثائق|اعلان|إعلان/i.test(label))continue;try{const u=new URL(decode(m[1]),DETAIL_BASE+pid);if(u.protocol==='https:'&&HOSTS.has(u.hostname))docs.push({label:label||'Tender document',url:u.toString()});}catch(_){}}
+ const docs=[],seenDocs=new Set(),re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
+ while((m=re.exec(html))){const label=plain(m[2]);if(!/announcement|document|وثائق|اعلان|إعلان/i.test(label))continue;try{const u=new URL(decode(m[1]),DETAIL_BASE+pid),url=u.toString();if(u.protocol==='https:'&&HOSTS.has(u.hostname)&&!seenDocs.has(url)){seenDocs.add(url);docs.push({label:label||'Tender document',url});}}catch(_){}}
  return {pid,title,purchase,closing,fee,bond,qual,remarks,detailUrl:DETAIL_BASE+encodeURIComponent(pid),docs};
 }
 function persist(items,failures){
@@ -45,7 +45,8 @@ function persist(items,failures){
    db.prepare('DELETE FROM tender_opportunity_documents WHERE opportunity_id=?').run(id);
    const docInsert=db.prepare(`INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability)
     VALUES (?,?,?,?,'public')`);
-   for(const d of t.docs){const crypto=require('crypto');docInsert.run('apcdoc_'+crypto.createHash('sha1').update(id+d.url).digest('hex'),id,d.label,d.url);}
+   const uniqueDocs=new Map((t.docs||[]).filter(d=>d&&d.url).map(d=>[d.url,d]));
+   for(const d of uniqueDocs.values()){const crypto=require('crypto');docInsert.run('apcdoc_'+crypto.createHash('sha1').update(id+d.url).digest('hex'),id,d.label,d.url);}
    if(old)updated++;else added++;
   }
   return {added,updated};
