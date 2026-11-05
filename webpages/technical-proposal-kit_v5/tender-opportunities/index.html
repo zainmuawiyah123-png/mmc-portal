@@ -19,6 +19,7 @@
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
 <input id="opp-q" type="search" placeholder="ابحث باسم العطاء أو الجهة أو الرقم" style="flex:1;min-width:220px;padding:11px;border:1px solid #d0d5dd;border-radius:9px">
 <select id="opp-country" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الدول</option><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="INT">دولي</option></select>
+<select id="opp-source" aria-label="مصدر العطاء" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل المصادر</option><option value="arab-potash-company">شركة البوتاس APC</option><option value="joneps">JONEPS – العطاءات الحكومية</option><option value="worldbank">البنك الدولي World Bank</option><option value="ungm">الأمم المتحدة UNGM</option></select>
 <select id="opp-status" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الحالات</option><option value="open">مفتوح</option><option value="closed">مغلق</option></select>
 <input id="opp-authority" type="search" placeholder="الجهة الطارحة" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px;min-width:170px">
 <input id="opp-sector" type="search" placeholder="القطاع" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px;min-width:140px">
@@ -74,14 +75,14 @@
 
 (function(){
  const results=document.getElementById('opp-results');
- const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),status=document.getElementById('opp-status'),authority=document.getElementById('opp-authority'),sector=document.getElementById('opp-sector'),closingFrom=document.getElementById('opp-from'),closingTo=document.getElementById('opp-to');
+ const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),source=document.getElementById('opp-source'),status=document.getElementById('opp-status'),authority=document.getElementById('opp-authority'),sector=document.getElementById('opp-sector'),closingFrom=document.getElementById('opp-from'),closingTo=document.getElementById('opp-to');
  const pagination=document.getElementById('opp-pagination'),prevPage=document.getElementById('opp-prev'),nextPage=document.getElementById('opp-next'),pageLabel=document.getElementById('opp-page-label');
  let currentPage=1,totalPages=1;
  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  async function load(requestedPage=currentPage){
   currentPage=Math.max(1,requestedPage);
   results.textContent='جارٍ تحميل النتائج...';
-  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);if(authority.value.trim())p.set('authority',authority.value.trim());if(sector.value.trim())p.set('sector',sector.value.trim());if(closingFrom.value)p.set('closingFrom',closingFrom.value);if(closingTo.value)p.set('closingTo',closingTo.value);p.set('page',String(currentPage));p.set('pageSize','50');
+  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(source.value)p.set('sourceKey',source.value);if(status.value)p.set('status',status.value);if(authority.value.trim())p.set('authority',authority.value.trim());if(sector.value.trim())p.set('sector',sector.value.trim());if(closingFrom.value)p.set('closingFrom',closingFrom.value);if(closingTo.value)p.set('closingTo',closingTo.value);p.set('page',String(currentPage));p.set('pageSize','50');
   try{
    const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin',cache:'no-store'});
    if(!res.ok)throw new Error('تعذر تحميل الإعلانات');
