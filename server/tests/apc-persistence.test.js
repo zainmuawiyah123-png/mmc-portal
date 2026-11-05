@@ -42,6 +42,7 @@ test('APC persistence inserts a notice, stores detail and indexes only public do
   assert.ok(row);
   assert.equal(row.title, 'Civil works package APC-TEST-001');
   assert.equal(row.closing_at, '2099-11-20');
+  assert.equal(row.published_at, null, 'document purchase date must not be mislabeled as publication date');
   const details = db.prepare('SELECT details_json FROM tender_opportunity_details WHERE opportunity_id=?').get(row.id);
   assert.equal(JSON.parse(details.details_json).bond, '5%');
   const docs = db.prepare('SELECT label,document_url FROM tender_opportunity_documents WHERE opportunity_id=?').all(row.id);
