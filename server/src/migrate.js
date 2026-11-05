@@ -206,6 +206,19 @@ CREATE TABLE IF NOT EXISTS tender_addenda (
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 CREATE INDEX IF NOT EXISTS idx_tender_addenda_tender ON tender_addenda(tender_id, created_at);
+CREATE TABLE IF NOT EXISTS tender_addendum_documents (
+  id TEXT PRIMARY KEY,
+  addendum_id TEXT NOT NULL REFERENCES tender_addenda(id) ON DELETE CASCADE,
+  storage_key TEXT NOT NULL UNIQUE,
+  storage_driver TEXT NOT NULL DEFAULT 'local',
+  original_name TEXT NOT NULL,
+  mime TEXT,
+  size INTEGER NOT NULL DEFAULT 0 CHECK (size >= 0),
+  checksum TEXT,
+  uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_addendum_docs_addendum ON tender_addendum_documents(addendum_id, uploaded_at);
 
 `;
 
