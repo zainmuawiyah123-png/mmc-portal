@@ -41,7 +41,7 @@ router.get('/', wrap(async (req,res) => {
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
   if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
   const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 250').all(...vals);
-  res.setHeader('Cache-Control','public, max-age=60');
+  // Tender imports can change immediately after a sync; never serve a stale empty directory response.\n  res.setHeader('Cache-Control','no-store');
   res.json({opportunities:rows.map(shape),count:rows.length});
 }));
 
