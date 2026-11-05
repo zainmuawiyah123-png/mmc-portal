@@ -89,8 +89,14 @@ function persistJonepsDetails(notices,details){
   let detailsSaved=0,documentsSaved=0;
   for(const n of notices){
    const detail=byId.get(n.id);if(!detail)continue;
-   const row=db.prepare("SELECT id FROM tender_opportunities WHERE source_key='joneps' AND external_id=?").get(n.id);
+   const row=db.prepare("SELECT id,status FROM tender_opportunities WHERE source_key='joneps' AND external_id=?").get(n.id);
    if(!row)continue;
+   const verifiedClosing=dateISO(detail.closing);
+   if(verifiedClosing){
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
+    const status=row.status==='cancelled'?'cancelled':verifiedClosing<today?'closed':'open';
+    db.prepare('UPDATE tender_opportunities SET closing_at=?,status=?,updated_at=unixepoch() WHERE id=?').run(verifiedClosing,status,row.id);
+   }
    const payload={...detail,detailUrl:n.sourceUrl};
    db.prepare('INSERT INTO tender_opportunity_details (opportunity_id,details_json,verified_at) VALUES (?,?,unixepoch()) ON CONFLICT(opportunity_id) DO UPDATE SET details_json=excluded.details_json,verified_at=unixepoch()').run(row.id,JSON.stringify(payload));
    db.prepare('DELETE FROM tender_opportunity_documents WHERE opportunity_id=?').run(row.id);
@@ -146,4 +152,4 @@ async function syncJONEPS({maxPages=100}={}){
  const detailStats=persistJonepsDetails(notices,verifiedDetails);
  return {...counts,...detailStats,received:notices.length,normalized:notices.length,detailFailures:detailFailures.length,failed:detailFailures.length,source:'joneps',sourceUrl:LIST_URL};
 }
-module.exports={parseJonepsRows,extractPageUrls,parseJonepsDetail,syncJONEPS,LIST_URL};
+module.exports={parseJonepsRows,extractPageUrls,parseJonepsDetail,persistJonepsDetails,syncJONEPS,LIST_URL};
