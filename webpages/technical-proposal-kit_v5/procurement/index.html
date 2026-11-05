@@ -10,13 +10,14 @@ function load(){API.request('GET','/procurement/tenders').then(d=>{var h=d.tende
  API.request('GET','/procurement/tenders/'+id+'/addenda').then(function(d){
   var rows=d.addenda||[];
   var h='<h3>'+T('ملاحق العطاء','Tender addenda')+'</h3>';
-  h+=rows.length?rows.map(function(a){return '<div class="p-card tight"><b>'+esc(a.title)+'</b><p>'+esc(a.body)+'</p><span class="mini">'+new Date(a.createdAt*1000).toLocaleString()+'</span></div>'}).join(''):'<p class="mini">'+T('لا توجد ملاحق منشورة.','No addenda issued yet.')+'</p>';
-  h+='<div class="p-card tight"><h4>'+T('إصدار ملحق جديد','Issue a new addendum')+'</h4><input id="addendum-title" placeholder="'+T('عنوان الملحق','Addendum title')+'"><textarea id="addendum-body" placeholder="'+T('نص الملحق والتعديلات المعتمدة','Addendum text and approved changes')+'" style="width:100%;min-height:110px"></textarea><button class="btn amber" id="addendum-save">'+T('نشر الملحق','Publish addendum')+'</button></div>';
+  h+=rows.length?rows.map(function(a){var files=(a.documents||[]).map(function(doc){return '<p><a target="_blank" rel="noopener" href="'+API.base+'/procurement/tenders/'+encodeURIComponent(id)+'/addenda/'+encodeURIComponent(a.id)+'/documents/'+encodeURIComponent(doc.id)+'">'+esc(doc.name)+'</a></p>'}).join('');return '<div class="p-card tight"><b>'+esc(a.title)+'</b><p>'+esc(a.body)+'</p>'+files+'<span class="mini">'+new Date(a.createdAt*1000).toLocaleString()+'</span></div>'}).join(''):'<p class="mini">'+T('لا توجد ملاحق منشورة.','No addenda issued yet.')+'</p>';
+  h+='<div class="p-card tight"><h4>'+T('إصدار ملحق جديد','Issue a new addendum')+'</h4><input id="addendum-title" placeholder="'+T('عنوان الملحق','Addendum title')+'"><textarea id="addendum-body" placeholder="'+T('نص الملحق والتعديلات المعتمدة','Addendum text and approved changes')+'" style="width:100%;min-height:110px"></textarea><label class="mini">'+T('إرفاق ملفات الملحق (PDF / DOCX / XLSX / DWG حسب أنواع الملفات المسموحة)','Attach addendum files (PDF / DOCX / XLSX / DWG where permitted)')+'</label><input id="addendum-files" type="file" multiple style="width:100%;margin:8px 0"><button class="btn amber" id="addendum-save">'+T('نشر الملحق','Publish addendum')+'</button></div>';
   document.getElementById('evaluation').innerHTML=h;
   document.getElementById('addendum-save').onclick=function(){
-   var title=document.getElementById('addendum-title').value.trim(),body=document.getElementById('addendum-body').value.trim();
-   if(title.length<3||body.length<5){note(T('أدخل عنوان ونص الملحق.','Enter an addendum title and text.'),'warn');return}
-   this.disabled=true;API.request('POST','/procurement/tenders/'+id+'/addenda',{title:title,body:body}).then(function(){note(T('تم نشر الملحق للمقاولين.','Addendum published to bidders.'),'');addenda(id)}).catch(function(e){note(e.message,'warn')}).finally(()=>{document.getElementById('addendum-save').disabled=false});
+   var title=document.getElementById('addendum-title').value.trim(),body=document.getElementById('addendum-body').value.trim(),files=document.getElementById('addendum-files').files;
+   if(title.length<3||(!body||body.length<5)&&!files.length){note(T('أدخل عنواناً ونصاً أو أرفق ملفاً واحداً على الأقل.','Enter a title and text or attach at least one file.'),'warn');return}
+   var fd=new FormData();fd.append('title',title);fd.append('body',body);for(var i=0;i<files.length;i++)fd.append('files',files[i]);
+   this.disabled=true;API.request('POST','/procurement/tenders/'+id+'/addenda',fd).then(function(){note(T('تم نشر الملحق ومرفقاته للمقاولين.','Addendum and its attachments published to bidders.'),'');addenda(id)}).catch(function(e){note(e.message,'warn')}).finally(()=>{document.getElementById('addendum-save').disabled=false});
   };
  }).catch(e=>note(e.message,'warn'));
 }
