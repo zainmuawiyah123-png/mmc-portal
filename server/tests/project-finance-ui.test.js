@@ -358,6 +358,7 @@ test('OPP-32 — جاهزية العرض الخارجي تتطلب مستندا�
   assert.match(route,/kindCounts\.financial/);
   assert.match(route,/amount>0/);
   assert.match(route,/match\(/);
+  assert.ok(route.includes('Asia/Amman') && route.includes('Asia/Riyadh') && route.includes('Asia/Dubai'));
   assert.ok(migration.includes("ADD COLUMN file_kind TEXT NOT NULL DEFAULT 'supporting'"));
   assert.ok(tenderDirectory.includes('wb-file-kind'));
   assert.ok(tenderDirectory.includes('مرفقات العرض الفني'));
