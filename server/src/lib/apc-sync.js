@@ -64,7 +64,7 @@ function persist(items,failures){
    const docInsert=db.prepare(`INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability)
     VALUES (?,?,?,?,'public')`);
    const uniqueDocs=new Map((t.docs||[]).filter(d=>d&&d.url).map(d=>[d.url,d]));
-   for(const d of uniqueDocs.values()){const crypto=require('crypto');docInsert.run('apcdoc_'+crypto.createHash('sha1').update(id+d.url).digest('hex'),id,d.label,d.url);}
+   for(const d of uniqueDocs.values()){const crypto=require('crypto');docInsert.run('apcdoc_'+crypto.createHash('sha1').update('arab-potash-company:'+t.pid+':'+d.url).digest('hex'),id,d.label,d.url);}
    if(old)updated++;else added++;
   }
   return {added,updated};
