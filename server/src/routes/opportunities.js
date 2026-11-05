@@ -138,7 +138,7 @@ router.put('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
  getDB().prepare(`UPDATE opportunity_bid_workspaces SET technical_summary=?,methodology=?,experience=?,financial_amount=?,financial_currency=?,status=?,updated_at=unixepoch(),ready_at=? WHERE id=?`)
  .run(clean(b.technicalSummary,8000),clean(b.methodology,12000),clean(b.experience,8000),amount,currency,status,status==='ready_for_external_submission'?Math.floor(Date.now()/1000):null,row.id);
  const updated=getDB().prepare('SELECT * FROM opportunity_bid_workspaces WHERE id=?').get(row.id);
- const files=getDB().prepare('SELECT id,original_name name,mime,size,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
+ const files=getDB().prepare('SELECT id,original_name name,mime,size,file_kind fileKind,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
  audit({action:'external_bid_workspace_updated',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,status}});
  res.json({workspace:workspaceShape(updated,files),notice:'تم حفظ ملف التجهيز داخل MMC. هذا لا يعني إرسال العرض رسمياً إلى الجهة الطارحة.'});
 }));
