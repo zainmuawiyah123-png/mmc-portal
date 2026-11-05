@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { parseJonepsRows, extractPageUrls, parseJonepsDetail, mapLimit, LIST_URL } = require('../src/lib/joneps-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
 const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
-const { parseDetail, dateISO } = require('../src/lib/apc-sync');
+const { parseDetail, dateISO, extractTenderNumber } = require('../src/lib/apc-sync');
 
 test('JONEPS parser maps an official tender row and keeps its source on the JONEPS domain', () => {
   const html = '<table><tr><td>2026-001</td><td><a href="/ep/invt/viewTender.do?id=2026-001">أعمال طرق</a></td><td>وزارة الأشغال</td><td>أشغال</td><td>01/11/2026</td><td>31/12/2099</td></tr></table>';
@@ -101,6 +101,12 @@ test('APC detail parser deduplicates repeated public document URLs', () => {
   const row = parseDetail(html, '2279');
   assert.equal(row.docs.length, 1);
   assert.equal(row.docs[0].url, 'https://www.arabpotash.com/files/boq.pdf');
+});
+
+test('APC tender number extraction captures the full reference and rejects stray single letters', () => {
+  assert.equal(extractTenderNumber('IFB No. 202603638/ZM - Soil Replacement and Landscaping'), '202603638/ZM');
+  assert.equal(extractTenderNumber('IFB. No: 202603541/ZM - Supply and Install Canopy'), '202603541/ZM');
+  assert.equal(extractTenderNumber('Prequalification for civil works package'), null);
 });
 
 test('APC date parser rejects impossible dates', () => {
