@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseJonepsRows, extractPageUrls, LIST_URL } = require('../src/lib/joneps-sync');
+const { parseJonepsRows, extractPageUrls, parseJonepsDetail, LIST_URL } = require('../src/lib/joneps-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
 const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
 const { parseDetail, dateISO } = require('../src/lib/apc-sync');
@@ -95,4 +95,23 @@ test('APC parser extracts public tender details, dates, bond, fees and same-host
 test('APC date parser rejects impossible dates', () => {
   assert.equal(dateISO('31/02/2027'), null);
   assert.equal(dateISO('20/11/2099'), '2099-11-20');
+});
+
+test('JONEPS detail parser extracts public tender dates and fees and filters document hosts', () => {
+  const url = 'https://www.joneps.gov.jo/ep/invt/viewTender.do?id=2026-001';
+  const html = '<html><body><div>تاريخ شراء الوثائق: 01/11/2026</div><div>آخر موعد لتقديم العروض: 20/12/2099</div><div>ثمن نسخة العطاء: 25 دينار كفالة دخول العطاء: 5% تصنيف المقاول: أول أشغال ملاحظات: زيارة موقع</div><a href="/docs/boq.pdf">جدول الكميات</a><a href="https://evil.example/secret.pdf">تحميل المخططات</a></body></html>';
+  const detail = parseJonepsDetail(html, url);
+  assert.equal(detail.purchase, '01/11/2026');
+  assert.equal(detail.closing, '20/12/2099');
+  assert.equal(detail.fee, '25 دينار');
+  assert.equal(detail.bond, '5%');
+  assert.equal(detail.qualification, 'أول أشغال');
+  assert.equal(detail.remarks, 'زيارة موقع');
+  assert.equal(detail.docs.length, 1);
+  assert.equal(new URL(detail.docs[0].url).hostname, 'www.joneps.gov.jo');
+});
+
+test('JONEPS detail parser does not trust non-HTTPS or external document URLs', () => {
+  const detail = parseJonepsDetail('<a href="http://www.joneps.gov.jo/files/a.pdf">Download</a><a href="https://evil.example/a.pdf">Documents</a>', 'https://www.joneps.gov.jo/ep/invt/viewTender.do?id=1');
+  assert.equal(detail.docs.length, 0);
 });
