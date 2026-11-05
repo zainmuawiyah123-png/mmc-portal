@@ -272,3 +272,30 @@ test('OPP-24 — لوحة العطاءات تعرض سجل المصدر ونتي
   assert.ok(tenderDirectory.includes('received'));
   assert.ok(tenderDirectory.includes('duration_ms'));
 });
+
+test('OPP-25 — JONEPS details and public documents are indexed and served only from approved hosts', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const connector = fs.readFileSync(path.join(__dirname, '../src/lib/joneps-sync.js'), 'utf8');
+  assert.ok(connector.includes('parseJonepsDetail'));
+  assert.ok(connector.includes('persistJonepsDetails'));
+  assert.ok(connector.includes('redirect:\'manual\''));
+  assert.ok(route.includes("'www.joneps.gov.jo','joneps.gov.jo'"));
+  assert.ok(route.includes("details.qualification||null"));
+  assert.ok(route.includes("router.get('/documents/:docId'"));
+  assert.ok(tenderDirectory.includes('/api/opportunities/documents/'));
+});
+
+test('OPP-26 — JONEPS detail parser separates Arabic fee, bond and qualification fields', () => {
+  const { parseJonepsDetail } = require('../src/lib/joneps-sync');
+  const detail = parseJonepsDetail(
+    '<div>تاريخ شراء الوثائق: 01/11/2026</div><div>آخر موعد لتقديم العروض: 20/12/2099</div><div>ثمن نسخة العطاء: 25 دينار كفالة دخول العطاء: 5% تصنيف المقاول: أول أشغال ملاحظات: زيارة موقع</div><a href="/docs/boq.pdf">جدول الكميات</a>',
+    'https://www.joneps.gov.jo/ep/invt/viewTender.do?id=1'
+  );
+  assert.equal(detail.purchase, '01/11/2026');
+  assert.equal(detail.closing, '20/12/2099');
+  assert.equal(detail.fee, '25 دينار');
+  assert.equal(detail.bond, '5%');
+  assert.equal(detail.qualification, 'أول أشغال');
+  assert.equal(detail.remarks, 'زيارة موقع');
+  assert.equal(detail.docs.length, 1);
+});
