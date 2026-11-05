@@ -1425,6 +1425,13 @@ test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة
   const contractor='workspace-con-'+uniq(),other='workspace-other-'+uniq();
   await call(contractor,'POST','/api/auth/register',{body:{name:'مقاول مساحة العمل',email:contractor+'@t.com',password:'Password123'}});
   await call(other,'POST','/api/auth/register',{body:{name:'مقاول آخر',email:other+'@t.com',password:'Password123'}});
+  const expiredId='opp_'+uniq();
+  db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`)
+    .run(expiredId,'workspace-test','EX-'+uniq(),'عطاء منتهٍ','جهة اختبار','JO','2020-01-01','https://example.com/expired','open','ar');
+  const expired=await call(contractor,'GET','/api/opportunities/'+expiredId+'/workspace');
+  assert.strictEqual(expired.status,409,'يجب منع تجهيز عرض بعد موعد الإغلاق');
   const initial=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
   assert.strictEqual(initial.status,200,JSON.stringify(initial.data));
   assert.strictEqual(initial.data.workspace.status,'draft');
