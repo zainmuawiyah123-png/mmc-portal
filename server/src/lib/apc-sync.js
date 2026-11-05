@@ -9,6 +9,17 @@ function decode(v){return String(v||'').replace(/&nbsp;|&#160;/gi,' ').replace(/
 function plain(html){return decode(String(html||'').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();}
 function extractField(text,label,next){const re=new RegExp(label+'\\s*:?\\s*([\\s\\S]*?)(?=\\s*(?:'+next.join('|')+')\\s*:?|$)','i');const m=text.match(re);return m?clean(m[1],1500):null;}
 function dateISO(v){const s=clean(v,40);let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/),d,mo,y;if(m){d=+m[1];mo=+m[2];y=+m[3];}else{m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return null;y=+m[1];mo=+m[2];d=+m[3];}const x=new Date(Date.UTC(y,mo-1,d));return x.getUTCFullYear()===y&&x.getUTCMonth()===mo-1&&x.getUTCDate()===d?y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'):null;}
+function extractTenderNumber(title){
+ const s=clean(title,500);
+ const patterns=[
+  /\\b(?:IFB|ITT|RFP|RFQ)\\.?\\s*(?:No\\.?|Number)?\\s*[:#.-]?\\s*([A-Z0-9][A-Z0-9/-]{3,})/i,
+  /\\bNo\\.?\\s*[:#]?\\s*([A-Z0-9][A-Z0-9/-]{3,})/i,
+  /\\b(?:Tender|Reference)\\s*(?:No\\.?|Number|#)?\\s*[:#.-]?\\s*([A-Z0-9][A-Z0-9/-]{3,})/i
+ ];
+ for(const re of patterns){const m=s.match(re);if(m&&/\\d/.test(m[1]))return m[1];}
+ const candidates=s.match(/\\b[A-Z0-9][A-Z0-9/-]{3,}\\b/g)||[];
+ return candidates.find(v=>/\\d/.test(v))||null;
+}
 async function fetchText(url){const u=new URL(url);if(!HOSTS.has(u.hostname)||u.protocol!=='https:')throw new Error('Blocked non-APC source URL');const r=await fetch(u,{headers:{'user-agent':'MMC-Tender-Directory/1.0 (public tender index)','accept':'text/html'},signal:AbortSignal.timeout(18000),redirect:'manual'});if(r.status>=300&&r.status<400)throw new Error('APC redirected the request; redirect refused for source validation.');if(!r.ok)throw new Error('APC returned HTTP '+r.status);return r.text();}
 function parseDetail(html,pid){
  const text=plain(html),title=extractField(text,'Tender title and number',['Purchase Date']);if(!title)throw new Error('APC detail page has no verifiable title');
@@ -37,7 +48,7 @@ function persist(items,failures){
    db.prepare(`INSERT INTO tender_opportunities
     (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
     VALUES (@id,'arab-potash-company',@externalId,@title,'شركة البوتاس العربية','JO','الأعمال المدنية والصناعية',@number,@summary,@publishedAt,@closingAt,@url,NULL,@status,'en')
-    ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=excluded.published_at,closing_at=excluded.closing_at,source_url=excluded.source_url,status=excluded.status,language=excluded.language,updated_at=unixepoch()`).run({id,externalId:t.pid,title:t.title,number:(t.title.match(/(?:IFB|Tender|Prequalification)[^:]*\s*(?:No\.?|Number)?\s*:?\s*([\w/-]+)/i)||[])[1]||null,summary, publishedAt:null,closingAt:closing, url:t.detailUrl,status});
+    ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=excluded.published_at,closing_at=excluded.closing_at,source_url=excluded.source_url,status=excluded.status,language=excluded.language,updated_at=unixepoch()`).run({id,externalId:t.pid,title:t.title,number:extractTenderNumber(t.title),summary, publishedAt:null,closingAt:closing, url:t.detailUrl,status});
    const detail=JSON.stringify(t);
    db.prepare(`INSERT INTO tender_opportunity_details (opportunity_id,details_json,verified_at) VALUES (?,?,unixepoch())
     ON CONFLICT(opportunity_id) DO UPDATE SET details_json=excluded.details_json,verified_at=unixepoch()`).run(id,detail);
@@ -77,4 +88,4 @@ async function syncAPC(){
  if(!items.length)throw new Error('APC listing was reached but no tender detail could be verified; no records changed.');
  return {...persist(items,failures),source:'arab-potash-company',sourceUrl:LIST_URL,pagesScanned:pages.length};
 }
-module.exports={syncAPC,parseDetail,dateISO,persist,LIST_URL};
+module.exports={syncAPC,parseDetail,dateISO,extractTenderNumber,persist,LIST_URL};
