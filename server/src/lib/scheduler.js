@@ -136,6 +136,9 @@ function startScheduler() {
   }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
   _jobs.push(backupJob, expiryJob);
   if (config.OPPORTUNITY_SYNC_ENABLED) {
+    // Populate a fresh ephemeral preview database immediately after boot; the cron below refreshes it later.
+    console.log('[scheduler] بدء مزامنة أولية للعطاءات بعد تشغيل الخادم...');
+    runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة البداية:',e.message));
     const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
       console.log('[scheduler] بدء مزامنة العطاءات العامة: APC وJONEPS والبنك الدولي وUNGM...');
       runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
