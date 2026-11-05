@@ -29,6 +29,9 @@ router.get('/', wrap(async (req,res) => {
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
   const authority=clean(req.query.authority,120);
   const closingFrom=clean(req.query.closingFrom,10), closingTo=clean(req.query.closingTo,10);
+  const pageRaw=Number.parseInt(req.query.page,10), pageSizeRaw=Number.parseInt(req.query.pageSize,10);
+  const page=Number.isSafeInteger(pageRaw)&&pageRaw>0?Math.min(pageRaw,100000):1;
+  const pageSize=Number.isSafeInteger(pageSizeRaw)&&pageSizeRaw>0?Math.min(pageSizeRaw,100):50;
   const validDate=v=>!v||(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v);
   if(!validDate(closingFrom)||!validDate(closingTo)) throw E.badRequest('صيغة تاريخ الإغلاق يجب أن تكون YYYY-MM-DD.');
   if(closingFrom&&closingTo&&closingFrom>closingTo) throw E.badRequest('بداية فترة الإغلاق يجب ألا تتجاوز نهايتها.');
@@ -40,9 +43,12 @@ router.get('/', wrap(async (req,res) => {
   if(closingTo){clauses.push('closing_at<=?');vals.push(closingTo);}
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
   if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
-  const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 250').all(...vals);
-  // Tender imports can change immediately after a sync; never serve a stale empty directory response.\n  res.setHeader('Cache-Control','no-store');
-  res.json({opportunities:rows.map(shape),count:rows.length});
+  const where=clauses.join(' AND ');
+  const total=db.prepare('SELECT COUNT(*) AS total FROM tender_opportunities WHERE '+where).get(...vals).total;
+  const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+where+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT ? OFFSET ?').all(...vals,pageSize,(page-1)*pageSize);
+  // Tender imports can change immediately after a sync; never serve a stale empty directory response.
+  res.setHeader('Cache-Control','no-store');
+  res.json({opportunities:rows.map(shape),count:rows.length,total,page,pageSize,pages:Math.ceil(total/pageSize)});
 }));
 
 // Internal tender detail and document index. The browser stays on MMC.
