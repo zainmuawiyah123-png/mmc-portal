@@ -12,13 +12,13 @@ function dateISO(v){const s=clean(v,40);let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\
 function extractTenderNumber(title){
  const s=clean(title,500);
  const patterns=[
-  /\\b(?:IFB|ITT|RFP|RFQ)\\.?\\s*(?:No\\.?|Number)?\\s*[:#.-]?\\s*([A-Z0-9][A-Z0-9/-]{3,})/i,
-  /\\bNo\\.?\\s*[:#]?\\s*([A-Z0-9][A-Z0-9/-]{3,})/i,
-  /\\b(?:Tender|Reference)\\s*(?:No\\.?|Number|#)?\\s*[:#.-]?\\s*([A-Z0-9][A-Z0-9/-]{3,})/i
+  /\b(?:IFB|ITT|RFP|RFQ)\.?\s*(?:No\.?|Number)?\s*[:#.-]?\s*([A-Z0-9][A-Z0-9/-]{3,})/i,
+  /\bNo\.?\s*[:#]?\s*([A-Z0-9][A-Z0-9/-]{3,})/i,
+  /\b(?:Tender|Reference)\s*(?:No\.?|Number|#)?\s*[:#.-]?\s*([A-Z0-9][A-Z0-9/-]{3,})/i
  ];
- for(const re of patterns){const m=s.match(re);if(m&&/\\d/.test(m[1]))return m[1];}
- const candidates=s.match(/\\b[A-Z0-9][A-Z0-9/-]{3,}\\b/g)||[];
- return candidates.find(v=>/\\d/.test(v))||null;
+ for(const re of patterns){const m=s.match(re);if(m&&/\d/.test(m[1]))return m[1];}
+ const candidates=s.match(/\b[A-Z0-9][A-Z0-9/-]{3,}\b/g)||[];
+ return candidates.find(v=>/\d/.test(v))||null;
 }
 async function fetchText(url){const u=new URL(url);if(!HOSTS.has(u.hostname)||u.protocol!=='https:')throw new Error('Blocked non-APC source URL');const r=await fetch(u,{headers:{'user-agent':'MMC-Tender-Directory/1.0 (public tender index)','accept':'text/html'},signal:AbortSignal.timeout(18000),redirect:'manual'});if(r.status>=300&&r.status<400)throw new Error('APC redirected the request; redirect refused for source validation.');if(!r.ok)throw new Error('APC returned HTTP '+r.status);return r.text();}
 function parseDetail(html,pid){
