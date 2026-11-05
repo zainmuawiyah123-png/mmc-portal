@@ -3,7 +3,7 @@
 const {getDB,uid}=require('../db');
 const LIST_URL='https://www.arabpotash.com/EN/Modules/Tenders';
 const DETAIL_BASE='https://www.arabpotash.com/En/TendersDetails?PID=';
-const HOSTS=new Set(['www.arabpotash.com','arabpotash.com']);
+const HOSTS=new Set(['www.arabpotash.com','arabpotash.com','arabpotash-my.sharepoint.com']);
 const clean=(v,n=3000)=>String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,n);
 function decode(v){return String(v||'').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n)));}
 function plain(html){return decode(String(html||'').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();}
