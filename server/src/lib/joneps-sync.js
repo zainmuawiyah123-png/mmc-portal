@@ -110,6 +110,11 @@ function persistJonepsDetails(notices,details){
  return tx();
 }
 
+async function mapLimit(items,limit,fn){
+ const out=new Array(items.length);let next=0;
+ const workers=Array.from({length:Math.min(Math.max(1,limit),items.length)},async()=>{while(true){const i=next++;if(i>=items.length)return;try{out[i]=await fn(items[i],i);}catch(error){out[i]={error};}}});
+ await Promise.all(workers);return out;
+}
 async function syncJONEPS({maxPages=100}={}){
  const fetchPage=async url=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
@@ -152,4 +157,4 @@ async function syncJONEPS({maxPages=100}={}){
  const detailStats=persistJonepsDetails(notices,verifiedDetails);
  return {...counts,...detailStats,received:notices.length,normalized:notices.length,detailFailures:detailFailures.length,failed:detailFailures.length,source:'joneps',sourceUrl:LIST_URL};
 }
-module.exports={parseJonepsRows,extractPageUrls,parseJonepsDetail,persistJonepsDetails,syncJONEPS,LIST_URL};
+module.exports={parseJonepsRows,extractPageUrls,parseJonepsDetail,persistJonepsDetails,mapLimit,syncJONEPS,LIST_URL};
