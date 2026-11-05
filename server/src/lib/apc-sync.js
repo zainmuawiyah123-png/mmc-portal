@@ -22,7 +22,14 @@ function extractTenderNumber(title){
 }
 async function fetchText(url){const u=new URL(url);if(!HOSTS.has(u.hostname)||u.protocol!=='https:')throw new Error('Blocked non-APC source URL');const r=await fetch(u,{headers:{'user-agent':'MMC-Tender-Directory/1.0 (public tender index)','accept':'text/html'},signal:AbortSignal.timeout(18000),redirect:'manual'});if(r.status>=300&&r.status<400)throw new Error('APC redirected the request; redirect refused for source validation.');if(!r.ok)throw new Error('APC returned HTTP '+r.status);return r.text();}
 function parseDetail(html,pid){
- const text=plain(html),title=extractField(text,'Tender title and number',['Purchase Date']);if(!title)throw new Error('APC detail page has no verifiable title');
+ // Exclude the public site chrome: APC appends its global navigation/footer after the tender content.
+ const contentHtml=String(html||'')
+  .replace(/<(header|nav|footer|aside)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi,' ')
+  .replace(/<(script|style)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi,' ');
+ let text=plain(contentHtml);
+ // Defensive fallback for pages where navigation is rendered without semantic HTML elements.
+ text=text.replace(/\\s+Home\\s+Work With Us\\s+Contact Us\\s+E-service\\s+Follow us\\s+About Us[\\s\\S]*$/i,'').trim();
+ const title=extractField(text,'Tender title and number',['Purchase Date']);if(!title)throw new Error('APC detail page has no verifiable title');
  const purchase=extractField(text,'Purchase Date',['Closing date']),closing=extractField(text,'Closing date',['Copy Price']),fee=extractField(text,'Copy Price',['Bid Bond Value']),bond=extractField(text,'Bid Bond Value',['Vendor Qualifications']),qual=extractField(text,'Vendor Qualifications',['Remarks','Announcement','Tender Documents']),remarks=extractField(text,'Remarks',['Announcement','Tender Documents']);
  const docs=[],seenDocs=new Set(),re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
  while((m=re.exec(html))){const label=plain(m[2]);if(!/announcement|document|وثائق|اعلان|إعلان/i.test(label))continue;try{const u=new URL(decode(m[1]),DETAIL_BASE+pid),url=u.toString();if(u.protocol==='https:'&&HOSTS.has(u.hostname)&&!seenDocs.has(url)){seenDocs.add(url);docs.push({label:label||'Tender document',url});}}catch(_){}}
