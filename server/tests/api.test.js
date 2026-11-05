@@ -1429,9 +1429,18 @@ test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة
   assert.strictEqual(initial.status,200,JSON.stringify(initial.data));
   assert.strictEqual(initial.data.workspace.status,'draft');
   const upload=await call(contractor,'POST','/api/opportunities/'+id+'/workspace/files',{
-    form:makeForm([{name:'technical.pdf',content:'private technical bid file',type:'application/pdf'}])
+    form:makeForm([{name:'technical.pdf',content:'private technical bid file',type:'application/pdf'}],{fileKind:'technical'})
   });
   assert.strictEqual(upload.status,201,JSON.stringify(upload.data));
+  const incomplete=await call(contractor,'PUT','/api/opportunities/'+id+'/workspace',{body:{
+    technicalSummary:'ملخص فني واضح',methodology:'منهجية التنفيذ والضبط',experience:'مشاريع مشابهة',
+    financialAmount:125000,financialCurrency:'JOD',status:'ready_for_external_submission'
+  }});
+  assert.strictEqual(incomplete.status,409,'لا تعتمد الجاهزية دون ملف مالي');
+  const financialUpload=await call(contractor,'POST','/api/opportunities/'+id+'/workspace/files',{
+    form:makeForm([{name:'financial.xlsx',content:'private financial bid file',type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}],{fileKind:'financial'})
+  });
+  assert.strictEqual(financialUpload.status,201,JSON.stringify(financialUpload.data));
   const saved=await call(contractor,'PUT','/api/opportunities/'+id+'/workspace',{body:{
     technicalSummary:'ملخص فني واضح',methodology:'منهجية التنفيذ والضبط',experience:'مشاريع مشابهة',
     financialAmount:125000,financialCurrency:'JOD',status:'ready_for_external_submission'
@@ -1439,14 +1448,15 @@ test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة
   assert.strictEqual(saved.status,200,JSON.stringify(saved.data));
   assert.strictEqual(saved.data.workspace.status,'ready_for_external_submission');
   assert.strictEqual(saved.data.workspace.financialAmount,125000);
-  assert.strictEqual(saved.data.workspace.files.length,1);
+  assert.strictEqual(saved.data.workspace.files.length,2);
+  assert.deepStrictEqual(saved.data.workspace.files.map(x=>x.fileKind).sort(),['financial','technical']);
   const download=await call(contractor,'GET','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
   assert.strictEqual(download.status,200);
   assert.match(String(download.data),/private technical bid file/);
   const removed=await call(contractor,'DELETE','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
   assert.strictEqual(removed.status,200,JSON.stringify(removed.data));
   const afterDelete=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
-  assert.strictEqual(afterDelete.data.workspace.files.length,0);
+  assert.strictEqual(afterDelete.data.workspace.files.length,1);
   assert.strictEqual(afterDelete.data.workspace.status,'draft');
   const otherView=await call(other,'GET','/api/opportunities/'+id+'/workspace');
   assert.strictEqual(otherView.status,200);
