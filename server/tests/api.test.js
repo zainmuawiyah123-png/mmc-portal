@@ -1249,18 +1249,18 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
     body: { decision: 'accepted', note: 'مطابقة لأمر الشراء' }
   })).data.status, 'owner_confirmation');
-  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
     body: { decision: 'confirmed', note: 'تم استلام الأعمال' }
   })).data.status, 'finance_queue');
-  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
-  assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
 
-  const partial = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+  const partial = await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 50, paymentReference: 'PAY-FIN-01', paymentDate: '2026-11-03' }
   });
   assert.strictEqual(partial.status, 201, JSON.stringify(partial.data));
-  assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
+  assert.strictEqual((await call(manager, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
 
   const overpayment = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 101, paymentReference: 'PAY-FIN-OVER', paymentDate: '2026-11-03' }
