@@ -340,3 +340,11 @@ test('OPP-30 — مساحة تجهيز عروض العطاءات الخارجي�
   assert.match(route,/external_bid_file_deleted/);
   assert.match(tenderDirectory,/لا يعني الإرسال الرسمي/);
 });
+
+
+test('OPP-31 — متطلبات تكامل اعتماد والإمارات موضحة دون ادعاء ربط غير مصرح به', () => {
+  assert.ok(tenderDirectory.includes('https://apiportal.etimad.sa/en/docs/introduction'));
+  assert.ok(tenderDirectory.includes('https://mof.gov.ae/en/public-finance/government-procurement/digital-procurement-platform/'));
+  assert.match(tenderDirectory,/يتطلب ربط الإنتاج التسجيل وطلب الاشتراك/);
+  assert.match(tenderDirectory,/UAE PASS/);
+});
