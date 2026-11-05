@@ -1414,3 +1414,39 @@ test('83 — ملفات ملحق العطاء ترتبط بالملحق الصح
   const denied = await call(otherBuyer, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda/' + issued.data.addendum.id + '/documents/' + doc.id);
   assert.strictEqual(denied.status, 404);
 });
+
+
+test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة لكل مقاول مع ملفات وسعر غير مكشوفين', async () => {
+  const db=getDB(),id='opp_'+uniq();
+  db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`)
+    .run(id,'workspace-test','WS-'+uniq(),'أعمال بنية تحتية','جهة اختبار','JO','2027-01-20','https://example.com/official','open','ar');
+  const contractor='workspace-con-'+uniq(),other='workspace-other-'+uniq();
+  await call(contractor,'POST','/api/auth/register',{body:{name:'مقاول مساحة العمل',email:contractor+'@t.com',password:'Password123'}});
+  await call(other,'POST','/api/auth/register',{body:{name:'مقاول آخر',email:other+'@t.com',password:'Password123'}});
+  const initial=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
+  assert.strictEqual(initial.status,200,JSON.stringify(initial.data));
+  assert.strictEqual(initial.data.workspace.status,'draft');
+  const upload=await call(contractor,'POST','/api/opportunities/'+id+'/workspace/files',{
+    form:makeForm([{name:'technical.pdf',content:'private technical bid file',type:'application/pdf'}])
+  });
+  assert.strictEqual(upload.status,201,JSON.stringify(upload.data));
+  const saved=await call(contractor,'PUT','/api/opportunities/'+id+'/workspace',{body:{
+    technicalSummary:'ملخص فني واضح',methodology:'منهجية التنفيذ والضبط',experience:'مشاريع مشابهة',
+    financialAmount:125000,financialCurrency:'JOD',status:'ready_for_external_submission'
+  }});
+  assert.strictEqual(saved.status,200,JSON.stringify(saved.data));
+  assert.strictEqual(saved.data.workspace.status,'ready_for_external_submission');
+  assert.strictEqual(saved.data.workspace.financialAmount,125000);
+  assert.strictEqual(saved.data.workspace.files.length,1);
+  const download=await call(contractor,'GET','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
+  assert.strictEqual(download.status,200);
+  assert.match(String(download.data),/private technical bid file/);
+  const otherView=await call(other,'GET','/api/opportunities/'+id+'/workspace');
+  assert.strictEqual(otherView.status,200);
+  assert.notStrictEqual(otherView.data.workspace.id,saved.data.workspace.id);
+  assert.strictEqual(otherView.data.workspace.financialAmount,null);
+  assert.strictEqual(otherView.data.workspace.files.length,0);
+  assert.strictEqual((await call('anon','GET','/api/opportunities/'+id+'/workspace')).status,401);
+});
