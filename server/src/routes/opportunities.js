@@ -49,14 +49,14 @@ router.get('/detail/:id', wrap(async(req,res)=>{
  const detail=db.prepare('SELECT details_json,verified_at FROM tender_opportunity_details WHERE opportunity_id=?').get(row.id);
  const documents=db.prepare('SELECT id,label,availability FROM tender_opportunity_documents WHERE opportunity_id=? ORDER BY label').all(row.id);
  let details={}; try{details=detail?JSON.parse(detail.details_json):{};}catch(_){}
- res.json({opportunity:shape(row),details:{purchaseDate:details.purchase||null,closingDate:details.closing||null,documentFee:details.fee||null,bidBond:details.bond||null,qualification:details.qual||null,remarks:details.remarks||null,verifiedAt:detail?.verified_at||null},documents});
+ res.json({opportunity:shape(row),details:{purchaseDate:details.purchase||null,closingDate:details.closing||null,documentFee:details.fee||null,bidBond:details.bond||null,qualification:details.qual||details.qualification||null,remarks:details.remarks||null,detailUrl:details.detailUrl||null,verifiedAt:detail?.verified_at||null},documents});
 }));
 
 router.get('/documents/:docId', wrap(async(req,res)=>{
  const row=getDB().prepare(`SELECT document_url,label FROM tender_opportunity_documents WHERE id=? AND availability='public'`).get(req.params.docId);
  if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
  const target=new URL(row.document_url);
- if(target.protocol!=='https:'||!['www.arabpotash.com','arabpotash.com'].includes(target.hostname)) throw E.badRequest('مصدر الوثيقة غير معتمد.');
+ if(target.protocol!=='https:'||!['www.arabpotash.com','arabpotash.com','www.joneps.gov.jo','joneps.gov.jo'].includes(target.hostname)) throw E.badRequest('مصدر الوثيقة غير معتمد.');
  const upstream=await fetch(target,{headers:{'user-agent':'MMC-Tender-Directory/1.0','accept':'application/pdf,application/octet-stream,*/*'},signal:AbortSignal.timeout(20000),redirect:'manual'});
  if(upstream.status>=300&&upstream.status<400) throw E.conflict('رفض MMC إعادة توجيه ملف العطاء إلى مصدر آخر غير متحقق منه.');
  if(!upstream.ok) throw E.conflict('تعذر جلب الملف من المصدر العام حالياً.');
@@ -64,6 +64,7 @@ router.get('/documents/:docId', wrap(async(req,res)=>{
  if(!(type.startsWith('application/pdf')||type.startsWith('application/octet-stream')||type.startsWith('application/zip')||type.startsWith('image/'))) throw E.conflict('المصدر لم يُرجع ملفاً قابلاً للتنزيل.');
  res.setHeader('Content-Type',type);
  res.setHeader('Content-Disposition','inline; filename="MMC-tender-document"');
+ res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('Cache-Control','private, max-age=300');
  const {Readable}=require('stream'); Readable.fromWeb(upstream.body).pipe(res);
 }));
