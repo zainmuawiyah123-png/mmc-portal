@@ -141,6 +141,16 @@ test('APC detail parser indexes official public SharePoint document links withou
   assert.equal(new URL(row.docs[0].url).hostname, 'arabpotash-my.sharepoint.com');
 });
 
+
+test('APC detail parser indexes file-extension links even when link text is generic', () => {
+  const html = '<h1>Tender title and number: Civil works package APC-2026-02</h1>' +
+    '<a href="/files/boq.pdf?download=1">Open</a>' +
+    '<a href="https://evil.example/private.pdf">Open</a>';
+  const row = parseDetail(html, '2280');
+  assert.equal(row.docs.length, 1);
+  assert.equal(row.docs[0].url, 'https://www.arabpotash.com/files/boq.pdf?download=1');
+});
+
 test('JONEPS mapLimit runs bounded tasks and preserves result order', async () => {
   let active = 0, maximum = 0;
   const results = await mapLimit([3, 1, 2, 4], 2, async value => {
