@@ -95,7 +95,7 @@ function getPublicOpportunity(id) {
  const row=getDB().prepare("SELECT * FROM tender_opportunities WHERE id=? AND status='open'").get(id);
  if(!row) throw E.notFound('العطاء غير متاح للتجهيز حالياً.');
  if(row.closing_at) {
-  const match=String(row.closing_at).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+  const match=String(row.closing_at).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if(match) {
    const closeDate=new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])));
    if(Number.isNaN(closeDate.getTime()) || closeDate.toISOString().slice(0,10)!==match[0]) throw E.conflict('تاريخ إغلاق العطاء غير صالح؛ راجع الجهة الطارحة.');
