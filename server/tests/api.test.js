@@ -1488,3 +1488,24 @@ test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة
   assert.strictEqual(otherView.data.workspace.files.length,0);
   assert.strictEqual((await call('anon','GET','/api/opportunities/'+id+'/workspace')).status,401);
 });
+
+test('80A — دليل العطاءات يدعم التنقل بين صفحات النتائج دون فقدان العدد الإجمالي', async () => {
+  const db = getDB(), token = 'PaginationCheck' + uniq();
+  const insert = db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  for (let i = 1; i <= 5; i++) {
+    insert.run('opp_' + uniq(),'pagination-test',token + '-' + i,token + ' tender ' + i,'Pagination Authority','INT','Works',token + '-' + i,'Pagination fixture','2099-12-' + String(i).padStart(2,'0'),'https://example.com/pagination/' + i,'open','en');
+  }
+  const first = await call('anon','GET','/api/opportunities?q=' + token + '&page=1&pageSize=2');
+  assert.strictEqual(first.status,200);
+  assert.strictEqual(first.data.count,2);
+  assert.strictEqual(first.data.total,5);
+  assert.strictEqual(first.data.page,1);
+  assert.strictEqual(first.data.pages,3);
+  const last = await call('anon','GET','/api/opportunities?q=' + token + '&page=3&pageSize=2');
+  assert.strictEqual(last.status,200);
+  assert.strictEqual(last.data.count,1);
+  assert.strictEqual(last.data.total,5);
+  assert.strictEqual(last.data.page,3);
+});
