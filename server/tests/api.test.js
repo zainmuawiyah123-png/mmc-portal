@@ -1341,7 +1341,7 @@ test('80 — دليل العطاءات العام يرشح حسب الجهة و�
   assert.strictEqual(invalidRange.status, 400);
 });
 
-test('77 — استفسارات المقاولين وإجابات المشتريات تظهر للجميع دون كشف هوية صاحب السؤال', async () => {
+test('81 — استفسارات المقاولين وإجابات المشتريات تظهر للجميع دون كشف هوية صاحب السؤال', async () => {
   const buyer = await newBuyer('qa-buyer', 'proc_pro');
   const tender = await publish(buyer);
   const contractor = 'qa-con-' + uniq();
