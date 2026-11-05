@@ -364,3 +364,19 @@ test('OPP-32 — جاهزية العرض الخارجي تتطلب مستندا�
   assert.ok(tenderDirectory.includes('مرفقات العرض الفني'));
   assert.ok(tenderDirectory.includes('مرفقات العرض المالي'));
 });
+
+
+test('PFUI-07 — مدير المؤسسة يستطيع إكمال تأكيد المالك واعتماد المالية من حساب واحد', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/project-finance.js'), 'utf8');
+  assert.ok(route.includes("requireOrg(req,['manager','requester'])"));
+  assert.ok(route.includes("requireOrg(req,['manager','finance'])"));
+  assert.ok(html.includes("['manager','requester'].includes(orgRole)"));
+  assert.ok(html.includes("['manager','finance'].includes(orgRole)"));
+  assert.ok(route.includes('actor_user_id,actor_role'));
+});
+
+test('PFUI-08 — غياب IBAN لا يوصف بأنه IBAN غير صالح، أما المدخل الخاطئ فيحذر', () => {
+  const config = fs.readFileSync(path.join(__dirname, '../src/config.js'), 'utf8');
+  assert.ok(config.includes('PAYMENT_IBAN_CONFIGURED = Boolean(config.PAYMENT.iban)'));
+  assert.ok(config.includes('if (config.PAYMENT_IBAN_CONFIGURED && !config.PAYMENT_IBAN_VALID)'));
+});
