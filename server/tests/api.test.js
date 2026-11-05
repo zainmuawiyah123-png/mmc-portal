@@ -1340,3 +1340,34 @@ test('80 — دليل العطاءات العام يرشح حسب الجهة و�
   const invalidRange = await call('anon', 'GET', '/api/opportunities?closingFrom=2026-12-31&closingTo=2026-12-01');
   assert.strictEqual(invalidRange.status, 400);
 });
+
+test('77 — استفسارات المقاولين وإجابات المشتريات تظهر للجميع دون كشف هوية صاحب السؤال', async () => {
+  const buyer = await newBuyer('qa-buyer', 'proc_pro');
+  const tender = await publish(buyer);
+  const contractor = 'qa-con-' + uniq();
+  await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول الاستفسار', email: contractor + '@t.com', password: 'Password123' } });
+  const other = 'qa-other-' + uniq();
+  await call(other, 'POST', '/api/auth/register', { body: { name: 'مقاول آخر', email: other + '@t.com', password: 'Password123' } });
+
+  const asked = await call(contractor, 'POST', '/api/procurement/tenders/' + tender.id + '/clarifications', { body: { question: 'هل يتوفر مخطط الخدمات تحت الأرض؟' } });
+  assert.strictEqual(asked.status, 201, JSON.stringify(asked.data));
+  const qid = asked.data.clarification.id;
+
+  const buyerView = await call(buyer, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(buyerView.status, 200);
+  assert.strictEqual(buyerView.data.clarifications[0].questioner, 'مقاول الاستفسار');
+  const ownView = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(ownView.data.clarifications[0].isMine, true);
+  assert.strictEqual(ownView.data.clarifications[0].questioner, null);
+  const otherView = await call(other, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(otherView.data.clarifications[0].isMine, false);
+  assert.strictEqual(otherView.data.clarifications[0].questioner, null);
+
+  const answered = await call(buyer, 'POST', '/api/procurement/clarifications/' + qid + '/answer', { body: { answer: 'نعم، سيتم إرفاق المخطط ضمن وثائق العطاء.' } });
+  assert.strictEqual(answered.status, 201, JSON.stringify(answered.data));
+  assert.strictEqual((await call(buyer, 'POST', '/api/procurement/clarifications/' + qid + '/answer', { body: { answer: 'إجابة مكررة' } })).status, 409);
+  const publicView = await call(other, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(publicView.data.clarifications[0].status, 'closed');
+  assert.strictEqual(publicView.data.clarifications[0].answers[0].text, 'نعم، سيتم إرفاق المخطط ضمن وثائق العطاء.');
+  assert.strictEqual(publicView.data.clarifications[0].answers[0].answerer, 'جهة الطرح');
+});
