@@ -1296,6 +1296,10 @@ test('77 — دور المالية محصور بجهته ولا يستطيع م�
   });
   assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices')).status, 200);
   assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices')).status, 200);
+  const financeRoleAllowed = await call(finance, 'POST', '/api/project-finance/invoices/nonexistent-finance-role-test/finance-approval', { body: {} });
+  assert.strictEqual(financeRoleAllowed.status, 404, 'دور المالية مخوّل للوصول إلى الإجراء ثم يتحقق النظام من وجود الفاتورة');
+  const managerRoleAllowed = await call(manager, 'POST', '/api/project-finance/invoices/nonexistent-manager-role-test/finance-approval', { body: {} });
+  assert.strictEqual(managerRoleAllowed.status, 404, 'مدير المؤسسة مخوّل للإجراء مع بقاء عزل المؤسسة');
   const denied = await call(outsider, 'POST', '/api/project-finance/invoices/fake-id/finance-approval', { body: {} });
   assert.strictEqual(denied.status, 403);
 });
