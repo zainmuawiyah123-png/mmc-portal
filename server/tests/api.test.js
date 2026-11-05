@@ -677,8 +677,13 @@ test('61 — بيانات الدفع تُقرأ من الإعدادات وتُع
   assert.strictEqual(r.data.payment.swift, '');
   assert.strictEqual(r.data.payment.iban, '');
   assert.strictEqual(r.data.payment.accountHolder, '');
-  assert.strictEqual(r.data.payment.cliqAlias, '');
+  assert.strictEqual(r.data.payment.cliqAlias, 'samarza');
   assert.strictEqual(r.data.ibanValid, false);
+  const page = await call('anon2', 'GET', '/marketing/subscribe.html');
+  assert.strictEqual(page.status, 200);
+  assert.match(page.data, /id="paymentInfo"/);
+  assert.match(page.data, /معرّف CliQ/);
+  assert.match(page.data, /بيانات التحويل البنكي غير مكتملة/);
 });
 
 test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملفات المجلد مغلقة', async () => {
