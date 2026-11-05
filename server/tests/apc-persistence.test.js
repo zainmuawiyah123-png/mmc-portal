@@ -11,7 +11,7 @@ process.env.DB_PATH = path.join(TMP, 'apc-test.sqlite');
 
 const { migrate } = require('../src/migrate');
 const { getDB, closeDB } = require('../src/db');
-const { persist } = require('../src/lib/apc-sync');
+const { persist, parseDetail } = require('../src/lib/apc-sync');
 const { persistJonepsDetails } = require('../src/lib/joneps-sync');
 
 test.before(() => { const migrated = migrate(process.env.DB_PATH); migrated.close(); });
@@ -128,4 +128,23 @@ test('JONEPS verified detail refresh updates the searchable closing date and ind
   const docs=db.prepare('SELECT label,document_url FROM tender_opportunity_documents WHERE opportunity_id=?').all(id);
   assert.equal(docs.length,1);
   assert.equal(docs[0].document_url,'https://www.joneps.gov.jo/docs/boq.pdf');
+});
+
+test('APC detail parser excludes semantic navigation and trailing site menu from remarks', () => {
+  const html = `
+    <main>
+      <h1>Tender title and number: IFB No. 202603602/ZM - Concrete Foundation</h1>
+      <p>Purchase Date: 26/10/2026</p>
+      <p>Closing date: 08/11/2026</p>
+      <p>Copy Price: 116 JOD</p>
+      <p>Bid Bond Value: 10,000 JOD</p>
+      <p>Vendor Qualifications: Class 1 civil contractors</p>
+      <p>Remarks: Submit sealed technical offer; attend site visit</p>
+    </main>
+    <nav>Home Work With Us Contact Us</nav>
+    <footer>Follow us About Us Overview Board Of Directors</footer>`;
+  const parsed = parseDetail(html, '2305');
+  assert.match(parsed.title, /202603602\\/ZM/);
+  assert.equal(parsed.remarks, 'Submit sealed technical offer; attend site visit');
+  assert.doesNotMatch(parsed.remarks, /Home|Follow us|Board Of Directors/);
 });
