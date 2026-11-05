@@ -1,5 +1,8 @@
 'use strict';
 const express = require('express');
+const multer = require('multer');
+const config = require('../config');
+const S = require('../lib/storage');
 const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
@@ -78,6 +81,85 @@ router.get('/documents/:docId', wrap(async(req,res)=>{
  res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('Cache-Control','private, max-age=300');
  const {Readable}=require('stream'); Readable.fromWeb(upstream.body).pipe(res);
+}));
+
+// Contractor-only workspace for preparing external tender submissions inside MMC.
+const workspaceUpload = multer({
+ storage: multer.memoryStorage(),
+ limits: { fileSize: config.MAX_FILE_BYTES, files: 10 },
+ fileFilter: (req,file,cb) => { try { S.assertAllowed(file.originalname,0); cb(null,true); } catch(err) { cb(err); } }
+});
+const contractorOnly = [A.requireAuth, A.requireRole('contractor')];
+
+function getPublicOpportunity(id) {
+ const row=getDB().prepare("SELECT * FROM tender_opportunities WHERE id=? AND status='open'").get(id);
+ if(!row) throw E.notFound('العطاء غير متاح للتجهيز حالياً.');
+ if(row.closing_at && /^\\d{4}-\\d{2}-\\d{2}/.test(row.closing_at) && row.closing_at.slice(0,10)<new Date().toISOString().slice(0,10)) throw E.conflict('انتهى موعد العطاء؛ يمكن مراجعة الإعلان فقط.');
+ return row;
+}
+function workspaceFor(opportunityId,userId,create) {
+ const db=getDB(); let row=db.prepare('SELECT * FROM opportunity_bid_workspaces WHERE opportunity_id=? AND contractor_id=?').get(opportunityId,userId);
+ if(!row && create) {
+  const id=uid('obw_');
+  db.prepare('INSERT INTO opportunity_bid_workspaces (id,opportunity_id,contractor_id) VALUES (?,?,?)').run(id,opportunityId,userId);
+  row=db.prepare('SELECT * FROM opportunity_bid_workspaces WHERE id=?').get(id);
+ }
+ return row;
+}
+function workspaceShape(row,files) {
+ return {id:row.id,opportunityId:row.opportunity_id,technicalSummary:row.technical_summary,methodology:row.methodology,experience:row.experience,financialAmount:row.financial_amount,financialCurrency:row.financial_currency,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at,readyAt:row.ready_at,files};
+}
+router.get('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
+ const opportunity=getPublicOpportunity(req.params.id), row=workspaceFor(opportunity.id,req.user.id,true),db=getDB();
+ const files=db.prepare('SELECT id,original_name name,mime,size,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
+ res.json({opportunity:shape(opportunity),workspace:workspaceShape(row,files)});
+}));
+router.put('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
+ const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,true),b=req.body||{};
+ const amount=b.financialAmount===null||b.financialAmount===''||b.financialAmount===undefined?null:Number(b.financialAmount);
+ if(amount!==null&&(!Number.isFinite(amount)||amount<=0)) throw E.badRequest('القيمة المالية يجب أن تكون أكبر من صفر.');
+ const currency=clean(b.financialCurrency||'JOD',3).toUpperCase();
+ if(!['JOD','SAR','AED','KWD','QAR','BHD','OMR','USD'].includes(currency)) throw E.badRequest('العملة غير مدعومة.');
+ const status=b.status==='ready_for_external_submission'?'ready_for_external_submission':'draft';
+ const filesCount=getDB().prepare('SELECT COUNT(*) n FROM opportunity_bid_files WHERE workspace_id=?').get(row.id).n;
+ if(status==='ready_for_external_submission' && (!String(b.technicalSummary||row.technical_summary||'').trim() || !filesCount)) throw E.conflict('أضف ملخصاً فنياً وملفاً واحداً على الأقل قبل اعتماد جاهزية العرض.');
+ getDB().prepare(`UPDATE opportunity_bid_workspaces SET technical_summary=?,methodology=?,experience=?,financial_amount=?,financial_currency=?,status=?,updated_at=unixepoch(),ready_at=? WHERE id=?`)
+ .run(clean(b.technicalSummary,8000),clean(b.methodology,12000),clean(b.experience,8000),amount,currency,status,status==='ready_for_external_submission'?Math.floor(Date.now()/1000):null,row.id);
+ const updated=getDB().prepare('SELECT * FROM opportunity_bid_workspaces WHERE id=?').get(row.id);
+ const files=getDB().prepare('SELECT id,original_name name,mime,size,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
+ audit({action:'external_bid_workspace_updated',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,status}});
+ res.json({workspace:workspaceShape(updated,files),notice:'تم حفظ ملف التجهيز داخل MMC. هذا لا يعني إرسال العرض رسمياً إلى الجهة الطارحة.'});
+}));
+router.post('/:id/workspace/files',contractorOnly,workspaceUpload.array('files',10),wrap(async(req,res)=>{
+ const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,true),files=req.files||[];
+ if(!files.length) throw E.badRequest('اختر ملفاً واحداً على الأقل.');
+ const db=getDB(),store=S.getStorage(),saved=[];
+ try {
+  for(const f of files){
+   S.assertAllowed(f.originalname,f.size);
+   const key=`external-bids/${req.user.id}/${opportunity.id}/${row.id}/${S.makeStoredName(f.originalname)}`;
+   const put=await store.put(key,f.buffer,{mime:f.mimetype,originalName:S.displayName(f.originalname)});
+   saved.push({id:uid('obf_'),key,driver:store.DRIVER,name:S.displayName(f.originalname),mime:f.mimetype,size:f.size,checksum:put.checksum});
+  }
+  const ins=db.prepare('INSERT INTO opportunity_bid_files (id,workspace_id,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?)');
+  const tx=db.transaction(()=>saved.forEach(d=>ins.run(d.id,row.id,d.key,d.driver,d.name,d.mime,d.size,d.checksum,req.user.id)));
+  tx();
+ } catch(err){for(const d of saved){try{await store.delete(d.key);}catch(_){}}throw err;}
+ db.prepare("UPDATE opportunity_bid_workspaces SET status='draft',updated_at=unixepoch(),ready_at=NULL WHERE id=?").run(row.id);
+ audit({action:'external_bid_files_uploaded',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,count:saved.length}});
+ res.status(201).json({files:saved.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size}))});
+}));
+router.get('/:id/workspace/files/:fileId',contractorOnly,wrap(async(req,res)=>{
+ const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,false);
+ if(!row) throw E.notFound('الملف غير موجود.');
+ const d=getDB().prepare('SELECT * FROM opportunity_bid_files WHERE id=? AND workspace_id=?').get(req.params.fileId,row.id);
+ if(!d) throw E.notFound('الملف غير موجود.');
+ const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+ const body=await store.get(d.storage_key);
+ res.setHeader('Content-Type',d.mime||'application/octet-stream');
+ res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));
+ res.setHeader('Cache-Control','private, no-store');
+ res.send(body);
 }));
 
 // MMC administrators curate/import official notices. No public write access.
