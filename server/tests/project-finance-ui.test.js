@@ -384,3 +384,16 @@ test('PFUI-08 — غياب IBAN لا يوصف بأنه IBAN غير صالح، أ
   assert.ok(config.includes('PAYMENT_IBAN_CONFIGURED = Boolean(config.PAYMENT.iban)'));
   assert.ok(config.includes('if (config.PAYMENT_IBAN_CONFIGURED && !config.PAYMENT_IBAN_VALID)'));
 });
+
+
+test('MMCUI-04 — دليل العطاءات يتيح فصل النتائج حسب مصدرها داخل MMC', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.match(tenderDirectory, /id="opp-source"/);
+  assert.match(tenderDirectory, /value="arab-potash-company"/);
+  assert.match(tenderDirectory, /value="joneps"/);
+  assert.match(tenderDirectory, /value="worldbank"/);
+  assert.match(tenderDirectory, /value="ungm"/);
+  assert.ok(tenderDirectory.includes("p.set('sourceKey',source.value)"));
+  assert.ok(route.includes("sourceKey=clean(req.query.sourceKey,80)"));
+  assert.ok(route.includes("clauses.push('source_key=?')"));
+});
