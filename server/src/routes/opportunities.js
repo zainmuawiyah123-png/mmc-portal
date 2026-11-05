@@ -64,29 +64,15 @@ router.get('/detail/:id', wrap(async(req,res)=>{
 router.get('/documents/:docId', wrap(async(req,res)=>{
  const row=getDB().prepare(`SELECT document_url,label FROM tender_opportunity_documents WHERE id=? AND availability='public'`).get(req.params.docId);
  if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
- let target=new URL(row.document_url);
- if(target.protocol!=='https:'||!['www.arabpotash.com','arabpotash.com','www.joneps.gov.jo','joneps.gov.jo','arabpotash-my.sharepoint.com'].includes(target.hostname)) throw E.badRequest('مصدر الوثيقة غير معتمد.');
- const approvedHost=target.hostname;
- let upstream=null;
- for(let hop=0;hop<=3;hop++){
-  upstream=await fetch(target,{headers:{'user-agent':'MMC-Tender-Directory/1.0','accept':'application/pdf,application/octet-stream,*/*'},signal:AbortSignal.timeout(20000),redirect:'manual'});
-  if(upstream.status>=300&&upstream.status<400){
-   const location=upstream.headers.get('location');
-   if(!location||hop===3)throw E.conflict('تعذر التحقق من تحويل رابط الوثيقة.');
-   const next=new URL(location,target);
-   if(next.protocol!=='https:'||next.hostname!==approvedHost)throw E.conflict('رفض MMC تحويل ملف العطاء إلى مضيف آخر غير متحقق منه.');
-   target=next;continue;
-  }
-  break;
- }
- if(!upstream||!upstream.ok) throw E.conflict('تعذر جلب الملف من المصدر العام حالياً.');
- const type=upstream.headers.get('content-type')||'application/octet-stream';
- if(!(type.startsWith('application/pdf')||type.startsWith('application/octet-stream')||type.startsWith('application/zip')||type.startsWith('image/'))) throw E.conflict('المصدر لم يُرجع ملفاً قابلاً للتنزيل.');
- res.setHeader('Content-Type',type);
- res.setHeader('Content-Disposition','inline; filename="MMC-tender-document"');
- res.setHeader('X-Content-Type-Options','nosniff');
- res.setHeader('Cache-Control','private, max-age=300');
- const {Readable}=require('stream'); Readable.fromWeb(upstream.body).pipe(res);
+ let target;
+ try { target=new URL(row.document_url); } catch(_) { throw E.badRequest('رابط الوثيقة غير صالح.'); }
+ const approvedHosts=new Set(['www.arabpotash.com','arabpotash.com','www.joneps.gov.jo','joneps.gov.jo','arabpotash-my.sharepoint.com']);
+ if(target.protocol!=='https:'||!approvedHosts.has(target.hostname)||target.username||target.password) throw E.badRequest('مصدر الوثيقة غير معتمد.');
+ // Open the verified original source in the user's browser. SharePoint links may require
+ // browser-managed redirects/cookies and cannot reliably be downloaded by the server proxy.
+ res.setHeader('Referrer-Policy','no-referrer');
+ res.setHeader('Cache-Control','no-store');
+ return res.redirect(302,target.toString());
 }));
 
 // Contractor-only workspace for preparing external tender submissions inside MMC.
