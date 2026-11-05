@@ -62,10 +62,14 @@ test('MMCUI-01 — دليل العطاءات يضم مصادر الأردن وا
   assert.ok(links.length >= 10, 'يجب توفير مجموعة روابط مصادر مباشرة');
 });
 
-test('MMCUI-02 — روابط المصادر الخارجية تفتح بأمان، والدليل لا يدّعي الاستيراد الآلي', () => {
+test('MMCUI-02 — المصادر الخارجية مرجع فقط والبحث الداخلي يوضح حالة الربط', () => {
   assert.match(tenderDirectory, /target="_blank" rel="noopener"/);
-  assert.match(tenderDirectory, /لا ندّعي أن كل إعلان/);
-  assert.match(tenderDirectory, /Verify the original notice/);
+  assert.match(tenderDirectory, /لا تعتبر إجراءات الاستفسارات/);
+  assert.match(tenderDirectory, /Official sources for reference and verification/);
+  assert.match(tenderDirectory, /id="opp-authority"/);
+  assert.match(tenderDirectory, /id="opp-sector"/);
+  assert.match(tenderDirectory, /id="opp-from"/);
+  assert.match(tenderDirectory, /id="opp-to"/);
 });
 
 test('MMCUI-03 — دليل العطاءات متاح من بوابتي المقاول والمشتريات', () => {
