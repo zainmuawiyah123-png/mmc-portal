@@ -308,3 +308,12 @@ test('OPP-27 — APC public SharePoint documents are proxied with same-host-only
   assert.ok(route.includes("next.hostname!==approvedHost"));
   assert.ok(route.includes("redirect:'manual'"));
 });
+
+test('OPP-28 — بوابة المقاول والمشتريات تعرضان دورة الاستفسار والإجابة', () => {
+  assert.ok(contractorPortal.includes('/procurement/tenders/'+current.id+'/clarifications'));
+  assert.ok(contractorPortal.includes('clarification-question'));
+  assert.ok(procurementPortal.includes('/procurement/clarifications/'));
+  assert.ok(procurementPortal.includes('qa-answer'));
+  const migration = fs.readFileSync(path.join(__dirname, '../src/migrate.js'), 'utf8');
+  assert.ok(migration.includes('CREATE TABLE IF NOT EXISTS request_answers'));
+});
