@@ -114,7 +114,7 @@
   const b=e.target.closest('[data-detail]');if(!b)return;
   const id=b.getAttribute('data-detail');b.disabled=true;b.textContent='جارٍ تحميل التفاصيل...';
   try{
-   const res=await fetch('/api/opportunities/detail/'+encodeURIComponent(id),{credentials:'same-origin'});
+   const res=await fetch('/api/opportunities/detail/'+encodeURIComponent(id),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'تعذر تحميل التفاصيل');
    const d=data.details||{},docs=data.documents||[];
    const lines=[
@@ -128,7 +128,7 @@
    detail.querySelector('[data-workspace]').addEventListener('click',()=>openWorkspace(data.opportunity.id));
    detail.querySelectorAll('button.ghost').forEach(x=>x.addEventListener('click',()=>detail.remove()));
    b.closest('article').after(detail);
-  }catch(err){b.textContent=err.message;}finally{b.disabled=false;}
+  }catch(err){b.textContent=err.name==='TimeoutError'?'تأخر رد الخادم — اضغط لإعادة المحاولة':err.name==='AbortError'?'أُلغِي تحميل التفاصيل — اضغط لإعادة المحاولة':(err.message||'تعذر تحميل التفاصيل')+' — اضغط لإعادة المحاولة';}finally{b.disabled=false;}
  });
  async function openWorkspace(id){
   const box=document.getElementById('external-workspace');box.textContent='جارٍ تحميل مساحة تجهيز العرض...';
