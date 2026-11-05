@@ -1387,3 +1387,30 @@ test('82 — ملحق العطاء يصدره المشتريات ويظهر لل
   const otherBuyer = await newBuyer('other-addendum-buyer', 'proc_pro');
   assert.strictEqual((await call(otherBuyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'ملحق', body: 'محاولة غير مصرح بها' } })).status, 404);
 });
+
+
+test('83 — ملفات ملحق العطاء ترتبط بالملحق الصحيح وتتاح فقط لمن يحق له الاطلاع على العطاء', async () => {
+  const buyer = await newBuyer('addendum-file-buyer', 'proc_pro');
+  const tender = await publish(buyer);
+  const contractor = 'add-file-con-' + uniq();
+  await call(contractor, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول وثائق الملحق', email: contractor + '@t.com', password: 'Password123' }
+  });
+  const issued = await call(buyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', {
+    form: makeForm([{ name: 'addendum.pdf', content: 'MMC addendum attachment', type: 'application/pdf' }], {
+      title: 'مخططات معدلة', body: 'يرجى اعتماد المخططات المرفقة مع هذا الملحق.'
+    })
+  });
+  assert.strictEqual(issued.status, 201, JSON.stringify(issued.data));
+  assert.strictEqual(issued.data.addendum.documents.length, 1);
+  const listed = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda');
+  assert.strictEqual(listed.status, 200);
+  const doc = listed.data.addenda[0].documents[0];
+  assert.ok(doc && doc.id);
+  const downloaded = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda/' + issued.data.addendum.id + '/documents/' + doc.id);
+  assert.strictEqual(downloaded.status, 200);
+  assert.match(String(downloaded.data), /MMC addendum attachment/);
+  const otherBuyer = await newBuyer('addendum-file-other-buyer', 'proc_pro');
+  const denied = await call(otherBuyer, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda/' + issued.data.addendum.id + '/documents/' + doc.id);
+  assert.strictEqual(denied.status, 404);
+});
