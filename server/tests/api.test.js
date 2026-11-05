@@ -1275,6 +1275,11 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(finalState.data.invoice.status, 'paid');
   assert.strictEqual(finalState.data.paid, 150);
   assert.strictEqual(finalState.data.remaining, 0);
+  const managerId=(await call(manager,'GET','/api/auth/me')).data.user.id;
+  const managerAudit=getDB().prepare("SELECT action,actor_user_id,actor_role FROM project_audit_events WHERE invoice_id=? AND action IN ('owner_confirmed','finance_approved','payment_recorded') ORDER BY created_at").all(invoiceId);
+  assert.ok(managerAudit.some(x=>x.action==='owner_confirmed'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل تأكيد المالك باسم المدير ودوره الفعلي');
+  assert.ok(managerAudit.some(x=>x.action==='finance_approved'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل اعتماد المالية باسم المدير ودوره الفعلي');
+  assert.ok(managerAudit.some(x=>x.action==='payment_recorded'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل الدفعات باسم المدير ودوره الفعلي');
 
   // بيانات دورة المشروع لا تدخل في فواتير اشتراكات MMC.
   const billing = await call(manager, 'GET', '/api/billing/invoices');
