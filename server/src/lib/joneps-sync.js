@@ -58,10 +58,10 @@ function parseJonepsDetail(html,sourceUrl){
  const pick=(patterns)=>{for(const p of patterns){const m=text.match(p);if(m&&m[1])return clean(m[1],1500);}return null;};
  const purchase=pick([/(?:تاريخ\s*(?:شراء|طرح)\s*(?:العطاء|الوثائق)|Purchase\s*Date)\s*:?\s*([\d/.-]+)/i]);
  const closing=pick([/(?:آخر\s*موعد\s*(?:لتقديم|لإيداع)\s*(?:العروض|الاستفسارات)|تاريخ\s*الإغلاق|Closing\s*Date|Submission\s*Deadline)\s*:?\s*([\d/.-]+)/i]);
- const fee=pick([/(?:ثمن\s*(?:نسخة|وثائق)\s*العطاء|رسوم\s*الوثائق|Document\s*Fee)\s*:?\s*([^|]{1,120}?)(?=\s{2,}|$)/i]);
- const bond=pick([/(?:كفالة\s*(?:دخول|العطاء)|Bid\s*Bond)\s*:?\s*([^|]{1,160}?)(?=\s{2,}|$)/i]);
- const qualification=pick([/(?:شروط\s*(?:التأهيل|المشاركة)|تصنيف\s*المقاول|Eligibility|Qualification)\s*:?\s*([^|]{1,500}?)(?=\s{2,}|$)/i]);
- const remarks=pick([/(?:ملاحظات|Remarks)\s*:?\s*([^|]{1,500}?)(?=\s{2,}|$)/i]);
+ const fee=pick([/(?:ثمن\s*(?:نسخة|وثائق)\s*العطاء|رسوم\s*الوثائق|Document\s*Fee)\s*:?\s*(.{1,120}?)(?=\s+(?:كفالة|Bid\s*Bond|شروط|تصنيف|Eligibility|Qualification|ملاحظات|Remarks)\b|$)/i]);
+ const bond=pick([/(?:كفالة\s*(?:دخول|العطاء)|Bid\s*Bond)\s*:?\s*(.{1,160}?)(?=\s+(?:شروط|تصنيف|Eligibility|Qualification|ملاحظات|Remarks)\b|$)/i]);
+ const qualification=pick([/(?:شروط\s*(?:التأهيل|المشاركة)|تصنيف\s*المقاول|Eligibility|Qualification)\s*:?\s*(.{1,500}?)(?=\s+(?:ملاحظات|Remarks)\b|$)/i]);
+ const remarks=pick([/(?:ملاحظات|Remarks)\s*:?\s*(.{1,500})$/i]);
  const docs=[],seen=new Set(),re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
  while((m=re.exec(String(html||'')))){
   try{
