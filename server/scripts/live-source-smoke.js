@@ -3,6 +3,7 @@
 const { parseJonepsRows, parseJonepsDetail, LIST_URL: JONEPS_URL } = require('../src/lib/joneps-sync');
 const { parseDetail: parseAPCDetail, LIST_URL: APC_URL } = require('../src/lib/apc-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
+const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
 
 const UA = 'MMC-Tender-Directory-Live-Smoke/1.0 (read-only public-source check)';
 async function get(url, accept = 'text/html') {
@@ -61,10 +62,13 @@ async function run(name, fn) {
   ]);
   if (process.env.UNGM_ACCESS_TOKEN) {
     results.push(await run('UNGM', async () => {
-      const url = new URL('https://www.ungm.org/Public/Notice');
-      const response = await fetch(url, { headers: { authorization: 'Bearer ' + process.env.UNGM_ACCESS_TOKEN, accept: 'application/json', 'user-agent': UA }, signal: AbortSignal.timeout(18000), redirect: 'manual' });
-      if (!response.ok) throw new Error('UNGM token/source check returned HTTP ' + response.status);
-      return { ok: true, authorizedEndpointReached: true };
+      const url = new URL('https://www.ungm.org/API/Notices');
+      url.searchParams.set('$top', '20');
+      url.searchParams.set('$orderby', 'DatePublished desc');
+      const payload = await (await fetch(url, { headers: { authorization: 'Bearer ' + process.env.UNGM_ACCESS_TOKEN, accept: 'application/json', 'user-agent': UA }, signal: AbortSignal.timeout(18000), redirect: 'manual' })).json();
+      if (!Array.isArray(payload.value)) throw new Error('authorized endpoint did not return a notice collection');
+      const notices = payload.value.map(normalizeUNGMNotice).filter(Boolean);
+      return { ok: true, received: payload.value.length, finalizedNotices: notices.length };
     }));
   } else {
     console.log(JSON.stringify({ source: 'UNGM', ok: false, skipped: true, error: 'UNGM_ACCESS_TOKEN is not configured in this workflow' }));
