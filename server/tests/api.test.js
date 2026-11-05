@@ -1249,18 +1249,18 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
     body: { decision: 'accepted', note: 'مطابقة لأمر الشراء' }
   })).data.status, 'owner_confirmation');
-  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
     body: { decision: 'confirmed', note: 'تم استلام الأعمال' }
   })).data.status, 'finance_queue');
-  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
-  assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
+  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
 
-  const partial = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+  const partial = await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 50, paymentReference: 'PAY-FIN-01', paymentDate: '2026-11-03' }
   });
   assert.strictEqual(partial.status, 201, JSON.stringify(partial.data));
-  assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
+  assert.strictEqual((await call(manager, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
 
   const overpayment = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 101, paymentReference: 'PAY-FIN-OVER', paymentDate: '2026-11-03' }
@@ -1275,6 +1275,11 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(finalState.data.invoice.status, 'paid');
   assert.strictEqual(finalState.data.paid, 150);
   assert.strictEqual(finalState.data.remaining, 0);
+  const managerId=(await call(manager,'GET','/api/auth/me')).data.user.id;
+  const managerAudit=getDB().prepare("SELECT action,actor_user_id,actor_role FROM project_audit_events WHERE invoice_id=? AND action IN ('owner_confirmed','finance_approved','payment_recorded') ORDER BY created_at").all(invoiceId);
+  assert.ok(managerAudit.some(x=>x.action==='owner_confirmed'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل تأكيد المالك باسم المدير ودوره الفعلي');
+  assert.ok(managerAudit.some(x=>x.action==='finance_approved'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل اعتماد المالية باسم المدير ودوره الفعلي');
+  assert.ok(managerAudit.some(x=>x.action==='payment_recorded'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل الدفعات باسم المدير ودوره الفعلي');
 
   // بيانات دورة المشروع لا تدخل في فواتير اشتراكات MMC.
   const billing = await call(manager, 'GET', '/api/billing/invoices');
@@ -1291,6 +1296,10 @@ test('77 — دور المالية محصور بجهته ولا يستطيع م�
   });
   assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices')).status, 200);
   assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices')).status, 200);
+  const financeRoleAllowed = await call(finance, 'POST', '/api/project-finance/invoices/nonexistent-finance-role-test/finance-approval', { body: {} });
+  assert.strictEqual(financeRoleAllowed.status, 404, 'دور المالية مخوّل للوصول إلى الإجراء ثم يتحقق النظام من وجود الفاتورة');
+  const managerRoleAllowed = await call(manager, 'POST', '/api/project-finance/invoices/nonexistent-manager-role-test/finance-approval', { body: {} });
+  assert.strictEqual(managerRoleAllowed.status, 404, 'مدير المؤسسة مخوّل للإجراء مع بقاء عزل المؤسسة');
   const denied = await call(outsider, 'POST', '/api/project-finance/invoices/fake-id/finance-approval', { body: {} });
   assert.strictEqual(denied.status, 403);
 });
@@ -1309,4 +1318,194 @@ test('79 — رمز الدعوة أحادي الاستخدام ولا يقبل �
   const targetOrg = (await call(manager, 'GET', '/api/org')).data.org.id;
   const members = getDB().prepare('SELECT COUNT(*) n FROM org_members WHERE org_id=?').get(targetOrg).n;
   assert.strictEqual(members, 2, 'المدير والعضو الأول فقط');
+});
+
+test('80 — دليل العطاءات العام يرشح حسب الجهة وفترة الإغلاق ويعرض التفاصيل داخل MMC', async () => {
+  await makeAdmin('opportunity-admin');
+  const db = getDB();
+  const firstId = 'opp_' + uniq();
+  const secondId = 'opp_' + uniq();
+  const insert = db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  insert.run(firstId,'test-source','FILTER-1','أعمال طرق داخل MMC','APC Test Authority','JO','أعمال مدنية','FILTER-1','عطاء تجريبي','2026-12-20','https://example.com/tender/1','open','ar');
+  insert.run(secondId,'test-source','FILTER-2','توريد معدات','APC Test Authority','JO','توريدات','FILTER-2','عطاء لاحق','2027-01-20','https://example.com/tender/2','open','ar');
+  db.prepare('INSERT INTO tender_opportunity_details (opportunity_id,details_json) VALUES (?,?)')
+    .run(firstId,JSON.stringify({purchase:'01/11/2026',closing:'20/12/2026',fee:'25 JOD',bond:'5%',qual:'تصنيف أول',remarks:'زيارة موقع'}));
+  db.prepare('INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)')
+    .run('doc_'+uniq(),firstId,'وثائق العطاء','https://www.arabpotash.com/files/test.pdf','public');
+
+  const filtered = await call('anon', 'GET', '/api/opportunities?authority=APC%20Test%20Authority&sector=%D8%A3%D8%B9%D9%85%D8%A7%D9%84%20%D9%85%D8%AF%D9%86%D9%8A%D8%A9&closingFrom=2026-12-01&closingTo=2026-12-31');
+  assert.strictEqual(filtered.status, 200, JSON.stringify(filtered.data));
+  assert.strictEqual(filtered.data.count, 1);
+  assert.strictEqual(filtered.data.opportunities[0].id, firstId);
+
+  const detail = await call('anon', 'GET', '/api/opportunities/detail/' + firstId);
+  assert.strictEqual(detail.status, 200, JSON.stringify(detail.data));
+  assert.strictEqual(detail.data.details.documentFee, '25 JOD');
+  assert.strictEqual(detail.data.details.bidBond, '5%');
+  assert.strictEqual(detail.data.documents.length, 1);
+
+  const invalidRange = await call('anon', 'GET', '/api/opportunities?closingFrom=2026-12-31&closingTo=2026-12-01');
+  assert.strictEqual(invalidRange.status, 400);
+});
+
+test('81 — استفسارات المقاولين وإجابات المشتريات تظهر للجميع دون كشف هوية صاحب السؤال', async () => {
+  const buyer = await newBuyer('qa-buyer', 'proc_pro');
+  const tender = await publish(buyer);
+  const contractor = 'qa-con-' + uniq();
+  await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول الاستفسار', email: contractor + '@t.com', password: 'Password123' } });
+  const other = 'qa-other-' + uniq();
+  await call(other, 'POST', '/api/auth/register', { body: { name: 'مقاول آخر', email: other + '@t.com', password: 'Password123' } });
+
+  const asked = await call(contractor, 'POST', '/api/procurement/tenders/' + tender.id + '/clarifications', { body: { question: 'هل يتوفر مخطط الخدمات تحت الأرض؟' } });
+  assert.strictEqual(asked.status, 201, JSON.stringify(asked.data));
+  const qid = asked.data.clarification.id;
+
+  const buyerView = await call(buyer, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(buyerView.status, 200);
+  assert.strictEqual(buyerView.data.clarifications[0].questioner, 'مقاول الاستفسار');
+  const ownView = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(ownView.data.clarifications[0].isMine, true);
+  assert.strictEqual(ownView.data.clarifications[0].questioner, null);
+  const otherView = await call(other, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(otherView.data.clarifications[0].isMine, false);
+  assert.strictEqual(otherView.data.clarifications[0].questioner, null);
+
+  const answered = await call(buyer, 'POST', '/api/procurement/clarifications/' + qid + '/answer', { body: { answer: 'نعم، سيتم إرفاق المخطط ضمن وثائق العطاء.' } });
+  assert.strictEqual(answered.status, 201, JSON.stringify(answered.data));
+  assert.strictEqual((await call(buyer, 'POST', '/api/procurement/clarifications/' + qid + '/answer', { body: { answer: 'إجابة مكررة' } })).status, 409);
+  const publicView = await call(other, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
+  assert.strictEqual(publicView.data.clarifications[0].status, 'closed');
+  assert.strictEqual(publicView.data.clarifications[0].answers[0].text, 'نعم، سيتم إرفاق المخطط ضمن وثائق العطاء.');
+  assert.strictEqual(publicView.data.clarifications[0].answers[0].answerer, 'جهة الطرح');
+});
+
+test('82 — ملحق العطاء يصدره المشتريات ويظهر للمقاولين فقط ضمن العطاء المنشور', async () => {
+  const buyer = await newBuyer('addendum-buyer', 'proc_pro');
+  const tender = await publish(buyer);
+  const contractor = 'add-con-' + uniq();
+  await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول الملحق', email: contractor + '@t.com', password: 'Password123' } });
+  const issued = await call(buyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'تمديد موعد الزيارة', body: 'تم تمديد موعد زيارة الموقع إلى يوم الخميس الساعة العاشرة صباحاً.' } });
+  assert.strictEqual(issued.status, 201, JSON.stringify(issued.data));
+  const publicList = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda');
+  assert.strictEqual(publicList.status, 200);
+  assert.strictEqual(publicList.data.addenda.length, 1);
+  assert.strictEqual(publicList.data.addenda[0].title, 'تمديد موعد الزيارة');
+  assert.strictEqual(publicList.data.addenda[0].body, 'تم تمديد موعد زيارة الموقع إلى يوم الخميس الساعة العاشرة صباحاً.');
+  const otherBuyer = await newBuyer('other-addendum-buyer', 'proc_pro');
+  assert.strictEqual((await call(otherBuyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'ملحق', body: 'محاولة غير مصرح بها' } })).status, 404);
+});
+
+
+test('83 — ملفات ملحق العطاء ترتبط بالملحق الصحيح وتتاح فقط لمن يحق له الاطلاع على العطاء', async () => {
+  const buyer = await newBuyer('addendum-file-buyer', 'proc_pro');
+  const tender = await publish(buyer);
+  const contractor = 'add-file-con-' + uniq();
+  await call(contractor, 'POST', '/api/auth/register', {
+    body: { name: 'مقاول وثائق الملحق', email: contractor + '@t.com', password: 'Password123' }
+  });
+  const issued = await call(buyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', {
+    form: makeForm([{ name: 'addendum.pdf', content: 'MMC addendum attachment', type: 'application/pdf' }], {
+      title: 'مخططات معدلة', body: 'يرجى اعتماد المخططات المرفقة مع هذا الملحق.'
+    })
+  });
+  assert.strictEqual(issued.status, 201, JSON.stringify(issued.data));
+  assert.strictEqual(issued.data.addendum.documents.length, 1);
+  const listed = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda');
+  assert.strictEqual(listed.status, 200);
+  const doc = listed.data.addenda[0].documents[0];
+  assert.ok(doc && doc.id);
+  const downloaded = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda/' + issued.data.addendum.id + '/documents/' + doc.id);
+  assert.strictEqual(downloaded.status, 200);
+  assert.match(String(downloaded.data), /MMC addendum attachment/);
+  const otherBuyer = await newBuyer('addendum-file-other-buyer', 'proc_pro');
+  const denied = await call(otherBuyer, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda/' + issued.data.addendum.id + '/documents/' + doc.id);
+  assert.strictEqual(denied.status, 404);
+});
+
+
+test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة لكل مقاول مع ملفات وسعر غير مكشوفين', async () => {
+  const db=getDB(),id='opp_'+uniq();
+  db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`)
+    .run(id,'workspace-test','WS-'+uniq(),'أعمال بنية تحتية','جهة اختبار','JO','2027-01-20','https://example.com/official','open','ar');
+  const contractor='workspace-con-'+uniq(),other='workspace-other-'+uniq();
+  await call(contractor,'POST','/api/auth/register',{body:{name:'مقاول مساحة العمل',email:contractor+'@t.com',password:'Password123'}});
+  await call(other,'POST','/api/auth/register',{body:{name:'مقاول آخر',email:other+'@t.com',password:'Password123'}});
+  const expiredId='opp_'+uniq();
+  db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`)
+    .run(expiredId,'workspace-test','EX-'+uniq(),'عطاء منتهٍ','جهة اختبار','JO','2020-01-01','https://example.com/expired','open','ar');
+  const expired=await call(contractor,'GET','/api/opportunities/'+expiredId+'/workspace');
+  assert.strictEqual(expired.status,409,'يجب منع تجهيز عرض بعد موعد الإغلاق');
+  const invalidDateId='opp_'+uniq();
+  db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`)
+    .run(invalidDateId,'workspace-test','BAD-'+uniq(),'عطاء بتاريخ غير واضح','جهة اختبار','JO','موعد غير معروف','https://example.com/invalid','open','ar');
+  const invalidDate=await call(contractor,'GET','/api/opportunities/'+invalidDateId+'/workspace');
+  assert.strictEqual(invalidDate.status,409,'يجب منع التجهيز عند غموض تاريخ الإغلاق');
+  const initial=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
+  assert.strictEqual(initial.status,200,JSON.stringify(initial.data));
+  assert.strictEqual(initial.data.workspace.status,'draft');
+  const upload=await call(contractor,'POST','/api/opportunities/'+id+'/workspace/files',{
+    form:makeForm([{name:'technical.pdf',content:'private technical bid file',type:'application/pdf'}],{fileKind:'technical'})
+  });
+  assert.strictEqual(upload.status,201,JSON.stringify(upload.data));
+  const incomplete=await call(contractor,'PUT','/api/opportunities/'+id+'/workspace',{body:{
+    technicalSummary:'ملخص فني واضح',methodology:'منهجية التنفيذ والضبط',experience:'مشاريع مشابهة',
+    financialAmount:125000,financialCurrency:'JOD',status:'ready_for_external_submission'
+  }});
+  assert.strictEqual(incomplete.status,409,'لا تعتمد الجاهزية دون ملف مالي');
+  const financialUpload=await call(contractor,'POST','/api/opportunities/'+id+'/workspace/files',{
+    form:makeForm([{name:'financial.xlsx',content:'private financial bid file',type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}],{fileKind:'financial'})
+  });
+  assert.strictEqual(financialUpload.status,201,JSON.stringify(financialUpload.data));
+  const saved=await call(contractor,'PUT','/api/opportunities/'+id+'/workspace',{body:{
+    technicalSummary:'ملخص فني واضح',methodology:'منهجية التنفيذ والضبط',experience:'مشاريع مشابهة',
+    financialAmount:125000,financialCurrency:'JOD',status:'ready_for_external_submission'
+  }});
+  assert.strictEqual(saved.status,200,JSON.stringify(saved.data));
+  assert.strictEqual(saved.data.workspace.status,'ready_for_external_submission');
+  assert.strictEqual(saved.data.workspace.financialAmount,125000);
+  assert.strictEqual(saved.data.workspace.files.length,2);
+  assert.deepStrictEqual(saved.data.workspace.files.map(x=>x.fileKind).sort(),['financial','technical']);
+  const download=await call(contractor,'GET','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
+  assert.strictEqual(download.status,200);
+  assert.match(String(download.data),/private technical bid file/);
+  const removed=await call(contractor,'DELETE','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
+  assert.strictEqual(removed.status,200,JSON.stringify(removed.data));
+  const afterDelete=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
+  assert.strictEqual(afterDelete.data.workspace.files.length,1);
+  assert.strictEqual(afterDelete.data.workspace.status,'draft');
+  const otherView=await call(other,'GET','/api/opportunities/'+id+'/workspace');
+  assert.strictEqual(otherView.status,200);
+  assert.notStrictEqual(otherView.data.workspace.id,saved.data.workspace.id);
+  assert.strictEqual(otherView.data.workspace.financialAmount,null);
+  assert.strictEqual(otherView.data.workspace.files.length,0);
+  assert.strictEqual((await call('anon','GET','/api/opportunities/'+id+'/workspace')).status,401);
+});
+
+test('80A — دليل العطاءات يدعم التنقل بين صفحات النتائج دون فقدان العدد الإجمالي', async () => {
+  const db = getDB(), token = 'PaginationCheck' + uniq();
+  const insert = db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  for (let i = 1; i <= 5; i++) {
+    insert.run('opp_' + uniq(),'pagination-test',token + '-' + i,token + ' tender ' + i,'Pagination Authority','INT','Works',token + '-' + i,'Pagination fixture','2099-12-' + String(i).padStart(2,'0'),'https://example.com/pagination/' + i,'open','en');
+  }
+  const first = await call('anon','GET','/api/opportunities?q=' + token + '&page=1&pageSize=2');
+  assert.strictEqual(first.status,200);
+  assert.strictEqual(first.data.count,2);
+  assert.strictEqual(first.data.total,5);
+  assert.strictEqual(first.data.page,1);
+  assert.strictEqual(first.data.pages,3);
+  const last = await call('anon','GET','/api/opportunities?q=' + token + '&page=3&pageSize=2');
+  assert.strictEqual(last.status,200);
+  assert.strictEqual(last.data.count,1);
+  assert.strictEqual(last.data.total,5);
+  assert.strictEqual(last.data.page,3);
 });

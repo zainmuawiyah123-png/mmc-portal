@@ -50,7 +50,7 @@ const ORG_ROLES = {
   procurement: { ar: 'المشتريات', en: 'Procurement' },
   finance: { ar: 'المالية', en: 'Finance' }
 };
-const PUBLIC_DOC_KINDS = ['drawings', 'specifications', 'boq', 'conditions', 'particular_conditions'];
+const PUBLIC_DOC_KINDS = ['drawings', 'specifications', 'boq', 'conditions', 'particular_conditions', 'addenda'];
 const DOC_KINDS = ['brief', ...PUBLIC_DOC_KINDS, 'internal'];
 const FIDIC_BOOKS = {
   red: { ar: 'الكتاب الأحمر — أعمال تصمّمها الجهة', en: 'Red Book — works designed by the Employer' },

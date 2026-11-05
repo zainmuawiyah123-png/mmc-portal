@@ -142,9 +142,10 @@ function ibanValid(s) {
   for (const ch of r) rem = (rem * 10 + Number(ch)) % 97;
   return rem === 1;
 }
-config.PAYMENT_IBAN_VALID = ibanValid(config.PAYMENT.iban);
-if (!config.PAYMENT_IBAN_VALID) {
-  console.warn('[WARN] PAYMENT_IBAN غير صحيح (فشل فحص المجموع) — راجع الآيبان في .env قبل استقبال أي دفعة.');
+config.PAYMENT_IBAN_CONFIGURED = Boolean(config.PAYMENT.iban);
+config.PAYMENT_IBAN_VALID = config.PAYMENT_IBAN_CONFIGURED && ibanValid(config.PAYMENT.iban);
+if (config.PAYMENT_IBAN_CONFIGURED && !config.PAYMENT_IBAN_VALID) {
+  console.warn('[WARN] PAYMENT_IBAN مُدخل لكنه غير صحيح (فشل فحص المجموع) — راجع الآيبان في .env قبل استقبال أي دفعة.');
 }
 
 if (config.IS_PROD && config.IS_DEFAULT_SECRET) {

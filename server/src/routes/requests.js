@@ -61,6 +61,7 @@ const canEditBasic = (m, u, r) => (m.role === 'requester' && isOwnReq(u, r) && [
 const canEditTech = (m, r) => WHO.projects(m) && r.status === 'in_study';
 function canUploadKind(m, u, r, kind) {
   if (kind === 'brief') return (m.role === 'manager' && ['draft', 'returned', 'submitted'].includes(r.status)) || (m.role === 'requester' && isOwnReq(u, r) && ['draft', 'returned'].includes(r.status));
+  if (kind === 'addenda') return ['projects', 'procurement', 'manager'].includes(m.role) && ['in_study', 'ready', 'published'].includes(r.status);
   return WHO.projects(m) && r.status === 'in_study';
 }
 

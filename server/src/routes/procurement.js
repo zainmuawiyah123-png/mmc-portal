@@ -4,11 +4,15 @@
  * المالي لا يعاد من API التقييم إلا بعد اجتياز الحد الفني.
  */
 const express = require('express');
+const multer = require('multer');
+const config = require('../config');
+const S = require('../lib/storage');
 const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
 const O = require('../lib/org');
 const { AppError } = require('../lib/errors');
+const { audit } = require('../lib/audit');
 
 const router = express.Router();
 router.use(A.requireAuth);
@@ -21,6 +25,14 @@ const procOnly = [buyer, (req, res, next) => {
   return next();
 }];
 const contractor = A.requireRole('contractor', 'admin');
+const addendumUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: config.MAX_FILE_BYTES, files: 5 },
+  fileFilter: (req, file, cb) => {
+    try { S.assertAllowed(file.originalname, 0); cb(null, true); }
+    catch (err) { cb(err); }
+  }
+});
 
 function cleanRequirement(r, i) {
   return {
@@ -105,6 +117,96 @@ function publicDocs(t) {
   return getDB().prepare('SELECT id, kind, original_name name, mime, size FROM request_docs WHERE request_id = ? AND kind IN (' + O.PUBLIC_DOC_KINDS.map(() => '?').join(',') + ') ORDER BY uploaded_at').all(t.request_id, ...O.PUBLIC_DOC_KINDS);
 }
 const withIssuer = (t, reqs) => ({ ...tenderShape(t, reqs), issuer: O.issuerOf(t.user_id), fidic: fidicOf(t), documentsCount: publicDocs(t).length });
+
+
+/* Public clarifications for published MMC tenders. Contractor identities stay private to other bidders. */
+router.get('/tenders/:id/clarifications', wrap(async (req,res) => {
+  const x=getTender(req.params.id), isBuyer=['buyer','admin'].includes(req.user.role);
+  if(isBuyer) ensureBuyerOwn(req,req.params.id);
+  else if(req.user.role!=='contractor'||x.t.procurement_status!=='published'||!O.ownerVerified(x.t.user_id)) throw E.notFound('العطاء غير متاح.');
+  const rows=x.db.prepare('SELECT r.id,r.user_id,r.text,r.status,r.created_at,u.name questioner FROM requests r JOIN users u ON u.id=r.user_id WHERE r.tender_id=? AND r.kind=? ORDER BY r.created_at,r.id').all(x.t.id,'question');
+  const answers=x.db.prepare('SELECT a.request_id,a.text,a.created_at,u.name answerer FROM request_answers a JOIN users u ON u.id=a.user_id JOIN requests r ON r.id=a.request_id WHERE r.tender_id=? AND r.kind=? ORDER BY a.created_at,a.id').all(x.t.id,'question');
+  const byQuestion=new Map();
+  for(const a of answers){if(!byQuestion.has(a.request_id))byQuestion.set(a.request_id,[]);byQuestion.get(a.request_id).push({text:a.text,createdAt:a.created_at,answerer:isBuyer?a.answerer:'جهة الطرح'});}
+  res.json({clarifications:rows.map(r=>({id:r.id,question:r.text,status:r.status,createdAt:r.created_at,isMine:!isBuyer&&r.user_id===req.user.id,questioner:isBuyer?r.questioner:null,answers:byQuestion.get(r.id)||[]}))});
+}));
+
+router.post('/tenders/:id/clarifications', contractor, wrap(async(req,res)=>{
+  const x=getTender(req.params.id), question=String(req.body?.question||req.body?.text||'').trim().slice(0,3000);
+  if(x.t.procurement_status!=='published')throw E.conflict('العطاء غير منشور حالياً.');
+  if(!O.ownerVerified(x.t.user_id))throw E.conflict('جهة العطاء غير موثقة حالياً.');
+  if(isExpired(x.t.closing,x.t.country))throw E.conflict('انتهى موعد استلام الاستفسارات لهذا العطاء.');
+  if(question.length<5)throw E.validation('اكتب استفساراً واضحاً لا يقل عن 5 أحرف.');
+  const id=uid('qst_');
+  x.db.prepare("INSERT INTO requests (id,tender_id,user_id,kind,text,status) VALUES (?,?,?,'question',?,'open')").run(id,x.t.id,req.user.id,question);
+  audit({action:'tender_clarification_asked',entity:'tender',entityId:x.t.id,userId:req.user.id,ip:req.ip,detail:{clarificationId:id}});
+  res.status(201).json({clarification:{id,question,status:'open',createdAt:Math.floor(Date.now()/1000),isMine:true,answers:[]}});
+}));
+
+router.post('/clarifications/:id/answer', procOnly, wrap(async(req,res)=>{
+  const db=getDB(), answer=String(req.body?.answer||req.body?.text||'').trim().slice(0,4000);
+  if(answer.length<2)throw E.validation('اكتب إجابة واضحة للاستفسار.');
+  const row=db.prepare("SELECT r.*,t.user_id buyer_id,t.procurement_status,t.id tender_id FROM requests r JOIN tenders t ON t.id=r.tender_id WHERE r.id=? AND r.kind='question'").get(req.params.id);
+  if(!row||(req.user.role!=='admin'&&!O.canManageUserTenders(req.user,row.buyer_id)))throw E.notFound('الاستفسار غير موجود.');
+  if(row.status==='closed')throw E.conflict('تمت الإجابة عن هذا الاستفسار مسبقاً.');
+  const id=uid('ans_');
+  db.transaction(()=>{
+    db.prepare('INSERT INTO request_answers (id,request_id,user_id,text) VALUES (?,?,?,?)').run(id,row.id,req.user.id,answer);
+    db.prepare("UPDATE requests SET status='closed' WHERE id=?").run(row.id);
+  })();
+  audit({action:'tender_clarification_answered',entity:'tender',entityId:row.tender_id,userId:req.user.id,ip:req.ip,detail:{clarificationId:row.id,answerId:id}});
+  res.status(201).json({answer:{id,text:answer,createdAt:Math.floor(Date.now()/1000)},status:'closed'});
+}));
+
+
+/* Tender addenda: text and files are attached to one tender/addendum, not orphaned request documents. */
+router.get('/tenders/:id/addenda', wrap(async(req,res)=>{
+ const x=getTender(req.params.id),isBuyer=['buyer','admin'].includes(req.user.role);
+ if(isBuyer)ensureBuyerOwn(req,req.params.id);
+ else if(req.user.role!=='contractor'||x.t.procurement_status!=='published'||!O.ownerVerified(x.t.user_id))throw E.notFound('العطاء غير متاح.');
+ const rows=x.db.prepare('SELECT id,title,body,created_at FROM tender_addenda WHERE tender_id=? ORDER BY created_at,id').all(x.t.id);
+ const docs=x.db.prepare('SELECT id,addendum_id,original_name name,mime,size FROM tender_addendum_documents WHERE addendum_id IN (SELECT id FROM tender_addenda WHERE tender_id=?) ORDER BY uploaded_at,id').all(x.t.id);
+ const byId=new Map();
+ for(const d of docs){if(!byId.has(d.addendum_id))byId.set(d.addendum_id,[]);byId.get(d.addendum_id).push({id:d.id,name:d.name,mime:d.mime,size:d.size});}
+ res.json({addenda:rows.map(r=>({...r,createdAt:r.created_at,documents:byId.get(r.id)||[]}))});
+}));
+router.post('/tenders/:id/addenda',procOnly,addendumUpload.array('files',5),wrap(async(req,res)=>{
+ const x=ensureBuyerOwn(req,req.params.id);
+ if(x.t.procurement_status!=='published')throw E.conflict('لا يمكن إصدار ملحق قبل نشر العطاء.');
+ const title=String(req.body?.title||'').trim().slice(0,200),body=String(req.body?.body||'').trim().slice(0,5000);
+ const files=req.files||[];
+ if(title.length<3||(!body||body.length<5)&&!files.length)throw E.validation('أدخل عنوان الملحق ونصاً واضحاً أو أرفق ملفاً واحداً على الأقل.');
+ const id=uid('add_'),db=x.db,store=S.getStorage(),saved=[];
+ try{
+  for(const f of files){
+   const key=`tender-addenda/${x.t.id}/${id}/${S.makeStoredName(f.originalname)}`;
+   const put=await store.put(key,f.buffer,{mime:f.mimetype,originalName:S.displayName(f.originalname)});
+   saved.push({id:uid('adddoc_'),key,driver:store.DRIVER,name:S.displayName(f.originalname),mime:f.mimetype,size:f.size,checksum:put.checksum});
+  }
+  db.transaction(()=>{
+   db.prepare('INSERT INTO tender_addenda (id,tender_id,user_id,title,body) VALUES (?,?,?,?,?)').run(id,x.t.id,req.user.id,title,body||'مرفق وثيقة ملحق العطاء.');
+   const ins=db.prepare('INSERT INTO tender_addendum_documents (id,addendum_id,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?)');
+   for(const d of saved)ins.run(d.id,id,d.key,d.driver,d.name,d.mime,d.size,d.checksum,req.user.id);
+  })();
+ }catch(err){
+  for(const d of saved){try{await store.delete(d.key);}catch(_){}}
+  throw err;
+ }
+ audit({action:'tender_addendum_issued',entity:'tender',entityId:x.t.id,userId:req.user.id,ip:req.ip,detail:{addendumId:id,title,documents:saved.length}});
+ res.status(201).json({addendum:{id,title,body:body||'مرفق وثيقة ملحق العطاء.',createdAt:Math.floor(Date.now()/1000),documents:saved.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size}))}});
+}));
+router.get('/tenders/:id/addenda/:addendumId/documents/:docId',wrap(async(req,res)=>{
+ const x=getTender(req.params.id);
+ if(!docsAccess(req,x.t))throw E.notFound('العطاء غير متاح.');
+ const d=x.db.prepare('SELECT * FROM tender_addendum_documents WHERE id=? AND addendum_id=? AND addendum_id IN (SELECT id FROM tender_addenda WHERE tender_id=?)').get(req.params.docId,req.params.addendumId,x.t.id);
+ if(!d)throw E.notFound('وثيقة الملحق غير موجودة.');
+ const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+ if(!(await store.exists(d.storage_key)))throw E.notFound('ملف الوثيقة غير موجود في التخزين.');
+ res.setHeader('Content-Type',d.mime||'application/octet-stream');
+ res.setHeader('Content-Disposition', "attachment; filename*=UTF-8\'\'" + encodeURIComponent(d.original_name));
+ res.setHeader('Cache-Control','private, no-store');
+ store.stream(d.storage_key).pipe(res);
+}));
 
 /* قائمة العطاءات المنشورة للمقاول */
 router.get('/open-tenders', contractor, wrap(async (req, res) => {

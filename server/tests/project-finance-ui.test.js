@@ -62,10 +62,14 @@ test('MMCUI-01 — دليل العطاءات يضم مصادر الأردن وا
   assert.ok(links.length >= 10, 'يجب توفير مجموعة روابط مصادر مباشرة');
 });
 
-test('MMCUI-02 — روابط المصادر الخارجية تفتح بأمان، والدليل لا يدّعي الاستيراد الآلي', () => {
+test('MMCUI-02 — المصادر الخارجية مرجع فقط والبحث الداخلي يوضح حالة الربط', () => {
   assert.match(tenderDirectory, /target="_blank" rel="noopener"/);
-  assert.match(tenderDirectory, /لا ندّعي أن كل إعلان/);
-  assert.match(tenderDirectory, /Verify the original notice/);
+  assert.match(tenderDirectory, /لا تعتبر إجراءات الاستفسارات/);
+  assert.match(tenderDirectory, /Official sources for reference and verification/);
+  assert.match(tenderDirectory, /id="opp-authority"/);
+  assert.match(tenderDirectory, /id="opp-sector"/);
+  assert.match(tenderDirectory, /id="opp-from"/);
+  assert.match(tenderDirectory, /id="opp-to"/);
 });
 
 test('MMCUI-03 — دليل العطاءات متاح من بوابتي المقاول والمشتريات', () => {
@@ -267,4 +271,129 @@ test('OPP-24 — لوحة العطاءات تعرض سجل المصدر ونتي
   assert.ok(tenderDirectory.includes('oa-sync-history-refresh'));
   assert.ok(tenderDirectory.includes('received'));
   assert.ok(tenderDirectory.includes('duration_ms'));
+});
+
+test('OPP-25 — JONEPS details and public documents are indexed and served only from approved hosts', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const connector = fs.readFileSync(path.join(__dirname, '../src/lib/joneps-sync.js'), 'utf8');
+  assert.ok(connector.includes('parseJonepsDetail'));
+  assert.ok(connector.includes('persistJonepsDetails'));
+  assert.ok(connector.includes('redirect:\'manual\''));
+  assert.ok(route.includes("'www.joneps.gov.jo','joneps.gov.jo'"));
+  assert.ok(route.includes("details.qualification||null"));
+  assert.ok(route.includes("router.get('/documents/:docId'"));
+  assert.ok(tenderDirectory.includes('/api/opportunities/documents/'));
+});
+
+test('OPP-26 — JONEPS detail parser separates Arabic fee, bond and qualification fields', () => {
+  const { parseJonepsDetail } = require('../src/lib/joneps-sync');
+  const detail = parseJonepsDetail(
+    '<div>تاريخ شراء الوثائق: 01/11/2026</div><div>آخر موعد لتقديم العروض: 20/12/2099</div><div>ثمن نسخة العطاء: 25 دينار كفالة دخول العطاء: 5% تصنيف المقاول: أول أشغال ملاحظات: زيارة موقع</div><a href="/docs/boq.pdf">جدول الكميات</a>',
+    'https://www.joneps.gov.jo/ep/invt/viewTender.do?id=1'
+  );
+  assert.equal(detail.purchase, '01/11/2026');
+  assert.equal(detail.closing, '20/12/2099');
+  assert.equal(detail.fee, '25 دينار');
+  assert.equal(detail.bond, '5%');
+  assert.equal(detail.qualification, 'أول أشغال');
+  assert.equal(detail.remarks, 'زيارة موقع');
+  assert.equal(detail.docs.length, 1);
+});
+
+test('OPP-27 — APC public documents open only verified HTTPS source hosts', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const connector = fs.readFileSync(path.join(__dirname, '../src/lib/apc-sync.js'), 'utf8');
+  assert.ok(connector.includes('arabpotash-my.sharepoint.com'));
+  assert.ok(connector.includes("'arab-potash-company:'+t.pid+':'+d.url"), 'APC document IDs must remain stable when the opportunity row is recreated');
+  assert.ok(route.includes('arabpotash-my.sharepoint.com'));
+  assert.ok(route.includes("target.protocol!=='https:'"));
+  assert.ok(route.includes("approvedHosts.has(target.hostname)"));
+  assert.ok(route.includes("return res.redirect(302,target.toString())"));
+  assert.ok(route.includes("Referrer-Policy','no-referrer"));
+  assert.ok(!route.includes("redirect:'manual'"), 'the MMC server must not proxy external SharePoint downloads');
+});
+
+test('OPP-28 — بوابة المقاول والمشتريات تعرضان دورة الاستفسار والإجابة', () => {
+  assert.ok(contractorPortal.includes("'/procurement/tenders/'+current.id+'/clarifications'"));
+  assert.ok(contractorPortal.includes('clarification-question'));
+  assert.ok(procurementPortal.includes('/procurement/clarifications/'));
+  assert.ok(procurementPortal.includes('qa-answer'));
+  const migration = fs.readFileSync(path.join(__dirname, '../src/migrate.js'), 'utf8');
+  assert.ok(migration.includes('CREATE TABLE IF NOT EXISTS request_answers'));
+});
+
+test('OPP-29 — الملاحق العامة تظهر للمقاول ويمكن رفع ملفاتها كوثائق عامة', () => {
+  assert.ok(contractorPortal.includes("'/procurement/tenders/'+current.id+'/addenda'"));
+  assert.ok(procurementPortal.includes("'/procurement/tenders/'+id+'/addenda'"));
+  assert.ok(procurementPortal.includes("'/procurement/tenders/'+id+'/addenda'"));
+  const org = fs.readFileSync(path.join(__dirname, '../src/lib/org.js'), 'utf8');
+  const requests = fs.readFileSync(path.join(__dirname, '../src/routes/requests.js'), 'utf8');
+  assert.ok(org.includes("'addenda'"));
+  assert.ok(requests.includes("kind === 'addenda'"));
+});
+
+
+test('OPP-30 — مساحة تجهيز عروض العطاءات الخارجية محمية ومتصلة بواجهة الدليل', () => {
+  const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
+  const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
+  for(const token of ['data-workspace','wb-summary','wb-method','wb-exp','wb-amount','wb-files','wb-ready','data-delete-file']) assert.ok(tenderDirectory.includes(token),'واجهة مساحة التجهيز: '+token);
+  for(const token of ["router.get('/:id/workspace'","router.put('/:id/workspace'","router.post('/:id/workspace/files'","router.delete('/:id/workspace/files/:fileId'","router.get('/:id/workspace/files/:fileId'"]) assert.ok(route.includes(token),'مسار مفقود: '+token);
+  for(const token of ['opportunity_bid_workspaces','opportunity_bid_files','UNIQUE(opportunity_id, contractor_id)']) assert.ok(migration.includes(token),'مخطط مفقود: '+token);
+  assert.match(route,/const contractorOnly = \[A\.requireAuth, A\.requireRole\('contractor'\)\]/);
+  assert.match(route,/external_bid_workspace_updated/);
+  assert.match(route,/external_bid_file_deleted/);
+  assert.match(tenderDirectory,/لا يعني الإرسال الرسمي/);
+});
+
+
+test('OPP-31 — متطلبات تكامل اعتماد والإمارات موضحة دون ادعاء ربط غير مصرح به', () => {
+  assert.ok(tenderDirectory.includes('https://apiportal.etimad.sa/en/docs/introduction'));
+  assert.ok(tenderDirectory.includes('https://mof.gov.ae/en/public-finance/government-procurement/digital-procurement-platform/'));
+  assert.match(tenderDirectory,/يتطلب ربط الإنتاج التسجيل وطلب الاشتراك/);
+  assert.match(tenderDirectory,/UAE PASS/);
+});
+
+
+test('OPP-32 — جاهزية العرض الخارجي تتطلب مستندات فنية ومالية وفحص موعد الإغلاق', () => {
+  const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
+  const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
+  assert.match(route,/file_kind/);
+  assert.match(route,/kindCounts\.technical/);
+  assert.match(route,/kindCounts\.financial/);
+  assert.match(route,/amount>0/);
+  assert.match(route,/match\(/);
+  assert.ok(route.includes('Asia/Amman') && route.includes('Asia/Riyadh') && route.includes('Asia/Dubai'));
+  assert.ok(migration.includes("ADD COLUMN file_kind TEXT NOT NULL DEFAULT 'supporting'"));
+  assert.ok(tenderDirectory.includes('wb-file-kind'));
+  assert.ok(tenderDirectory.includes('مرفقات العرض الفني'));
+  assert.ok(tenderDirectory.includes('مرفقات العرض المالي'));
+});
+
+
+test('PFUI-07 — مدير المؤسسة يستطيع إكمال تأكيد المالك واعتماد المالية من حساب واحد', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/project-finance.js'), 'utf8');
+  assert.ok(route.includes("requireOrg(req,['manager','requester'])"));
+  assert.ok(route.includes("requireOrg(req,['manager','finance'])"));
+  assert.ok(html.includes("['manager','requester'].includes(orgRole)"));
+  assert.ok(html.includes("['manager','finance'].includes(orgRole)"));
+  assert.ok(route.includes('actor_user_id,actor_role'));
+});
+
+test('PFUI-08 — غياب IBAN لا يوصف بأنه IBAN غير صالح، أما المدخل الخاطئ فيحذر', () => {
+  const config = fs.readFileSync(path.join(__dirname, '../src/config.js'), 'utf8');
+  assert.ok(config.includes('PAYMENT_IBAN_CONFIGURED = Boolean(config.PAYMENT.iban)'));
+  assert.ok(config.includes('if (config.PAYMENT_IBAN_CONFIGURED && !config.PAYMENT_IBAN_VALID)'));
+});
+
+
+test('MMCUI-04 — دليل العطاءات يتيح فصل النتائج حسب مصدرها داخل MMC', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.match(tenderDirectory, /id="opp-source"/);
+  assert.match(tenderDirectory, /value="arab-potash-company"/);
+  assert.match(tenderDirectory, /value="joneps"/);
+  assert.match(tenderDirectory, /value="worldbank"/);
+  assert.match(tenderDirectory, /value="ungm"/);
+  assert.ok(tenderDirectory.includes("p.set('sourceKey',source.value)"));
+  assert.ok(route.includes("sourceKey=clean(req.query.sourceKey,80)"));
+  assert.ok(route.includes("clauses.push('source_key=?')"));
 });

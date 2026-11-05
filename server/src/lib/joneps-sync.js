@@ -48,11 +48,80 @@ function parseJonepsRows(html){
  }
  return out;
 }
+
+const JONEPS_HOSTS=new Set(['www.joneps.gov.jo','joneps.gov.jo']);
+function plainDetail(html){
+ return clean(String(html||'').replace(/<script\b[\s\S]*?<\/script>/gi,' ').replace(/<style\b[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' '));
+}
+function parseJonepsDetail(html,sourceUrl){
+ const text=plainDetail(html);
+ const pick=(patterns)=>{for(const p of patterns){const m=text.match(p);if(m&&m[1])return clean(m[1],1500);}return null;};
+ const purchase=pick([/(?:تاريخ\s*(?:شراء|طرح)\s*(?:العطاء|الوثائق)|Purchase\s*Date)\s*:?\s*([\d/.-]+)/i]);
+ const closing=pick([/(?:آخر\s*موعد\s*(?:لتقديم|لإيداع)\s*(?:العروض|الاستفسارات)|تاريخ\s*الإغلاق|Closing\s*Date|Submission\s*Deadline)\s*:?\s*([\d/.-]+)/i]);
+ const fee=pick([/(?:ثمن\s*(?:نسخة|وثائق)\s*العطاء|رسوم\s*الوثائق|Document\s*Fee)\s*:?\s*(.{1,120}?)(?=\s+(?:كفالة(?:\s+(?:دخول|العطاء))?|Bid\s*Bond|شروط|تصنيف|Eligibility|Qualification|ملاحظات|Remarks)(?:\s|:)|$)/i]);
+ const bond=pick([/(?:كفالة(?:\s+دخول)?(?:\s+العطاء)?|Bid\s*Bond)\s*:?\s*(.{1,160}?)(?=\s+(?:شروط|تصنيف|Eligibility|Qualification|ملاحظات|Remarks)(?:\s|:)|$)/i]);
+ const qualification=pick([/(?:شروط\s*(?:التأهيل|المشاركة)|تصنيف\s*المقاول|Eligibility|Qualification)\s*:?\s*(.{1,500}?)(?=\s+(?:ملاحظات|Remarks)(?:\s|:)|$)/i]);
+ const remarks=pick([/(?:ملاحظات|Remarks)\s*:?\s*(.{1,500}?)(?=\s+(?:جدول\s*الكميات|مخططات|وثائق|documents?|drawings?|specifications?)(?:\s|$)|$)/i]);
+ const docs=[],seen=new Set(),re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
+ while((m=re.exec(String(html||'')))){
+  try{
+   const u=new URL(m[1],sourceUrl),label=clean(m[2],180);
+   const file=/\.(?:pdf|docx?|xlsx?|zip|dwg|dxf|rar)(?:$|[?#])/i.test(u.pathname+u.search);
+   const named=/(?:وثائق|مواصفات|مخططات|جدول\s*الكميات|تحميل|تنزيل|documents?|specifications?|drawings?|download|boq)/i.test(label);
+   if(u.protocol==='https:'&&JONEPS_HOSTS.has(u.hostname)&&u.pathname!='/ep/invt/selectListTendInvitAL.do'&&(file||named)&&!seen.has(u.toString())){
+    seen.add(u.toString());docs.push({label:label||'وثيقة عطاء عامة',url:u.toString()});
+   }
+  }catch(_){}
+ }
+ return {purchase,closing,fee,bond,qualification,remarks,docs,detailUrl:sourceUrl,verified:true};
+}
+async function fetchJonepsDetail(url){
+ const u=new URL(url);
+ if(u.protocol!=='https:'||!JONEPS_HOSTS.has(u.hostname))throw new Error('Blocked non-JONEPS detail URL');
+ const response=await fetch(u,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:AbortSignal.timeout(18000),redirect:'manual'});
+ if(response.status>=300&&response.status<400)throw new Error('JONEPS detail redirect refused');
+ if(!response.ok)throw new Error('JONEPS detail returned HTTP '+response.status);
+ return parseJonepsDetail(await response.text(),u.toString());
+}
+function persistJonepsDetails(notices,details){
+ const db=getDB(),byId=new Map(details.map(x=>[x.id,x.detail]));
+ const tx=db.transaction(()=>{
+  let detailsSaved=0,documentsSaved=0;
+  for(const n of notices){
+   const detail=byId.get(n.id);if(!detail)continue;
+   const row=db.prepare("SELECT id,status FROM tender_opportunities WHERE source_key='joneps' AND external_id=?").get(n.id);
+   if(!row)continue;
+   const verifiedClosing=dateISO(detail.closing);
+   if(verifiedClosing){
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
+    const status=row.status==='cancelled'?'cancelled':verifiedClosing<today?'closed':'open';
+    db.prepare('UPDATE tender_opportunities SET closing_at=?,status=?,updated_at=unixepoch() WHERE id=?').run(verifiedClosing,status,row.id);
+   }
+   const payload={...detail,detailUrl:n.sourceUrl};
+   db.prepare('INSERT INTO tender_opportunity_details (opportunity_id,details_json,verified_at) VALUES (?,?,unixepoch()) ON CONFLICT(opportunity_id) DO UPDATE SET details_json=excluded.details_json,verified_at=unixepoch()').run(row.id,JSON.stringify(payload));
+   db.prepare('DELETE FROM tender_opportunity_documents WHERE opportunity_id=?').run(row.id);
+   const add=db.prepare("INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,'public')");
+   const crypto=require('crypto');
+   for(const doc of detail.docs)add.run('jndoc_'+crypto.createHash('sha1').update(row.id+doc.url).digest('hex'),row.id,doc.label,doc.url);
+   detailsSaved++;documentsSaved+=detail.docs.length;
+  }
+  return {detailsSaved,documentsSaved};
+ });
+ return tx();
+}
+
+async function mapLimit(items,limit,fn){
+ const out=new Array(items.length);let next=0;
+ const workers=Array.from({length:Math.min(Math.max(1,limit),items.length)},async()=>{while(true){const i=next++;if(i>=items.length)return;try{out[i]=await fn(items[i],i);}catch(error){out[i]={error};}}});
+ await Promise.all(workers);return out;
+}
 async function syncJONEPS({maxPages=100}={}){
  const fetchPage=async url=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
   try{
-   const response=await fetch(url,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});
+   const u=new URL(url);if(u.protocol!=='https:'||!JONEPS_HOSTS.has(u.hostname))throw new Error('Blocked non-JONEPS listing URL');
+   const response=await fetch(u,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal,redirect:'manual'});
+   if(response.status>=300&&response.status<400)throw new Error('JONEPS listing redirect refused');
    if(!response.ok)throw new Error('JONEPS returned HTTP '+response.status);
    return await response.text();
   }finally{clearTimeout(timer);}
@@ -63,6 +132,10 @@ async function syncJONEPS({maxPages=100}={}){
  for(const url of pageUrls.slice(1))htmlPages.push(await fetchPage(url));
  const notices=[...new Map(htmlPages.flatMap(parseJonepsRows).map(n=>[n.id,n])).values()];
  if(!notices.length)throw new Error('JONEPS page loaded but no recognizable tender rows were found; importer stopped without changing records.');
+ const detailTargets=notices.filter(n=>n.sourceUrl&&n.sourceUrl!==LIST_URL);
+ const detailResults=await mapLimit(detailTargets,5,async n=>({id:n.id,detail:await fetchJonepsDetail(n.sourceUrl)}));
+ const detailFailures=detailResults.flatMap((x,i)=>x&&x.error?[{id:detailTargets[i].id,message:x.error.message}]:[]);
+ const verifiedDetails=detailResults.filter(x=>x&&!x.error);
  const db=getDB();
  const upsert=db.prepare(`INSERT INTO tender_opportunities
  (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
@@ -80,6 +153,8 @@ async function syncJONEPS({maxPages=100}={}){
   }
   return {added,updated};
  });
- return {...tx(notices),received:notices.length,normalized:notices.length,source:'joneps',sourceUrl:LIST_URL};
+ const counts=tx(notices);
+ const detailStats=persistJonepsDetails(notices,verifiedDetails);
+ return {...counts,...detailStats,received:notices.length,normalized:notices.length,detailFailures:detailFailures.length,failed:detailFailures.length,source:'joneps',sourceUrl:LIST_URL};
 }
-module.exports={parseJonepsRows,extractPageUrls,syncJONEPS,LIST_URL};
+module.exports={parseJonepsRows,extractPageUrls,parseJonepsDetail,persistJonepsDetails,mapLimit,syncJONEPS,LIST_URL};

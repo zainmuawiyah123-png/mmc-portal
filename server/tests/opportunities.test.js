@@ -2,9 +2,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseJonepsRows, extractPageUrls, LIST_URL } = require('../src/lib/joneps-sync');
+const { parseJonepsRows, extractPageUrls, parseJonepsDetail, mapLimit, LIST_URL } = require('../src/lib/joneps-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
 const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
+const { parseDetail, dateISO, extractTenderNumber } = require('../src/lib/apc-sync');
 
 test('JONEPS parser maps an official tender row and keeps its source on the JONEPS domain', () => {
   const html = '<table><tr><td>2026-001</td><td><a href="/ep/invt/viewTender.do?id=2026-001">أعمال طرق</a></td><td>وزارة الأشغال</td><td>أشغال</td><td>01/11/2026</td><td>31/12/2099</td></tr></table>';
@@ -76,4 +77,87 @@ test('UNGM normalizer imports finalized notices and maps Jordan country codes', 
 
 test('UNGM normalizer never imports draft or non-finalized notices', () => {
   assert.equal(normalizeUNGMNotice({ Id: 'UN-2', Title: 'Draft', Status: 'Draft' }), null);
+});
+
+test('APC parser extracts public tender details, dates, bond, fees and same-host documents', () => {
+  const html = '<html><body><h1>Tender title and number: Civil works package APC-2026-01</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2099</div><div>Copy Price: 50 JOD</div><div>Bid Bond Value: 5%</div><div>Vendor Qualifications: Class 1 civil contractor</div><div>Remarks: Site visit required</div><a href="/files/tender.pdf">Tender Documents</a><a href="https://evil.example/steal.pdf">Announcement</a></body></html>';
+  const row = parseDetail(html, '98765');
+  assert.equal(row.title, 'Civil works package APC-2026-01');
+  assert.equal(row.purchase, '01/11/2026');
+  assert.equal(row.closing, '20/11/2099');
+  assert.equal(row.fee, '50 JOD');
+  assert.equal(row.bond, '5%');
+  assert.equal(row.qual, 'Class 1 civil contractor');
+  assert.equal(row.docs.length, 1);
+  assert.equal(new URL(row.docs[0].url).hostname, 'www.arabpotash.com');
+});
+
+
+test('APC detail parser deduplicates repeated public document URLs', () => {
+  const url = 'https://www.arabpotash.com/En/TendersDetails?PID=2279';
+  const html = '<h1>Tender title and number: Prequalification Earthworks</h1>' +
+    '<a href="/files/boq.pdf">Tender Documents</a>' +
+    '<a href="https://www.arabpotash.com/files/boq.pdf">Announcement Documents</a>';
+  const row = parseDetail(html, '2279');
+  assert.equal(row.docs.length, 1);
+  assert.equal(row.docs[0].url, 'https://www.arabpotash.com/files/boq.pdf');
+});
+
+test('APC tender number extraction captures the full reference and rejects stray single letters', () => {
+  assert.equal(extractTenderNumber('IFB No. 202603638/ZM - Soil Replacement and Landscaping'), '202603638/ZM');
+  assert.equal(extractTenderNumber('IFB. No: 202603541/ZM - Supply and Install Canopy'), '202603541/ZM');
+  assert.equal(extractTenderNumber('Prequalification for civil works package'), null);
+});
+
+test('APC date parser rejects impossible dates', () => {
+  assert.equal(dateISO('31/02/2027'), null);
+  assert.equal(dateISO('20/11/2099'), '2099-11-20');
+});
+
+test('JONEPS detail parser extracts public tender dates and fees and filters document hosts', () => {
+  const url = 'https://www.joneps.gov.jo/ep/invt/viewTender.do?id=2026-001';
+  const html = '<html><body><div>تاريخ شراء الوثائق: 01/11/2026</div><div>آخر موعد لتقديم العروض: 20/12/2099</div><div>ثمن نسخة العطاء: 25 دينار كفالة دخول العطاء: 5% تصنيف المقاول: أول أشغال ملاحظات: زيارة موقع</div><a href="/docs/boq.pdf">جدول الكميات</a><a href="https://evil.example/secret.pdf">تحميل المخططات</a></body></html>';
+  const detail = parseJonepsDetail(html, url);
+  assert.equal(detail.purchase, '01/11/2026');
+  assert.equal(detail.closing, '20/12/2099');
+  assert.equal(detail.fee, '25 دينار');
+  assert.equal(detail.bond, '5%');
+  assert.equal(detail.qualification, 'أول أشغال');
+  assert.equal(detail.remarks, 'زيارة موقع');
+  assert.equal(detail.docs.length, 1);
+  assert.equal(new URL(detail.docs[0].url).hostname, 'www.joneps.gov.jo');
+  assert.equal(detail.verified, true);
+});
+
+test('JONEPS detail parser does not trust non-HTTPS or external document URLs', () => {
+  const detail = parseJonepsDetail('<a href="http://www.joneps.gov.jo/files/a.pdf">Download</a><a href="https://evil.example/a.pdf">Documents</a>', 'https://www.joneps.gov.jo/ep/invt/viewTender.do?id=1');
+  assert.equal(detail.docs.length, 0);
+});
+
+test('APC detail parser indexes official public SharePoint document links without accepting unrelated hosts', () => {
+  const html = '<h1>Tender title and number: Prequalification Earthworks</h1><div>Purchase Date: 01/11/2026</div><div>Closing date: 20/11/2099</div><a href="https://arabpotash-my.sharepoint.com/:b:/p/public/abc?e=123">Prequalification Documents</a><a href="https://evil.example/file.pdf">Tender Documents</a>';
+  const row = parseDetail(html, '2279');
+  assert.equal(row.docs.length, 1);
+  assert.equal(new URL(row.docs[0].url).hostname, 'arabpotash-my.sharepoint.com');
+});
+
+
+test('APC detail parser indexes file-extension links even when link text is generic', () => {
+  const html = '<h1>Tender title and number: Civil works package APC-2026-02</h1>' +
+    '<a href="/files/boq.pdf?download=1">Open</a>' +
+    '<a href="https://evil.example/private.pdf">Open</a>';
+  const row = parseDetail(html, '2280');
+  assert.equal(row.docs.length, 1);
+  assert.equal(row.docs[0].url, 'https://www.arabpotash.com/files/boq.pdf?download=1');
+});
+
+test('JONEPS mapLimit runs bounded tasks and preserves result order', async () => {
+  let active = 0, maximum = 0;
+  const results = await mapLimit([3, 1, 2, 4], 2, async value => {
+    active++; maximum = Math.max(maximum, active);
+    await new Promise(resolve => setTimeout(resolve, value === 3 ? 8 : 2));
+    active--; return value * 2;
+  });
+  assert.deepEqual(results, [6, 2, 4, 8]);
+  assert.equal(maximum, 2);
 });
