@@ -144,7 +144,7 @@ test('APC detail parser excludes semantic navigation and trailing site menu from
     <nav>Home Work With Us Contact Us</nav>
     <footer>Follow us About Us Overview Board Of Directors</footer>`;
   const parsed = parseDetail(html, '2305');
-  assert.match(parsed.title, /202603602\\/ZM/);
+  assert.ok(parsed.title.includes('202603602/ZM'), 'parsed title must retain the full tender reference');
   assert.equal(parsed.remarks, 'Submit sealed technical offer; attend site visit');
   assert.doesNotMatch(parsed.remarks, /Home|Follow us|Board Of Directors/);
 });
