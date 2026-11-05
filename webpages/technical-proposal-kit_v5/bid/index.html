@@ -5,7 +5,7 @@
  var box=document.getElementById('addenda-list');if(!box||!current)return;
  API.request('GET','/procurement/tenders/'+current.id+'/addenda').then(function(d){
   var rows=d.addenda||[];
-  box.innerHTML=rows.length?rows.map(function(a){return '<div class="note"><b>'+esc(a.title)+'</b><p>'+esc(a.body)+'</p><span class="mini">'+new Date(a.createdAt*1000).toLocaleString()+'</span></div>'}).join(''):'<p class="mini">'+T('لا توجد ملاحق منشورة لهذا العطاء.','No addenda have been issued for this tender.')+'</p>';
+  box.innerHTML=rows.length?rows.map(function(a){var files=(a.documents||[]).map(function(doc){var url=API.base+'/procurement/tenders/'+encodeURIComponent(current.id)+'/addenda/'+encodeURIComponent(a.id)+'/documents/'+encodeURIComponent(doc.id);return '<p><a href="'+url+'">'+esc(doc.name)+'</a> <span class="mini">'+Math.round(doc.size/1024)+' KB</span></p>'}).join('');return '<div class="note"><b>'+esc(a.title)+'</b><p>'+esc(a.body)+'</p>'+files+'<span class="mini">'+new Date(a.createdAt*1000).toLocaleString()+'</span></div>'}).join(''):'<p class="mini">'+T('لا توجد ملاحق منشورة لهذا العطاء.','No addenda have been issued for this tender.')+'</p>';
  }).catch(function(e){box.textContent=e.message});
 }
 function loadClarifications(){
