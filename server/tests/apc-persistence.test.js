@@ -13,7 +13,7 @@ const { migrate } = require('../src/migrate');
 const { getDB, closeDB } = require('../src/db');
 const { persist } = require('../src/lib/apc-sync');
 
-test.before(() => { migrate(process.env.DB_PATH); });
+test.before(() => { const migrated = migrate(process.env.DB_PATH); migrated.close(); });
 test.after(() => {
   closeDB();
   fs.rmSync(TMP, { recursive: true, force: true });
