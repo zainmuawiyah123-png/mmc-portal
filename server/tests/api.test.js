@@ -1371,3 +1371,19 @@ test('81 — استفسارات المقاولين وإجابات المشتري
   assert.strictEqual(publicView.data.clarifications[0].answers[0].text, 'نعم، سيتم إرفاق المخطط ضمن وثائق العطاء.');
   assert.strictEqual(publicView.data.clarifications[0].answers[0].answerer, 'جهة الطرح');
 });
+
+test('82 — ملحق العطاء يصدره المشتريات ويظهر للمقاولين فقط ضمن العطاء المنشور', async () => {
+  const buyer = await newBuyer('addendum-buyer', 'proc_pro');
+  const tender = await publish(buyer);
+  const contractor = 'add-con-' + uniq();
+  await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول الملحق', email: contractor + '@t.com', password: 'Password123' } });
+  const issued = await call(buyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'تمديد موعد الزيارة', body: 'تم تمديد موعد زيارة الموقع إلى يوم الخميس الساعة العاشرة صباحاً.' } });
+  assert.strictEqual(issued.status, 201, JSON.stringify(issued.data));
+  const publicList = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda');
+  assert.strictEqual(publicList.status, 200);
+  assert.strictEqual(publicList.data.addenda.length, 1);
+  assert.strictEqual(publicList.data.addenda[0].title, 'تمديد موعد الزيارة');
+  assert.strictEqual(publicList.data.addenda[0].body, 'تم تمديد موعد زيارة الموقع إلى يوم الخميس الساعة العاشرة صباحاً.');
+  const otherBuyer = await newBuyer('other-addendum-buyer', 'proc_pro');
+  assert.strictEqual((await call(otherBuyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'ملحق', body: 'محاولة غير مصرح بها' } })).status, 404);
+});
