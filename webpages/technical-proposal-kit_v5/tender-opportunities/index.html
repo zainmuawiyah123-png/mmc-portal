@@ -21,6 +21,7 @@
 <select id="opp-country" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الدول</option><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="INT">دولي</option></select>
 <select id="opp-status" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الحالات</option><option value="open">مفتوح</option><option value="closed">مغلق</option></select>
 <input id="opp-authority" type="search" placeholder="الجهة الطارحة" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px;min-width:170px">
+<input id="opp-sector" type="search" placeholder="القطاع" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px;min-width:140px">
 <input id="opp-from" type="date" aria-label="الإغلاق من" title="الإغلاق من" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px">
 <input id="opp-to" type="date" aria-label="الإغلاق إلى" title="الإغلاق إلى" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px">
 <button class="btn" id="opp-search">بحث</button></div>
@@ -70,11 +71,11 @@
 
 (function(){
  const results=document.getElementById('opp-results');
- const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),status=document.getElementById('opp-status'),authority=document.getElementById('opp-authority'),closingFrom=document.getElementById('opp-from'),closingTo=document.getElementById('opp-to');
+ const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),status=document.getElementById('opp-status'),authority=document.getElementById('opp-authority'),sector=document.getElementById('opp-sector'),closingFrom=document.getElementById('opp-from'),closingTo=document.getElementById('opp-to');
  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  async function load(){
   results.textContent='جارٍ تحميل النتائج...';
-  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);if(authority.value.trim())p.set('authority',authority.value.trim());if(closingFrom.value)p.set('closingFrom',closingFrom.value);if(closingTo.value)p.set('closingTo',closingTo.value);
+  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);if(authority.value.trim())p.set('authority',authority.value.trim());if(sector.value.trim())p.set('sector',sector.value.trim());if(closingFrom.value)p.set('closingFrom',closingFrom.value);if(closingTo.value)p.set('closingTo',closingTo.value);
   try{
    const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'});
    if(!res.ok)throw new Error('تعذر تحميل الإعلانات');
