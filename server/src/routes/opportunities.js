@@ -60,6 +60,17 @@ router.get('/feed', directoryReaders, wrap(async (req,res) => {
   lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
+
+router.get('/:id', directoryReaders, wrap(async(req,res)=>{
+ const db=getDB(),row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
+ if(!row) throw E.notFound('العطاء غير موجود.');
+ let details=null;
+ try { details=row.details_json?JSON.parse(row.details_json):null; } catch(_) { details=null; }
+ const documents=db.prepare('SELECT label,document_url AS url,availability FROM tender_opportunity_public_documents WHERE opportunity_id=? ORDER BY created_at').all(row.id);
+ res.setHeader('Cache-Control','private, max-age=60');
+ res.json({opportunity:shape(row),details,documents});
+});
+
 // MMC administrators curate/import official notices. No public write access.
 router.use(A.requireAuth, A.requireRole('admin'));
 router.get('/admin/sync-history', wrap(async(req,res)=>{
