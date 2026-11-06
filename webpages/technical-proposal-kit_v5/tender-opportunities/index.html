@@ -68,7 +68,10 @@
  const results=document.getElementById('opp-results');
  const q=document.getElementById('opp-q'),country=document.getElementById('opp-country'),status=document.getElementById('opp-status');
  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let allowed=false;
+ function deny(){document.querySelector('main').innerHTML='<section class="intro"><h1>غير مصرح بالدخول</h1><p>دليل العطاءات الخارجية متاح للمقاول والإدارة فقط.</p></section>';}
  async function load(){
+  if(!allowed)return;
   results.textContent='جارٍ تحميل النتائج...';
   const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);
   try{
@@ -89,8 +92,14 @@
  document.getElementById('opp-search').addEventListener('click',load);
  q.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
  fetch('/api/auth/me',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(me=>{
-  if(me&&(me.user?.role==='admin'||me.role==='admin'))document.getElementById('opp-admin').hidden=false;
- }).catch(()=>{});
+  const isAdmin=me&&(me.user?.role==='admin'||me.role==='admin');
+  const role=isAdmin?'admin':(me?.user?.role||me?.role);
+  if(!['admin','contractor'].includes(role)){deny();return;}
+  allowed=true;
+  if(isAdmin)document.getElementById('opp-admin').hidden=false;
+  load();
+  if(role==='admin')loadSyncHistory();
+ }).catch(()=>deny());
  document.getElementById('oa-sync-worldbank').addEventListener('click',async()=>{
   const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ جلب أحدث الإعلانات من البنك الدولي...';
   try{
@@ -139,8 +148,6 @@
    msg.textContent='تم حفظ الإعلان في دليل MMC.';document.getElementById('oa-id').value='';document.getElementById('oa-title').value='';load();
   }catch(e){msg.textContent=e.message;}
  });
- load();
- loadSyncHistory();
 })();
 
 (function(){var en=false,b=document.getElementById('lang');b.onclick=function(){en=!en;document.documentElement.lang=en?'en':'ar';document.documentElement.dir=en?'ltr':'rtl';document.querySelectorAll('[data-ar][data-en]').forEach(function(x){x.textContent=en?x.getAttribute('data-en'):x.getAttribute('data-ar')});b.textContent=en?'عربي':'EN'}})();
