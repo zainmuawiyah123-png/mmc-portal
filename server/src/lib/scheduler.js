@@ -163,7 +163,7 @@ function startScheduler() {
       try {
         const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
         persistOpportunitySync('worldbank', started, { ok: true, ...result });
-        console.log('[scheduler] مزامنة البنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated);
+        console.log('[scheduler] مزامنة البنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated + ', total=' + result.total + ', open=' + result.open + ', closed=' + result.closed + ', cancelled=' + result.cancelled);
       } catch (err) {
         persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
         console.error('[scheduler] فشلت مزامنة البنك الدولي:', err.message);
@@ -178,7 +178,7 @@ function startScheduler() {
       try {
         const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
         persistOpportunitySync('worldbank', started, { ok: true, ...result });
-        console.log('[scheduler] المزامنة الأولية للبنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated);
+        console.log('[scheduler] المزامنة الأولية للبنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated + ', total=' + result.total + ', open=' + result.open + ', closed=' + result.closed + ', cancelled=' + result.cancelled);
       } catch (err) {
         persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
         console.error('[scheduler] فشلت المزامنة الأولية للبنك الدولي:', err.message);
