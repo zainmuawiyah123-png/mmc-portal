@@ -9,6 +9,7 @@ const A = require('../lib/auth');
 const { audit } = require('../lib/audit');
 
 const router = express.Router();
+const contractorDirectoryOnly = [A.requireAuth, A.requireRole('contractor')];
 const clean = (v, n=500) => String(v == null ? '' : v).trim().slice(0,n);
 const validUrl = (v) => {
   if (!v) return null;
@@ -24,7 +25,7 @@ const shape = r => ({
 });
 
 // Public directory: only published records; no account or internal tender fields.
-router.get('/', wrap(async (req,res) => {
+router.get('/', contractorDirectoryOnly, wrap(async (req,res) => {
   const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
   const authority=clean(req.query.authority,120), sourceKey=clean(req.query.sourceKey,80);
@@ -53,7 +54,7 @@ router.get('/', wrap(async (req,res) => {
 }));
 
 // Internal tender detail and document index. The browser stays on MMC.
-router.get('/detail/:id', wrap(async(req,res)=>{
+router.get('/detail/:id', contractorDirectoryOnly, wrap(async(req,res)=>{
  const db=getDB(), row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
  if(!row) throw E.notFound('العطاء غير موجود في دليل MMC.');
  const detail=db.prepare('SELECT details_json,verified_at FROM tender_opportunity_details WHERE opportunity_id=?').get(row.id);
@@ -62,7 +63,7 @@ router.get('/detail/:id', wrap(async(req,res)=>{
  res.json({opportunity:shape(row),details:{tenderNumber:row.tender_number||null,authority:row.authority||null,country:row.country||null,sector:row.sector||null,publishedAt:row.published_at||null,closingAt:row.closing_at||null,status:row.status||null,statusLabel:row.status==='open'?'مفتوح':row.status==='closed'?'مغلق':row.status||null,purchaseDate:details.purchaseDate||details.purchase||null,lastSaleDate:details.lastSaleDate||null,inquiryDeadline:details.inquiryDeadline||null,closingDate:details.closingDate||details.closing||null,documentFee:details.documentFee||details.fee||null,bidBond:details.bidBond||details.bond||null,qualification:details.qualification||null,qualificationLegacy:details.qual||null,documentInstructions:details.documentInstructions||null,remarks:details.remarks||null,detailUrl:details.officialDetailUrl||details.detailUrl||null,documentsDownloadable:details.documentsDownloadable??null,documentsNote:details.documentsNote||null,verifiedAt:detail?.verified_at||null},documents});
 }));
 
-router.get('/documents/:docId', wrap(async(req,res)=>{
+router.get('/documents/:docId', contractorDirectoryOnly, wrap(async(req,res)=>{
  const row=getDB().prepare(`SELECT document_url,label FROM tender_opportunity_documents WHERE id=? AND availability='public'`).get(req.params.docId);
  if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
  let target;
