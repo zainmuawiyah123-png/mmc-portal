@@ -75,6 +75,9 @@ async function syncWorldBank({rows=100,offset=0,pages=5}={}) {
     return {added,updated};
   });
   const counts=tx(mapped);
-  return {...counts,received:values.length,normalized:mapped.length,source:'worldbank'};
+  const statusCounts=db.prepare("SELECT status,COUNT(*) AS n FROM tender_opportunities WHERE source_key='worldbank' GROUP BY status").all();
+  const total=db.prepare("SELECT COUNT(*) AS n FROM tender_opportunities WHERE source_key='worldbank'").get().n;
+  const byStatus=Object.fromEntries(statusCounts.map(x=>[x.status,x.n]));
+  return {...counts,received:values.length,normalized:mapped.length,total,open:byStatus.open||0,closed:byStatus.closed||0,cancelled:byStatus.cancelled||0,source:'worldbank'};
 }
 module.exports={normalizeWorldBankNotice,syncWorldBank};
