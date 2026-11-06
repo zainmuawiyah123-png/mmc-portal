@@ -1,7 +1,7 @@
 'use strict';
 /** Public, read-only Bahrain Tender Board importer. No supplier login or paid-document access. */
 const {getDB,uid}=require('../db');
-const LIST_URL='https://www.tenderboard.gov.bh/Tenders/PublicTenders/';
+const LIST_URL='https://www.tenderboard.gov.bh/Ar/Tenders/PublicTenders/';
 const HOSTS=new Set(['www.tenderboard.gov.bh','tenderboard.gov.bh']);
 const MONTHS={jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12,'يناير':1,'فبراير':2,'مارس':3,'أبريل':4,'ابريل':4,'مايو':5,'يونيو':6,'يوليو':7,'أغسطس':8,'اغسطس':8,'سبتمبر':9,'أكتوبر':10,'اكتوبر':10,'نوفمبر':11,'ديسمبر':12};
 const clean=(v,n=3000)=>String(v==null?'':v).replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim().slice(0,n);
@@ -17,7 +17,7 @@ function dateISO(value){
 }
 function extractTenderReference(value){
  const s=clean(value,1000);
- const patterns=[/^(Nuwab\s+Public\s+\d+\s*\/\s*\d{4})\s*/i,/^([A-Z0-9]+(?:[/-][A-Z0-9]+){1,7})\s+/i,/^([A-Z0-9]{5,})\s+/i];
+ const patterns=[/^(Nuwab\s+Public\s+\d+\s*\/\s*\d{4})\s*/i,/^(PR\s+[A-Z0-9]{5,})\s+/i,/^([A-Z0-9]+(?:[./-][A-Z0-9]+){1,9})\s+/i,/^([A-Z0-9]{5,})\s+/i];
  for(const re of patterns){const m=s.match(re);if(m&&/\d/.test(m[1]))return{number:clean(m[1],180).replace(/\s*\/\s*/g,'/'),title:clean(s.slice(m[0].length),1000)};}
  const compact=/^((?:TRA\/INTERNAL\/RFP\/\d{4}\/\d+|IN-RFP-[A-Z0-9-]+-\d{4}|PT\/[A-Z0-9/]+\/\d{4}\/\d+|[A-Z]{2,}[A-Z0-9]*\d{6,}|[A-Z0-9]+\/\d{4}\/BTB))(.*)$/i.exec(s);
  if(compact&&compact[2]&&/[A-Za-z\u0600-\u06ff]/.test(compact[2]))return{number:compact[1],title:clean(compact[2],1000)};
@@ -44,8 +44,17 @@ function parseBahrainRows(html,today){
  }
  return rows;
 }
-async function fetchPublicPage(){
- const u=new URL(LIST_URL);if(u.protocol!=='https:'||!HOSTS.has(u.hostname))throw new Error('Blocked non-Tender-Board source URL');
+function extractPaginationUrls(html,baseUrl=LIST_URL,maxPages=10){
+ const base=new URL(baseUrl),found=new Map([[base.toString(),1]]);
+ for(const m of String(html||'').matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){
+  const href=/\bhref=["']([^"']+)["']/i.exec(m[1]);if(!href)continue;
+  const label=plain(m[2]);if(!/^\d+$/.test(label)&&!/(التالي|next|»|›)/i.test(label))continue;
+  try{const u=new URL(decode(href[1]),base);if(u.protocol!=='https:'||u.hostname!==base.hostname||u.pathname!==base.pathname)continue;found.set(u.toString(),/^\d+$/.test(label)?Number(label):found.size+1);}catch(_){}
+ }
+ return [...found.entries()].sort((a,b)=>a[1]-b[1]).slice(0,maxPages).map(x=>x[0]);
+}
+async function fetchPublicPage(url=LIST_URL){
+ const u=new URL(url);if(u.protocol!=='https:'||!HOSTS.has(u.hostname))throw new Error('Blocked non-Tender-Board source URL');
  const r=await fetch(u,{headers:{Accept:'text/html','User-Agent':'MMC-Tender-Directory/1.0 (public procurement index)'},signal:AbortSignal.timeout(20000),redirect:'manual'});
  if(r.status>=300&&r.status<400)throw new Error('Bahrain Tender Board redirected the request; refusing an unverified redirect.');
  if(!r.ok)throw new Error('Bahrain Tender Board returned HTTP '+r.status);
@@ -59,9 +68,12 @@ function persistBahrain(rows){
  const tx=db.transaction(items=>{let added=0,updated=0;for(const row of items){const old=db.prepare("SELECT id FROM tender_opportunities WHERE source_key='bahrain-tender-board' AND external_id=?").get(row.id),id=old?old.id:uid('opp_');up.run({rowId:id,externalId:row.id,title:row.title,authority:row.authority,sector:row.sector,tenderNumber:row.tenderNumber,summary:row.summary,publishedAt:row.publishedAt,closingAt:row.closingAt,sourceUrl:row.sourceUrl,status:row.status,language:row.language});detailUp.run(id,JSON.stringify(row.details));if(old)updated++;else added++;}return{added,updated};});
  return tx(rows);
 }
-async function syncBahrain(){
- const html=await fetchPublicPage(),rows=parseBahrainRows(html);
- if(!rows.length)throw new Error('Bahrain Tender Board page loaded, but no verifiable tender rows were parsed; no records changed.');
- return{...persistBahrain(rows),received:rows.length,normalized:rows.length,source:'bahrain-tender-board',sourceUrl:LIST_URL};
+async function syncBahrain({maxPages=10}={}){
+ const first=await fetchPublicPage(),urls=extractPaginationUrls(first,LIST_URL,Math.min(10,Math.max(1,maxPages))),all=[first];
+ for(const url of urls.slice(1)){await new Promise(resolve=>setTimeout(resolve,350));all.push(await fetchPublicPage(url));}
+ const rows=all.flatMap(html=>parseBahrainRows(html));
+ const unique=[...new Map(rows.map(row=>[row.id,row])).values()];
+ if(!unique.length)throw new Error('Bahrain Tender Board page loaded, but no verifiable tender rows were parsed; no records changed.');
+ return{...persistBahrain(unique),received:rows.length,normalized:unique.length,pagesFetched:all.length,source:'bahrain-tender-board',sourceUrl:LIST_URL};
 }
-module.exports={LIST_URL,parseBahrainRows,dateISO,extractTenderReference,persistBahrain,syncBahrain};
+module.exports={LIST_URL,parseBahrainRows,dateISO,extractTenderReference,extractPaginationUrls,fetchPublicPage,persistBahrain,syncBahrain};
