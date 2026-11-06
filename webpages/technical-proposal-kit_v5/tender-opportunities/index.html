@@ -17,31 +17,6 @@
 <nav aria-label="أقسام دليل العطاءات" style="display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 22px">
 <a class="btn ghost" href="#jordan-sources">الجهات الأردنية</a><a class="btn ghost" href="#arab-markets">الدول العربية</a><a class="btn ghost" href="#international-sources">المنظمات والمصادر الدولية</a><a class="btn ghost" href="#live-opportunities">العطاءات المسجلة</a>
 </nav>
-<section class="group" id="live-opportunities">
-<h2 data-ar="العطاءات المسجلة في MMC" data-en="Opportunities listed in MMC">العطاءات المسجلة في MMC</h2>
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
-<input id="opp-q" type="search" placeholder="ابحث باسم العطاء أو الجهة أو الرقم" style="flex:1;min-width:220px;padding:11px;border:1px solid #d0d5dd;border-radius:9px">
-<select id="opp-country" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الدول</option><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="BH">البحرين</option><option value="KW">الكويت</option><option value="OM">عُمان</option><option value="QA">قطر</option><option value="IQ">العراق</option><option value="INT">دولي</option></select>
-<select id="opp-status" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الحالات</option><option value="open">مفتوح</option><option value="closed">مغلق</option></select>
-<button class="btn" id="opp-search">بحث</button></div>
-<div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
-<p class="muted" id="opp-count"></p>
-<div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
-<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-all" type="button">مزامنة جميع المصادر الآن</button><button class="btn" id="oa-sync-jordan-official" type="button">مزامنة الجهات الأردنية والشركات والمنظمات</button><button class="btn" id="oa-sync-apc" type="button">مزامنة عطاءات شركة البوتاس</button><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>سجل المزامنة</h3><button class="btn" id="oa-sync-history-refresh" type="button">تحديث سجل المصادر</button><div id="oa-sync-history" class="muted">لم يتم تحميل سجل المزامنة بعد.</div><h3>إضافة إعلان يدوياً</h3>
-<p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
-<div class="grid">
-<input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
-<input id="oa-id" placeholder="رقم الإعلان في المصدر">
-<input id="oa-title" placeholder="عنوان العطاء">
-<input id="oa-authority" placeholder="الجهة صاحبة العطاء">
-<input id="oa-country" placeholder="الدولة (JO)" value="JO">
-<input id="oa-sector" placeholder="القطاع">
-<input id="oa-closing" placeholder="موعد الإغلاق YYYY-MM-DD">
-<input id="oa-url" placeholder="رابط الإعلان الرسمي https://">
-<input id="oa-apply" placeholder="رابط التقديم الرسمي https://">
-<textarea id="oa-summary" placeholder="ملخص الإعلان" style="grid-column:1/-1;min-height:80px"></textarea>
-</div><button class="btn" id="oa-save" style="margin-top:12px">حفظ الإعلان</button><span id="oa-message" class="muted"></span>
-</div></section>
 <section class="group" id="jordan-sources"><h2 data-ar="الأردن — الجهات الحكومية والشركات والهيئات" data-en="Jordan — Government entities, companies and authorities">الأردن — الجهات الحكومية والشركات والهيئات</h2><div class="grid">
 <article class="source"><span class="tag" data-ar="المصدر الحكومي الرئيسي" data-en="Primary government source">المصدر الحكومي الرئيسي</span><h3>JONEPS — نظام الشراء الإلكتروني الأردني</h3><p data-ar="دعوات العطاءات الحكومية، البحث برقم واسم العطاء والجهة المشترية وتاريخ الإغلاق، ومتابعة إجراءات الشراء." data-en="Government tender invitations, searchable by tender number, title, purchasing entity and closing date.">دعوات العطاءات الحكومية، البحث برقم واسم العطاء والجهة المشترية وتاريخ الإغلاق، ومتابعة إجراءات الشراء.</p><a href="https://www.joneps.gov.jo/ep/invt/selectListTendInvitAL.do" target="_blank" rel="noopener">فتح دعوات العطاءات الرسمية ↗</a></article>
 <article class="source"><span class="tag" data-ar="دائرة العطاءات الحكومية" data-en="Government Tenders Department">دائرة العطاءات الحكومية</span><h3>Government Tenders Department (GTD)</h3><p data-ar="إعلانات وإرشادات ومعلومات دائرة العطاءات الحكومية وروابط نظام JONEPS." data-en="Government Tenders Department announcements, guidance and links to JONEPS.">إعلانات وإرشادات ومعلومات دائرة العطاءات الحكومية وروابط نظام JONEPS.</p><a href="https://www.gtd.gov.jo/AR/List/الإعلانات" target="_blank" rel="noopener">عرض الإعلانات الرسمية ↗</a></article>
@@ -85,6 +60,33 @@
 <article class="source"><span class="tag" data-ar="الإمارات — وزارة المالية" data-en="UAE — Ministry of Finance">الإمارات — وزارة المالية</span><h3>منصة المشتريات الرقمية الاتحادية — Digital Procurement Platform</h3><p data-ar="منصة اتحادية تربط الجهات الحكومية بالموردين، وتدير إعلان المناقصات وتقديم العروض ومتابعتها والترسية. تتطلب المشاركة تسجيل المورد؛ أُدرج المصدر الرسمي دون ادعاء وجود مزامنة آلية." data-en="Federal platform connecting government entities and suppliers for tender announcements, bids, tracking and awards. Supplier registration is required; no automated sync is claimed.">منصة اتحادية تربط الجهات الحكومية بالموردين، وتدير إعلان المناقصات وتقديم العروض ومتابعتها والترسية. تتطلب المشاركة تسجيل المورد؛ أُدرج المصدر الرسمي دون ادعاء وجود مزامنة آلية.</p><a href="https://mof.gov.ae/en/public-finance/government-procurement/digital-procurement-platform/" target="_blank" rel="noopener">تفاصيل المنصة الرسمية ↗</a></article>
 </div></section>
 <p class="muted" data-ar="سياسة MMC: روابط المصادر لا تعني اعتماد الجهة أو ضمان استمرار الإعلان. يجب التحقق من تاريخ الإغلاق، شروط التأهيل، الرسوم، والجهة الرسمية التي تستقبل العروض قبل اتخاذ أي إجراء." data-en="MMC policy: source links do not imply endorsement or guarantee that a notice remains open. Verify closing dates, eligibility, fees and the official submission recipient before taking action.">سياسة MMC: روابط المصادر لا تعني اعتماد الجهة أو ضمان استمرار الإعلان. يجب التحقق من تاريخ الإغلاق، شروط التأهيل، الرسوم، والجهة الرسمية التي تستقبل العروض قبل اتخاذ أي إجراء.</p>
+
+<section class="group" id="live-opportunities">
+<h2 data-ar="العطاءات المسجلة في MMC" data-en="Opportunities listed in MMC">العطاءات المسجلة في MMC</h2>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
+<input id="opp-q" type="search" placeholder="ابحث باسم العطاء أو الجهة أو الرقم" style="flex:1;min-width:220px;padding:11px;border:1px solid #d0d5dd;border-radius:9px">
+<select id="opp-country" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الدول</option><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="BH">البحرين</option><option value="KW">الكويت</option><option value="OM">عُمان</option><option value="QA">قطر</option><option value="IQ">العراق</option><option value="INT">دولي</option></select>
+<select id="opp-status" style="padding:11px;border:1px solid #d0d5dd;border-radius:9px"><option value="">كل الحالات</option><option value="open">مفتوح</option><option value="closed">مغلق</option></select>
+<button class="btn" id="opp-search">بحث</button></div>
+<div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
+<p class="muted" id="opp-count"></p>
+<div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
+<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-all" type="button">مزامنة جميع المصادر الآن</button><button class="btn" id="oa-sync-jordan-official" type="button">مزامنة الجهات الأردنية والشركات والمنظمات</button><button class="btn" id="oa-sync-apc" type="button">مزامنة عطاءات شركة البوتاس</button><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>سجل المزامنة</h3><button class="btn" id="oa-sync-history-refresh" type="button">تحديث سجل المصادر</button><div id="oa-sync-history" class="muted">لم يتم تحميل سجل المزامنة بعد.</div><h3>إضافة إعلان يدوياً</h3>
+<p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
+<div class="grid">
+<input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
+<input id="oa-id" placeholder="رقم الإعلان في المصدر">
+<input id="oa-title" placeholder="عنوان العطاء">
+<input id="oa-authority" placeholder="الجهة صاحبة العطاء">
+<input id="oa-country" placeholder="الدولة (JO)" value="JO">
+<input id="oa-sector" placeholder="القطاع">
+<input id="oa-closing" placeholder="موعد الإغلاق YYYY-MM-DD">
+<input id="oa-url" placeholder="رابط الإعلان الرسمي https://">
+<input id="oa-apply" placeholder="رابط التقديم الرسمي https://">
+<textarea id="oa-summary" placeholder="ملخص الإعلان" style="grid-column:1/-1;min-height:80px"></textarea>
+</div><button class="btn" id="oa-save" style="margin-top:12px">حفظ الإعلان</button><span id="oa-message" class="muted"></span>
+</div></section>
+
 </main>
 <script>
 
@@ -101,10 +103,12 @@
    const data=await res.json();
    results.innerHTML='';
    if(!data.opportunities.length){results.innerHTML='<p class="muted">لا توجد إعلانات مسجلة تطابق البحث حالياً.</p>';}
+   const sourceNames={joneps:"JONEPS — نظام الشراء الإلكتروني الأردني",apc:"شركة البوتاس العربية — APC",worldbank:"البنك الدولي — World Bank",ungm:"الأمم المتحدة — UNGM",jordan_official_sources:"المصادر الأردنية الرسمية",gam:"أمانة عمّان الكبرى",jpmc:"شركة مناجم الفوسفات الأردنية",nepco:"شركة الكهرباء الوطنية",jepco:"شركة الكهرباء الأردنية",sepco:"شركة السمرا لتوليد الكهرباء",jprc:"مصفاة البترول الأردنية",jppmc:"شركة تسويق المنتجات البترولية",jordan_bromine:"شركة البرومين الأردنية",memr:"وزارة الطاقة والثروة المعدنية",mwi:"وزارة المياه والري",emrc:"هيئة تنظيم قطاع الطاقة والمعادن",unicef_jo:"UNICEF — اليونيسف في الأردن",unhcr_jo:"UNHCR — مفوضية اللاجئين"};
    data.opportunities.forEach(o=>{
     const card=document.createElement('article');card.className='source';
     const state=o.status==='open'?'مفتوح':'مغلق';
-    card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'الجهة غير محددة')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted">المصدر: '+esc(o.sourceKey)+'</p><button type="button" class="btn" data-opportunity-detail="'+esc(o.id)+'">تفاصيل العطاء والوثائق داخل MMC</button><div class="opportunity-detail" hidden></div><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">الإعلان الأصلي ↗</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">التقديم الرسمي ↗</a>':'');
+    const sourceLabel=sourceNames[o.sourceKey]||o.authority||"مصدر الإعلان المسجل في MMC";
+    card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p><b>الجهة صاحبة العطاء:</b> '+esc(o.authority||'غير محددة في بيانات الإعلان')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted"><b>مصدر الإعلان:</b> '+esc(sourceLabel)+'</p><button type="button" class="btn" data-opportunity-detail="'+esc(o.id)+'">تفاصيل العطاء والوثائق داخل MMC</button><div class="opportunity-detail" hidden></div><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">فتح الإعلان لدى '+esc(sourceLabel)+' ↗</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">التقديم الرسمي ↗</a>':'');
     card.querySelector('[data-opportunity-detail]').addEventListener('click',async()=>{
      const panel=card.querySelector('.opportunity-detail');
      if(!panel.hidden){panel.hidden=true;return;}
@@ -125,7 +129,6 @@
     });
     results.appendChild(card);
    });
-   const sourceNames={joneps:'JONEPS',apc:'البوتاس',worldbank:'البنك الدولي',ungm:'UNGM',jordan_official_sources:'الجهات الأردنية والشركات والمنظمات',gam:'أمانة عمّان',jpmc:'الفوسفات',nepco:'الكهرباء الوطنية',jepco:'الكهرباء الأردنية',sepco:'السمرا',jprc:'مصفاة البترول',jppmc:'تسويق المشتقات',jordan_bromine:'البرومين',memr:'وزارة الطاقة',mwi:'المياه والري',emrc:'هيئة تنظيم الطاقة',unicef_jo:'UNICEF',unhcr_jo:'UNHCR'};
    const breakdown=Object.entries(data.sourceCounts||{}).map(([key,v])=>(sourceNames[key]||key)+': '+v.total+' (مفتوح '+v.open+' / مغلق '+v.closed+')').join(' — ');
    const totals=data.allCounts||{open:0,closed:0,total:0};
    document.getElementById('opp-count').textContent='النتائج المطابقة: '+data.count+' | إجمالي السجلات: '+totals.total+' (مفتوح '+totals.open+' / مغلق '+totals.closed+')'+(breakdown?' | '+breakdown:'');
