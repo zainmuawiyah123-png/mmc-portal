@@ -84,14 +84,72 @@ async function fetchHtml(url){
  try{const r=await fetch(url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.text();}
  finally{clearTimeout(timer);}
 }
+function extractNoticeDetails(html,source,item){
+ const raw=String(html||''),plain=decode(raw).slice(0,20000);
+ const pick=(patterns)=>{
+  for(const re of patterns){const m=plain.match(re);if(m&&m[1])return m[1].trim().slice(0,2500);}
+  return null;
+ };
+ const bond=pick([/(?:bid\s*bond|tender\s*bond|guarantee|كفالة\s*دخول\s*العطاء|كفالة\s*العطاء)\s*[:：-]?\s*([^|]{2,180})/i]);
+ const fee=pick([/(?:document\s*fee|tender\s*fee|copy\s*price|رسوم\s*(?:وثائق|العطاء)|ثمن\s*(?:النسخة|الوثائق))\s*[:：-]?\s*([^|]{2,180})/i]);
+ const qualification=pick([/(?:vendor\s*qualifications?|eligibility|pre[\s-]?qualification|شروط\s*التأهيل|المؤهلات\s*المطلوبة)\s*[:：-]?\s*([^|]{2,1200})/i]);
+ const scope=pick([/(?:scope\s*of\s*work|description\s*of\s*works|نطاق\s*الأعمال|موضوع\s*العطاء)\s*[:：-]?\s*([^|]{2,1800})/i]);
+ const method=pick([/(?:submission\s*method|how\s*to\s*submit|طريقة\s*التقديم)\s*[:：-]?\s*([^|]{2,600})/i]);
+ const docs=[],seen=new Set();
+ for(const a of raw.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+  const label=decode(a[2]).slice(0,180),href=a[1];
+  if(!label&&!/[.](?:pdf|docx?|xlsx?|zip|rar)(?:$|[?#])/i.test(href))continue;
+  let u;try{u=new URL(href,item.sourceUrl);}catch(_){continue;}
+  if(u.protocol!=='https:'||seen.has(u.toString()))continue;
+  const looksDoc=/[.](?:pdf|docx?|xlsx?|zip|rar)(?:$|[?#])/i.test(u.pathname)||/(?:document|attachment|download|وثائق|مرفق|تحميل|كراسة|مواصفات|boq|bill of quantities)/i.test(label+' '+href);
+  if(!looksDoc)continue;
+  seen.add(u.toString());docs.push({label:label||'وثيقة العطاء',url:u.toString(),availability:'public-source-link'});
+  if(docs.length>=30)break;
+ }
+ const title=pick([/(?:tender\s*(?:title|name)|عنوان\s*العطاء|موضوع\s*العطاء)\s*[:：-]?\s*([^|]{8,300})/i])||item.title;
+ return {
+  title,tenderNumber:item.tenderNumber||null,authority:source.authority,
+  publishedAt:item.publishedAt||null,closingAt:item.closingAt||null,
+  bondAmount:bond,bondType:bond?(/bank|بنك|مصرف/i.test(bond)?'كفالة بنكية':null):null,
+  documentFee:fee,eligibility:qualification,scope,submissionMethod:method,
+  description:plain,fullText:plain,detailSourceUrl:item.sourceUrl,
+  extractionStatus:'public-page-extracted',documents:docs
+ };
+}
 async function syncOne(source){
  const html=await fetchHtml(source.url),items=parseSource(html,source);
  if(!items.length)throw new Error('Official page loaded but no tender records were confidently parsed; no database changes were made.');
- const db=getDB(),upsert=db.prepare(`INSERT INTO tender_opportunities
- (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
- VALUES (@rowId,@sourceKey,@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language)
- ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=COALESCE(excluded.published_at,tender_opportunities.published_at),closing_at=COALESCE(excluded.closing_at,tender_opportunities.closing_at),source_url=excluded.source_url,status=excluded.status,language=excluded.language,updated_at=unixepoch()`);
- const tx=db.transaction(rows=>{let added=0,updated=0;for(const n of rows){const old=db.prepare('SELECT id FROM tender_opportunities WHERE source_key=? AND external_id=?').get(source.key,n.id);upsert.run({rowId:old?old.id:uid('opp_'),sourceKey:source.key,externalId:n.id,title:n.title,authority:n.authority,country:n.country,sector:n.sector,tenderNumber:n.tenderNumber,summary:n.summary,publishedAt:n.publishedAt,closingAt:n.closingAt,sourceUrl:n.sourceUrl,applicationUrl:n.applicationUrl,status:n.status,language:n.language});if(old)updated++;else added++;}return {added,updated};});
+ const detailById=new Map();
+ for(let i=0;i<items.length;i+=4){
+  const batch=await Promise.all(items.slice(i,i+4).map(async item=>{
+   if(!item.sourceUrl||item.sourceUrl===source.url)return {id:item.id,details:null};
+   try{
+    const detailHtml=await fetchHtml(item.sourceUrl);
+    return {id:item.id,details:extractNoticeDetails(detailHtml,source,item)};
+   }catch(_){return {id:item.id,details:null};}
+  }));
+  batch.forEach(x=>{if(x.details)detailById.set(x.id,x.details);});
+ }
+ const db=getDB(),upsert=db.prepare(\`INSERT INTO tender_opportunities
+ (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language,details_json)
+ VALUES (@rowId,@sourceKey,@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language,@detailsJson)
+ ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=COALESCE(excluded.published_at,tender_opportunities.published_at),closing_at=COALESCE(excluded.closing_at,tender_opportunities.closing_at),source_url=excluded.source_url,status=excluded.status,language=excluded.language,details_json=COALESCE(excluded.details_json,tender_opportunities.details_json),updated_at=unixepoch()\`);
+ const tx=db.transaction(rows=>{
+  let added=0,updated=0,detailsReceived=0,documentsAdded=0;
+  for(const n of rows){
+   const old=db.prepare('SELECT id FROM tender_opportunities WHERE source_key=? AND external_id=?').get(source.key,n.id);
+   const opportunityId=old?old.id:uid('opp_'),detail=detailById.get(n.id)||null;
+   upsert.run({rowId:opportunityId,sourceKey:source.key,externalId:n.id,title:detail?.title||n.title,authority:n.authority,country:n.country,sector:n.sector,tenderNumber:n.tenderNumber,summary:n.summary,publishedAt:n.publishedAt,closingAt:n.closingAt,sourceUrl:n.sourceUrl,applicationUrl:n.applicationUrl,status:n.status,language:n.language,detailsJson:detail?JSON.stringify(detail):null});
+   if(detail){
+    detailsReceived++;
+    db.prepare('DELETE FROM tender_opportunity_public_documents WHERE opportunity_id=?').run(opportunityId);
+    const ins=db.prepare('INSERT OR IGNORE INTO tender_opportunity_public_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)');
+    detail.documents.forEach(doc=>{ins.run(uid('oppdoc_'),opportunityId,doc.label,doc.url,doc.availability);documentsAdded++;});
+   }
+   if(old)updated++;else added++;
+  }
+  return {added,updated,detailsReceived,documentsAdded};
+ });
  return {...tx(items),received:items.length,normalized:items.length,source:source.key,sourceUrl:source.url};
 }
 async function syncJordanPublicSources(){
