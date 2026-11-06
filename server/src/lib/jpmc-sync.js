@@ -37,7 +37,7 @@ function parseJpmcRows(html, today) {
     let sourceUrl=LIST_URL;
     if (linkMatch) { try { const u=new URL(linkMatch[1],LIST_URL); if(u.origin===ORIGIN) sourceUrl=u.toString(); } catch(_) {} }
     const number=(title.match(/(T\d{4}\s*\/\s*\d+\s*[A-Z]*)/i)||[])[1];
-    const id=(number?number.replace(/\\s+/g,' '):(sourceUrl!==LIST_URL?(new URL(sourceUrl).pathname+new URL(sourceUrl).search):title)).slice(0,180);
+    const id=(number || (sourceUrl!==LIST_URL?(new URL(sourceUrl).pathname+new URL(sourceUrl).search):title)).slice(0,180);
     if (seen.has(id)) continue;
     seen.add(id);
     const closingAt=closingMatch?dateISO(closingMatch[1]):null;
