@@ -113,3 +113,26 @@ test('JPMC parser imports official Arabic tender headings, dates and same-origin
   assert.equal(rows[1].status, 'closed');
   assert.equal(new URL(rows[1].sourceUrl).origin, 'https://www.jpmc.com.jo');
 });
+
+const { parseJprcRows } = require('../src/lib/jprc-sync');
+test('JPRC parser extracts tender metadata from official notice cards', () => {
+  const html = '<a href="/ar/modules/tenders/158"><span>رقم العطاء: 158/2026 موضوع العطاء: مناقصة اشغال 158-2026 اعمال مدنية متفرقة في دائرة مستودعات العقبة تاريخ طرح العطاء: 2026/10/29 تاريخ الاغلاق: 2026/11/12 سعر النسخة: مجاناً</span></a>';
+  const [row] = parseJprcRows(html, '2026-11-06');
+  assert.ok(row);
+  assert.equal(row.tenderNumber, '158/2026');
+  assert.equal(row.closingAt, '2026-11-12');
+  assert.equal(row.status, 'open');
+  assert.equal(new URL(row.sourceUrl).origin, 'https://jopetrol.com.jo');
+});
+
+const { parseJepcoRows } = require('../src/lib/jepco-sync');
+test('JEPCO parser extracts tender number, specification and submission deadline from official table', () => {
+  const html = '<table><tr><th>رقم العطاء</th><th>التفصيل</th><th>ثمن النسخة</th><th>موعد التسليم</th></tr>'
+    + '<tr><td>42/2026</td><td>12 &amp; 36 KV O.H.L DROP OUT FUSED ISOLATORS</td><td>15</td><td>12/11/2026</td></tr></table>';
+  const [row] = parseJepcoRows(html, '2026-11-06');
+  assert.ok(row);
+  assert.equal(row.tenderNumber, '42/2026');
+  assert.equal(row.closingAt, '2026-11-12');
+  assert.equal(row.status, 'open');
+  assert.equal(row.country, 'JO');
+});
