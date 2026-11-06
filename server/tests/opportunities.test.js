@@ -105,3 +105,23 @@ test('External directory listing and unified feed are readable by MMC admins and
   assert.match(route, /router\.get\('\/feed', directoryReaders,/);
   assert.match(route, /router\.use\(A\.requireAuth, A\.requireRole\('admin'\)\)/);
 });
+
+
+test('Optional UNGM credentials do not turn successful connector runs into a failed sync cycle', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
+  assert.match(scheduler, /filter\(\(\[,v\]\)=>!v\.ok&&!v\.skipped\)/);
+});
+
+test('MMC admin can trigger all configured source connectors and APC independently', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const page = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'), 'utf8');
+  assert.match(route, /router\.post\('\/admin\/sync\/all'/);
+  assert.match(route, /runOpportunitySyncJob\(\)/);
+  assert.match(route, /router\.post\('\/admin\/sync\/apc'/);
+  assert.match(page, /oa-sync-all/);
+  assert.match(page, /oa-sync-apc/);
+});
