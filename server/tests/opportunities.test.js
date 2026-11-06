@@ -155,3 +155,11 @@ test('Regional official procurement links include Qatar, Oman and UAE without cl
   assert.ok(page.includes('https://mof.gov.ae/en/public-finance/government-procurement/digital-procurement-platform/'));
   assert.match(page, /لم يُعتمد موصل آلي بعد/);
 });
+
+test('Kuwait official CAPT portal is listed as a source without claiming automated import', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const page = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'), 'utf8');
+  assert.ok(page.includes('https://capt.gov.kw/en/'));
+  assert.match(page, /ولا ندّعي وجود مزامنة آلية/);
+});
