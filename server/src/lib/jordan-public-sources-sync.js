@@ -39,7 +39,27 @@ function candidateBlocks(html){
  for(const m of String(html||'').matchAll(/<(?:article|li)\b[\s\S]*?<\/(?:article|li)>/gi))out.push(m[0]);
  return out;
 }
+function parseJprc(html,source,today=new Date().toISOString().slice(0,10)){
+ const raw=String(html||''),items=[],seen=new Set();
+ for(const a of raw.matchAll(/<a\b[^>]*href=["']([^"']*\/(?:Ar|ar)\/TendersDetails\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+  const link=allowedUrl(a[1],source.url);if(!link)continue;
+  const plain=decode(a[2]);if(!/رقم العطاء\s*:/i.test(plain)||!/موضوع العطاء\s*:/i.test(plain))continue;
+  const number=(plain.match(/رقم العطاء\s*:\s*([^\s]+(?:\s*\/\s*\d{4})?)/i)||[])[1]||null;
+  const subject=(plain.match(/موضوع العطاء\s*:\s*([\s\S]*?)\s*تاريخ طرح العطاء\s*:/i)||[])[1]||null;
+  const publishedRaw=(plain.match(/تاريخ طرح العطاء\s*:\s*(\d{4}[\/-]\d{1,2}[\/-]\d{1,2})/i)||[])[1]||null;
+  const closingRaw=(plain.match(/تاريخ الاغلاق\s*:\s*(\d{4}[\/-]\d{1,2}[\/-]\d{1,2})/i)||[])[1]||null;
+  const fee=(plain.match(/سعر النسخة\s*:\s*([\s\S]*?)\s*التصنيف\s*:/i)||[])[1]||null;
+  const classification=(plain.match(/التصنيف\s*:\s*([\s\S]*)$/i)||[])[1]||null;
+  if(!subject||!number)continue;
+  const id=source.key+':'+number.replace(/\s+/g,'');
+  if(seen.has(id))continue;seen.add(id);
+  const publishedAt=dateISO(publishedRaw),closingAt=dateISO(closingRaw);
+  items.push({id,title:subject.trim().slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number.trim(),summary:plain.slice(0,2500)+(fee?' | سعر النسخة: '+fee.trim():'')+(classification?' | التصنيف: '+classification.trim():''),publishedAt,closingAt,sourceUrl:link,applicationUrl:null,status:closingAt&&closingAt<today?'closed':'open',language:'ar'});
+ }
+ return items;
+}
 function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
+ if(source.key==='jprc')return parseJprc(html,source,today);
  const blocks=candidateBlocks(html),items=[],seen=new Set();
  const consume=(block,baseUrl)=>{
   const plain=decode(block);if(plain.length<18||plain.length>12000)return;
