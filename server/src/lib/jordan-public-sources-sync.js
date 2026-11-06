@@ -18,14 +18,14 @@ const SOURCES=[
  {key:'emrc',name:'هيئة تنظيم قطاع الطاقة والمعادن',url:'https://emrc.gov.jo/Ar/Modules/Tenders',country:'JO',authority:'هيئة تنظيم قطاع الطاقة والمعادن'},
  {key:'unicef_jo',name:'UNICEF Jordan',url:'https://www.unicef.org/jordan/supply-and-procurement',country:'JO',authority:'UNICEF Jordan'}
 ];
-const decode=s=>String(s||'').replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/\\s+/g,' ').trim();
+const decode=s=>String(s||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/\s+/g,' ').trim();
 const dateISO=s=>{
  const v=String(s||'');
- let m=v.match(/(\\d{4})[\\/-](\\d{1,2})[\\/-](\\d{1,2})/);
+ let m=v.match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
  if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
- m=v.match(/(\\d{1,2})[\\/-](\\d{1,2})[\\/-](\\d{4})/);
+ m=v.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
  if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
- m=v.match(/(\\d{1,2})\\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[,]?\\s+(\\d{4})/i);
+ m=v.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[,]?\s+(\d{4})/i);
  if(m){const n=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[2].slice(0,3).toLowerCase())+1;return m[3]+'-'+String(n).padStart(2,'0')+'-'+m[1].padStart(2,'0');}
  return null;
 };
@@ -34,20 +34,20 @@ function allowedUrl(raw,base){
 }
 function candidateBlocks(html){
  const out=[];
- for(const m of String(html||'').matchAll(/<tr\\b[\\s\\S]*?<\\/tr>/gi))out.push(m[0]);
- for(const m of String(html||'').matchAll(/<(?:article|li)\\b[\\s\\S]*?<\\/(?:article|li)>/gi))out.push(m[0]);
+ for(const m of String(html||'').matchAll(/<tr\b[\s\S]*?<\/tr>/gi))out.push(m[0]);
+ for(const m of String(html||'').matchAll(/<(?:article|li)\b[\s\S]*?<\/(?:article|li)>/gi))out.push(m[0]);
  return out;
 }
 function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
  const blocks=candidateBlocks(html),items=[],seen=new Set();
  const consume=(block,baseUrl)=>{
   const plain=decode(block);if(plain.length<18||plain.length>12000)return;
-  const links=[...String(block).matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)];
+  const links=[...String(block).matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
   if(!links.length)return;
   const relevant=source.key==='unicef_jo'?/(request for proposal|invitation to bid|tender|procurement|expression of interest|lrps|rfp)/i.test(plain):/(tender|مناقصة|عطاء|مزايدة|مناقصات|عطاءات|bid|rfp|ifb|rfq)/i.test(plain);
   if(!relevant)return;
-  const number=(plain.match(/(?:tender\\s*(?:no\\.?|#)?|عطاء\\s*(?:رقم)?|مناقصة\\s*(?:رقم)?|LRPS\\s*)[:#№\\s-]*([A-Z0-9][A-Z0-9\\/-]{2,})/i)||[])[1]||null;
-  const dateMatches=[...plain.matchAll(/(?:20\\d{2}[\\/-]\\d{1,2}[\\/-]\\d{1,2}|\\d{1,2}[\\/-]\\d{1,2}[\\/-]20\\d{2}|\\d{1,2}\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[,]?\\s+20\\d{2})/gi)].map(m=>dateISO(m[0])).filter(Boolean);
+  const number=(plain.match(/(?:tender\s*(?:no\.?|#)?|عطاء\s*(?:رقم)?|مناقصة\s*(?:رقم)?|LRPS\s*)[:#№\s-]*([A-Z0-9][A-Z0-9\/-]{2,})/i)||[])[1]||null;
+  const dateMatches=[...plain.matchAll(/(?:20\d{2}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]20\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[,]?\s+20\d{2})/gi)].map(m=>dateISO(m[0])).filter(Boolean);
   const closing=dateMatches.length?dateMatches[dateMatches.length-1]:null;
   const titleLink=links.map(x=>decode(x[2])).find(x=>x.length>8&&!/read more|المزيد|التفاصيل|download|اقرأ المزيد/i.test(x));
   const title=titleLink||plain.slice(0,220);
@@ -56,22 +56,22 @@ function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
   const external=number||link;
   if(seen.has(external))return;seen.add(external);
   const published=dateMatches.length>1?dateMatches[0]:null;
-  items.push({id:source.key+':'+(number||BufferlessHash(link)),title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:plain.slice(0,2500),publishedAt:published,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\\u0600-\\u06FF]/.test(title)?'ar':'en'});
+  items.push({id:source.key+':'+(number||BufferlessHash(link)),title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:plain.slice(0,2500),publishedAt:published,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\u0600-\u06FF]/.test(title)?'ar':'en'});
  };
  for(const block of blocks)consume(block,source.url);
  if(!items.length){
-  const anchors=[...String(html||'').matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)];
+  const anchors=[...String(html||'').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
   for(const a of anchors){
    const link=allowedUrl(a[1],source.url);if(!link)continue;
    const label=decode(a[2]),at=a.index||0,context=decode(String(html||'').slice(Math.max(0,at-1800),Math.min(String(html||'').length,at+900)));
    if(!/tender|عطاء|مناقصة|bid|procurement|LRPS|RFP/i.test(label+' '+context))continue;
-   const number=(context.match(/(?:tender\\s*(?:no\\.?|#)?|عطاء\\s*(?:رقم)?|مناقصة\\s*(?:رقم)?|LRPS\\s*)[:#№\\s-]*([A-Z0-9][A-Z0-9\\/-]{2,})/i)||[])[1]||null;
+   const number=(context.match(/(?:tender\s*(?:no\.?|#)?|عطاء\s*(?:رقم)?|مناقصة\s*(?:رقم)?|LRPS\s*)[:#№\s-]*([A-Z0-9][A-Z0-9\/-]{2,})/i)||[])[1]||null;
    const title=label.length>8&&!/read more|اقرأ المزيد|التفاصيل|details/i.test(label)?label:
     ((context.match(/(?:اعلان|إعلان|طرح|عطاء|مناقصة|Tender)[^.!؟]{8,240}/i)||[])[0]||context.slice(-260));
    const id=source.key+':'+(number||BufferlessHash(link));if(seen.has(id))continue;seen.add(id);
-   const dates=[...context.matchAll(/(?:20\\d{2}[\\/-]\\d{1,2}[\\/-]\\d{1,2}|\\d{1,2}[\\/-]\\d{1,2}[\\/-]20\\d{2})/g)].map(m=>dateISO(m[0])).filter(Boolean);
+   const dates=[...context.matchAll(/(?:20\d{2}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]20\d{2})/g)].map(m=>dateISO(m[0])).filter(Boolean);
    const closing=dates.length?dates[dates.length-1]:null;
-   items.push({id,title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:context.slice(-2500),publishedAt:dates.length>1?dates[0]:null,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\\u0600-\\u06FF]/.test(title)?'ar':'en'});
+   items.push({id,title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:context.slice(-2500),publishedAt:dates.length>1?dates[0]:null,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\u0600-\u06FF]/.test(title)?'ar':'en'});
   }
  }
  return items;
