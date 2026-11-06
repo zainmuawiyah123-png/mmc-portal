@@ -4,6 +4,7 @@ const { parseJonepsRows, parseJonepsDetail, LIST_URL: JONEPS_URL } = require('..
 const { parseDetail: parseAPCDetail, LIST_URL: APC_URL } = require('../src/lib/apc-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
 const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
+const { fetchPublicPage: fetchBahrainPage, parseBahrainRows, extractPaginationUrls: extractBahrainPages, LIST_URL: BAHRAIN_URL } = require('../src/lib/bahrain-sync');
 
 const UA = 'MMC-Tender-Directory-Live-Smoke/1.0 (read-only public-source check)';
 async function get(url, accept = 'text/html') {
@@ -37,6 +38,19 @@ async function checkAPC() {
   const detail = parseAPCDetail(detailHtml, ids[0]);
   return { ok: true, listingLinks: ids.length, detailTitleFound: !!detail.title, publicDocuments: detail.docs.length };
 }
+async function checkBahrain() {
+  const first = await fetchBahrainPage();
+  const urls = extractBahrainPages(first, BAHRAIN_URL, 3);
+  const pages = [first];
+  for (const url of urls.slice(1)) {
+    await new Promise(resolve => setTimeout(resolve, 350));
+    pages.push(await fetchBahrainPage(url));
+  }
+  const rows = pages.flatMap(html => parseBahrainRows(html));
+  const unique = new Map(rows.map(row => [row.id, row]));
+  if (!unique.size) throw new Error('public listing loaded but no verifiable Bahrain tender rows were parsed');
+  return { ok: true, pagesChecked: pages.length, listingRows: rows.length, uniqueTenderNumbers: unique.size };
+}
 async function checkWorldBank() {
   const url = new URL('https://search.worldbank.org/api/v2/procnotices');
   url.searchParams.set('format', 'json');
@@ -58,6 +72,7 @@ async function run(name, fn) {
   const results = await Promise.all([
     run('JONEPS', checkJONEPS),
     run('Arab Potash Company', checkAPC),
+    run('Bahrain Tender Board', checkBahrain),
     run('World Bank', checkWorldBank)
   ]);
   if (process.env.UNGM_ACCESS_TOKEN) {
