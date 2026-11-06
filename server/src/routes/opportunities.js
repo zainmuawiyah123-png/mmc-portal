@@ -21,7 +21,7 @@ const shape = r => ({
 });
 
 // Public directory: only published records; no account or internal tender fields.
-router.get('/', wrap(async (req,res) => {
+router.get('/', A.requireAuth, A.requireRole('contractor', 'admin'), wrap(async (req,res) => {
   const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
   const clauses=["status IN ('open','closed')"], vals=[];
@@ -37,7 +37,7 @@ router.get('/', wrap(async (req,res) => {
 // Unified feed inside the contractor portal: tenders published on the platform by procurement
 // offices + external notices (JONEPS, Arab Potash, World Bank, UNGM). Requires a signed-in user.
 const ymd = (days=0) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date(Date.now()+days*86400000));
-const MARKET_ROLES = ['contractor','consultant','admin'];
+const MARKET_ROLES = ['contractor','admin'];
 router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res) => {
  const db=getDB(), me=req.user.id;
  const q=clean(req.query.q,120), source=clean(req.query.source,20), country=clean(req.query.country,3).toUpperCase();

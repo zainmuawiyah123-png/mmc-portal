@@ -1499,13 +1499,14 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
   } finally { global.fetch = realFetch; config.EINVOICE = saved; }
 });
 
-test('92 — العطاءات الخارجية: للمقاول والاستشاري والمدير فقط، وتُحجب عن المشتري والزائر', async () => {
+test('92 — العطاءات الخارجية: للمقاول والمدير فقط، وتُحجب عن المشتري والاستشاري والزائر', async () => {
   getDB().prepare("INSERT OR IGNORE INTO tender_opportunities (id,source_key,external_id,title,authority,country,tender_number,closing_at,source_url,status,language) VALUES ('opp_gate','apc','gate-1','اختبار الحجب','APC','JO','G-1','2099-01-01','https://arabpotash.com/x','open','ar')").run();
-  const mk = async (who, role) => { const e = who + uniq() + '@t.com'; const r = await call(who, 'POST', '/api/auth/register', { body: { name: 'مستخدم ' + who, email: e, password: 'Password123', role } }); assert.strictEqual(r.status, 201); };
-  await mk('gb', 'buyer'); await mk('gc', 'contractor'); await mk('gs', 'consultant');
+  const mk = async (who, role) => { const e = who + uniq() + '@t.com'; const requestedRole = role === 'admin' ? 'buyer' : role; const r = await call(who, 'POST', '/api/auth/register', { body: { name: 'مستخدم ' + who, email: e, password: 'Password123', role: requestedRole } }); assert.strictEqual(r.status, 201, JSON.stringify(r.data)); if (role === 'admin') getDB().prepare("UPDATE users SET role='admin' WHERE email=?").run(e); };
+  await mk('gb', 'buyer'); await mk('gc', 'contractor'); await mk('gs', 'consultant'); await mk('ga', 'admin');
   assert.strictEqual((await call('gb', 'GET', '/api/opportunities/feed')).status, 403, 'المشتري محجوب');
   assert.strictEqual((await call('gc', 'GET', '/api/opportunities/feed')).status, 200);
-  assert.strictEqual((await call('gs', 'GET', '/api/opportunities/feed')).status, 200);
+  assert.strictEqual((await call('gs', 'GET', '/api/opportunities/feed')).status, 403, 'الاستشاري محجوب');
+  assert.strictEqual((await call('ga', 'GET', '/api/opportunities/feed')).status, 200);
   assert.strictEqual((await call('nobody', 'GET', '/api/opportunities/feed')).status, 401);
 });
 
