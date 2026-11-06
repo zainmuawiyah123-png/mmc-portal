@@ -138,8 +138,13 @@
     ['مؤهلات المناقص',d.qualification||d.qualificationLegacy],['تعليمات الحصول على الوثائق',d.documentInstructions],['ملاحظات الجهة',d.remarks],['حالة الوثائق',d.documentsNote]
    ].filter(x=>x[1]).map(x=>'<p><b>'+esc(x[0])+':</b> '+esc(x[1])+'</p>').join('');
    let officialUrl=d.detailUrl||data.opportunity.sourceUrl||'';
-   if(data.opportunity.sourceKey==='joneps'&&/\/ep\/invt\/selectListTendInvitAL\.do(?:\?|$)/i.test(officialUrl))officialUrl='';
-   const officialLink=officialUrl?'<a href="'+esc(officialUrl)+'" target="_blank" rel="noopener">فتح صفحة الإعلان لدى الجهة</a>':'<span>لا يتوفر رابط مباشر لصفحة هذا الإعلان لدى المصدر؛ بيانات الإعلان الأساسية معروضة أعلاه داخل MMC.</span>';
+   const genericSourcePaths={
+    joneps:'/ep/invt/selectListTendInvitAL.do',jpmc:'/ar/tender',jprc:'/ar/modules/tenders',
+    jepco:'/ar/Home/عرض-المناقصات-الحالية',ungm:'/Public/Notice'
+   };
+   const genericPath=genericSourcePaths[data.opportunity.sourceKey];
+   if(officialUrl&&genericPath){try{if(new URL(officialUrl).pathname.replace(/\\/$/,'')===genericPath.replace(/\\/$/,''))officialUrl='';}catch(_){officialUrl='';}}
+   const officialLink=officialUrl?'<a href="'+esc(officialUrl)+'" target="_blank" rel="noopener">فتح صفحة الإعلان لدى الجهة</a>':'<span>لا يتوفر رابط مباشر خاص بهذا الإعلان؛ تفاصيل الإعلان المتاحة معروضة أعلاه داخل MMC، ويمكن الرجوع إلى المصدر من رابط الجهة في بطاقة المصدر.</span>';
    const docHtml=docs.length?'<h4>الوثائق المتاحة</h4>'+docs.map(x=>'<p><a href="/api/opportunities/documents/'+encodeURIComponent(x.id)+'" target="_blank" rel="noopener">'+esc(x.label)+' — فتح / تنزيل داخل MMC</a></p>').join(''):'<p>لم تُكتشف وثائق عامة قابلة للتحميل لهذا الإعلان.</p>';
    const detail=document.createElement('section');detail.className='intro';detail.style.marginTop='16px';
    detail.innerHTML='<h2>'+esc(data.opportunity.title)+'</h2><p>'+esc(data.opportunity.summary||'')+'</p>'+lines+docHtml+'<p class="muted">المصدر الرسمي: '+officialLink+'. '+(data.opportunity.sourceKey==='gam'?'تعليمات الحصول على وثائق الأمانة تخضع لإجراءاتها، ولا يتوفر تنزيل عام مباشر من صفحة الإعلان.':data.opportunity.sourceKey==='joneps'?'إذا تطلبت الوثائق أو إجراءات المشاركة تسجيل مورد أو شراء نسخة، يتم ذلك مباشرة عبر JONEPS.':'إذا كانت الوثائق تتطلب تسجيل مورد أو شراء نسخة فذلك يخضع لإجراءات الجهة.')+'</p><div class="notice" style="margin:12px 0">تفاصيل الإعلان الأساسية أعلاه محفوظة ومعروضة داخل MMC. يمكن للمقاول تجهيز عرضه داخل MMC؛ الحفظ هنا لا يعني الإرسال الرسمي للجهة.</div><button class="btn" type="button" data-workspace="'+esc(data.opportunity.id)+'">تجهيز عرضي داخل MMC</button><div id="external-workspace" style="margin-top:14px"></div><button class="btn ghost" type="button">إغلاق التفاصيل</button>';
