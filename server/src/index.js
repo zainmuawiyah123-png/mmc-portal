@@ -133,12 +133,15 @@ function createApp() {
     });
   });
 
-  // The external tender directory is a contractor-only area, not a buyer/procurement page.
+  // The external tender directory is available to MMC admins and contractors,
+  // but remains excluded from buying-organization procurement workspaces.
   app.get(['/tender-opportunities', '/tender-opportunities/', '/tender-opportunities/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
       if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
-      if (req.user.role !== 'contractor') return res.status(403).type('text').send('دليل العطاءات الخارجية مخصص للمقاولين فقط.');
+      if (!['admin', 'contractor'].includes(req.user.role)) {
+        return res.status(403).type('text').send('دليل العطاءات الخارجية مخصص لإدارة MMC والمقاولين فقط.');
+      }
       return sendFromWeb('tender-opportunities/index.html', res, next);
     });
   });
