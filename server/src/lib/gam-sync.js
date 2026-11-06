@@ -25,7 +25,7 @@ function parseGAMRows(html,today,detailUrl){
   if(!/^\d{1,4}\s*\/\s*\d{1,2}\s*\/\s*20\d{2}$/.test(cells[0]||''))continue;
   const title=cells[1];if(!title||title.length<4)continue;
   const lastSaleDate=dateISO(cells[5]),inquiryDeadline=dateISO(cells[6]),closingAt=dateISO(cells[7]);
-  const id=number+'|'+(detailUrl||'');if(seen.has(id))continue;seen.add(id);
+  const id=number;if(seen.has(id))continue;seen.add(id);
   const details={
    bidBond:cells[2]||null,documentFee:cells[3]||null,qualification:cells[4]||null,
    lastSaleDate,inquiryDeadline,closingDate:closingAt,purchaseDate:null,
