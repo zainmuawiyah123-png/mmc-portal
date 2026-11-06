@@ -67,7 +67,7 @@ router.get('/documents/:docId', wrap(async(req,res)=>{
  if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
  let target;
  try { target=new URL(row.document_url); } catch(_) { throw E.badRequest('رابط الوثيقة غير صالح.'); }
- const approvedHosts=new Set(['www.arabpotash.com','arabpotash.com','www.joneps.gov.jo','joneps.gov.jo','arabpotash-my.sharepoint.com']);
+ const approvedHosts=new Set(['www.arabpotash.com','arabpotash.com','www.joneps.gov.jo','joneps.gov.jo','arabpotash-my.sharepoint.com','jopetrol.com.jo','www.jopetrol.com.jo']);
  if(target.protocol!=='https:'||!approvedHosts.has(target.hostname)||target.username||target.password) throw E.badRequest('مصدر الوثيقة غير معتمد.');
  // Open the verified original source in the user's browser. SharePoint links may require
  // browser-managed redirects/cookies and cannot reliably be downloaded by the server proxy.
