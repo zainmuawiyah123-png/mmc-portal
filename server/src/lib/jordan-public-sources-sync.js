@@ -130,10 +130,10 @@ async function syncOne(source){
   }));
   batch.forEach(x=>{if(x.details)detailById.set(x.id,x.details);});
  }
- const db=getDB(),upsert=db.prepare(\`INSERT INTO tender_opportunities
+ const db=getDB(),upsert=db.prepare(`INSERT INTO tender_opportunities
  (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language,details_json)
  VALUES (@rowId,@sourceKey,@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language,@detailsJson)
- ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=COALESCE(excluded.published_at,tender_opportunities.published_at),closing_at=COALESCE(excluded.closing_at,tender_opportunities.closing_at),source_url=excluded.source_url,status=excluded.status,language=excluded.language,details_json=COALESCE(excluded.details_json,tender_opportunities.details_json),updated_at=unixepoch()\`);
+ ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=COALESCE(excluded.published_at,tender_opportunities.published_at),closing_at=COALESCE(excluded.closing_at,tender_opportunities.closing_at),source_url=excluded.source_url,status=excluded.status,language=excluded.language,details_json=COALESCE(excluded.details_json,tender_opportunities.details_json),updated_at=unixepoch()`);
  const tx=db.transaction(rows=>{
   let added=0,updated=0,detailsReceived=0,documentsAdded=0;
   for(const n of rows){
