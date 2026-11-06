@@ -5,15 +5,18 @@
  */
 const {getDB,uid}=require('../db');
 const SOURCES=[
- {key:'gam',name:'أمانة عمّان الكبرى',url:'https://www.gamtenders.gov.jo/',country:'JO',authority:'أمانة عمّان الكبرى',kind:'portal'},
- {key:'nepco',name:'شركة الكهرباء الوطنية',url:'https://www.nepco.com.jo/Tenders.aspx',country:'JO',authority:'شركة الكهرباء الوطنية',kind:'portal'},
- {key:'jepco',name:'شركة الكهرباء الأردنية',url:'https://www.jepco.com.jo/ar/Home/عرض-المناقصات-الحالية',country:'JO',authority:'شركة الكهرباء الأردنية',kind:'portal'},
- {key:'jprc',name:'مصفاة البترول الأردنية',url:'https://www.jopetrol.jo/ar/modules/tenders',country:'JO',authority:'مصفاة البترول الأردنية',kind:'portal'},
- {key:'npc',name:'شركة البترول الوطنية',url:'https://www.npc.com.jo/En/Modules/Tenders',country:'JO',authority:'شركة البترول الوطنية',kind:'portal'},
- {key:'jordan_bromine',name:'شركة البرومين الأردنية',url:'https://www.jordanbromine.com/tenders/',country:'JO',authority:'شركة البرومين الأردنية',kind:'portal'},
- {key:'memr',name:'وزارة الطاقة والثروة المعدنية',url:'https://www.memr.gov.jo/AR/Modules/Tenders',country:'JO',authority:'وزارة الطاقة والثروة المعدنية',kind:'portal'},
- {key:'mwi',name:'وزارة المياه والري',url:'https://www.mwi.gov.jo/AR/Modules/tenders',country:'JO',authority:'وزارة المياه والري',kind:'portal'},
- {key:'unicef_jo',name:'UNICEF Jordan',url:'https://www.unicef.org/jordan/supply-and-procurement',country:'JO',authority:'UNICEF Jordan',kind:'ngo'}
+ {key:'gam',name:'أمانة عمّان الكبرى',url:'https://gamtenders.gov.jo/adlocaltenders.aspx',country:'JO',authority:'أمانة عمّان الكبرى'},
+ {key:'jpmc',name:'شركة مناجم الفوسفات الأردنية',url:'https://www.jpmc.com.jo/ar/tender',country:'JO',authority:'شركة مناجم الفوسفات الأردنية'},
+ {key:'nepco',name:'شركة الكهرباء الوطنية',url:'https://www.nepco.com.jo/Tenders.aspx',country:'JO',authority:'شركة الكهرباء الوطنية'},
+ {key:'jepco',name:'شركة الكهرباء الأردنية',url:'https://www.jepco.com.jo/ar/Home/عرض-المناقصات-الحالية',country:'JO',authority:'شركة الكهرباء الأردنية'},
+ {key:'sepco',name:'شركة السمرا لتوليد الكهرباء',url:'https://sepco.com.jo/en/tenders/1',country:'JO',authority:'شركة السمرا لتوليد الكهرباء'},
+ {key:'jprc',name:'مصفاة البترول الأردنية',url:'https://www.jopetrol.com.jo/ar/modules/tenders',country:'JO',authority:'مصفاة البترول الأردنية'},
+ {key:'jppmc',name:'شركة تسويق المنتجات البترولية الأردنية',url:'https://www.jppmc.jo/en/Bids',country:'JO',authority:'شركة تسويق المنتجات البترولية الأردنية'},
+ {key:'jordan_bromine',name:'شركة البرومين الأردنية',url:'https://www.jordanbromine.com/tenders/',country:'JO',authority:'شركة البرومين الأردنية'},
+ {key:'memr',name:'وزارة الطاقة والثروة المعدنية',url:'https://www.memr.gov.jo/AR/Modules/Tenders',country:'JO',authority:'وزارة الطاقة والثروة المعدنية'},
+ {key:'mwi',name:'وزارة المياه والري',url:'https://mwi.gov.jo/AR/Modules/tenders',country:'JO',authority:'وزارة المياه والري'},
+ {key:'emrc',name:'هيئة تنظيم قطاع الطاقة والمعادن',url:'https://emrc.gov.jo/Ar/Modules/Tenders',country:'JO',authority:'هيئة تنظيم قطاع الطاقة والمعادن'},
+ {key:'unicef_jo',name:'UNICEF Jordan',url:'https://www.unicef.org/jordan/supply-and-procurement',country:'JO',authority:'UNICEF Jordan'}
 ];
 const decode=s=>String(s||'').replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/\\s+/g,' ').trim();
 const dateISO=s=>{
