@@ -3,11 +3,15 @@ on:
   push:
     branches:
       - 'fix/production-tenant-isolation-mainline'
+      - 'fix/restore-complete-external-tender-directory'
   pull_request:
     paths:
       - 'server/src/lib/scheduler.js'
       - 'server/src/routes/procurement.js'
       - 'server/src/routes/opportunities.js'
+      - 'server/src/lib/apc-sync.js'
+      - 'server/src/migrate.js'
+      - 'webpages/technical-proposal-kit_v5/tender-opportunities/**'
       - 'server/src/index.js'
       - 'server/tests/**'
       - 'server/package.json'
