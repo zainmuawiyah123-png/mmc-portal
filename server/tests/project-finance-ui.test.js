@@ -68,14 +68,14 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
   assert.match(tenderDirectory, /Verify the original notice/);
 });
 
-test('MMCUI-03 — دليل العطاءات الخارجية للمقاول فقط ومحجوب عن المشتريات', () => {
+test('MMCUI-03 — دليل العطاءات الخارجية للإدارة والمقاولين ومحجوب عن المشتريات', () => {
   assert.match(contractorPortal, /id="external"/);
   assert.doesNotMatch(procurementPortal, /tender-opportunities|#external/);
   const server = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
   assert.ok(server.includes("app.get(['/tender-opportunities'") && server.includes("['admin', 'contractor'].includes(req.user.role)"), "يجب السماح لإدارة MMC والمقاولين مع حجب الجهات المشترية");
-  assert.match(route, /router\.get\('\/', contractorDirectoryOnly/);
-  assert.match(route, /router\.get\('\/feed', contractorDirectoryOnly/);
+  assert.match(route, /router\.get\('\/', directoryReaders/);
+  assert.match(route, /router\.get\('\/feed', directoryReaders/);
 });
 
 

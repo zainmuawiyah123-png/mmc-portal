@@ -6,7 +6,7 @@ const A = require('../lib/auth');
 const { audit } = require('../lib/audit');
 
 const router = express.Router();
-const contractorDirectoryOnly = [A.requireAuth, A.requireRole('contractor')];
+const directoryReaders = [A.requireAuth, A.requireRole('contractor', 'admin')];
 const clean = (v, n=500) => String(v == null ? '' : v).trim().slice(0,n);
 const validUrl = (v) => {
   if (!v) return null;
@@ -22,7 +22,7 @@ const shape = r => ({
 });
 
 // Contractor-only external directory: published records only; no account or internal tender fields.
-router.get('/', contractorDirectoryOnly, wrap(async (req,res) => {
+router.get('/', directoryReaders, wrap(async (req,res) => {
   const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
   const clauses=["status IN ('open','closed')"], vals=[];
@@ -37,7 +37,7 @@ router.get('/', contractorDirectoryOnly, wrap(async (req,res) => {
 
 // Unified feed inside the contractor portal: tenders published on the platform by procurement
 // offices + external notices (JONEPS, Arab Potash, World Bank, UNGM). Requires a signed-in user.
-router.get('/feed', contractorDirectoryOnly, wrap(async (req,res) => {
+router.get('/feed', directoryReaders, wrap(async (req,res) => {
  const db=getDB(), q=clean(req.query.q,120), source=clean(req.query.source,20), state=clean(req.query.status,10)||'open', country=clean(req.query.country,3).toUpperCase();
  const clauses=["status IN ('open','closed')"], vals=[];
  if(source && source!=='platform'){clauses.push('source_key=?');vals.push(source);}

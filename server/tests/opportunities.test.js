@@ -94,3 +94,14 @@ test('APC parser reads the public list row, dates, bond, qualifications and keep
   assert.equal(rows[1].status, 'closed');
   assert.equal(new URL(rows[1].sourceUrl).origin, 'https://arabpotash.com');
 });
+
+
+test('External directory listing and unified feed are readable by MMC admins and contractors only', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.ok(route.includes("A.requireRole('contractor', 'admin')"));
+  assert.match(route, /router\.get\('\/', directoryReaders,/);
+  assert.match(route, /router\.get\('\/feed', directoryReaders,/);
+  assert.match(route, /router\.use\(A\.requireAuth, A\.requireRole\('admin'\)\)/);
+});
