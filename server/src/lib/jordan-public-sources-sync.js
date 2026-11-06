@@ -16,7 +16,8 @@ const SOURCES=[
  {key:'memr',name:'وزارة الطاقة والثروة المعدنية',url:'https://www.memr.gov.jo/AR/Modules/Tenders',country:'JO',authority:'وزارة الطاقة والثروة المعدنية'},
  {key:'mwi',name:'وزارة المياه والري',url:'https://mwi.gov.jo/AR/Modules/tenders',country:'JO',authority:'وزارة المياه والري'},
  {key:'emrc',name:'هيئة تنظيم قطاع الطاقة والمعادن',url:'https://emrc.gov.jo/Ar/Modules/Tenders',country:'JO',authority:'هيئة تنظيم قطاع الطاقة والمعادن'},
- {key:'unicef_jo',name:'UNICEF Jordan',url:'https://www.unicef.org/jordan/supply-and-procurement',country:'JO',authority:'UNICEF Jordan'}
+ {key:'unicef_jo',name:'UNICEF Jordan',url:'https://www.unicef.org/jordan/supply-and-procurement',country:'JO',authority:'UNICEF Jordan'},
+ {key:'unhcr_jo',name:'UNHCR Jordan',url:'https://www.unhcr.org/jo/get-involved/become-supplier',country:'JO',authority:'UNHCR Jordan'}
 ];
 const decode=s=>String(s||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/\s+/g,' ').trim();
 const dateISO=s=>{
