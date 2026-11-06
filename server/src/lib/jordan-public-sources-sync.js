@@ -95,7 +95,13 @@ async function syncOne(source){
 }
 async function syncJordanPublicSources(){
  const results={};
- for(const source of SOURCES){try{results[source.key]={ok:true,...await syncOne(source)};}catch(e){results[source.key]={ok:false,error:(e.message||String(e)).slice(0,240)};}}
+ for(let i=0;i<SOURCES.length;i+=4){
+  const batch=await Promise.all(SOURCES.slice(i,i+4).map(async source=>{
+   try{return [source.key,{ok:true,...await syncOne(source)}];}
+   catch(e){return [source.key,{ok:false,error:(e.message||String(e)).slice(0,240)}];}
+  }));
+  for(const [key,result] of batch)results[key]=result;
+ }
  return results;
 }
 module.exports={SOURCES,parseSource,syncOne,syncJordanPublicSources};
