@@ -99,10 +99,14 @@ async function syncAPC() {
   } finally { clearTimeout(timer); }
   const rows = parseApcRows(html);
   if (!rows.length) throw new Error('APC page loaded but no recognizable tender rows were found; importer stopped without changing records.');
-  const detailResults = await Promise.all(rows.map(async row => {
-    try { return {pid:row.id,detail:await fetchApcDetail(row.id,row),error:null}; }
-    catch(err) { return {pid:row.id,detail:null,error:(err.message||String(err)).slice(0,200)}; }
-  }));
+  const detailResults = [];
+  for(let i=0;i<rows.length;i+=4){
+    const batch=await Promise.all(rows.slice(i,i+4).map(async row => {
+      try { return {pid:row.id,detail:await fetchApcDetail(row.id,row),error:null}; }
+      catch(err) { return {pid:row.id,detail:null,error:(err.message||String(err)).slice(0,200)}; }
+    }));
+    detailResults.push(...batch);
+  }
   const detailsByPid = new Map(detailResults.filter(x=>x.detail).map(x=>[x.pid,x.detail]));
   const detailFailures = detailResults.filter(x=>x.error).length;
   const db = getDB();
