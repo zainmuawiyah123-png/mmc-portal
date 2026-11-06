@@ -7,6 +7,32 @@
 const { getDB, uid } = require('../db');
 
 const WB_URL = 'https://search.worldbank.org/api/v2/procnotices';
+// World Bank payloads may use ISO-2 or ISO-3 country identifiers. Normalize
+// the Arab-country ISO-3 codes so regional notices do not fall into INT.
+const ISO3_TO_ISO2 = Object.freeze({
+  JOR:'JO', SAU:'SA', ARE:'AE', IRQ:'IQ', KWT:'KW', QAT:'QA', BHR:'BH', OMN:'OM',
+  EGY:'EG', LBN:'LB', PSE:'PS', SYR:'SY', YEM:'YE', LBY:'LY', DZA:'DZ', MAR:'MA',
+  TUN:'TN', SDN:'SD', MRT:'MR', SOM:'SO', DJI:'DJ', COM:'KM'
+});
+const COUNTRY_NAME_TO_ISO2 = [
+  [/\b(jordan|الأردن|الاردن)\b/i,'JO'],[/\b(saudi arabia|السعودية)\b/i,'SA'],
+  [/\b(united arab emirates|uae|الإمارات|الامارات)\b/i,'AE'],[/\b(iraq|العراق)\b/i,'IQ'],
+  [/\b(kuwait|الكويت)\b/i,'KW'],[/\b(qatar|قطر)\b/i,'QA'],[/\b(bahrain|البحرين)\b/i,'BH'],
+  [/\b(oman|عمان|عُمان)\b/i,'OM'],[/\b(egypt|مصر)\b/i,'EG'],[/\b(lebanon|لبنان)\b/i,'LB'],
+  [/\b(palestine|فلسطين)\b/i,'PS'],[/\b(syria|سوريا)\b/i,'SY'],[/\b(yemen|اليمن)\b/i,'YE'],
+  [/\b(libya|ليبيا)\b/i,'LY'],[/\b(algeria|الجزائر)\b/i,'DZ'],[/\b(morocco|المغرب)\b/i,'MA'],
+  [/\b(tunisia|تونس)\b/i,'TN'],[/\b(sudan|السودان)\b/i,'SD'],[/\b(mauritania|موريتانيا)\b/i,'MR'],
+  [/\b(somalia|الصومال)\b/i,'SO'],[/\b(djibouti|جيبوتي)\b/i,'DJ'],[/\b(comoros|جزر القمر)\b/i,'KM']
+];
+function resolveWorldBankCountry(code, name) {
+  const normalized = clean(code,3).toUpperCase();
+  if (/^[A-Z]{2}$/.test(normalized)) return normalized;
+  if (ISO3_TO_ISO2[normalized]) return ISO3_TO_ISO2[normalized];
+  if (normalized === 'INT') return 'INT';
+  const countryName = clean(name,120);
+  const match = COUNTRY_NAME_TO_ISO2.find(([pattern]) => pattern.test(countryName));
+  return match ? match[1] : 'INT';
+}
 const clean = (v,n=3000) => String(v == null ? '' : v).trim().slice(0,n);
 function normalizeWorldBankNotice(row) {
   const id=clean(row.id || row.notice_id || row.noticeId,160);
@@ -18,7 +44,7 @@ function normalizeWorldBankNotice(row) {
   const pub=clean(row.publication_date || row.notice_date || row.noticedate,40);
   const countryCode=clean(row.country_code || row.project_ctry_code,3).toUpperCase();
   const countryName=clean(row.country_name || row.project_ctry_name,100);
-  const country=(/^[A-Z]{2}$/.test(countryCode)?countryCode:(countryCode==='INT'?'INT':(/jordan/i.test(countryName)?'JO':/saudi/i.test(countryName)?'SA':/united arab emirates|uae/i.test(countryName)?'AE':'INT')));
+  const country=resolveWorldBankCountry(countryCode,countryName);
   const noticeType=clean(row.notice_type,100);
   const status=deadline && /^\d{4}-\d{2}-\d{2}/.test(deadline) && deadline.slice(0,10)<new Date().toISOString().slice(0,10)?'closed':'open';
   return {
@@ -71,4 +97,4 @@ async function syncWorldBank({rows=100,offset=0,pages=5}={}) {
   const counts=tx(mapped);
   return {...counts,received:values.length,normalized:mapped.length,source:'worldbank'};
 }
-module.exports={normalizeWorldBankNotice,syncWorldBank};
+module.exports={normalizeWorldBankNotice,syncWorldBank,resolveWorldBankCountry,ISO3_TO_ISO2};
