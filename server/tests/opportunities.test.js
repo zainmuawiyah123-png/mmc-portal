@@ -154,5 +154,5 @@ test('Greater Amman Municipality detail discovery only accepts same-origin offic
   const urls = extractDetailUrls(html);
   assert.equal(urls.length, 1);
   assert.equal(new URL(urls[0]).origin, 'https://media.ammancity.gov.jo');
-  assert.match(GAM_LIST_URL, /^https:\\/\\/media\\.ammancity\\.gov\\.jo\\//);
+  assert.equal(new URL(GAM_LIST_URL).origin, 'https://media.ammancity.gov.jo');
 });
