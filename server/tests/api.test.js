@@ -1408,6 +1408,36 @@ test('82 — ملحق العطاء يصدره المشتريات ويظهر لل
 });
 
 
+test('84 — عزل كامل بين الجهات المشترية في قائمة العطاءات والتفاصيل والتقييم والوثائق والملحقات', async () => {
+  const buyerA = await newBuyer('tenant-a', 'proc_pro');
+  const buyerB = await newBuyer('tenant-b', 'proc_pro');
+  const tenderA = await publish(buyerA);
+
+  const ownList = await call(buyerA, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(ownList.status, 200);
+  assert.ok(ownList.data.tenders.some(t => t.id === tenderA.id));
+
+  const otherList = await call(buyerB, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(otherList.status, 200);
+  assert.ok(!otherList.data.tenders.some(t => t.id === tenderA.id), 'لا تظهر عطاءات الجهة الأخرى في القائمة');
+
+  for (const suffix of [
+    '',
+    '/evaluations',
+    '/documents',
+    '/clarifications',
+    '/addenda'
+  ]) {
+    const denied = await call(buyerB, 'GET', '/api/procurement/tenders/' + tenderA.id + suffix);
+    assert.strictEqual(denied.status, 404, 'يجب حجب مسار الجهة الأخرى: ' + suffix);
+  }
+
+  const blockedAddendum = await call(buyerB, 'POST', '/api/procurement/tenders/' + tenderA.id + '/addenda', {
+    body: { title: 'محاولة خارج الجهة', body: 'لا يجوز تعديل عطاء جهة أخرى.' }
+  });
+  assert.strictEqual(blockedAddendum.status, 404);
+});
+
 test('83 — ملفات ملحق العطاء ترتبط بالملحق الصحيح وتتاح فقط لمن يحق له الاطلاع على العطاء', async () => {
   const buyer = await newBuyer('addendum-file-buyer', 'proc_pro');
   const tender = await publish(buyer);
