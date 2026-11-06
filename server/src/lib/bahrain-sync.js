@@ -17,7 +17,7 @@ function dateISO(value){
 }
 function extractTenderReference(value){
  const s=clean(value,1000);
- const patterns=[/^(Nuwab\s+Public\s+\d+\s*\/\s*\d{4})\s*/i,/^(PR\s+[A-Z0-9]{5,})\s+/i,/^([A-Z0-9]+(?:[./-][A-Z0-9]+){1,9})\s+/i,/^([A-Z0-9]{5,})\s+/i];
+ const patterns=[/^(Nuwab\s+Public\s+\d+\s*\/\s*\d{4})\s*/i,/^(PR\s+[A-Z0-9][A-Z0-9./-]{4,})\s+/i,/^([A-Z0-9]+(?:[./-][A-Z0-9]+){1,9})\s+/i,/^([A-Z0-9]{5,})\s+/i];
  for(const re of patterns){const m=s.match(re);if(m&&/\d/.test(m[1]))return{number:clean(m[1],180).replace(/\s*\/\s*/g,'/'),title:clean(s.slice(m[0].length),1000)};}
  const compact=/^((?:TRA\/INTERNAL\/RFP\/\d{4}\/\d+|IN-RFP-[A-Z0-9-]+-\d{4}|PT\/[A-Z0-9/]+\/\d{4}\/\d+|[A-Z]{2,}[A-Z0-9]*\d{6,}|[A-Z0-9]+\/\d{4}\/BTB))(.*)$/i.exec(s);
  if(compact&&compact[2]&&/[A-Za-z\u0600-\u06ff]/.test(compact[2]))return{number:compact[1],title:clean(compact[2],1000)};
