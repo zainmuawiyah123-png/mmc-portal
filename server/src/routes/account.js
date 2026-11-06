@@ -12,6 +12,29 @@ const router = express.Router();
 // نفس السبب كما في files.js: حماية لكل مسار بدل router.use
 const auth = A.requireAuth;
 
+function profileShape(r) {
+  if (!r) return { sectors: [], countries: [], minValue: null, maxValue: null, capabilities: '' };
+  const parse = v => { try { return JSON.parse(v || '[]'); } catch (_) { return []; } };
+  return { sectors: parse(r.sectors_json), countries: parse(r.countries_json), minValue: r.min_value, maxValue: r.max_value, capabilities: r.capabilities || '', updatedAt: r.updated_at };
+}
+
+router.get('/contractor-profile', auth, wrap(async (req, res) => {
+  const row = getDB().prepare('SELECT * FROM contractor_profiles WHERE user_id=?').get(req.user.id);
+  res.json({ profile: profileShape(row) });
+}));
+
+router.put('/contractor-profile', auth, wrap(async (req, res) => {
+  const b = req.body || {}, cleanList = v => Array.isArray(v) ? [...new Set(v.map(x => String(x).trim().slice(0, 80)).filter(Boolean))].slice(0, 30) : [];
+  const sectors = cleanList(b.sectors), countries = cleanList(b.countries);
+  const min = b.minValue === '' || b.minValue == null ? null : Number(b.minValue), max = b.maxValue === '' || b.maxValue == null ? null : Number(b.maxValue);
+  if ((min != null && !Number.isFinite(min)) || (max != null && !Number.isFinite(max)) || (min != null && max != null && min > max)) throw E.validation('نطاق قيمة العطاء غير صحيح.');
+  const capabilities = String(b.capabilities || '').trim().slice(0, 2000) || null, db = getDB();
+  db.prepare(`INSERT INTO contractor_profiles (user_id,sectors_json,countries_json,min_value,max_value,capabilities,updated_at) VALUES (?,?,?,?,?,?,unixepoch())
+    ON CONFLICT(user_id) DO UPDATE SET sectors_json=excluded.sectors_json,countries_json=excluded.countries_json,min_value=excluded.min_value,max_value=excluded.max_value,capabilities=excluded.capabilities,updated_at=unixepoch()`)
+    .run(req.user.id, JSON.stringify(sectors), JSON.stringify(countries), min, max, capabilities);
+  res.json({ profile: profileShape(db.prepare('SELECT * FROM contractor_profiles WHERE user_id=?').get(req.user.id)), message: 'تم حفظ تفضيلات المطابقة.' });
+}));
+
 const shapeReq = (r) => ({
   id: r.id, tenderId: r.tender_id, kind: r.kind, text: r.text,
   status: r.status, createdAt: r.created_at

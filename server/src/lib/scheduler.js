@@ -104,14 +104,17 @@ async function runOpportunitySyncJob() {
     catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
   };
-  await runSource('arab-potash-company',()=>require('./apc-sync').syncAPC());
-  await runSource('joneps',()=>require('./joneps-sync').syncJONEPS({maxPages:5}));
+  await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
+  await runSource('apc',()=>require('./apc-sync').syncAPC());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
+  for (const source of ['etimad','uae_mof','iraq','jordan_private']) {
+    await runSource(source,()=>require('./regional-sync').syncRegionalSource(source));
+  }
   const ms=Date.now()-started;
-  const failed=Object.entries(results).filter(([,v])=>!v.ok&&!v.skipped).map(([k])=>k);
-  const summary=Object.entries(results).map(([k,v])=>k+': '+(v.skipped?'skipped':v.ok?('+'+(v.added||0)+' / ~'+(v.updated||0)):('ERROR '+v.error))).join(' | ');
+  const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+  const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
   record({at:new Date().toISOString(),job:'opportunity-sync',ok:failed.length===0,ms,message:summary});
   return {ok:failed.length===0,partial:failed.length>0,failed,results,ms};
 }
@@ -136,14 +139,13 @@ function startScheduler() {
   }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
   _jobs.push(backupJob, expiryJob);
   if (config.OPPORTUNITY_SYNC_ENABLED) {
-    // Populate a fresh ephemeral preview database immediately after boot; the cron below refreshes it later.
-    console.log('[scheduler] بدء مزامنة أولية للعطاءات بعد تشغيل الخادم...');
-    runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة البداية:',e.message));
     const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
-      console.log('[scheduler] بدء مزامنة العطاءات العامة: APC وJONEPS والبنك الدولي وUNGM...');
+      console.log('[scheduler] بدء مزامنة إعلانات البنك الدولي...');
       runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
     },{timezone:config.BACKUP_TZ,name:'opportunity-sync-worldbank'});
     _jobs.push(opportunityJob);
+    // أول مزامنة بعد الإقلاع بقليل حتى لا تبقى قائمة العطاءات فارغة حتى أول موعد مجدول
+    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),20000).unref();
     console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }
   console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');

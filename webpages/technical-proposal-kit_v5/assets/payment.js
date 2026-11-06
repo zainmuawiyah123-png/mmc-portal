@@ -1,17 +1,16 @@
-/* Public payment instructions are sourced only from live server configuration. */
+/* يملأ بيانات الدفع من الخادم (متغيرات البيئة PAYMENT_*). لا توجد قيم مكتوبة داخل الصفحات. */
 (function(){
-  [].forEach.call(document.querySelectorAll('[data-pay]'),function(el){el.textContent='';});
-  fetch('/api/payment-info',{credentials:'same-origin',cache:'no-store'})
-    .then(function(r){if(!r.ok)throw new Error('Payment details unavailable');return r.json();})
-    .then(function(d){
-      if(!d||!d.payment)return;
-      var p=d.payment;
-      function fill(k,v){if(!v)return;[].forEach.call(document.querySelectorAll('[data-pay="'+k+'"]'),function(el){el.textContent=String(v);});}
-      fill('iban',p.iban);fill('cliq',p.cliqAlias);
-      var extra=[];if(p.swift)extra.push('SWIFT: '+p.swift);if(p.accountHolder)extra.push('Beneficiary: '+p.accountHolder);if(p.contactEmail)extra.push(p.contactEmail);
-      fill('extra',extra.join(' — '));
-    })
-    .catch(function(){
-      [].forEach.call(document.querySelectorAll('[data-pay]'),function(el){el.textContent='Available during authenticated checkout';});
-    });
+  var ar=(document.documentElement.lang||'').indexOf('ar')===0;
+  var missing=ar?'غير مضبوط بعد — تواصل مع الإدارة':'not configured yet — contact the administrator';
+  function all(k){return [].slice.call(document.querySelectorAll('[data-pay="'+k+'"]'));}
+  function fill(k,v){all(k).forEach(function(el){el.textContent=v||missing;});}
+  fetch('/api/payment-info',{credentials:'same-origin'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+    var p=d&&d.payment; if(!p){['bank','iban','cliq'].forEach(function(k){fill(k,'')});return;}
+    fill('bank',p.bankName); fill('iban',p.iban); fill('cliq',p.cliqAlias);
+    var extra=[]; if(p.swift) extra.push('SWIFT: '+p.swift); if(p.accountHolder) extra.push((ar?'المستفيد: ':'Beneficiary: ')+p.accountHolder); if(p.contactEmail) extra.push(p.contactEmail);
+    all('extra').forEach(function(el){el.textContent=extra.length?' — '+extra.join(' — '):'';});
+    /* إخفاء الخيار غير المضبوط بدل عرض كلمة "غير مضبوط" للمشتري */
+    [].forEach.call(document.querySelectorAll('[data-pay-method="cliq"]'),function(el){el.hidden=!p.cliqAlias;});
+    [].forEach.call(document.querySelectorAll('[data-pay-method="bank_transfer"]'),function(el){el.hidden=!p.iban;});
+  }).catch(function(){['bank','iban','cliq'].forEach(function(k){fill(k,'')});});
 })();

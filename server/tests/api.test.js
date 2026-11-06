@@ -34,6 +34,7 @@ async function call(name, method, p, { body, form, headers } = {}) {
   const h = Object.assign({}, cookieFor(name), headers || {});
   let payload;
   if (form) payload = form;
+  else if (body instanceof FormData) payload = body;
   else if (body !== undefined) { h['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
 
   const res = await fetch(base + p, { method, headers: h, body: payload, redirect: 'manual' });
@@ -657,6 +658,9 @@ test('60 — الدفع: فاتورة + إيصال + سعر خاص + اعتما�
   assert.strictEqual((await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/amount', { body: { amount: 520 } })).status, 200);
   const fd = new FormData();
   fd.append('receipt', new Blob(['%PDF-1.4 receipt'], { type: 'application/pdf' }), 'receipt.pdf');
+  assert.strictEqual((await call('pay', 'POST', '/api/billing/invoices/' + id + '/receipt', { form: fd })).status, 422);
+  fd.append('transferReference', 'CLQ-123456');
+  fd.append('transferDate', '2026-11-05');
   assert.strictEqual((await call('pay', 'POST', '/api/billing/invoices/' + id + '/receipt', { form: fd })).status, 201);
   const ok = await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/approve', { body: {} });
   assert.strictEqual(ok.status, 200, JSON.stringify(ok.data));
@@ -677,13 +681,8 @@ test('61 — بيانات الدفع تُقرأ من الإعدادات وتُع
   assert.strictEqual(r.data.payment.swift, '');
   assert.strictEqual(r.data.payment.iban, '');
   assert.strictEqual(r.data.payment.accountHolder, '');
-  assert.strictEqual(r.data.payment.cliqAlias, 'samarza');
+  assert.strictEqual(r.data.payment.cliqAlias, '');
   assert.strictEqual(r.data.ibanValid, false);
-  const page = await call('anon2', 'GET', '/marketing/subscribe.html');
-  assert.strictEqual(page.status, 200);
-  assert.match(page.data, /id="paymentInfo"/);
-  assert.match(page.data, /معرّف CliQ/);
-  assert.match(page.data, /بيانات التحويل البنكي غير مكتملة/);
 });
 
 test('62 — ملفات Excel/PDF تُخدم من /documents، وبقية ملفات المجلد مغلقة', async () => {
@@ -712,7 +711,7 @@ function grantPlan(email, planKey) {
   getDB().prepare("INSERT INTO subscriptions (id,user_id,plan_key,status,source,started_at,ends_at) VALUES (?,?,?,?,?,unixepoch(),unixepoch()+2592000)").run('sub_t' + uniq(), u.id, planKey, 'active', 'manual');
   getDB().prepare('UPDATE users SET plan_key=? WHERE id=?').run(planKey, u.id);
 }
-const bidBody = (t, amount = 1000) => ({ answers: t.requirements.map((q) => ({ requirementId: q.id, answer: 'إجابة' })), financialAmount: amount, financialCurrency: 'JOD' });
+const bidBody = (t, amount = 1000, currency = 'JOD') => { const fd = new FormData(); fd.append('answers', JSON.stringify(t.requirements.map((q) => ({ requirementId: q.id, answer: 'إجابة' })))); fd.append('financialAmount', String(amount)); fd.append('financialCurrency', currency); fd.append('declarationAccepted', 'true'); fd.append('technicalFiles', new Blob(['technical test document'], { type: 'application/pdf' }), 'technical.pdf'); fd.append('financialFiles', new Blob(['financial test document'], { type: 'application/pdf' }), 'financial.pdf'); return fd; };
 
 test('63 — لا تقديم بعد موعد الإغلاق، ويُقبل في يوم الإغلاق نفسه وبدون موعد', async () => {
   const ymd = (d) => new Date(d).toISOString().slice(0, 10);
@@ -816,7 +815,7 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
     const seen = open.data.tenders.find((t) => t.id === pub.data.tender.id);
     assert.ok(seen && seen.issuer.verified === true && seen.issuer.country === 'AE' && seen.issuer.name.includes('ذ.م.م'));
     // عملة العرض: KWD مقبولة، وغير المعروفة تعود لعملة دولة الجهة
-    const ok = await call('vc', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: { ...bidBody(pub.data.tender), financialCurrency: 'KWD' } });
+    const ok = await call('vc', 'POST', '/api/procurement/tenders/' + pub.data.tender.id + '/submit', { body: bidBody(pub.data.tender, 1000, 'KWD') });
     assert.strictEqual(ok.status, 201);
     assert.strictEqual(getDB().prepare('SELECT financial_currency c FROM bid_submissions WHERE id=?').get(ok.data.submissionId).c, 'KWD');
     // سحب التوثيق: يختفي العطاء ويُمنع التقديم
@@ -979,6 +978,11 @@ test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مش�
   const fid = await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '2017', particularNotes: 'الشروط الخاصة مرفقة' } });
   assert.strictEqual(fid.status, 200, JSON.stringify(fid.data));
   assert.strictEqual((await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'purple' } })).status, 422);
+  await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '' } });
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).status, 422, 'إصدار FIDIC مطلوب');
+  await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'red', fidicEdition: '2017' } });
+  assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).status, 422, 'جدول الكميات مطلوب لأعمال الإنشاء');
+  await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('boq', 'boq.pdf') });
   assert.strictEqual((await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } })).data.request.status, 'ready');
   // المشتريات ترى الجاهز فقط وتنشر؛ الطالب لا ينشر
   assert.strictEqual((await call(C, 'GET', '/api/requests')).data.requests.length, 1);
@@ -995,11 +999,11 @@ test('72 — دورة كاملة: طلب ← مشاريع ← جاهز ← مش�
   assert.strictEqual(one.data.tender.fidic.book, 'red');
   assert.strictEqual(one.data.tender.fidic.edition, '2017');
   assert.strictEqual(one.data.tender.fidic.url, 'https://fidic.org');
-  assert.strictEqual(one.data.tender.documentsCount, 2);
+  assert.strictEqual(one.data.tender.documentsCount, 3);
   assert.strictEqual(one.data.tender.name, 'إنشاء مبنى إداري', 'الاسم يؤخذ من الطلب');
   assert.strictEqual(one.data.tender.nameEn, 'Administrative building');
   const docs = await call(con, 'GET', '/api/procurement/tenders/' + pub.data.tenderId + '/documents');
-  assert.deepStrictEqual(docs.data.documents.map((d) => d.kind).sort(), ['drawings', 'specifications']);
+  assert.deepStrictEqual(docs.data.documents.map((d) => d.kind).sort(), ['boq', 'drawings', 'specifications']);
   const dl = await fetch(base + '/api/procurement/tenders/' + pub.data.tenderId + '/documents/' + docs.data.documents[0].id, { headers: cookieFor(con) });
   assert.strictEqual(dl.status, 200);
   assert.ok(/attachment/.test(dl.headers.get('content-disposition')));
@@ -1041,6 +1045,8 @@ test('73 — الاعتماد الاختياري، الإعادة من المش�
   await call(R, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'submit' } });
   await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'take' } });
   await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('boq', 'boq.pdf') });
+  await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('specifications', 'spec.pdf') });
+  await call(P, 'POST', '/api/requests/' + id + '/docs', { form: docForm('drawings', 'drawings.pdf') });
   await call(P, 'PATCH', '/api/requests/' + id, { body: { fidicBook: 'yellow', fidicEdition: '1999' } });
   const aw = await call(P, 'POST', '/api/requests/' + id + '/transition', { body: { action: 'ready' } });
   assert.strictEqual(aw.data.request.status, 'awaiting_approval');
@@ -1131,6 +1137,19 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
     body: bidBody(tender, 300)
   });
   assert.strictEqual(submitted.status, 201, JSON.stringify(submitted.data));
+  const receipt = await call(contractor, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/receipt');
+  assert.strictEqual(receipt.status, 200, JSON.stringify(receipt.data));
+  assert.ok(receipt.data.receipt.reference.startsWith('MMC-'));
+  assert.strictEqual(receipt.data.receipt.documents.length, 2);
+  const bidDocs = getDB().prepare('SELECT id,doc_class FROM bid_submission_docs WHERE submission_id=? ORDER BY doc_class').all(submitted.data.submissionId);
+  const technicalDoc = bidDocs.find((d) => d.doc_class === 'technical');
+  const financialDoc = bidDocs.find((d) => d.doc_class === 'financial');
+  assert.ok(technicalDoc && financialDoc, 'يجب حفظ ملفات العرضين منفصلة');
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + technicalDoc.id)).status, 200);
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + financialDoc.id)).status, 403,
+    'يجب منع المشتريات من تنزيل المالي قبل الفتح الرسمي');
+  assert.strictEqual((await call(projects, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + financialDoc.id)).status, 404,
+    'موظف المشاريع لا يملك صلاحية الوصول إلى عروض المقاولين');
 
   // لا ترسية قبل التقييم الفني وفتح العرض المالي.
   const premature = await call(manager, 'POST', '/api/project-finance/awards', {
@@ -1138,11 +1157,21 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   });
   assert.strictEqual(premature.status, 422);
 
+  const earlyOpen = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/open-financial', { body: {} });
+  assert.strictEqual(earlyOpen.status, 409, 'لا يجوز فتح المالي قبل التقييم الفني الرسمي');
   const evaluated = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/evaluate', {
     body: { scores: tender.requirements.map((q) => ({ requirementId: q.id, score: 100 })) }
   });
   assert.strictEqual(evaluated.status, 200, JSON.stringify(evaluated.data));
   assert.strictEqual(evaluated.data.passed, true);
+  assert.strictEqual(evaluated.data.financialOpened, false, 'التقييم الفني لا يفتح المالي تلقائياً');
+  const financialOpen = await call(procurement, 'POST', '/api/procurement/submissions/' + submitted.data.submissionId + '/open-financial', { body: {} });
+  assert.strictEqual(financialOpen.status, 200, JSON.stringify(financialOpen.data));
+  assert.strictEqual(financialOpen.data.financialOpened, true);
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/documents/' + financialDoc.id)).status, 200,
+    'يسمح للمشتريات بتنزيل المالي بعد الفتح الرسمي');
+  assert.strictEqual((await call(procurement, 'GET', '/api/procurement/submissions/' + submitted.data.submissionId + '/receipt')).status, 403,
+    'الإيصال الخاص بالمقاول لا يُكشف لحساب المشتريات');
 
   const award = await call(manager, 'POST', '/api/project-finance/awards', {
     body: { tenderId: tender.id, submissionId: submitted.data.submissionId, awardedAmount: 300, currency: 'JOD', awardReference: 'AWD-FIN-01' }
@@ -1254,18 +1283,18 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/procurement-review', {
     body: { decision: 'accepted', note: 'مطابقة لأمر الشراء' }
   })).data.status, 'owner_confirmation');
-  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
+  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/owner-confirmation', {
     body: { decision: 'confirmed', note: 'تم استلام الأعمال' }
   })).data.status, 'finance_queue');
-  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
+  assert.strictEqual((await call(requester, 'POST', '/api/project-finance/invoices/' + invoiceId + '/forward-to-finance', { body: {} })).data.status, 'finance_review');
   assert.strictEqual((await call(procurement, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).status, 403);
-  assert.strictEqual((await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
+  assert.strictEqual((await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/finance-approval', { body: {} })).data.status, 'approved_for_payment');
 
-  const partial = await call(manager, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
+  const partial = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 50, paymentReference: 'PAY-FIN-01', paymentDate: '2026-11-03' }
   });
   assert.strictEqual(partial.status, 201, JSON.stringify(partial.data));
-  assert.strictEqual((await call(manager, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
+  assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices/' + invoiceId)).data.invoice.status, 'part_paid');
 
   const overpayment = await call(finance, 'POST', '/api/project-finance/invoices/' + invoiceId + '/payments', {
     body: { amount: 101, paymentReference: 'PAY-FIN-OVER', paymentDate: '2026-11-03' }
@@ -1280,11 +1309,6 @@ test('76 — دورة الترسية وأمر الشراء والفاتورة و
   assert.strictEqual(finalState.data.invoice.status, 'paid');
   assert.strictEqual(finalState.data.paid, 150);
   assert.strictEqual(finalState.data.remaining, 0);
-  const managerId=(await call(manager,'GET','/api/auth/me')).data.user.id;
-  const managerAudit=getDB().prepare("SELECT action,actor_user_id,actor_role FROM project_audit_events WHERE invoice_id=? AND action IN ('owner_confirmed','finance_approved','payment_recorded') ORDER BY created_at").all(invoiceId);
-  assert.ok(managerAudit.some(x=>x.action==='owner_confirmed'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل تأكيد المالك باسم المدير ودوره الفعلي');
-  assert.ok(managerAudit.some(x=>x.action==='finance_approved'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل اعتماد المالية باسم المدير ودوره الفعلي');
-  assert.ok(managerAudit.some(x=>x.action==='payment_recorded'&&x.actor_user_id===managerId&&x.actor_role==='manager'),'يجب تسجيل الدفعات باسم المدير ودوره الفعلي');
 
   // بيانات دورة المشروع لا تدخل في فواتير اشتراكات MMC.
   const billing = await call(manager, 'GET', '/api/billing/invoices');
@@ -1301,10 +1325,6 @@ test('77 — دور المالية محصور بجهته ولا يستطيع م�
   });
   assert.strictEqual((await call(finance, 'GET', '/api/project-finance/invoices')).status, 200);
   assert.strictEqual((await call(outsider, 'GET', '/api/project-finance/invoices')).status, 200);
-  const financeRoleAllowed = await call(finance, 'POST', '/api/project-finance/invoices/nonexistent-finance-role-test/finance-approval', { body: {} });
-  assert.strictEqual(financeRoleAllowed.status, 404, 'دور المالية مخوّل للوصول إلى الإجراء ثم يتحقق النظام من وجود الفاتورة');
-  const managerRoleAllowed = await call(manager, 'POST', '/api/project-finance/invoices/nonexistent-manager-role-test/finance-approval', { body: {} });
-  assert.strictEqual(managerRoleAllowed.status, 404, 'مدير المؤسسة مخوّل للإجراء مع بقاء عزل المؤسسة');
   const denied = await call(outsider, 'POST', '/api/project-finance/invoices/fake-id/finance-approval', { body: {} });
   assert.strictEqual(denied.status, 403);
 });
@@ -1323,194 +1343,4 @@ test('79 — رمز الدعوة أحادي الاستخدام ولا يقبل �
   const targetOrg = (await call(manager, 'GET', '/api/org')).data.org.id;
   const members = getDB().prepare('SELECT COUNT(*) n FROM org_members WHERE org_id=?').get(targetOrg).n;
   assert.strictEqual(members, 2, 'المدير والعضو الأول فقط');
-});
-
-test('80 — دليل العطاءات العام يرشح حسب الجهة وفترة الإغلاق ويعرض التفاصيل داخل MMC', async () => {
-  await makeAdmin('opportunity-admin');
-  const db = getDB();
-  const firstId = 'opp_' + uniq();
-  const secondId = 'opp_' + uniq();
-  const insert = db.prepare(`INSERT INTO tender_opportunities
-    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  insert.run(firstId,'test-source','FILTER-1','أعمال طرق داخل MMC','APC Test Authority','JO','أعمال مدنية','FILTER-1','عطاء تجريبي','2026-12-20','https://example.com/tender/1','open','ar');
-  insert.run(secondId,'test-source','FILTER-2','توريد معدات','APC Test Authority','JO','توريدات','FILTER-2','عطاء لاحق','2027-01-20','https://example.com/tender/2','open','ar');
-  db.prepare('INSERT INTO tender_opportunity_details (opportunity_id,details_json) VALUES (?,?)')
-    .run(firstId,JSON.stringify({purchase:'01/11/2026',closing:'20/12/2026',fee:'25 JOD',bond:'5%',qual:'تصنيف أول',remarks:'زيارة موقع'}));
-  db.prepare('INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)')
-    .run('doc_'+uniq(),firstId,'وثائق العطاء','https://www.arabpotash.com/files/test.pdf','public');
-
-  const filtered = await call('anon', 'GET', '/api/opportunities?authority=APC%20Test%20Authority&sector=%D8%A3%D8%B9%D9%85%D8%A7%D9%84%20%D9%85%D8%AF%D9%86%D9%8A%D8%A9&closingFrom=2026-12-01&closingTo=2026-12-31');
-  assert.strictEqual(filtered.status, 200, JSON.stringify(filtered.data));
-  assert.strictEqual(filtered.data.count, 1);
-  assert.strictEqual(filtered.data.opportunities[0].id, firstId);
-
-  const detail = await call('anon', 'GET', '/api/opportunities/detail/' + firstId);
-  assert.strictEqual(detail.status, 200, JSON.stringify(detail.data));
-  assert.strictEqual(detail.data.details.documentFee, '25 JOD');
-  assert.strictEqual(detail.data.details.bidBond, '5%');
-  assert.strictEqual(detail.data.documents.length, 1);
-
-  const invalidRange = await call('anon', 'GET', '/api/opportunities?closingFrom=2026-12-31&closingTo=2026-12-01');
-  assert.strictEqual(invalidRange.status, 400);
-});
-
-test('81 — استفسارات المقاولين وإجابات المشتريات تظهر للجميع دون كشف هوية صاحب السؤال', async () => {
-  const buyer = await newBuyer('qa-buyer', 'proc_pro');
-  const tender = await publish(buyer);
-  const contractor = 'qa-con-' + uniq();
-  await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول الاستفسار', email: contractor + '@t.com', password: 'Password123' } });
-  const other = 'qa-other-' + uniq();
-  await call(other, 'POST', '/api/auth/register', { body: { name: 'مقاول آخر', email: other + '@t.com', password: 'Password123' } });
-
-  const asked = await call(contractor, 'POST', '/api/procurement/tenders/' + tender.id + '/clarifications', { body: { question: 'هل يتوفر مخطط الخدمات تحت الأرض؟' } });
-  assert.strictEqual(asked.status, 201, JSON.stringify(asked.data));
-  const qid = asked.data.clarification.id;
-
-  const buyerView = await call(buyer, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
-  assert.strictEqual(buyerView.status, 200);
-  assert.strictEqual(buyerView.data.clarifications[0].questioner, 'مقاول الاستفسار');
-  const ownView = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
-  assert.strictEqual(ownView.data.clarifications[0].isMine, true);
-  assert.strictEqual(ownView.data.clarifications[0].questioner, null);
-  const otherView = await call(other, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
-  assert.strictEqual(otherView.data.clarifications[0].isMine, false);
-  assert.strictEqual(otherView.data.clarifications[0].questioner, null);
-
-  const answered = await call(buyer, 'POST', '/api/procurement/clarifications/' + qid + '/answer', { body: { answer: 'نعم، سيتم إرفاق المخطط ضمن وثائق العطاء.' } });
-  assert.strictEqual(answered.status, 201, JSON.stringify(answered.data));
-  assert.strictEqual((await call(buyer, 'POST', '/api/procurement/clarifications/' + qid + '/answer', { body: { answer: 'إجابة مكررة' } })).status, 409);
-  const publicView = await call(other, 'GET', '/api/procurement/tenders/' + tender.id + '/clarifications');
-  assert.strictEqual(publicView.data.clarifications[0].status, 'closed');
-  assert.strictEqual(publicView.data.clarifications[0].answers[0].text, 'نعم، سيتم إرفاق المخطط ضمن وثائق العطاء.');
-  assert.strictEqual(publicView.data.clarifications[0].answers[0].answerer, 'جهة الطرح');
-});
-
-test('82 — ملحق العطاء يصدره المشتريات ويظهر للمقاولين فقط ضمن العطاء المنشور', async () => {
-  const buyer = await newBuyer('addendum-buyer', 'proc_pro');
-  const tender = await publish(buyer);
-  const contractor = 'add-con-' + uniq();
-  await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول الملحق', email: contractor + '@t.com', password: 'Password123' } });
-  const issued = await call(buyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'تمديد موعد الزيارة', body: 'تم تمديد موعد زيارة الموقع إلى يوم الخميس الساعة العاشرة صباحاً.' } });
-  assert.strictEqual(issued.status, 201, JSON.stringify(issued.data));
-  const publicList = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda');
-  assert.strictEqual(publicList.status, 200);
-  assert.strictEqual(publicList.data.addenda.length, 1);
-  assert.strictEqual(publicList.data.addenda[0].title, 'تمديد موعد الزيارة');
-  assert.strictEqual(publicList.data.addenda[0].body, 'تم تمديد موعد زيارة الموقع إلى يوم الخميس الساعة العاشرة صباحاً.');
-  const otherBuyer = await newBuyer('other-addendum-buyer', 'proc_pro');
-  assert.strictEqual((await call(otherBuyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'ملحق', body: 'محاولة غير مصرح بها' } })).status, 404);
-});
-
-
-test('83 — ملفات ملحق العطاء ترتبط بالملحق الصحيح وتتاح فقط لمن يحق له الاطلاع على العطاء', async () => {
-  const buyer = await newBuyer('addendum-file-buyer', 'proc_pro');
-  const tender = await publish(buyer);
-  const contractor = 'add-file-con-' + uniq();
-  await call(contractor, 'POST', '/api/auth/register', {
-    body: { name: 'مقاول وثائق الملحق', email: contractor + '@t.com', password: 'Password123' }
-  });
-  const issued = await call(buyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', {
-    form: makeForm([{ name: 'addendum.pdf', content: 'MMC addendum attachment', type: 'application/pdf' }], {
-      title: 'مخططات معدلة', body: 'يرجى اعتماد المخططات المرفقة مع هذا الملحق.'
-    })
-  });
-  assert.strictEqual(issued.status, 201, JSON.stringify(issued.data));
-  assert.strictEqual(issued.data.addendum.documents.length, 1);
-  const listed = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda');
-  assert.strictEqual(listed.status, 200);
-  const doc = listed.data.addenda[0].documents[0];
-  assert.ok(doc && doc.id);
-  const downloaded = await call(contractor, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda/' + issued.data.addendum.id + '/documents/' + doc.id);
-  assert.strictEqual(downloaded.status, 200);
-  assert.match(String(downloaded.data), /MMC addendum attachment/);
-  const otherBuyer = await newBuyer('addendum-file-other-buyer', 'proc_pro');
-  const denied = await call(otherBuyer, 'GET', '/api/procurement/tenders/' + tender.id + '/addenda/' + issued.data.addendum.id + '/documents/' + doc.id);
-  assert.strictEqual(denied.status, 404);
-});
-
-
-test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة لكل مقاول مع ملفات وسعر غير مكشوفين', async () => {
-  const db=getDB(),id='opp_'+uniq();
-  db.prepare(`INSERT INTO tender_opportunities
-    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`)
-    .run(id,'workspace-test','WS-'+uniq(),'أعمال بنية تحتية','جهة اختبار','JO','2027-01-20','https://example.com/official','open','ar');
-  const contractor='workspace-con-'+uniq(),other='workspace-other-'+uniq();
-  await call(contractor,'POST','/api/auth/register',{body:{name:'مقاول مساحة العمل',email:contractor+'@t.com',password:'Password123'}});
-  await call(other,'POST','/api/auth/register',{body:{name:'مقاول آخر',email:other+'@t.com',password:'Password123'}});
-  const expiredId='opp_'+uniq();
-  db.prepare(`INSERT INTO tender_opportunities
-    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`)
-    .run(expiredId,'workspace-test','EX-'+uniq(),'عطاء منتهٍ','جهة اختبار','JO','2020-01-01','https://example.com/expired','open','ar');
-  const expired=await call(contractor,'GET','/api/opportunities/'+expiredId+'/workspace');
-  assert.strictEqual(expired.status,409,'يجب منع تجهيز عرض بعد موعد الإغلاق');
-  const invalidDateId='opp_'+uniq();
-  db.prepare(`INSERT INTO tender_opportunities
-    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`)
-    .run(invalidDateId,'workspace-test','BAD-'+uniq(),'عطاء بتاريخ غير واضح','جهة اختبار','JO','موعد غير معروف','https://example.com/invalid','open','ar');
-  const invalidDate=await call(contractor,'GET','/api/opportunities/'+invalidDateId+'/workspace');
-  assert.strictEqual(invalidDate.status,409,'يجب منع التجهيز عند غموض تاريخ الإغلاق');
-  const initial=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
-  assert.strictEqual(initial.status,200,JSON.stringify(initial.data));
-  assert.strictEqual(initial.data.workspace.status,'draft');
-  const upload=await call(contractor,'POST','/api/opportunities/'+id+'/workspace/files',{
-    form:makeForm([{name:'technical.pdf',content:'private technical bid file',type:'application/pdf'}],{fileKind:'technical'})
-  });
-  assert.strictEqual(upload.status,201,JSON.stringify(upload.data));
-  const incomplete=await call(contractor,'PUT','/api/opportunities/'+id+'/workspace',{body:{
-    technicalSummary:'ملخص فني واضح',methodology:'منهجية التنفيذ والضبط',experience:'مشاريع مشابهة',
-    financialAmount:125000,financialCurrency:'JOD',status:'ready_for_external_submission'
-  }});
-  assert.strictEqual(incomplete.status,409,'لا تعتمد الجاهزية دون ملف مالي');
-  const financialUpload=await call(contractor,'POST','/api/opportunities/'+id+'/workspace/files',{
-    form:makeForm([{name:'financial.xlsx',content:'private financial bid file',type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}],{fileKind:'financial'})
-  });
-  assert.strictEqual(financialUpload.status,201,JSON.stringify(financialUpload.data));
-  const saved=await call(contractor,'PUT','/api/opportunities/'+id+'/workspace',{body:{
-    technicalSummary:'ملخص فني واضح',methodology:'منهجية التنفيذ والضبط',experience:'مشاريع مشابهة',
-    financialAmount:125000,financialCurrency:'JOD',status:'ready_for_external_submission'
-  }});
-  assert.strictEqual(saved.status,200,JSON.stringify(saved.data));
-  assert.strictEqual(saved.data.workspace.status,'ready_for_external_submission');
-  assert.strictEqual(saved.data.workspace.financialAmount,125000);
-  assert.strictEqual(saved.data.workspace.files.length,2);
-  assert.deepStrictEqual(saved.data.workspace.files.map(x=>x.fileKind).sort(),['financial','technical']);
-  const download=await call(contractor,'GET','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
-  assert.strictEqual(download.status,200);
-  assert.match(String(download.data),/private technical bid file/);
-  const removed=await call(contractor,'DELETE','/api/opportunities/'+id+'/workspace/files/'+upload.data.files[0].id);
-  assert.strictEqual(removed.status,200,JSON.stringify(removed.data));
-  const afterDelete=await call(contractor,'GET','/api/opportunities/'+id+'/workspace');
-  assert.strictEqual(afterDelete.data.workspace.files.length,1);
-  assert.strictEqual(afterDelete.data.workspace.status,'draft');
-  const otherView=await call(other,'GET','/api/opportunities/'+id+'/workspace');
-  assert.strictEqual(otherView.status,200);
-  assert.notStrictEqual(otherView.data.workspace.id,saved.data.workspace.id);
-  assert.strictEqual(otherView.data.workspace.financialAmount,null);
-  assert.strictEqual(otherView.data.workspace.files.length,0);
-  assert.strictEqual((await call('anon','GET','/api/opportunities/'+id+'/workspace')).status,401);
-});
-
-test('80A — دليل العطاءات يدعم التنقل بين صفحات النتائج دون فقدان العدد الإجمالي', async () => {
-  const db = getDB(), token = 'PaginationCheck' + uniq();
-  const insert = db.prepare(`INSERT INTO tender_opportunities
-    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  for (let i = 1; i <= 5; i++) {
-    insert.run('opp_' + uniq(),'pagination-test',token + '-' + i,token + ' tender ' + i,'Pagination Authority','INT','Works',token + '-' + i,'Pagination fixture','2099-12-' + String(i).padStart(2,'0'),'https://example.com/pagination/' + i,'open','en');
-  }
-  const first = await call('anon','GET','/api/opportunities?q=' + token + '&page=1&pageSize=2');
-  assert.strictEqual(first.status,200);
-  assert.strictEqual(first.data.count,2);
-  assert.strictEqual(first.data.total,5);
-  assert.strictEqual(first.data.page,1);
-  assert.strictEqual(first.data.pages,3);
-  const last = await call('anon','GET','/api/opportunities?q=' + token + '&page=3&pageSize=2');
-  assert.strictEqual(last.status,200);
-  assert.strictEqual(last.data.count,1);
-  assert.strictEqual(last.data.total,5);
-  assert.strictEqual(last.data.page,3);
 });

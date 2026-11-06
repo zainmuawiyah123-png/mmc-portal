@@ -1,8 +1,5 @@
 'use strict';
 const express = require('express');
-const multer = require('multer');
-const config = require('../config');
-const S = require('../lib/storage');
 const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
@@ -20,167 +17,62 @@ const shape = r => ({
   id:r.id, title:r.title, authority:r.authority, country:r.country, sector:r.sector,
   tenderNumber:r.tender_number, summary:r.summary, publishedAt:r.published_at,
   closingAt:r.closing_at, sourceUrl:r.source_url, applicationUrl:r.application_url,
-  status:r.status, language:r.language, sourceKey:r.source_key, importedAt:r.imported_at
+  status:r.status, language:r.language, sourceKey:r.source_key, importedAt:r.imported_at,
+  sourceType:r.source_type || 'official', trustLevel:r.trust_level || 'verified',
+  tags:r.tags_json ? (()=>{try{return JSON.parse(r.tags_json)}catch(_){return []}})() : []
 });
+
+function profileFor(userId) {
+ const r=getDB().prepare('SELECT * FROM contractor_profiles WHERE user_id=?').get(userId);
+ if(!r) return null;
+ const parse=v=>{try{return JSON.parse(v||'[]')}catch(_){return[]}};
+ return {...r,sectors:parse(r.sectors_json),countries:parse(r.countries_json)};
+}
+function matchScore(row, profile) {
+ if(!profile) return null;
+ let score=0;
+ if(profile.countries.includes(row.country)) score+=35;
+ if(profile.sectors.length && row.sector && profile.sectors.some(x=>String(row.sector).toLowerCase().includes(String(x).toLowerCase()))) score+=35;
+ if(profile.capabilities && row.summary && String(profile.capabilities).toLowerCase().split(/[,،]/).some(x=>x.trim() && String(row.summary).toLowerCase().includes(x.trim()))) score+=15;
+ if(!profile.countries.length && !profile.sectors.length) score=50;
+ return Math.min(100,score+15);
+}
 
 // Public directory: only published records; no account or internal tender fields.
 router.get('/', wrap(async (req,res) => {
   const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
-  const authority=clean(req.query.authority,120), sourceKey=clean(req.query.sourceKey,80);
-  const closingFrom=clean(req.query.closingFrom,10), closingTo=clean(req.query.closingTo,10);
-  const pageRaw=Number.parseInt(req.query.page,10), pageSizeRaw=Number.parseInt(req.query.pageSize,10);
-  const page=Number.isSafeInteger(pageRaw)&&pageRaw>0?Math.min(pageRaw,100000):1;
-  const pageSize=Number.isSafeInteger(pageSizeRaw)&&pageSizeRaw>0?Math.min(pageSizeRaw,100):50;
-  const validDate=v=>!v||(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v);
-  if(!validDate(closingFrom)||!validDate(closingTo)) throw E.badRequest('صيغة تاريخ الإغلاق يجب أن تكون YYYY-MM-DD.');
-  if(closingFrom&&closingTo&&closingFrom>closingTo) throw E.badRequest('بداية فترة الإغلاق يجب ألا تتجاوز نهايتها.');
   const clauses=["status IN ('open','closed')"], vals=[];
   if(country){clauses.push('country=?');vals.push(country);}
-  if(sector){clauses.push('sector LIKE ?');vals.push('%'+sector+'%');}
-  if(authority){clauses.push('authority LIKE ?');vals.push('%'+authority+'%');}
-  if(sourceKey){clauses.push('source_key=?');vals.push(sourceKey);}
-  if(closingFrom){clauses.push('closing_at>=?');vals.push(closingFrom);}
-  if(closingTo){clauses.push('closing_at<=?');vals.push(closingTo);}
+  if(sector){clauses.push('sector=?');vals.push(sector);}
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
   if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
-  const where=clauses.join(' AND ');
-  const total=db.prepare('SELECT COUNT(*) AS total FROM tender_opportunities WHERE '+where).get(...vals).total;
-  const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+where+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT ? OFFSET ?').all(...vals,pageSize,(page-1)*pageSize);
-  // Tender imports can change immediately after a sync; never serve a stale empty directory response.
-  res.setHeader('Cache-Control','no-store');
-  res.json({opportunities:rows.map(shape),count:rows.length,total,page,pageSize,pages:Math.ceil(total/pageSize)});
+  const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 250').all(...vals);
+  res.setHeader('Cache-Control','public, max-age=60');
+  res.json({opportunities:rows.map(shape),count:rows.length});
 }));
 
-// Internal tender detail and document index. The browser stays on MMC.
-router.get('/detail/:id', wrap(async(req,res)=>{
- const db=getDB(), row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
- if(!row) throw E.notFound('العطاء غير موجود في دليل MMC.');
- const detail=db.prepare('SELECT details_json,verified_at FROM tender_opportunity_details WHERE opportunity_id=?').get(row.id);
- const documents=db.prepare('SELECT id,label,availability FROM tender_opportunity_documents WHERE opportunity_id=? ORDER BY label').all(row.id);
- let details={}; try{details=detail?JSON.parse(detail.details_json):{};}catch(_){}
- res.json({opportunity:shape(row),details:{purchaseDate:details.purchase||null,closingDate:details.closing||null,documentFee:details.fee||null,bidBond:details.bond||null,qualification:details.qual||details.qualification||null,remarks:details.remarks||null,detailUrl:details.detailUrl||null,verifiedAt:detail?.verified_at||null},documents});
-}));
-
-router.get('/documents/:docId', wrap(async(req,res)=>{
- const row=getDB().prepare(`SELECT document_url,label FROM tender_opportunity_documents WHERE id=? AND availability='public'`).get(req.params.docId);
- if(!row) throw E.notFound('الوثيقة غير متاحة داخل MMC.');
- let target;
- try { target=new URL(row.document_url); } catch(_) { throw E.badRequest('رابط الوثيقة غير صالح.'); }
- const approvedHosts=new Set(['www.arabpotash.com','arabpotash.com','www.joneps.gov.jo','joneps.gov.jo','arabpotash-my.sharepoint.com']);
- if(target.protocol!=='https:'||!approvedHosts.has(target.hostname)||target.username||target.password) throw E.badRequest('مصدر الوثيقة غير معتمد.');
- // Open the verified original source in the user's browser. SharePoint links may require
- // browser-managed redirects/cookies and cannot reliably be downloaded by the server proxy.
- res.setHeader('Referrer-Policy','no-referrer');
- res.setHeader('Cache-Control','no-store');
- return res.redirect(302,target.toString());
-}));
-
-// Contractor-only workspace for preparing external tender submissions inside MMC.
-const workspaceUpload = multer({
- storage: multer.memoryStorage(),
- limits: { fileSize: config.MAX_FILE_BYTES, files: 10 },
- fileFilter: (req,file,cb) => { try { S.assertAllowed(file.originalname,0); cb(null,true); } catch(err) { cb(err); } }
-});
-const contractorOnly = [A.requireAuth, A.requireRole('contractor')];
-
-function getPublicOpportunity(id) {
- const row=getDB().prepare("SELECT * FROM tender_opportunities WHERE id=? AND status='open'").get(id);
- if(!row) throw E.notFound('العطاء غير متاح للتجهيز حالياً.');
- if(row.closing_at) {
-  const match=String(row.closing_at).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(!match) throw E.conflict('تاريخ إغلاق العطاء غير واضح؛ راجع الجهة الطارحة قبل تجهيز العرض.');
-  const closeDate=new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])));
-  if(Number.isNaN(closeDate.getTime()) || closeDate.toISOString().slice(0,10)!==match[0]) throw E.conflict('تاريخ إغلاق العطاء غير صالح؛ راجع الجهة الطارحة.');
-  const zone=row.country==='AE'?'Asia/Dubai':row.country==='SA'?'Asia/Riyadh':row.country==='JO'?'Asia/Amman':'UTC';
-  const today=new Intl.DateTimeFormat('en-CA',{timeZone:zone}).format(new Date());
-  if(match[0]<today) throw E.conflict('انتهى موعد العطاء؛ يمكن مراجعة الإعلان فقط.');
- }
- return row;
-}
-function workspaceFor(opportunityId,userId,create) {
- const db=getDB(); let row=db.prepare('SELECT * FROM opportunity_bid_workspaces WHERE opportunity_id=? AND contractor_id=?').get(opportunityId,userId);
- if(!row && create) {
-  const id=uid('obw_');
-  db.prepare('INSERT INTO opportunity_bid_workspaces (id,opportunity_id,contractor_id) VALUES (?,?,?)').run(id,opportunityId,userId);
-  row=db.prepare('SELECT * FROM opportunity_bid_workspaces WHERE id=?').get(id);
- }
- return row;
-}
-function workspaceShape(row,files) {
- return {id:row.id,opportunityId:row.opportunity_id,technicalSummary:row.technical_summary,methodology:row.methodology,experience:row.experience,financialAmount:row.financial_amount,financialCurrency:row.financial_currency,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at,readyAt:row.ready_at,files};
-}
-router.get('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
- const opportunity=getPublicOpportunity(req.params.id), row=workspaceFor(opportunity.id,req.user.id,true),db=getDB();
- const files=db.prepare('SELECT id,original_name name,mime,size,file_kind fileKind,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
- res.json({opportunity:shape(opportunity),workspace:workspaceShape(row,files)});
-}));
-router.put('/:id/workspace',contractorOnly,wrap(async(req,res)=>{
- const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,true),b=req.body||{};
- const amount=b.financialAmount===null||b.financialAmount===''||b.financialAmount===undefined?null:Number(b.financialAmount);
- if(amount!==null&&(!Number.isFinite(amount)||amount<=0)) throw E.badRequest('القيمة المالية يجب أن تكون أكبر من صفر.');
- const currency=clean(b.financialCurrency||'JOD',3).toUpperCase();
- if(!['JOD','SAR','AED','KWD','QAR','BHD','OMR','USD'].includes(currency)) throw E.badRequest('العملة غير مدعومة.');
- const status=b.status==='ready_for_external_submission'?'ready_for_external_submission':'draft';
- const filesCount=getDB().prepare('SELECT COUNT(*) n FROM opportunity_bid_files WHERE workspace_id=?').get(row.id).n;
- const fileKinds=getDB().prepare('SELECT file_kind,COUNT(*) n FROM opportunity_bid_files WHERE workspace_id=? GROUP BY file_kind').all(row.id);
- const kindCounts=Object.fromEntries(fileKinds.map(x=>[x.file_kind,x.n]));
- if(status==='ready_for_external_submission' && (!String(b.technicalSummary||row.technical_summary||'').trim() || !(amount>0) || !kindCounts.technical || !kindCounts.financial)) {
-  throw E.conflict('لا يمكن اعتماد الجاهزية قبل استكمال الملخص الفني والقيمة المالية وملف فني واحد وملف مالي واحد على الأقل.');
- }
- getDB().prepare(`UPDATE opportunity_bid_workspaces SET technical_summary=?,methodology=?,experience=?,financial_amount=?,financial_currency=?,status=?,updated_at=unixepoch(),ready_at=? WHERE id=?`)
- .run(clean(b.technicalSummary,8000),clean(b.methodology,12000),clean(b.experience,8000),amount,currency,status,status==='ready_for_external_submission'?Math.floor(Date.now()/1000):null,row.id);
- const updated=getDB().prepare('SELECT * FROM opportunity_bid_workspaces WHERE id=?').get(row.id);
- const files=getDB().prepare('SELECT id,original_name name,mime,size,file_kind fileKind,uploaded_at FROM opportunity_bid_files WHERE workspace_id=? ORDER BY uploaded_at').all(row.id);
- audit({action:'external_bid_workspace_updated',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,status}});
- res.json({workspace:workspaceShape(updated,files),notice:'تم حفظ ملف التجهيز داخل MMC. هذا لا يعني إرسال العرض رسمياً إلى الجهة الطارحة.'});
-}));
-router.post('/:id/workspace/files',contractorOnly,workspaceUpload.array('files',10),wrap(async(req,res)=>{
- const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,true),files=req.files||[];
- if(!files.length) throw E.badRequest('اختر ملفاً واحداً على الأقل.');
- const db=getDB(),store=S.getStorage(),saved=[];
- const existing=db.prepare('SELECT COUNT(*) n FROM opportunity_bid_files WHERE workspace_id=?').get(row.id).n;
- if(existing+files.length>20) throw E.conflict('الحد الأقصى 20 ملفاً لمساحة العرض الواحدة.');
- try {
-  for(const f of files){
-   S.assertAllowed(f.originalname,f.size);
-   const key=`external-bids/${req.user.id}/${opportunity.id}/${row.id}/${S.makeStoredName(f.originalname)}`;
-   const put=await store.put(key,f.buffer,{mime:f.mimetype,originalName:S.displayName(f.originalname)});
-   const kind=String(req.body?.fileKind||'supporting').toLowerCase();
-   if(!['technical','financial','supporting'].includes(kind)) throw E.badRequest('تصنيف الملف يجب أن يكون فنياً أو مالياً أو داعماً.');
-   saved.push({id:uid('obf_'),key,driver:store.DRIVER,name:S.displayName(f.originalname),mime:f.mimetype,size:f.size,checksum:put.checksum,kind});
-  }
-  const ins=db.prepare('INSERT INTO opportunity_bid_files (id,workspace_id,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by,file_kind) VALUES (?,?,?,?,?,?,?,?,?,?)');
-  const tx=db.transaction(()=>saved.forEach(d=>ins.run(d.id,row.id,d.key,d.driver,d.name,d.mime,d.size,d.checksum,req.user.id,d.kind)));
-  tx();
- } catch(err){for(const d of saved){try{await store.delete(d.key);}catch(_){}}throw err;}
- db.prepare("UPDATE opportunity_bid_workspaces SET status='draft',updated_at=unixepoch(),ready_at=NULL WHERE id=?").run(row.id);
- audit({action:'external_bid_files_uploaded',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,count:saved.length}});
- res.status(201).json({files:saved.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size,fileKind:d.kind}))});
-}));
-router.delete('/:id/workspace/files/:fileId',contractorOnly,wrap(async(req,res)=>{
- const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,false);
- if(!row) throw E.notFound('الملف غير موجود.');
- const db=getDB(),d=db.prepare('SELECT * FROM opportunity_bid_files WHERE id=? AND workspace_id=?').get(req.params.fileId,row.id);
- if(!d) throw E.notFound('الملف غير موجود.');
- const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
- await store.delete(d.storage_key);
- db.prepare('DELETE FROM opportunity_bid_files WHERE id=? AND workspace_id=?').run(d.id,row.id);
- db.prepare("UPDATE opportunity_bid_workspaces SET status='draft',updated_at=unixepoch(),ready_at=NULL WHERE id=?").run(row.id);
- audit({action:'external_bid_file_deleted',entity:'tender_opportunity',entityId:opportunity.id,userId:req.user.id,ip:req.ip,detail:{workspaceId:row.id,fileId:d.id}});
- res.json({ok:true});
-}));
-router.get('/:id/workspace/files/:fileId',contractorOnly,wrap(async(req,res)=>{
- const opportunity=getPublicOpportunity(req.params.id),row=workspaceFor(opportunity.id,req.user.id,false);
- if(!row) throw E.notFound('الملف غير موجود.');
- const d=getDB().prepare('SELECT * FROM opportunity_bid_files WHERE id=? AND workspace_id=?').get(req.params.fileId,row.id);
- if(!d) throw E.notFound('الملف غير موجود.');
- const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
- const body=await store.get(d.storage_key);
- res.setHeader('Content-Type',d.mime||'application/octet-stream');
- res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));
- res.setHeader('Cache-Control','private, no-store');
- res.send(body);
+// Unified feed inside the contractor portal: tenders published on the platform by procurement
+// offices + external notices (JONEPS, Arab Potash, World Bank, UNGM). Requires a signed-in user.
+router.get('/feed', A.requireAuth, wrap(async (req,res) => {
+ const db=getDB(), q=clean(req.query.q,120), source=clean(req.query.source,20), state=clean(req.query.status,10)||'open', country=clean(req.query.country,3).toUpperCase();
+ const clauses=["status IN ('open','closed')"], vals=[];
+ if(source && source!=='platform'){clauses.push('source_key=?');vals.push(source);}
+ if(['open','closed'].includes(state)){clauses.push('status=?');vals.push(state);}
+ if(country){clauses.push('country=?');vals.push(country);}
+ if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
+ let rows=source==='platform'?[]:db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 300').all(...vals);
+ const profile=profileFor(req.user.id);
+ rows=rows.map(r=>({...r,match_score:matchScore(r,profile)})).sort((a,b)=>(b.match_score??-1)-(a.match_score??-1));
+ const counts=db.prepare("SELECT source_key, COUNT(*) n FROM tender_opportunities WHERE status='open' GROUP BY source_key").all();
+ const byCountry=db.prepare("SELECT country, COUNT(*) n FROM tender_opportunities WHERE status='open' GROUP BY country").all();
+ const last=db.prepare("SELECT source_key, MAX(finished_at) t FROM opportunity_sync_runs WHERE status='success' GROUP BY source_key").all();
+ res.setHeader('Cache-Control','private, max-age=30');
+ res.json({opportunities:rows.map(r=>({...shape(r),matchScore:r.match_score})),count:rows.length,
+  openBySource:Object.fromEntries(counts.map(r=>[r.source_key,r.n])),
+  openByCountry:Object.fromEntries(byCountry.map(r=>[r.country,r.n])),
+  connectedSources:['joneps','apc','worldbank','ungm','etimad','uae_mof','iraq','jordan_private'],
+  lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
 // MMC administrators curate/import official notices. No public write access.
@@ -293,9 +185,15 @@ router.post('/admin/sync/joneps', wrap(async(req,res)=>{
  res.json({ok:true,...result});
 }));
 router.post('/admin/sync/apc', wrap(async(req,res)=>{
- const result=await runAndRecordSync('arab-potash-company',()=>require('../lib/apc-sync').syncAPC());
- audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'arab-potash-company',added:result.added,updated:result.updated,received:result.received}});
+ const result=await runAndRecordSync('apc',()=>require('../lib/apc-sync').syncAPC());
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'apc',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
-
+for (const source of ['etimad','uae_mof','iraq','jordan_private']) {
+ router.post('/admin/sync/'+source, wrap(async(req,res)=>{
+  const result=await runAndRecordSync(source,()=>require('../lib/regional-sync').syncRegionalSource(source));
+  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source,added:result.added,updated:result.updated,received:result.received,skipped:result.skipped||false}});
+  res.json({ok:true,...result});
+ }));
+}
 module.exports=router;

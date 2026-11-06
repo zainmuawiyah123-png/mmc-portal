@@ -99,6 +99,15 @@ CREATE TABLE IF NOT EXISTS tenders (
   financial_opened_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_tenders_user ON tenders(user_id, updated_at DESC);
+CREATE TABLE IF NOT EXISTS tender_invites (
+  id TEXT PRIMARY KEY,
+  tender_id TEXT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
+  email TEXT NOT NULL COLLATE NOCASE,
+  status TEXT NOT NULL DEFAULT 'invited',
+  invited_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(tender_id, email)
+);
+CREATE INDEX IF NOT EXISTS idx_tender_invites_email ON tender_invites(email, tender_id);
 
 -- ============ electronic procurement ============
 CREATE TABLE IF NOT EXISTS tender_requirements (
@@ -188,38 +197,6 @@ CREATE TABLE IF NOT EXISTS requests (
 );
 CREATE INDEX IF NOT EXISTS idx_requests_tender ON requests(tender_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_requests_user   ON requests(user_id);
-CREATE INDEX IF NOT EXISTS idx_requests_tender_kind ON requests(tender_id, kind, created_at);
-CREATE TABLE IF NOT EXISTS request_answers (
-  id         TEXT PRIMARY KEY,
-  request_id TEXT NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
-  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  text       TEXT NOT NULL,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch())
-);
-CREATE INDEX IF NOT EXISTS idx_request_answers_request ON request_answers(request_id, created_at);
-CREATE TABLE IF NOT EXISTS tender_addenda (
-  id         TEXT PRIMARY KEY,
-  tender_id  TEXT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title      TEXT NOT NULL,
-  body       TEXT NOT NULL,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch())
-);
-CREATE INDEX IF NOT EXISTS idx_tender_addenda_tender ON tender_addenda(tender_id, created_at);
-CREATE TABLE IF NOT EXISTS tender_addendum_documents (
-  id TEXT PRIMARY KEY,
-  addendum_id TEXT NOT NULL REFERENCES tender_addenda(id) ON DELETE CASCADE,
-  storage_key TEXT NOT NULL UNIQUE,
-  storage_driver TEXT NOT NULL DEFAULT 'local',
-  original_name TEXT NOT NULL,
-  mime TEXT,
-  size INTEGER NOT NULL DEFAULT 0 CHECK (size >= 0),
-  checksum TEXT,
-  uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
-  uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
-);
-CREATE INDEX IF NOT EXISTS idx_addendum_docs_addendum ON tender_addendum_documents(addendum_id, uploaded_at);
-
 `;
 
 const PLANS_SEED = [
@@ -668,69 +645,57 @@ function upgradeTenderOpportunities(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_tender_opportunities_public
       ON tender_opportunities(status, country, closing_at);
-    CREATE INDEX IF NOT EXISTS idx_tender_opportunities_source
+CREATE INDEX IF NOT EXISTS idx_tender_opportunities_source
       ON tender_opportunities(source_key, imported_at DESC);
   `);
+  const cols = new Set(db.prepare('PRAGMA table_info(tender_opportunities)').all().map((c) => c.name));
+  if (!cols.has('source_type')) db.exec("ALTER TABLE tender_opportunities ADD COLUMN source_type TEXT NOT NULL DEFAULT 'official'");
+  if (!cols.has('trust_level')) db.exec("ALTER TABLE tender_opportunities ADD COLUMN trust_level TEXT NOT NULL DEFAULT 'verified'");
+  if (!cols.has('tags_json')) db.exec("ALTER TABLE tender_opportunities ADD COLUMN tags_json TEXT");
 }
 
-function upgradePublicTenderDetails(db) {
+function upgradeContractorProfiles(db) {
   db.exec(`
-    CREATE TABLE IF NOT EXISTS tender_opportunity_details (
-      opportunity_id TEXT PRIMARY KEY REFERENCES tender_opportunities(id) ON DELETE CASCADE,
-      details_json TEXT NOT NULL,
-      verified_at INTEGER NOT NULL DEFAULT (unixepoch())
+    CREATE TABLE IF NOT EXISTS contractor_profiles (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      sectors_json TEXT NOT NULL DEFAULT '[]',
+      countries_json TEXT NOT NULL DEFAULT '[]',
+      min_value REAL,
+      max_value REAL,
+      capabilities TEXT,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
-    CREATE TABLE IF NOT EXISTS tender_opportunity_documents (
-      id TEXT PRIMARY KEY,
-      opportunity_id TEXT NOT NULL REFERENCES tender_opportunities(id) ON DELETE CASCADE,
-      label TEXT NOT NULL,
-      document_url TEXT NOT NULL,
-      availability TEXT NOT NULL DEFAULT 'public',
-      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      UNIQUE(opportunity_id, document_url)
-    );
-    CREATE INDEX IF NOT EXISTS idx_tender_opportunity_documents
-      ON tender_opportunity_documents(opportunity_id);
   `);
 }
 
-function upgradeOpportunityBidWorkspaces(db) {
+function upgradeTenderWorkflow(db) {
+  const cols = new Set(db.prepare('PRAGMA table_info(tenders)').all().map((c) => c.name));
+  if (!cols.has('access_mode')) db.exec("ALTER TABLE tenders ADD COLUMN access_mode TEXT NOT NULL DEFAULT 'public'");
+  if (!cols.has('question_deadline')) db.exec('ALTER TABLE tenders ADD COLUMN question_deadline TEXT');
+  if (!cols.has('submission_policy')) db.exec("ALTER TABLE tenders ADD COLUMN submission_policy TEXT NOT NULL DEFAULT 'platform'");
+}
+
+function upgradeBidSubmissionDocuments(db) {
+  const cols = new Set(db.prepare('PRAGMA table_info(bid_submissions)').all().map((c) => c.name));
+  if (!cols.has('receipt_reference')) db.exec('ALTER TABLE bid_submissions ADD COLUMN receipt_reference TEXT');
+  if (!cols.has('declaration_accepted')) db.exec('ALTER TABLE bid_submissions ADD COLUMN declaration_accepted INTEGER NOT NULL DEFAULT 0');
+  if (!cols.has('submitted_ip')) db.exec('ALTER TABLE bid_submissions ADD COLUMN submitted_ip TEXT');
   db.exec(`
-    CREATE TABLE IF NOT EXISTS opportunity_bid_workspaces (
+    CREATE TABLE IF NOT EXISTS bid_submission_docs (
       id TEXT PRIMARY KEY,
-      opportunity_id TEXT NOT NULL REFERENCES tender_opportunities(id) ON DELETE CASCADE,
-      contractor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      technical_summary TEXT NOT NULL DEFAULT '',
-      methodology TEXT NOT NULL DEFAULT '',
-      experience TEXT NOT NULL DEFAULT '',
-      financial_amount REAL,
-      financial_currency TEXT NOT NULL DEFAULT 'JOD',
-      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','ready_for_external_submission','archived')),
-      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      ready_at INTEGER,
-      UNIQUE(opportunity_id, contractor_id)
-    );
-    CREATE INDEX IF NOT EXISTS idx_opp_bid_workspaces_contractor
-      ON opportunity_bid_workspaces(contractor_id, updated_at DESC);
-    CREATE TABLE IF NOT EXISTS opportunity_bid_files (
-      id TEXT PRIMARY KEY,
-      workspace_id TEXT NOT NULL REFERENCES opportunity_bid_workspaces(id) ON DELETE CASCADE,
-      storage_key TEXT NOT NULL UNIQUE,
+      submission_id TEXT NOT NULL REFERENCES bid_submissions(id) ON DELETE CASCADE,
+      doc_class TEXT NOT NULL CHECK (doc_class IN ('technical','financial')),
+      storage_key TEXT NOT NULL,
       storage_driver TEXT NOT NULL DEFAULT 'local',
       original_name TEXT NOT NULL,
       mime TEXT,
-      size INTEGER NOT NULL DEFAULT 0 CHECK(size >= 0),
-      checksum TEXT,
-      uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      size INTEGER NOT NULL DEFAULT 0,
+      checksum_sha256 TEXT,
       uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
-    CREATE INDEX IF NOT EXISTS idx_opp_bid_files_workspace
-      ON opportunity_bid_files(workspace_id, uploaded_at);
+    CREATE INDEX IF NOT EXISTS idx_bid_docs_submission_class
+      ON bid_submission_docs(submission_id, doc_class, uploaded_at);
   `);
-  const fileColumns = new Set(db.prepare('PRAGMA table_info(opportunity_bid_files)').all().map((c) => c.name));
-  if (!fileColumns.has('file_kind')) db.exec("ALTER TABLE opportunity_bid_files ADD COLUMN file_kind TEXT NOT NULL DEFAULT 'supporting'");
-  db.exec("CREATE INDEX IF NOT EXISTS idx_opp_bid_files_kind ON opportunity_bid_files(workspace_id,file_kind)");
 }
 
 function migrate(dbPath = config.DB_PATH) {
@@ -758,11 +723,12 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
-  upgradePublicTenderDetails(db);
-  upgradeOpportunityBidWorkspaces(db);
+  upgradeContractorProfiles(db);
+  upgradeTenderWorkflow(db);
   upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
+  upgradeBidSubmissionDocuments(db);
 
   return db;
 }
