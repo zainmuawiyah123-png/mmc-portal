@@ -158,33 +158,32 @@ function startScheduler() {
   }
 
   if (config.OPPORTUNITY_SYNC_ENABLED) {
-    const worldBankJob = cron.schedule(config.OPPORTUNITY_SYNC_CRON, async () => {
-      const started = Date.now();
+    // Keep every supported public source in the same scheduled pipeline.
+    // This prevents a deployment from silently refreshing only World Bank
+    // while JONEPS and Arab Potash remain stale.
+    const opportunityJob = cron.schedule(config.OPPORTUNITY_SYNC_CRON, async () => {
+      console.log('[scheduler] بدء مزامنة جميع مصادر العطاءات...');
       try {
-        const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
-        persistOpportunitySync('worldbank', started, { ok: true, ...result });
-        console.log('[scheduler] مزامنة البنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated + ', total=' + result.total + ', open=' + result.open + ', closed=' + result.closed + ', cancelled=' + result.cancelled);
+        const result = await runOpportunitySyncJob();
+        console.log('[scheduler] اكتملت مزامنة المصادر:', JSON.stringify(result.results));
       } catch (err) {
-        persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
-        console.error('[scheduler] فشلت مزامنة البنك الدولي:', err.message);
+        console.error('[scheduler] فشلت دورة مزامنة مصادر العطاءات:', err.message || String(err));
       }
-    }, { timezone: config.BACKUP_TZ, name: 'worldbank-opportunity-sync' });
-    _jobs.push(worldBankJob);
-    jobs.push('worldbank-opportunity-sync');
+    }, { timezone: config.BACKUP_TZ, name: 'all-opportunity-sources-sync' });
+    _jobs.push(opportunityJob);
+    jobs.push('all-opportunity-sources-sync');
 
-    // Initial import after boot; this does not enable unrelated scheduler tasks.
+    // Initial full import after boot, not just World Bank.
     setTimeout(async () => {
-      const started = Date.now();
+      console.log('[scheduler] بدء المزامنة الأولية لجميع مصادر العطاءات...');
       try {
-        const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
-        persistOpportunitySync('worldbank', started, { ok: true, ...result });
-        console.log('[scheduler] المزامنة الأولية للبنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated + ', total=' + result.total + ', open=' + result.open + ', closed=' + result.closed + ', cancelled=' + result.cancelled);
+        const result = await runOpportunitySyncJob();
+        console.log('[scheduler] نتيجة المزامنة الأولية لجميع المصادر:', JSON.stringify(result.results));
       } catch (err) {
-        persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
-        console.error('[scheduler] فشلت المزامنة الأولية للبنك الدولي:', err.message);
+        console.error('[scheduler] فشلت المزامنة الأولية لجميع المصادر:', err.message || String(err));
       }
     }, 20000).unref();
-    console.log('[scheduler] ✓ مزامنة البنك الدولي مجدولة: "' + config.OPPORTUNITY_SYNC_CRON + '" (' + config.BACKUP_TZ + ')');
+    console.log('[scheduler] ✓ مزامنة جميع مصادر العطاءات مجدولة: "' + config.OPPORTUNITY_SYNC_CRON + '" (' + config.BACKUP_TZ + ')');
   }
 
   console.log('[scheduler] ✓ المهام المفعّلة: ' + jobs.join(', '));
