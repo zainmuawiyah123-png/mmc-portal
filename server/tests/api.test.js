@@ -1329,6 +1329,8 @@ test('80 — دليل العطاءات الخارجية متاح للمقاول 
   assert.strictEqual((await call('anon', 'GET', '/api/opportunities')).status, 401);
   assert.strictEqual((await call(buyer, 'GET', '/api/opportunities')).status, 403);
   assert.strictEqual((await call(buyer, 'GET', '/tender-opportunities/index.html')).status, 403);
+  assert.strictEqual((await call(buyer, 'GET', '/procurement/index.html')).status, 200);
+  assert.strictEqual((await call(contractor, 'GET', '/procurement/index.html')).status, 403);
   assert.strictEqual((await call(contractor, 'GET', '/tender-opportunities/index.html')).status, 200);
   const db = getDB();
   const firstId = 'opp_' + uniq();
