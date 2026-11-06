@@ -131,13 +131,13 @@
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'تعذر تحميل التفاصيل');
    const d=data.details||{},docs=data.documents||[];
    const lines=[
-    ['تاريخ شراء الوثائق',d.purchaseDate],['آخر موعد للتقديم',d.closingDate],
-    ['رسوم نسخة العطاء',d.documentFee],['كفالة العطاء',d.bidBond],
-    ['شروط التأهيل',d.qualification],['ملاحظات الجهة',d.remarks]
+    ['آخر موعد لبيع نسخ العطاء',d.lastSaleDate],['آخر موعد للاستفسارات',d.inquiryDeadline],['آخر موعد لإيداع العروض',d.closingDate],
+    ['ثمن نسخة العطاء',d.documentFee],['كفالة الدخول',d.bidBond],
+    ['مؤهلات المناقص',d.qualification||d.qualificationLegacy],['تعليمات الحصول على الوثائق',d.documentInstructions],['حالة وثائق التنزيل',d.documentsNote],['ملاحظات الجهة',d.remarks]
    ].filter(x=>x[1]).map(x=>'<p><b>'+esc(x[0])+':</b> '+esc(x[1])+'</p>').join('');
    const docHtml=docs.length?'<h4>الوثائق المتاحة</h4>'+docs.map(x=>'<p><a href="/api/opportunities/documents/'+encodeURIComponent(x.id)+'" target="_blank" rel="noopener">'+esc(x.label)+' — فتح / تنزيل داخل MMC</a></p>').join(''):'<p>لم تُكتشف وثائق عامة قابلة للتحميل لهذا الإعلان.</p>';
    const detail=document.createElement('section');detail.className='intro';detail.style.marginTop='16px';
-   detail.innerHTML='<h2>'+esc(data.opportunity.title)+'</h2><p>'+esc(data.opportunity.summary||'')+'</p>'+lines+docHtml+'<p class="muted">للتوثيق: <a href="'+esc(data.opportunity.sourceUrl)+'" target="_blank" rel="noopener">المصدر الرسمي</a>. إذا كانت الوثائق تتطلب تسجيل مورد أو شراء نسخة فذلك يخضع لإجراءات الجهة.</p><div class="notice" style="margin:12px 0">يمكن للمقاول تجهيز عرضه داخل MMC. الحفظ هنا لا يعني الإرسال الرسمي للجهة.</div><button class="btn" type="button" data-workspace="'+esc(data.opportunity.id)+'">تجهيز عرضي داخل MMC</button><div id="external-workspace" style="margin-top:14px"></div><button class="btn ghost" type="button">إغلاق التفاصيل</button>';
+   detail.innerHTML='<h2>'+esc(data.opportunity.title)+'</h2><p>'+esc(data.opportunity.summary||'')+'</p>'+lines+docHtml+'<p class="muted">للتوثيق: <a href="'+(data.opportunity.sourceKey==='gam'?'https://media.ammancity.gov.jo/AR/List/اعلانات_العطاءات':esc(data.opportunity.sourceUrl))+'" target="_blank" rel="noopener">المصدر الرسمي</a>. '+(data.opportunity.sourceKey==='gam'?'يمكن مراجعة الإعلان التفصيلي وتعليمات شراء الوثائق لدى الأمانة؛ لا يتوفر تنزيل عام مباشر للوثائق من صفحة الإعلان.':'إذا كانت الوثائق تتطلب تسجيل مورد أو شراء نسخة فذلك يخضع لإجراءات الجهة.')+'</p><div class="notice" style="margin:12px 0">يمكن للمقاول تجهيز عرضه داخل MMC. الحفظ هنا لا يعني الإرسال الرسمي للجهة.</div><button class="btn" type="button" data-workspace="'+esc(data.opportunity.id)+'">تجهيز عرضي داخل MMC</button><div id="external-workspace" style="margin-top:14px"></div><button class="btn ghost" type="button">إغلاق التفاصيل</button>';
    detail.querySelector('[data-workspace]').addEventListener('click',()=>openWorkspace(data.opportunity.id));
    detail.querySelectorAll('button.ghost').forEach(x=>x.addEventListener('click',()=>detail.remove()));
    b.closest('article').after(detail);
