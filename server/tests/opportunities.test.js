@@ -222,3 +222,21 @@ test('Jordan source parser does not mistake linked tender PDF attachments for se
  assert.equal(rows.length,1);
  assert.equal(new URL(rows[0].sourceUrl).hostname,'www.jpmc.com.jo');
 });
+
+const {extractTenderDetails}=require('../src/lib/jordan-public-sources-sync');
+test('Jordan public tender details extract publication date, closing date, bid bond and document fee when present',()=>{
+ const details=extractTenderDetails('تاريخ النشر: 01/11/2026 تاريخ الإغلاق: 18/11/2026 كفالة دخول العطاء: 3,000 دينار رسوم وثائق العطاء: 50 دينار شروط التأهيل: تصنيف مقاولين درجة أولى', ['2026-11-01','2026-11-18'], '2026-11-18');
+ assert.equal(details.publicationDate,'2026-11-01');
+ assert.equal(details.closingDate,'2026-11-18');
+ assert.match(details.bidBond,/3,000/);
+ assert.match(details.copyPrice,/50/);
+ assert.match(details.qualifications,/درجة أولى/);
+});
+test('Jordan public tender detail panel shows MMC fields and uses neutral official-source document wording',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const page=fs.readFileSync(path.join(__dirname,'../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'),'utf8');
+ assert.match(page,/تاريخ النشر/);
+ assert.match(page,/كفالة دخول العطاء/);
+ assert.match(page,/فتح الوثيقة من المصدر الرسمي/);
+ assert.doesNotMatch(page,/فتح من مصدر البوتاس/);
+});

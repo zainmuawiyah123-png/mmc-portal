@@ -107,14 +107,19 @@
       const detailRes=await fetch('/api/opportunities/'+encodeURIComponent(o.id),{credentials:'same-origin'});
       const detailData=await detailRes.json();if(!detailRes.ok)throw new Error(detailData.error?.message||'تعذر تحميل التفاصيل');
       const d=detailData.details||{},docs=detailData.documents||[];
-      panel.innerHTML=(d.purchaseDate?'<p><b>تاريخ شراء الوثائق:</b> '+esc(d.purchaseDate)+'</p>':'')+
-       (d.closingDate?'<p><b>تاريخ الإغلاق:</b> '+esc(d.closingDate)+'</p>':'')+
-       (d.copyPrice?'<p><b>رسوم النسخة:</b> '+esc(d.copyPrice)+'</p>':'')+
-       (d.bidBond?'<p><b>كفالة العطاء:</b> '+esc(d.bidBond)+'</p>':'')+
+      panel.innerHTML='<h4>'+esc(detailData.opportunity?.title||o.title)+'</h4>'+
+       '<p><b>الجهة:</b> '+esc(detailData.opportunity?.authority||o.authority||'غير محددة')+'</p>'+
+       '<p><b>رقم العطاء:</b> '+esc(detailData.opportunity?.tenderNumber||o.tenderNumber||'غير محدد')+'</p>'+
+       '<p><b>تاريخ النشر:</b> '+esc(d.publicationDate||detailData.opportunity?.publishedAt||o.publishedAt||'غير مذكور في الإعلان')+'</p>'+
+       '<p><b>تاريخ الإغلاق:</b> '+esc(d.closingDate||detailData.opportunity?.closingAt||o.closingAt||'غير مذكور في الإعلان')+'</p>'+
+       (d.purchaseDate?'<p><b>تاريخ شراء الوثائق:</b> '+esc(d.purchaseDate)+'</p>':'')+
+       (d.copyPrice?'<p><b>رسوم وثائق العطاء:</b> '+esc(d.copyPrice)+'</p>':'')+
+       (d.bidBond?'<p><b>كفالة دخول العطاء:</b> '+esc(d.bidBond)+'</p>':'')+
        (d.qualifications?'<p><b>شروط التأهيل:</b> '+esc(d.qualifications)+'</p>':'')+
        (d.remarks?'<p><b>ملاحظات الإعلان:</b> '+esc(d.remarks)+'</p>':'')+
        '<p><b>الوثائق والمرفقات العامة:</b></p>'+
-       (docs.length?'<ul>'+docs.map(doc=>'<li>'+esc(doc.label)+' — <a href="'+esc(doc.url)+'" target="_blank" rel="noopener">فتح من مصدر البوتاس</a> ('+esc(doc.availability)+')</li>').join('')+'</ul>':'<p class="muted">لم تُنشر مرفقات عامة قابلة للربط لهذا العطاء. قد تتطلب الوثائق شراء نسخة أو تسجيل مورد.</p>');
+       (docs.length?'<ul>'+docs.map(doc=>'<li>'+esc(doc.label)+' — <a href="'+esc(doc.url)+'" target="_blank" rel="noopener">فتح الوثيقة من المصدر الرسمي</a> ('+esc(doc.availability)+')</li>').join('')+'</ul>':'<p class="muted">لا توجد وثائق عامة مرتبطة بهذا السجل حالياً. إذا لم ترد الكفالة أو الرسوم أعلاه، فهي غير مذكورة في البيانات التي أمكن قراءتها من الإعلان.</p>')+
+       '<p><a href="'+esc(detailData.opportunity?.sourceUrl||o.sourceUrl)+'" target="_blank" rel="noopener">فتح الإعلان الأصلي لدى الجهة ↗</a></p>';
      }catch(e){panel.textContent=e.message;}
     });
     results.appendChild(card);
