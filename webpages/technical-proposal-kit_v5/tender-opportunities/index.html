@@ -124,7 +124,7 @@
   try{
    const res=await fetch('/api/opportunities/admin/sync/all',{method:'POST',credentials:'same-origin'});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت دورة المزامنة');
-   const parts=Object.entries(data.results||{}).map(([k,v])=>k+': '+(v.skipped?'غير مفعّل لعدم إعداد بيانات الدخول':v.ok?('نجاح — '+(v.added||0)+' جديد، '+(v.updated||0)+' تحديث'):'فشل — '+(v.error||'خطأ غير محدد')));
+   const parts=Object.entries(data.results||{}).map(([k,v])=>k+': '+(v.skipped?'غير مفعّل لعدم إعداد بيانات الدخول':v.ok?('نجاح — '+(v.added||0)+' جديد، '+(v.updated||0)+' تحديث'+(v.detailsReceived!==undefined?'، تفاصيل '+v.detailsReceived+'، فشل التفاصيل '+(v.detailFailures||0):'')):'فشل — '+(v.error||'خطأ غير محدد')));
    msg.textContent=parts.join(' | ');
    load();loadSyncHistory();
   }catch(e){msg.textContent=e.message;}
@@ -134,7 +134,7 @@
   try{
    const res=await fetch('/api/opportunities/admin/sync/apc',{method:'POST',credentials:'same-origin'});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت مزامنة البوتاس');
-   msg.textContent='البوتاس: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
+   msg.textContent='البوتاس: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم، تفاصيل مكتملة '+(data.detailsReceived||0)+'، تفاصيل تعذّر جلبها '+(data.detailFailures||0)+'.';
    load();loadSyncHistory();
   }catch(e){msg.textContent=e.message;}
  });
