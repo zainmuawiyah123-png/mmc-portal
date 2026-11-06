@@ -1,0 +1,91 @@
+'use strict';
+/**
+ * Read-only connectors for official Jordanian tender notice pages.
+ * Only public notice metadata is imported; no logins, bid submissions or paywalls are bypassed.
+ */
+const {getDB,uid}=require('../db');
+const SOURCES=[
+ {key:'gam',name:'أمانة عمّان الكبرى',url:'https://www.gamtenders.gov.jo/',country:'JO',authority:'أمانة عمّان الكبرى',kind:'portal'},
+ {key:'nepco',name:'شركة الكهرباء الوطنية',url:'https://www.nepco.com.jo/Tenders.aspx',country:'JO',authority:'شركة الكهرباء الوطنية',kind:'portal'},
+ {key:'jepco',name:'شركة الكهرباء الأردنية',url:'https://www.jepco.com.jo/ar/Home/عرض-المناقصات-الحالية',country:'JO',authority:'شركة الكهرباء الأردنية',kind:'portal'},
+ {key:'jprc',name:'مصفاة البترول الأردنية',url:'https://www.jopetrol.jo/ar/modules/tenders',country:'JO',authority:'مصفاة البترول الأردنية',kind:'portal'},
+ {key:'npc',name:'شركة البترول الوطنية',url:'https://www.npc.com.jo/En/Modules/Tenders',country:'JO',authority:'شركة البترول الوطنية',kind:'portal'},
+ {key:'jordan_bromine',name:'شركة البرومين الأردنية',url:'https://www.jordanbromine.com/tenders/',country:'JO',authority:'شركة البرومين الأردنية',kind:'portal'},
+ {key:'memr',name:'وزارة الطاقة والثروة المعدنية',url:'https://www.memr.gov.jo/AR/Modules/Tenders',country:'JO',authority:'وزارة الطاقة والثروة المعدنية',kind:'portal'},
+ {key:'mwi',name:'وزارة المياه والري',url:'https://www.mwi.gov.jo/AR/Modules/tenders',country:'JO',authority:'وزارة المياه والري',kind:'portal'},
+ {key:'unicef_jo',name:'UNICEF Jordan',url:'https://www.unicef.org/jordan/supply-and-procurement',country:'JO',authority:'UNICEF Jordan',kind:'ngo'}
+];
+const decode=s=>String(s||'').replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/\\s+/g,' ').trim();
+const dateISO=s=>{
+ const v=String(s||'');
+ let m=v.match(/(\\d{4})[\\/-](\\d{1,2})[\\/-](\\d{1,2})/);
+ if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+ m=v.match(/(\\d{1,2})[\\/-](\\d{1,2})[\\/-](\\d{4})/);
+ if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+ m=v.match(/(\\d{1,2})\\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[,]?\\s+(\\d{4})/i);
+ if(m){const n=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[2].slice(0,3).toLowerCase())+1;return m[3]+'-'+String(n).padStart(2,'0')+'-'+m[1].padStart(2,'0');}
+ return null;
+};
+function allowedUrl(raw,base){
+ try{const u=new URL(raw,base),b=new URL(base);return u.protocol==='https:'&&(u.hostname===b.hostname||u.hostname.endsWith('.'+b.hostname))?u.toString():null;}catch(_){return null;}
+}
+function candidateBlocks(html){
+ const out=[];
+ for(const m of String(html||'').matchAll(/<tr\\b[\\s\\S]*?<\\/tr>/gi))out.push(m[0]);
+ for(const m of String(html||'').matchAll(/<(?:article|li)\\b[\\s\\S]*?<\\/(?:article|li)>/gi))out.push(m[0]);
+ return out;
+}
+function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
+ const blocks=candidateBlocks(html),items=[],seen=new Set();
+ const consume=(block,baseUrl)=>{
+  const plain=decode(block);if(plain.length<18||plain.length>12000)return;
+  const links=[...String(block).matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)];
+  if(!links.length)return;
+  const relevant=source.key==='unicef_jo'?/(request for proposal|invitation to bid|tender|procurement|expression of interest|lrps|rfp)/i.test(plain):/(tender|مناقصة|عطاء|مزايدة|مناقصات|عطاءات|bid|rfp|ifb|rfq)/i.test(plain);
+  if(!relevant)return;
+  const number=(plain.match(/(?:tender\\s*(?:no\\.?|#)?|عطاء\\s*(?:رقم)?|مناقصة\\s*(?:رقم)?|LRPS\\s*)[:#№\\s-]*([A-Z0-9][A-Z0-9\\/-]{2,})/i)||[])[1]||null;
+  const dateMatches=[...plain.matchAll(/(?:20\\d{2}[\\/-]\\d{1,2}[\\/-]\\d{1,2}|\\d{1,2}[\\/-]\\d{1,2}[\\/-]20\\d{2}|\\d{1,2}\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[,]?\\s+20\\d{2})/gi)].map(m=>dateISO(m[0])).filter(Boolean);
+  const closing=dateMatches.length?dateMatches[dateMatches.length-1]:null;
+  const titleLink=links.map(x=>decode(x[2])).find(x=>x.length>8&&!/read more|المزيد|التفاصيل|download|اقرأ المزيد/i.test(x));
+  const title=titleLink||plain.slice(0,220);
+  if(!title||title.length<8)return;
+  const link=links.map(x=>allowedUrl(x[1],baseUrl)).find(Boolean)||baseUrl;
+  const external=number||link;
+  if(seen.has(external))return;seen.add(external);
+  const published=dateMatches.length>1?dateMatches[0]:null;
+  items.push({id:source.key+':'+(number||BufferlessHash(link)),title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:plain.slice(0,2500),publishedAt:published,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\\u0600-\\u06FF]/.test(title)?'ar':'en'});
+ };
+ for(const block of blocks)consume(block,source.url);
+ if(!items.length){
+  const anchors=[...String(html||'').matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)];
+  for(const a of anchors){
+   const label=decode(a[2]);if(label.length<12||!/tender|عطاء|مناقصة|bid|procurement|LRPS|RFP/i.test(label))continue;
+   const link=allowedUrl(a[1],source.url);if(!link)continue;
+   const id=source.key+':'+BufferlessHash(link);if(seen.has(id))continue;seen.add(id);
+   items.push({id,title:label.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:null,summary:label,publishedAt:null,closingAt:null,sourceUrl:link,applicationUrl:null,status:'open',language:/[\\u0600-\\u06FF]/.test(label)?'ar':'en'});
+  }
+ }
+ return items;
+}
+function BufferlessHash(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0).toString(36);}
+async function fetchHtml(url){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
+ try{const r=await fetch(url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.text();}
+ finally{clearTimeout(timer);}
+}
+async function syncOne(source){
+ const html=await fetchHtml(source.url),items=parseSource(html,source);
+ if(!items.length)throw new Error('Official page loaded but no tender records were confidently parsed; no database changes were made.');
+ const db=getDB(),upsert=db.prepare(`INSERT INTO tender_opportunities
+ (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
+ VALUES (@rowId,@sourceKey,@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language)
+ ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=COALESCE(excluded.published_at,tender_opportunities.published_at),closing_at=COALESCE(excluded.closing_at,tender_opportunities.closing_at),source_url=excluded.source_url,status=excluded.status,language=excluded.language,updated_at=unixepoch()`);
+ const tx=db.transaction(rows=>{let added=0,updated=0;for(const n of rows){const old=db.prepare('SELECT id FROM tender_opportunities WHERE source_key=? AND external_id=?').get(source.key,n.id);upsert.run({rowId:old?old.id:uid('opp_'),sourceKey:source.key,externalId:n.id,title:n.title,authority:n.authority,country:n.country,sector:n.sector,tenderNumber:n.tenderNumber,summary:n.summary,publishedAt:n.publishedAt,closingAt:n.closingAt,sourceUrl:n.sourceUrl,applicationUrl:n.applicationUrl,status:n.status,language:n.language});if(old)updated++;else added++;}return {added,updated};});
+ return {...tx(items),received:items.length,normalized:items.length,source:source.key,sourceUrl:source.url};
+}
+async function syncJordanPublicSources(){
+ const results={};
+ for(const source of SOURCES){try{results[source.key]={ok:true,...await syncOne(source)};}catch(e){results[source.key]={ok:false,error:(e.message||String(e)).slice(0,240)};}}
+ return results;
+}
+module.exports={SOURCES,parseSource,syncOne,syncJordanPublicSources};
