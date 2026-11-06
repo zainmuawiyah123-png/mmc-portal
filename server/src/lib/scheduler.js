@@ -106,6 +106,10 @@ async function runOpportunitySyncJob() {
   };
   await runSource('arab-potash-company',()=>require('./apc-sync').syncAPC());
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS({maxPages:5}));
+  await runSource('gam',()=>require('./gam-sync').syncGAM());
+  await runSource('jpmc',()=>require('./jpmc-sync').syncJPMC());
+  await runSource('jprc',()=>require('./jprc-sync').syncJPRC());
+  await runSource('jepco',()=>require('./jepco-sync').syncJEPCO());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
@@ -142,7 +146,7 @@ function startScheduler() {
     const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
       console.log('[scheduler] بدء مزامنة العطاءات العامة: APC وJONEPS والبنك الدولي وUNGM...');
       runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
-    },{timezone:config.BACKUP_TZ,name:'opportunity-sync-worldbank'});
+    },{timezone:config.BACKUP_TZ,name:'opportunity-sync-jordan-sources'});
     _jobs.push(opportunityJob);
     console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }

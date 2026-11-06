@@ -161,3 +161,19 @@ test('JONEPS mapLimit runs bounded tasks and preserves result order', async () =
   assert.deepEqual(results, [6, 2, 4, 8]);
   assert.equal(maximum, 2);
 });
+
+test('Jordan corporate and municipality source parsers normalize public notices', () => {
+ const { parseGAMRows } = require('../src/lib/gam-sync');
+ const { parseJpmcRows } = require('../src/lib/jpmc-sync');
+ const { parseJprcRows } = require('../src/lib/jprc-sync');
+ const { parseJepcoRows } = require('../src/lib/jepco-sync');
+ const gam=parseGAMRows('<table><tr><th>رقم المناقصة</th><th>اسم المناقصة</th><th>كفالة</th><th>آخر موعد للبيع</th><th>آخر موعد للاستفسارات</th><th>آخر موعد لإيداع العروض</th></tr><tr><td>74/1/2026</td><td>إعادة تأهيل أدراج</td><td>13000 دينار</td><td>11/11/2026</td><td>17/11/2026</td><td>23/11/2026</td></tr></table>','2026-11-06');
+ assert.equal(gam[0].tenderNumber,'74/1/2026');
+ assert.equal(gam[0].closingAt,'2026-11-23');
+ const jpmc=parseJpmcRows('<a href="/ar/tender/123">عطاء أعمال مدنية 01/12/2026</a>','2026-11-06');
+ assert.ok(Array.isArray(jpmc));
+ const jprc=parseJprcRows('<a href="/ar/tender/123">مناقصة صيانة 01/12/2026</a>','2026-11-06');
+ assert.ok(Array.isArray(jprc));
+ const jepco=parseJepcoRows('<table><tr><td>مناقصة تمديدات</td><td>01/12/2026</td></tr></table>','2026-11-06');
+ assert.ok(Array.isArray(jepco));
+});

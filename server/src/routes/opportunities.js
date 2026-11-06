@@ -298,4 +298,16 @@ router.post('/admin/sync/apc', wrap(async(req,res)=>{
  res.json({ok:true,...result});
 }));
 
+
+for (const [source, moduleName, method] of [
+ ['gam','gam-sync','syncGAM'],['jpmc','jpmc-sync','syncJPMC'],
+ ['jprc','jprc-sync','syncJPRC'],['jepco','jepco-sync','syncJEPCO']
+]) {
+ router.post('/admin/sync/'+source, wrap(async(req,res)=>{
+  const result=await runAndRecordSync(source,()=>require('../lib/'+moduleName)[method]());
+  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source,added:result.added,updated:result.updated,received:result.received}});
+  res.json({ok:true,...result});
+ }));
+}
+
 module.exports=router;
