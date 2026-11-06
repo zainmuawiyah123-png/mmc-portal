@@ -136,3 +136,12 @@ test('External directory API exposes per-source and open/closed diagnostic count
   assert.match(page, /إجمالي السجلات/);
   assert.match(page, /sourceNames/);
 });
+
+test('Regional official tender source links include Bahrain and Iraq with correct integration caveat', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const page = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'), 'utf8');
+  assert.ok(page.includes('https://www.tenderboard.gov.bh/Ar/Tenders/PublicTenders/'));
+  assert.ok(page.includes('https://www.itp.iq/'));
+  assert.match(page, /لن نستورد أو نعيد نشر بياناتها آلياً دون تصريح/);
+});
