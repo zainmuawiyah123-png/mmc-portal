@@ -192,7 +192,7 @@ test('APC detail endpoint is authenticated for contractors and MMC admins and re
 const {SOURCES,parseSource}=require('../src/lib/jordan-public-sources-sync');
 test('Jordan official tender connector registry includes GAM, phosphate, electricity, refinery and NGO sources',()=>{
  const keys=SOURCES.map(x=>x.key);
- for(const key of ['gam','jpmc','nepco','jepco','sepco','jprc','jppmc','jordan_bromine','memr','mwi','emrc','unicef_jo'])assert.ok(keys.includes(key),key);
+ for(const key of ['gam','jpmc','nepco','jepco','sepco','jprc','jppmc','jordan_bromine','memr','mwi','emrc','unicef_jo','unhcr_jo'])assert.ok(keys.includes(key),key);
 });
 test('Jordan public-source parser extracts tender metadata and rejects off-domain document links',()=>{
  const source=SOURCES.find(x=>x.key==='nepco');
