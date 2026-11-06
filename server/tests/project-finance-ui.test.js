@@ -77,7 +77,7 @@ test('MMCUI-03 — دليل العطاءات الخارجية للمقاول ف�
   assert.doesNotMatch(procurementPortal, /tender-opportunities/);
   const server = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
-  assert.match(server, /tender-opportunities.*contractor/i);
+  assert.ok(server.includes("app.get(['/tender-opportunities'") && server.includes("req.user.role !== 'contractor'"));
   assert.match(route, /router\.get\('\/', contractorDirectoryOnly/);
   assert.match(route, /router\.get\('\/detail\/:id', contractorDirectoryOnly/);
   assert.match(route, /router\.get\('\/documents\/:docId', contractorDirectoryOnly/);
