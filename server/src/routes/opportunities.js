@@ -31,8 +31,12 @@ router.get('/', directoryReaders, wrap(async (req,res) => {
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
   if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
   const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 250').all(...vals);
+  const sourceRows=db.prepare("SELECT source_key,status,COUNT(*) AS n FROM tender_opportunities WHERE status IN ('open','closed') GROUP BY source_key,status").all();
+  const sourceCounts={};
+  for(const r of sourceRows){sourceCounts[r.source_key] ||= {open:0,closed:0,total:0};sourceCounts[r.source_key][r.status]=r.n;sourceCounts[r.source_key].total+=r.n;}
+  const allCounts=Object.values(sourceCounts).reduce((a,v)=>({open:a.open+v.open,closed:a.closed+v.closed,total:a.total+v.total}),{open:0,closed:0,total:0});
   res.setHeader('Cache-Control','public, max-age=60');
-  res.json({opportunities:rows.map(shape),count:rows.length});
+  res.json({opportunities:rows.map(shape),count:rows.length,sourceCounts,allCounts});
 }));
 
 // Unified feed inside the contractor portal: tenders published on the platform by procurement
