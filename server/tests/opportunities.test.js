@@ -163,3 +163,28 @@ test('Kuwait official CAPT portal is listed as a source without claiming automat
   assert.ok(page.includes('https://capt.gov.kw/en/'));
   assert.match(page, /ولا ندّعي وجود مزامنة آلية/);
 });
+
+const { parseApcDetail } = require('../src/lib/apc-sync');
+test('APC detail parser extracts tender fields and only permits official Arab Potash document links', () => {
+  const html = '<div>Tender title and number: IFB NO. 202602574/NA - Construction of Army Towers Purchase Date: 09/11/2026 Closing date: 29/11/2026 Copy Price: JOD 232 Bid Bond Value: JOD 17,500 Vendor Qualifications: Grade 3 Remarks: Civil works</div>'
+    + '<a href="https://arabpotash.com/docs/tender.pdf">Tender Documents</a>'
+    + '<a href="https://evil.example/file.pdf">Announcement</a>';
+  const d = parseApcDetail(html,'2310',{title:'fallback'});
+  assert.match(d.title,/Construction of Army Towers/);
+  assert.equal(d.purchaseDate,'2026-11-09');
+  assert.equal(d.closingDate,'2026-11-29');
+  assert.match(d.bidBond,/17,500/);
+  assert.equal(d.documents.length,1);
+  assert.equal(new URL(d.documents[0].url).hostname,'arabpotash.com');
+});
+test('APC detail endpoint is authenticated for contractors and MMC admins and reads stored details/documents', () => {
+  const fs=require('node:fs'),path=require('node:path');
+  const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
+  const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
+  const page=fs.readFileSync(path.join(__dirname,'../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'),'utf8');
+  assert.match(route,/router\\.get\\('\/:id', directoryReaders/);
+  assert.match(route,/tender_opportunity_public_documents/);
+  assert.match(migration,/upgradeTenderOpportunityDetails/);
+  assert.match(page,/تفاصيل العطاء والوثائق داخل MMC/);
+  assert.match(page,/api\\/opportunities\\//);
+});
