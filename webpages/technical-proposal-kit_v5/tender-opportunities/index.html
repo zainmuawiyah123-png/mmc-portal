@@ -143,7 +143,7 @@
     jepco:'/ar/Home/عرض-المناقصات-الحالية',ungm:'/Public/Notice'
    };
    const genericPath=genericSourcePaths[data.opportunity.sourceKey];
-   if(officialUrl&&genericPath){try{if(new URL(officialUrl).pathname.replace(/\\/$/,'')===genericPath.replace(/\\/$/,''))officialUrl='';}catch(_){officialUrl='';}}
+   if(officialUrl&&genericPath){try{if(new URL(officialUrl).pathname.replace(/\/$/,'')===genericPath.replace(/\/$/,''))officialUrl='';}catch(_){officialUrl='';}}
    const officialLink=officialUrl?'<a href="'+esc(officialUrl)+'" target="_blank" rel="noopener">فتح صفحة الإعلان لدى الجهة</a>':'<span>لا يتوفر رابط مباشر خاص بهذا الإعلان؛ تفاصيل الإعلان المتاحة معروضة أعلاه داخل MMC، ويمكن الرجوع إلى المصدر من رابط الجهة في بطاقة المصدر.</span>';
    const docHtml=docs.length?'<h4>الوثائق المتاحة</h4>'+docs.map(x=>'<p><a href="/api/opportunities/documents/'+encodeURIComponent(x.id)+'" target="_blank" rel="noopener">'+esc(x.label)+' — فتح / تنزيل داخل MMC</a></p>').join(''):'<p>لم تُكتشف وثائق عامة قابلة للتحميل لهذا الإعلان.</p>';
    const detail=document.createElement('section');detail.className='intro';detail.style.marginTop='16px';
