@@ -104,6 +104,15 @@ async function runOpportunitySyncJob() {
     catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
   };
+  await runSource('jordan_official_sources',async()=>{
+    const results=await require('./jordan-public-sources-sync').syncJordanPublicSources();
+    const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+    const added=Object.values(results).reduce((n,v)=>n+(v.added||0),0);
+    const updated=Object.values(results).reduce((n,v)=>n+(v.updated||0),0);
+    const received=Object.values(results).reduce((n,v)=>n+(v.received||0),0);
+    if(failed.length) throw Object.assign(new Error('تعذر تحديث بعض المصادر الأردنية: '+failed.join(', ')),{results,added,updated,received,partial:true});
+    return {added,updated,received,sourceResults:results};
+  });
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('apc',()=>require('./apc-sync').syncAPC());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
