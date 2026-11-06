@@ -256,7 +256,7 @@ router.post('/invoices/:id/procurement-review',wrap(async(req,res)=>{
   res.json({ok:true,status:next});
 }));
 router.post('/invoices/:id/owner-confirmation',wrap(async(req,res)=>{
-  const m=requireOrg(req,['manager','requester']); const i=invoiceFor(req,req.params.id);
+  const m=requireOrg(req,['requester']); const i=invoiceFor(req,req.params.id);
   if(i.status!=='owner_confirmation') throw E.conflict('الفاتورة ليست بانتظار تأكيد المالك.');
   const decision=req.body?.decision; if(!['confirmed','returned'].includes(decision)) throw E.validation('قرار التأكيد غير صحيح.');
   const note=clip(req.body?.note,2000); if(decision==='returned'&&!note) throw E.validation('سبب الإعادة إلزامي.');
@@ -271,13 +271,13 @@ router.post('/invoices/:id/forward-to-finance',wrap(async(req,res)=>{
   res.json({ok:true,status:'finance_review'});
 }));
 router.post('/invoices/:id/finance-approval',wrap(async(req,res)=>{
-  const m=requireOrg(req,['manager','finance']);const i=invoiceFor(req,req.params.id);
+  const m=requireOrg(req,['finance']);const i=invoiceFor(req,req.params.id);
   if(i.status!=='finance_review') throw E.conflict('الفاتورة لم تستكمل مراجعة المشتريات والمالك.');
   db().transaction(()=>{review(req,i,m.role,'approved',clip(req.body?.note,1000));db().prepare("UPDATE project_invoices SET status='approved_for_payment',updated_at=unixepoch() WHERE id=?").run(i.id);event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,userId:req.user.id,role:m.role,action:'finance_approved',from:i.status,to:'approved_for_payment',ip:req.ip});})();
   res.json({ok:true,status:'approved_for_payment'});
 }));
 router.post('/invoices/:id/payments',wrap(async(req,res)=>{
-  const m=requireOrg(req,['manager','finance']);const i=invoiceFor(req,req.params.id);
+  const m=requireOrg(req,['finance']);const i=invoiceFor(req,req.params.id);
   const value=amount(req.body?.amount,'payment amount');
   const ref=clip(req.body?.paymentReference,100);const date=clip(req.body?.paymentDate,20);
   if(!ref||!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw E.validation('مرجع الدفع وتاريخه مطلوبان.');

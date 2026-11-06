@@ -11,6 +11,20 @@ services:
         value: production
       - key: COOKIE_SECURE
         value: "true"
+      - key: SCHEDULER_ENABLED
+        value: "true"
+      - key: OPPORTUNITY_SYNC_ENABLED
+        value: "true"
+      - key: PAYMENT_BANK_NAME
+        sync: false
+      - key: PAYMENT_ACCOUNT_HOLDER
+        sync: false
+      - key: PAYMENT_IBAN
+        sync: false
+      - key: PAYMENT_SWIFT
+        sync: false
+      - key: PAYMENT_CLIQ_ALIAS
+        sync: false
     disk:
       name: mmc-data
       mountPath: /data

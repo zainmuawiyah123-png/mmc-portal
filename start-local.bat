@@ -31,6 +31,6 @@ call npm start
 exit /b 0
 :error
 echo.
-echo Installation or native module build failed. Make sure Node.js 20 or newer is installed.
+echo Installation or native module build failed. Make sure Node.js 22 or newer is installed.
 pause
 exit /b 1

@@ -98,6 +98,11 @@ const config = {
   SUBSCRIPTION_EXPIRY_CRON: v('SUBSCRIPTION_EXPIRY_CRON', '0 3 * * *'),
   OPPORTUNITY_SYNC_ENABLED: v('OPPORTUNITY_SYNC_ENABLED', 'false') === 'true',
   UNGM_ACCESS_TOKEN: v('UNGM_ACCESS_TOKEN', ''),
+  /** Structured public JSON feeds, when an issuing portal provides one. */
+  ETIMAD_FEED_URL: v('ETIMAD_FEED_URL', ''),
+  UAE_MOF_FEED_URL: v('UAE_MOF_FEED_URL', ''),
+  IRAQ_TENDERS_FEED_URL: v('IRAQ_TENDERS_FEED_URL', ''),
+  JORDAN_PRIVATE_FEED_URL: v('JORDAN_PRIVATE_FEED_URL', ''),
   OPPORTUNITY_SYNC_CRON: v('OPPORTUNITY_SYNC_CRON', '15 */6 * * *'),
   BACKUP_TZ: v('BACKUP_TZ', 'Asia/Riyadh'),
 
@@ -113,7 +118,7 @@ config.PAYMENT = {
   accountHolder: v('PAYMENT_ACCOUNT_HOLDER', ''),
   iban: v('PAYMENT_IBAN', '').replace(/\s+/g, '').toUpperCase(),
   swift: v('PAYMENT_SWIFT', '').replace(/\s+/g, '').toUpperCase(),
-  cliqAlias: v('PAYMENT_CLIQ_ALIAS', 'samarza'),
+  cliqAlias: v('PAYMENT_CLIQ_ALIAS', ''),
   contactEmail: v('PAYMENT_CONTACT_EMAIL', '')
 };
 config.IS_PROD = config.NODE_ENV === 'production';
@@ -142,10 +147,9 @@ function ibanValid(s) {
   for (const ch of r) rem = (rem * 10 + Number(ch)) % 97;
   return rem === 1;
 }
-config.PAYMENT_IBAN_CONFIGURED = Boolean(config.PAYMENT.iban);
-config.PAYMENT_IBAN_VALID = config.PAYMENT_IBAN_CONFIGURED && ibanValid(config.PAYMENT.iban);
-if (config.PAYMENT_IBAN_CONFIGURED && !config.PAYMENT_IBAN_VALID) {
-  console.warn('[WARN] PAYMENT_IBAN مُدخل لكنه غير صحيح (فشل فحص المجموع) — راجع الآيبان في .env قبل استقبال أي دفعة.');
+config.PAYMENT_IBAN_VALID = ibanValid(config.PAYMENT.iban);
+if (!config.PAYMENT_IBAN_VALID) {
+  console.warn('[WARN] PAYMENT_IBAN غير صحيح (فشل فحص المجموع) — راجع الآيبان في .env قبل استقبال أي دفعة.');
 }
 
 if (config.IS_PROD && config.IS_DEFAULT_SECRET) {

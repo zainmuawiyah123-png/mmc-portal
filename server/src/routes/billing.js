@@ -121,13 +121,16 @@ router.post('/invoices/:id/receipt', auth, receiptUpload.single('receipt'), wrap
   const invoice = ownInvoice(req, req.params.id);
   if (!['pending', 'rejected'].includes(invoice.status)) throw E.conflict('لا يمكن رفع إيصال لفاتورة حالتها الحالية: ' + invoice.status);
   if (!req.file) throw E.badRequest('أرفق ملف الإيصال في الحقل receipt.');
+  const transferReference = String(req.body?.transferReference || '').trim().slice(0, 100);
+  const transferDate = String(req.body?.transferDate || '').trim();
+  if (!transferReference || !/^\d{4}-\d{2}-\d{2}$/.test(transferDate)) throw E.validation('رقم مرجع التحويل وتاريخه (YYYY-MM-DD) مطلوبان مع الإيصال.');
   const store = S.getStorage();
   const key = `users/${req.user.id}/invoices/${invoice.id}/${S.makeStoredName(req.file.originalname)}`;
   const put = await store.put(key, req.file.buffer, { mime: req.file.mimetype, originalName: S.displayName(req.file.originalname) });
   const db = getDB();
   db.prepare(`UPDATE invoices SET receipt_storage_key=?, receipt_storage_driver=?, receipt_original_name=?, receipt_mime=?,
-    receipt_size=?, receipt_checksum_sha256=?, receipt_uploaded_at=unixepoch(), status='pending', updated_at=unixepoch() WHERE id=?`)
-    .run(key, store.DRIVER, S.displayName(req.file.originalname), req.file.mimetype, req.file.size, put.checksum, invoice.id);
+    receipt_size=?, receipt_checksum_sha256=?, receipt_uploaded_at=unixepoch(), transfer_reference=?, transfer_date=?, status='pending', updated_at=unixepoch() WHERE id=?`)
+    .run(key, store.DRIVER, S.displayName(req.file.originalname), req.file.mimetype, req.file.size, put.checksum, transferReference, transferDate, invoice.id);
   audit({ action: 'upload', entity: 'invoice_receipt', entityId: invoice.id, userId: req.user.id, driver: store.DRIVER, ip: req.ip, detail: { key, size: req.file.size, checksum: put.checksum } });
   res.status(201).json({ invoice: shapeInvoice(invoiceQuery('WHERE i.id=?', [invoice.id])[0]), message: 'تم رفع الإيصال وباتت الفاتورة بانتظار مراجعة الإدارة.' });
 }));

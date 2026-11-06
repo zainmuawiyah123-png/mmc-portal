@@ -18,7 +18,7 @@ function normalizeWorldBankNotice(row) {
   const pub=clean(row.publication_date || row.notice_date || row.noticedate,40);
   const countryCode=clean(row.country_code || row.project_ctry_code,3).toUpperCase();
   const countryName=clean(row.country_name || row.project_ctry_name,100);
-  const country=(/^[A-Z]{2}$/.test(countryCode)?countryCode:(countryCode==='INT'?'INT':(/jordan/i.test(countryName)?'JO':/saudi/i.test(countryName)?'SA':/united arab emirates|uae/i.test(countryName)?'AE':'INT')));
+  const country=(/^[A-Z]{2}$/.test(countryCode)?countryCode:(countryCode==='INT'?'INT':(/jordan/i.test(countryName)?'JO':/saudi/i.test(countryName)?'SA':/united arab emirates|uae/i.test(countryName)?'AE':/kuwait/i.test(countryName)?'KW':/qatar/i.test(countryName)?'QA':/bahrain/i.test(countryName)?'BH':/oman/i.test(countryName)?'OM':'INT')));
   const noticeType=clean(row.notice_type,100);
   const status=deadline && /^\d{4}-\d{2}-\d{2}/.test(deadline) && deadline.slice(0,10)<new Date().toISOString().slice(0,10)?'closed':'open';
   return {
