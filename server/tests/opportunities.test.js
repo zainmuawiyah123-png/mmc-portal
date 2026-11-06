@@ -188,3 +188,29 @@ test('APC detail endpoint is authenticated for contractors and MMC admins and re
   assert.match(page,/تفاصيل العطاء والوثائق داخل MMC/);
   assert.match(page,/api\/opportunities\//);
 });
+
+const {SOURCES,parseSource}=require('../src/lib/jordan-public-sources-sync');
+test('Jordan official tender connector registry includes GAM, phosphate, electricity, refinery and NGO sources',()=>{
+ const keys=SOURCES.map(x=>x.key);
+ for(const key of ['gam','jpmc','nepco','jepco','sepco','jprc','jppmc','jordan_bromine','memr','mwi','emrc','unicef_jo'])assert.ok(keys.includes(key),key);
+});
+test('Jordan public-source parser extracts tender metadata and rejects off-domain document links',()=>{
+ const source=SOURCES.find(x=>x.key==='nepco');
+ const html='<table><tr><td>عطاء رقم: 79/2026</td><td><a href="/TenderPage.aspx?id=79">الاعمال المدنية لانشاء مركز المراقبة والتحكم البديل</a></td><td>تاريخ الإغلاق: 2026-11-18</td></tr></table>';
+ const rows=parseSource(html,source,'2026-11-06');
+ assert.equal(rows.length,1);
+ assert.equal(rows[0].authority,'شركة الكهرباء الوطنية');
+ assert.match(rows[0].tenderNumber,/79\\/2026/);
+ assert.equal(rows[0].closingAt,'2026-11-18');
+ assert.equal(new URL(rows[0].sourceUrl).hostname,'www.nepco.com.jo');
+});
+test('Jordan source sync endpoint is MMC-admin only and visible in admin page',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
+ const page=fs.readFileSync(path.join(__dirname,'../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'),'utf8');
+ assert.match(route,/router\\.post\\('\/admin\/sync\/jordan-official'/);
+ assert.match(route,/syncJordanPublicSources/);
+ assert.match(page,/oa-sync-jordan-official/);
+ assert.match(page,/الفوسفات/);
+ assert.match(page,/مصفاة البترول/);
+});
