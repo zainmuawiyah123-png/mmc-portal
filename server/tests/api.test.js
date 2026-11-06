@@ -1382,7 +1382,7 @@ test('90 — لجنة التقييم: تقييم مستقل مجهول الهو�
   assert.strictEqual(w.status, 200);
   const raw = JSON.stringify(w.data);
   assert.deepStrictEqual(w.data.bidders.map((b) => b.label), ['A', 'B']);
-  assert.ok(!/cmtA|cmtB|financial|900|1100/.test(raw.replace(/submissionId":"[^"]*"/g, '')), 'لا أسماء ولا أسعار');
+  assert.ok(!/cmtA|cmtB|financial|900|1100/.test(raw.replace(/submissionId":"[^"]*"/g, '')), 'لا أسماء ولا أسعار — diagnostic: ' + raw);
 
   // درجات: المقيّم الأول 100 للجميع، الثاني 60 للعارض A و100 للعارض B
   const [sa, sb] = w.data.bidders.map((b) => b.submissionId);
@@ -1497,4 +1497,29 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
     const s3 = await waitFor(i3.id, 'error');
     assert.ok(/JOFOTARA_CLIENT_ID/.test(s3.error)); assert.strictEqual(sent.length, before);
   } finally { global.fetch = realFetch; config.EINVOICE = saved; }
+});
+
+
+test('SEC-TENANT — لا تستطيع جهة مشتريّة الوصول إلى عطاءات أو تقييمات أو وثائق أو ملاحق جهة أخرى', async () => {
+  const buyerA = await newBuyer('tenant-a-isolation', 'proc_pro');
+  const buyerB = await newBuyer('tenant-b-isolation', 'proc_pro');
+  const tenderA = await publish(buyerA);
+
+  const ownList = await call(buyerA, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(ownList.status, 200);
+  assert.ok(ownList.data.tenders.some(t => t.id === tenderA.id));
+
+  const otherList = await call(buyerB, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(otherList.status, 200);
+  assert.ok(!otherList.data.tenders.some(t => t.id === tenderA.id));
+
+  for (const suffix of ['', '/evaluations', '/documents', '/clarifications', '/addenda']) {
+    const denied = await call(buyerB, 'GET', '/api/procurement/tenders/' + tenderA.id + suffix);
+    assert.strictEqual(denied.status, 404, 'يجب حجب مسار الجهة الأخرى: ' + suffix);
+  }
+
+  const blockedAddendum = await call(buyerB, 'POST', '/api/procurement/tenders/' + tenderA.id + '/addenda', {
+    body: { title: 'محاولة خارج الجهة', body: 'لا يجوز تعديل عطاء جهة أخرى.' }
+  });
+  assert.strictEqual(blockedAddendum.status, 404);
 });

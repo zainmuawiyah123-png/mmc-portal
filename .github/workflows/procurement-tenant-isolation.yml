@@ -1,0 +1,33 @@
+name: Procurement tenant isolation regression
+on:
+  push:
+    branches:
+      - 'fix/production-tenant-isolation-mainline'
+  pull_request:
+    paths:
+      - 'server/src/routes/procurement.js'
+      - 'server/src/routes/opportunities.js'
+      - 'server/src/index.js'
+      - 'server/tests/**'
+      - 'server/package.json'
+      - 'server/package-lock.json'
+      - 'webpages/technical-proposal-kit_v5/procurement/**'
+      - '.github/workflows/procurement-tenant-isolation.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm run test:all
