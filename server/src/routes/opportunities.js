@@ -51,7 +51,7 @@ router.get('/feed', A.requireAuth, wrap(async (req,res) => {
  res.json({opportunities:rows.map(shape),count:rows.length,
   openBySource:Object.fromEntries(counts.map(r=>[r.source_key,r.n])),
   openByCountry:Object.fromEntries(byCountry.map(r=>[r.country,r.n])),
-  connectedSources:['joneps','apc','jpmc','jprc','jepco','worldbank','ungm'],
+  connectedSources:['joneps','apc','jpmc','jprc','jepco','gam','worldbank','ungm'],
   lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
@@ -167,6 +167,11 @@ router.post('/admin/sync/joneps', wrap(async(req,res)=>{
 router.post('/admin/sync/jprc', wrap(async(req,res)=>{
  const result=await runAndRecordSync('jprc',()=>require('../lib/jprc-sync').syncJPRC());
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'jprc',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+router.post('/admin/sync/gam', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('gam',()=>require('../lib/gam-sync').syncGAM());
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'gam',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
 router.post('/admin/sync/jepco', wrap(async(req,res)=>{
