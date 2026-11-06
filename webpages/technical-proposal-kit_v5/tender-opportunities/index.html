@@ -87,7 +87,25 @@
    data.opportunities.forEach(o=>{
     const card=document.createElement('article');card.className='source';
     const state=o.status==='open'?'مفتوح':'مغلق';
-    card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'الجهة غير محددة')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted">المصدر: '+esc(o.sourceKey)+'</p><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">الإعلان الأصلي ↗</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">التقديم الرسمي ↗</a>':'');
+    card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'الجهة غير محددة')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted">المصدر: '+esc(o.sourceKey)+'</p><button type="button" class="btn" data-opportunity-detail="'+esc(o.id)+'">تفاصيل العطاء والوثائق داخل MMC</button><div class="opportunity-detail" hidden></div><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">الإعلان الأصلي ↗</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">التقديم الرسمي ↗</a>':'');
+    card.querySelector('[data-opportunity-detail]').addEventListener('click',async()=>{
+     const panel=card.querySelector('.opportunity-detail');
+     if(!panel.hidden){panel.hidden=true;return;}
+     panel.hidden=false;panel.textContent='جارٍ تحميل تفاصيل العطاء والمرفقات العامة...';
+     try{
+      const detailRes=await fetch('/api/opportunities/'+encodeURIComponent(o.id),{credentials:'same-origin'});
+      const detailData=await detailRes.json();if(!detailRes.ok)throw new Error(detailData.error?.message||'تعذر تحميل التفاصيل');
+      const d=detailData.details||{},docs=detailData.documents||[];
+      panel.innerHTML=(d.purchaseDate?'<p><b>تاريخ شراء الوثائق:</b> '+esc(d.purchaseDate)+'</p>':'')+
+       (d.closingDate?'<p><b>تاريخ الإغلاق:</b> '+esc(d.closingDate)+'</p>':'')+
+       (d.copyPrice?'<p><b>رسوم النسخة:</b> '+esc(d.copyPrice)+'</p>':'')+
+       (d.bidBond?'<p><b>كفالة العطاء:</b> '+esc(d.bidBond)+'</p>':'')+
+       (d.qualifications?'<p><b>شروط التأهيل:</b> '+esc(d.qualifications)+'</p>':'')+
+       (d.remarks?'<p><b>ملاحظات الإعلان:</b> '+esc(d.remarks)+'</p>':'')+
+       '<p><b>الوثائق والمرفقات العامة:</b></p>'+
+       (docs.length?'<ul>'+docs.map(doc=>'<li>'+esc(doc.label)+' — <a href="'+esc(doc.url)+'" target="_blank" rel="noopener">فتح من مصدر البوتاس</a> ('+esc(doc.availability)+')</li>').join('')+'</ul>':'<p class="muted">لم تُنشر مرفقات عامة قابلة للربط لهذا العطاء. قد تتطلب الوثائق شراء نسخة أو تسجيل مورد.</p>');
+     }catch(e){panel.textContent=e.message;}
+    });
     results.appendChild(card);
    });
    const sourceNames={joneps:'JONEPS',apc:'البوتاس',worldbank:'البنك الدولي',ungm:'UNGM'};
