@@ -182,9 +182,9 @@ test('APC detail endpoint is authenticated for contractors and MMC admins and re
   const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
   const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
   const page=fs.readFileSync(path.join(__dirname,'../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'),'utf8');
-  assert.match(route,/router\\.get\\('\/:id', directoryReaders/);
+  assert.match(route,/router\.get\('\/:id', directoryReaders/);
   assert.match(route,/tender_opportunity_public_documents/);
   assert.match(migration,/upgradeTenderOpportunityDetails/);
   assert.match(page,/تفاصيل العطاء والوثائق داخل MMC/);
-  assert.match(page,/api\\/opportunities\\//);
+  assert.match(page,/api\/opportunities\//);
 });
