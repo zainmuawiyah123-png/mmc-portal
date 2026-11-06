@@ -68,9 +68,9 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
   assert.match(tenderDirectory, /Verify the original notice/);
 });
 
-test('MMCUI-03 — دليل العطاءات متاح من بوابتي المقاول والمشتريات', () => {
+test('MMCUI-03 — دليل العطاءات الخارجية متاح للمقاول وغير مربوط ببوابة المشتريات', () => {
   assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
-  assert.match(procurementPortal, /\.\.\/tender-opportunities\/index\.html/);
+  assert.doesNotMatch(procurementPortal, /tender-opportunities\/index\.html/);
 });
 
 
