@@ -68,9 +68,14 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
   assert.match(tenderDirectory, /Verify the original notice/);
 });
 
-test('MMCUI-03 — دليل العطاءات متاح من بوابتي المقاول والمشتريات', () => {
+test('MMCUI-03 — دليل العطاءات الخارجية للمقاول فقط ومحجوب عن المشتريات', () => {
   assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
-  assert.match(procurementPortal, /\.\.\/tender-opportunities\/index\.html/);
+  assert.doesNotMatch(procurementPortal, /tender-opportunities|#external/);
+  const server = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.ok(server.includes("app.get(['/tender-opportunities'") && server.includes("req.user.role !== 'contractor'"));
+  assert.match(route, /router\.get\('\/', contractorDirectoryOnly/);
+  assert.match(route, /router\.get\('\/feed', contractorDirectoryOnly/);
 });
 
 
