@@ -53,6 +53,41 @@ function parseApcRows(html, today) {
   }
   return out;
 }
+
+function parseApcDetail(html, pid, fallback = {}) {
+  const body = text(html);
+  const titleMatch = body.match(/Tender title and number:\s*(.*?)(?=\s*Purchase Date:)/i);
+  const title = (titleMatch && titleMatch[1] || fallback.title || '').trim().slice(0,300);
+  const purchaseDate = field(body, 'Purchase Date', 'Closing date');
+  const closingDate = field(body, 'Closing date', 'Copy Price');
+  const copyPrice = field(body, 'Copy Price', 'Bid Bond Value');
+  const bidBond = field(body, 'Bid Bond Value', 'Vendor Qualifications');
+  const qualifications = field(body, 'Vendor Qualifications', 'Remarks|Announcement|Tender Documents');
+  const remarks = field(body, 'Remarks', 'Announcement|Tender Documents');
+  const documents = [];
+  for (const m of String(html || '').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    const label = text(m[2]);
+    if (!/announcement|document|وثائق|اعلان|إعلان/i.test(label)) continue;
+    try {
+      const u = new URL(m[1], ORIGIN + '/En/TendersDetails?PID=' + encodeURIComponent(pid));
+      if (u.protocol !== 'https:' || !(u.hostname === 'arabpotash.com' || u.hostname.endsWith('.arabpotash.com'))) continue;
+      documents.push({label:label.slice(0,200),url:u.toString(),availability:'public-source-link'});
+    } catch (_) {}
+  }
+  const detailUrl = ORIGIN + '/En/TendersDetails?PID=' + encodeURIComponent(pid);
+  return {title, tenderNumber:fallback.tenderNumber || null, purchaseDate:dmyToISO(purchaseDate) || fallback.publishedAt || null,
+    closingDate:dmyToISO(closingDate) || fallback.closingAt || null, copyPrice:copyPrice || null, bidBond:bidBond || null,
+    qualifications:qualifications || null, remarks:remarks || null, detailUrl, documents};
+}
+async function fetchApcDetail(pid, fallback) {
+  const url = ORIGIN + '/En/TendersDetails?PID=' + encodeURIComponent(pid);
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const r = await fetch(url,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});
+    if(!r.ok) throw new Error('APC detail returned HTTP '+r.status);
+    return parseApcDetail(await r.text(),pid,fallback);
+  } finally { clearTimeout(timer); }
+}
 async function syncAPC() {
   const { getDB, uid } = require('../db');
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
@@ -64,24 +99,41 @@ async function syncAPC() {
   } finally { clearTimeout(timer); }
   const rows = parseApcRows(html);
   if (!rows.length) throw new Error('APC page loaded but no recognizable tender rows were found; importer stopped without changing records.');
+  const detailResults = [];
+  for(let i=0;i<rows.length;i+=4){
+    const batch=await Promise.all(rows.slice(i,i+4).map(async row => {
+      try { return {pid:row.id,detail:await fetchApcDetail(row.id,row),error:null}; }
+      catch(err) { return {pid:row.id,detail:null,error:(err.message||String(err)).slice(0,200)}; }
+    }));
+    detailResults.push(...batch);
+  }
+  const detailsByPid = new Map(detailResults.filter(x=>x.detail).map(x=>[x.pid,x.detail]));
+  const detailFailures = detailResults.filter(x=>x.error).length;
   const db = getDB();
   const upsert = db.prepare(`INSERT INTO tender_opportunities
-    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
-    VALUES (@rowId,'apc',@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language)
+    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language,details_json)
+    VALUES (@rowId,'apc',@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language,@detailsJson)
     ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,
     tender_number=excluded.tender_number,summary=excluded.summary,published_at=excluded.published_at,closing_at=excluded.closing_at,
-    source_url=excluded.source_url,status=excluded.status,language=excluded.language,updated_at=unixepoch()`);
+    source_url=excluded.source_url,status=excluded.status,language=excluded.language,details_json=COALESCE(excluded.details_json,tender_opportunities.details_json),updated_at=unixepoch()`);
   const tx = db.transaction((items) => {
     let added = 0, updated = 0;
     for (const n of items) {
       const old = db.prepare('SELECT id FROM tender_opportunities WHERE source_key=? AND external_id=?').get('apc', n.id);
-      upsert.run({ rowId: old ? old.id : uid('opp_'), externalId: n.id, title: n.title, authority: n.authority, country: n.country, sector: n.sector,
+      const detail=detailsByPid.get(n.id)||null;
+      const opportunityId=old?old.id:uid('opp_');
+      upsert.run({ rowId: opportunityId, externalId: n.id, title: detail?.title||n.title, authority: n.authority, country: n.country, sector: n.sector,
         tenderNumber: n.tenderNumber, summary: n.summary, publishedAt: n.publishedAt, closingAt: n.closingAt, sourceUrl: n.sourceUrl,
-        applicationUrl: n.applicationUrl, status: n.status, language: n.language });
+        applicationUrl: n.applicationUrl, status: n.status, language: n.language, detailsJson: detail?JSON.stringify(detail):null });
+      if(detail){
+        db.prepare('DELETE FROM tender_opportunity_public_documents WHERE opportunity_id=?').run(opportunityId);
+        const docInsert=db.prepare('INSERT OR IGNORE INTO tender_opportunity_public_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)');
+        detail.documents.forEach(doc=>docInsert.run(uid('oppdoc_'),opportunityId,doc.label,doc.url,doc.availability));
+      }
       if (old) updated++; else added++;
     }
     return { added, updated };
   });
-  return { ...tx(rows), received: rows.length, normalized: rows.length, source: 'apc', sourceUrl: LIST_URL };
+  return { ...tx(rows), received: rows.length, normalized: rows.length, detailsReceived:detailsByPid.size, detailFailures, source: 'apc', sourceUrl: LIST_URL };
 }
-module.exports = { parseApcRows, syncAPC, LIST_URL };
+module.exports = { parseApcRows, parseApcDetail, fetchApcDetail, syncAPC, LIST_URL };

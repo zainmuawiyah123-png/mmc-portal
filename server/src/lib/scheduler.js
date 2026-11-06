@@ -101,16 +101,26 @@ async function runOpportunitySyncJob() {
   const runSource=async(name,fn)=>{
     const sourceStarted=Date.now();
     try { results[name]={ok:true,...await fn()}; }
-    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
+    catch(err) { results[name]={ok:false,partial:!!err.partial,sourceResults:err.results||undefined,added:err.added||0,updated:err.updated||0,received:err.received||0,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
   };
+  await runSource('jordan_official_sources',async()=>{
+    const results=await require('./jordan-public-sources-sync').syncJordanPublicSources();
+    const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+    const added=Object.values(results).reduce((n,v)=>n+(v.added||0),0);
+    const updated=Object.values(results).reduce((n,v)=>n+(v.updated||0),0);
+    const received=Object.values(results).reduce((n,v)=>n+(v.received||0),0);
+    if(failed.length) throw Object.assign(new Error('تعذر تحديث بعض المصادر الأردنية: '+failed.join(', ')),{results,added,updated,received,partial:true});
+    return {added,updated,received,sourceResults:results};
+  });
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('apc',()=>require('./apc-sync').syncAPC());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
   const ms=Date.now()-started;
-  const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+  // A source skipped because credentials are not configured is not a connector failure.
+  const failed=Object.entries(results).filter(([,v])=>!v.ok&&!v.skipped).map(([k])=>k);
   const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
   record({at:new Date().toISOString(),job:'opportunity-sync',ok:failed.length===0,ms,message:summary});
   return {ok:failed.length===0,partial:failed.length>0,failed,results,ms};

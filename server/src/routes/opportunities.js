@@ -31,8 +31,12 @@ router.get('/', directoryReaders, wrap(async (req,res) => {
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
   if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
   const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 250').all(...vals);
+  const sourceRows=db.prepare("SELECT source_key,status,COUNT(*) AS n FROM tender_opportunities WHERE status IN ('open','closed') GROUP BY source_key,status").all();
+  const sourceCounts={};
+  for(const r of sourceRows){sourceCounts[r.source_key] ||= {open:0,closed:0,total:0};sourceCounts[r.source_key][r.status]=r.n;sourceCounts[r.source_key].total+=r.n;}
+  const allCounts=Object.values(sourceCounts).reduce((a,v)=>({open:a.open+v.open,closed:a.closed+v.closed,total:a.total+v.total}),{open:0,closed:0,total:0});
   res.setHeader('Cache-Control','public, max-age=60');
-  res.json({opportunities:rows.map(shape),count:rows.length});
+  res.json({opportunities:rows.map(shape),count:rows.length,sourceCounts,allCounts});
 }));
 
 // Unified feed inside the contractor portal: tenders published on the platform by procurement
@@ -52,8 +56,20 @@ router.get('/feed', directoryReaders, wrap(async (req,res) => {
  res.json({opportunities:rows.map(shape),count:rows.length,
   openBySource:Object.fromEntries(counts.map(r=>[r.source_key,r.n])),
   openByCountry:Object.fromEntries(byCountry.map(r=>[r.country,r.n])),
-  connectedSources:['joneps','apc','worldbank','ungm'],
+  connectedSources:['joneps','apc','worldbank','ungm','jordan_official_sources'],
   lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
+}));
+
+
+router.get('/:id', directoryReaders, wrap(async(req,res,next)=>{
+ if(req.params.id==='admin') return next();
+ const db=getDB(),row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
+ if(!row) throw E.notFound('العطاء غير موجود.');
+ let details=null;
+ try { details=row.details_json?JSON.parse(row.details_json):null; } catch(_) { details=null; }
+ const documents=db.prepare('SELECT label,document_url AS url,availability FROM tender_opportunity_public_documents WHERE opportunity_id=? ORDER BY created_at').all(row.id);
+ res.setHeader('Cache-Control','private, max-age=60');
+ res.json({opportunity:shape(row),details,documents});
 }));
 
 // MMC administrators curate/import official notices. No public write access.
@@ -145,6 +161,25 @@ async function runAndRecordSync(source,fn) {
  try { const result=await fn(); require('../lib/scheduler').persistOpportunitySync(source,started,{ok:true,...result}); return result; }
  catch(err) { require('../lib/scheduler').persistOpportunitySync(source,started,{ok:false,error:err.message||String(err)}); throw err; }
 }
+
+router.post('/admin/sync/all', wrap(async(req,res)=>{
+ const result=await require('../lib/scheduler').runOpportunitySyncJob();
+ audit({action:'opportunity_source_sync_all',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{failed:result.failed,results:result.results}});
+ res.json(result);
+}));
+
+router.post('/admin/sync/jordan-official', wrap(async(req,res)=>{
+ const started=Date.now();
+ const results=await require('../lib/jordan-public-sources-sync').syncJordanPublicSources();
+ const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+ const added=Object.values(results).reduce((n,v)=>n+(v.added||0),0);
+ const updated=Object.values(results).reduce((n,v)=>n+(v.updated||0),0);
+ const received=Object.values(results).reduce((n,v)=>n+(v.received||0),0);
+ const summary={ok:failed.length===0,partial:failed.length>0,failed,results,added,updated,received};
+ require('../lib/scheduler').persistOpportunitySync('jordan_official_sources',started,summary);
+ audit({action:'opportunity_source_sync_jordan',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{failed,added,updated,received}});
+ res.json(summary);
+}));
 
 router.post('/admin/sync/worldbank', wrap(async(req,res)=>{
  const result=await runAndRecordSync('worldbank',()=>require('../lib/opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
