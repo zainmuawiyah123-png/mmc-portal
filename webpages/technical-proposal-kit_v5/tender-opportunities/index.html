@@ -24,7 +24,7 @@
 <div id="opp-results" class="grid"><p class="muted">جارٍ تحميل العطاءات المسجلة...</p></div>
 <p class="muted" id="opp-count"></p>
 <div id="opp-admin" hidden style="border:1px solid #d0d5dd;border-radius:12px;padding:16px;margin-top:18px">
-<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>سجل المزامنة</h3><button class="btn" id="oa-sync-history-refresh" type="button">تحديث سجل المصادر</button><div id="oa-sync-history" class="muted">لم يتم تحميل سجل المزامنة بعد.</div><h3>إضافة إعلان يدوياً</h3>
+<h3>إدارة مصادر العطاءات (للمسؤولين فقط)</h3><button class="btn" id="oa-sync-all" type="button">مزامنة جميع المصادر الآن</button><button class="btn" id="oa-sync-apc" type="button">مزامنة عطاءات شركة البوتاس</button><button class="btn" id="oa-sync-joneps" type="button">مزامنة عطاءات JONEPS الأردنية</button><button class="btn" id="oa-sync-worldbank" type="button">مزامنة إعلانات البنك الدولي الآن</button><button class="btn" id="oa-sync-ungm" type="button">مزامنة إعلانات UNGM</button><span id="oa-sync-message" class="muted"></span><h3>سجل المزامنة</h3><button class="btn" id="oa-sync-history-refresh" type="button">تحديث سجل المصادر</button><div id="oa-sync-history" class="muted">لم يتم تحميل سجل المزامنة بعد.</div><h3>إضافة إعلان يدوياً</h3>
 <p class="muted">أدخل بيانات الإعلان كما وردت في المصدر الأصلي. لا تضع رابطاً غير رسمي للتقديم.</p>
 <div class="grid">
 <input id="oa-source" placeholder="معرّف المصدر مثل JONEPS" value="JONEPS">
@@ -91,6 +91,25 @@
  fetch('/api/auth/me',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(me=>{
   if(me&&(me.user?.role==='admin'||me.role==='admin'))document.getElementById('opp-admin').hidden=false;
  }).catch(()=>{});
+ document.getElementById('oa-sync-all').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ تشغيل مزامنة جميع المصادر...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync/all',{method:'POST',credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت دورة المزامنة');
+   const parts=Object.entries(data.results||{}).map(([k,v])=>k+': '+(v.skipped?'غير مفعّل لعدم إعداد بيانات الدخول':v.ok?('نجاح — '+(v.added||0)+' جديد، '+(v.updated||0)+' تحديث'):'فشل — '+(v.error||'خطأ غير محدد')));
+   msg.textContent=parts.join(' | ');
+   load();loadSyncHistory();
+  }catch(e){msg.textContent=e.message;}
+ });
+ document.getElementById('oa-sync-apc').addEventListener('click',async()=>{
+  const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ قراءة عطاءات شركة البوتاس...';
+  try{
+   const res=await fetch('/api/opportunities/admin/sync/apc',{method:'POST',credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت مزامنة البوتاس');
+   msg.textContent='البوتاس: '+data.added+' جديد، '+data.updated+' تحديث، '+data.received+' سجل مستلم.';
+   load();loadSyncHistory();
+  }catch(e){msg.textContent=e.message;}
+ });
  document.getElementById('oa-sync-worldbank').addEventListener('click',async()=>{
   const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ جلب أحدث الإعلانات من البنك الدولي...';
   try{
@@ -125,7 +144,7 @@
    const res=await fetch('/api/opportunities/admin/sync-history?limit=30',{credentials:'same-origin'});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'تعذر تحميل السجل');
    if(!data.runs.length){box.textContent='لا توجد عمليات مزامنة مسجلة حتى الآن.';return;}
-   const labels={joneps:'JONEPS',worldbank:'البنك الدولي',ungm:'UNGM'};
+   const labels={joneps:'JONEPS',apc:'شركة البوتاس',worldbank:'البنك الدولي',ungm:'UNGM'};
    box.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>المصدر</th><th>النتيجة</th><th>المستلم</th><th>جديد</th><th>محدّث</th><th>المدة</th><th>وقت الانتهاء</th></tr></thead><tbody>'+data.runs.map(r=>'<tr><td>'+((labels[r.source_key]||r.source_key).replace(/[&<>"]/g,''))+'</td><td>'+({success:'نجاح',failed:'فشل',skipped:'تخطي'}[r.status]||r.status)+'</td><td>'+r.received+'</td><td>'+r.added+'</td><td>'+r.updated+'</td><td>'+r.duration_ms+' ms</td><td>'+new Date(r.finishedAt).toLocaleString('ar-JO')+(r.error?'<br><span style="color:#b42318">'+String(r.error).replace(/[&<>"]/g,'')+'</span>':'')+'</td></tr>').join('')+'</tbody></table></div>';
   }catch(e){box.textContent=e.message;}
  }
