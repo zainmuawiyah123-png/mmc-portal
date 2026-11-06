@@ -18,7 +18,8 @@ function normalizeWorldBankNotice(row) {
   const pub=clean(row.publication_date || row.notice_date || row.noticedate || row.noticeDate,40);
   const countryCode=clean(row.country_code || row.project_ctry_code || row.countryCode,3).toUpperCase();
   const countryName=clean(row.country_name || row.project_ctry_name || row.countryName,100);
-  const iso3To2={JOR:'JO',SAU:'SA',ARE:'AE',KWT:'KW',QAT:'QA',BHR:'BH',OMN:'OM',USA:'US',GBR:'GB',IND:'IN',PAK:'PK',EGY:'EG',IRQ:'IQ',LBN:'LB',PSE:'PS',TUR:'TR',KEN:'KE',NGA:'NG',GHA:'GH',ZAF:'ZA',ETH:'ET',UGA:'UG',TZA:'TZ',IDN:'ID',BGD:'BD',NPL:'NP',VNM:'VN',PHL:'PH',UKR:'UA',POL:'PL',BRA:'BR',ARG:'AR',CHN:'CN',MEX:'MX'};\n  const country=(/^[A-Z]{2}$/.test(countryCode)?countryCode:(iso3To2[countryCode] || (countryCode==='INT'?'INT':(/jordan/i.test(countryName)?'JO':/saudi/i.test(countryName)?'SA':/united arab emirates|uae/i.test(countryName)?'AE':/kuwait/i.test(countryName)?'KW':/qatar/i.test(countryName)?'QA':/bahrain/i.test(countryName)?'BH':/oman/i.test(countryName)?'OM':'INT'))));
+  const iso3To2={JOR:'JO',SAU:'SA',ARE:'AE',KWT:'KW',QAT:'QA',BHR:'BH',OMN:'OM',USA:'US',GBR:'GB',IND:'IN',PAK:'PK',EGY:'EG',IRQ:'IQ',LBN:'LB',PSE:'PS',TUR:'TR',KEN:'KE',NGA:'NG',GHA:'GH',ZAF:'ZA',ETH:'ET',UGA:'UG',TZA:'TZ',IDN:'ID',BGD:'BD',NPL:'NP',VNM:'VN',PHL:'PH',UKR:'UA',POL:'PL',BRA:'BR',ARG:'AR',CHN:'CN',MEX:'MX'};
+  const country=(/^[A-Z]{2}$/.test(countryCode)?countryCode:(iso3To2[countryCode] || (countryCode==='INT'?'INT':(/jordan/i.test(countryName)?'JO':/saudi/i.test(countryName)?'SA':/united arab emirates|uae/i.test(countryName)?'AE':/kuwait/i.test(countryName)?'KW':/qatar/i.test(countryName)?'QA':/bahrain/i.test(countryName)?'BH':/oman/i.test(countryName)?'OM':'INT'))));
   const noticeType=clean(row.notice_type,100);
   const status=deadline && /^\d{4}-\d{2}-\d{2}/.test(deadline) && deadline.slice(0,10)<new Date().toISOString().slice(0,10)?'closed':'open';
   return {
