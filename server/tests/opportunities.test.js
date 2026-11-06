@@ -125,3 +125,14 @@ test('MMC admin can trigger all configured source connectors and APC independent
   assert.match(page, /oa-sync-all/);
   assert.match(page, /oa-sync-apc/);
 });
+
+test('External directory API exposes per-source and open/closed diagnostic counts', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  const page = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'), 'utf8');
+  assert.match(route, /sourceCounts/);
+  assert.match(route, /allCounts/);
+  assert.match(page, /إجمالي السجلات/);
+  assert.match(page, /sourceNames/);
+});
