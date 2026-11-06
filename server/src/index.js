@@ -96,6 +96,7 @@ function createApp() {
   app.use('/api/project-finance', projectFinanceRoutes);
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
+  app.use('/api/committee', require('./routes/committee'));
 
   app.use('/api', (req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'نقطة API غير موجودة: ' + req.method + ' ' + req.originalUrl } });

@@ -1344,3 +1344,157 @@ test('79 — رمز الدعوة أحادي الاستخدام ولا يقبل �
   const members = getDB().prepare('SELECT COUNT(*) n FROM org_members WHERE org_id=?').get(targetOrg).n;
   assert.strictEqual(members, 2, 'المدير والعضو الأول فقط');
 });
+
+/* ==========================================================
+   لجنة التقييم + دور الاستشاري + طابور البريد
+   ========================================================== */
+test('90 — لجنة التقييم: تقييم مستقل مجهول الهوية، فروق، اعتماد بالمتوسط، وطابور بريد', async () => {
+  const buyer = await newBuyer('cmtb', 'proc_pro');
+  const t = await publish(buyer, undefined);
+  const mk = async (who, role, plan) => {
+    const email = who + uniq() + '@t.com';
+    const r = await call(who, 'POST', '/api/auth/register', { body: { name: who, email, password: 'Password123', role } });
+    assert.strictEqual(r.status, 201, JSON.stringify(r.data));
+    if (plan) grantPlan(email, plan);
+    return email;
+  };
+  await mk('cmtA', 'contractor', 'ent'); await mk('cmtB', 'contractor', 'ent');
+  const c1 = await mk('cmtc1', 'consultant'); const c2 = await mk('cmtc2', 'consultant');
+  assert.strictEqual((await call('cmtA', 'POST', '/api/procurement/tenders/' + t.id + '/submit', { body: bidBody(t, 900) })).status, 201);
+  assert.strictEqual((await call('cmtB', 'POST', '/api/procurement/tenders/' + t.id + '/submit', { body: bidBody(t, 1100) })).status, 201);
+
+  // المقاول لا يصل لمساحة المقيّم، ولا يُضاف للجنة، ولا يُضاف حساب غير مسجّل
+  assert.strictEqual((await call('cmtA', 'GET', '/api/committee/tenders/' + t.id + '/work')).status, 404);
+  assert.strictEqual((await call(buyer, 'POST', '/api/committee/tenders/' + t.id + '/members', { body: { email: 'nobody' + uniq() + '@t.com' } })).status, 404);
+  const cEmail = getDB().prepare("SELECT email FROM users WHERE name='cmtA'").get().email;
+  assert.strictEqual((await call(buyer, 'POST', '/api/committee/tenders/' + t.id + '/members', { body: { email: cEmail } })).status, 422);
+  // استشاري غير مكلّف لا يرى شيئاً
+  assert.strictEqual((await call('cmtc1', 'GET', '/api/committee/tenders/' + t.id + '/work')).status, 404);
+
+  assert.strictEqual((await call(buyer, 'POST', '/api/committee/tenders/' + t.id + '/members', { body: { email: c1 } })).status, 201);
+  // عضو واحد لا يكفي للاعتماد
+  assert.strictEqual((await call(buyer, 'POST', '/api/committee/tenders/' + t.id + '/finalize')).status, 409);
+  assert.strictEqual((await call(buyer, 'POST', '/api/committee/tenders/' + t.id + '/members', { body: { email: c2 } })).status, 201);
+  assert.strictEqual((await call(buyer, 'POST', '/api/committee/tenders/' + t.id + '/finalize')).status, 409); // التقييم غير مكتمل
+
+  // الاستشاري يرى عروضاً مجهولة بلا أسعار ولا أسماء
+  const w = await call('cmtc1', 'GET', '/api/committee/tenders/' + t.id + '/work');
+  assert.strictEqual(w.status, 200);
+  const raw = JSON.stringify(w.data);
+  assert.deepStrictEqual(w.data.bidders.map((b) => b.label), ['A', 'B']);
+  assert.ok(!/cmtA|cmtB|financial|900|1100/.test(raw.replace(/submissionId":"[^"]*"/g, '')), 'لا أسماء ولا أسعار');
+
+  // درجات: المقيّم الأول 100 للجميع، الثاني 60 للعارض A و100 للعارض B
+  const [sa, sb] = w.data.bidders.map((b) => b.submissionId);
+  const rq = w.data.requirements.map((r) => r.id);
+  const scores = (v) => [].concat(...[[sa, v.A], [sb, v.B]].map(([s, x]) => rq.map((r) => ({ submissionId: s, requirementId: r, score: x }))));
+  assert.strictEqual((await call('cmtc1', 'POST', '/api/committee/tenders/' + t.id + '/scores', { body: { scores: scores({ A: 100, B: 100 }) } })).status, 200);
+  assert.strictEqual((await call('cmtc2', 'POST', '/api/committee/tenders/' + t.id + '/scores', { body: { scores: scores({ A: 60, B: 100 }) } })).status, 200);
+  assert.strictEqual((await call('cmtc1', 'POST', '/api/committee/tenders/' + t.id + '/scores', { body: { scores: [{ submissionId: sa, requirementId: rq[0], score: 101 }] } })).status, 422);
+  // المقيّم لا يرى درجات زميله، والاستشاري لا يصل لواجهة صاحب العطاء
+  assert.strictEqual((await call('cmtc1', 'GET', '/api/committee/tenders/' + t.id)).status, 404);
+  const mine = (await call('cmtc2', 'GET', '/api/committee/tenders/' + t.id + '/work')).data.bidders[0].responses[0].myScore;
+  assert.strictEqual(mine, 60);
+
+  // صاحب العطاء يرى المصفوفة والفروق
+  const m = await call(buyer, 'GET', '/api/committee/tenders/' + t.id);
+  assert.strictEqual(m.status, 200);
+  assert.strictEqual(m.data.bidders[0].committeeAverage, 80);
+  assert.ok(m.data.bidders[0].divergentRequirements.length >= 1);
+
+  // الاعتماد: A متوسط 80 → 48 نقطة < 50 (غير مؤهل)، B → 60 (مؤهل)
+  const fin = await call(buyer, 'POST', '/api/committee/tenders/' + t.id + '/finalize');
+  assert.strictEqual(fin.status, 200, JSON.stringify(fin.data));
+  const subs = getDB().prepare('SELECT id,technical_points,technical_passed,financial_unlocked,status FROM bid_submissions WHERE tender_id=?').all(t.id);
+  const A = subs.find((x) => x.id === sa), B = subs.find((x) => x.id === sb);
+  assert.ok(Math.abs(A.technical_points - 48) < 1e-6 && !A.technical_passed);
+  assert.ok(Math.abs(B.technical_points - 60) < 1e-6 && B.technical_passed);
+  assert.ok(subs.every((x) => x.status === 'evaluated' && !x.financial_unlocked), 'الفتح المالي يبقى منفصلاً');
+  assert.strictEqual((await call('cmtc1', 'POST', '/api/committee/tenders/' + t.id + '/scores', { body: { scores: scores({ A: 1, B: 1 }) } })).status, 409);
+
+  // طابور البريد: بلا SMTP تُسجَّل الرسائل بحالة skipped دون أن تتعطل العمليات
+  const out = getDB().prepare("SELECT subject,status FROM email_outbox WHERE to_email IN (?,?)").all(c1, c2);
+  assert.ok(out.length >= 2 && out.every((o) => o.status === 'skipped'));
+  assert.ok(out.some((o) => /تكليف/.test(o.subject)));
+});
+
+/* ==========================================================
+   الفوترة الوطنية (JoFotara) — خادم وهمي يعترض الإرسال
+   ========================================================== */
+test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV متسلسل، الرفض لا يعطّل الاعتماد، وإعادة الإرسال', async () => {
+  const config = require('../src/config');
+  const J = require('../src/lib/jofotara');
+  const saved = config.EINVOICE;
+  config.EINVOICE = { ...saved, enabled: true, url: 'https://jofotara.test/core/invoices/', clientId: 'cid-1', secretKey: 'sec-1', incomeSource: '555', sellerTin: '123456789', sellerName: 'MMC Test & Co', vatRate: 16, pricesIncludeTax: true, typeName: '012' };
+  const realFetch = global.fetch, sent = [];
+  let nextStatus = 200;
+  global.fetch = async (url, opts) => {
+    if (String(url).startsWith('https://jofotara.test/')) {
+      sent.push({ url: String(url), headers: opts.headers, body: JSON.parse(opts.body) });
+      return new Response(JSON.stringify(nextStatus === 200 ? { EINV_NUM: 'E-1', EINV_QR: 'QRDATA' } : { error: 'invalid field' }), { status: nextStatus, headers: { 'content-type': 'application/json' } });
+    }
+    return realFetch(url, opts);
+  };
+  try {
+    await makeAdmin('eadm');
+    const mkInvoice = async (who, company, tin) => {
+      const email = who + uniq() + '@t.com';
+      await call(who, 'POST', '/api/auth/register', { body: { name: who, email, password: 'Password123', role: 'buyer', company } });
+      const inv = await call(who, 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', billingCycle: 'monthly', currency: 'USD', buyerTaxNumber: tin } });
+      assert.strictEqual(inv.status, 201, JSON.stringify(inv.data));
+      const fd = new FormData();
+      fd.append('receipt', new Blob(['%PDF-1.4 r'], { type: 'application/pdf' }), 'r.pdf'); fd.append('transferReference', 'REF-' + uniq()); fd.append('transferDate', '2026-11-05');
+      assert.strictEqual((await call(who, 'POST', '/api/billing/invoices/' + inv.data.invoice.id + '/receipt', { form: fd })).status, 201);
+      return inv.data.invoice;
+    };
+    const waitFor = async (id, status) => { for (let i = 0; i < 40; i++) { const r = getDB().prepare('SELECT * FROM einvoice_submissions WHERE invoice_id=?').get(id); if (r && r.status === status) return r; await new Promise((x) => setTimeout(x, 50)); } return getDB().prepare('SELECT * FROM einvoice_submissions WHERE invoice_id=?').get(id); };
+
+    // رقم ضريبي غير صالح يُرفض عند إنشاء الفاتورة
+    await call('ebad', 'POST', '/api/auth/register', { body: { name: 'مشتري تجريبي', email: 'eb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+    assert.strictEqual((await call('ebad', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', currency: 'USD', buyerTaxNumber: '12' } })).status, 422);
+
+    // 1) اعتماد → إرسال ناجح
+    const i1 = await mkInvoice('einv1', 'شركة أ & ب <م>', '987654321');
+    assert.strictEqual((await call('eadm', 'POST', '/api/billing/admin/invoices/' + i1.id + '/approve', { body: {} })).status, 200);
+    const s1 = await waitFor(i1.id, 'accepted');
+    assert.strictEqual(s1.status, 'accepted'); assert.strictEqual(s1.icv, 1); assert.strictEqual(s1.einv_number, 'E-1');
+    assert.strictEqual(sent[0].headers['Client-Id'], 'cid-1'); assert.strictEqual(sent[0].headers['Secret-Key'], 'sec-1');
+    const xml = Buffer.from(sent[0].body.invoice, 'base64').toString('utf8');
+    assert.ok(xml.includes('<cbc:CompanyID>123456789</cbc:CompanyID>') && xml.includes('MMC Test &amp; Co'));
+    assert.ok(xml.includes('شركة أ &amp; ب &lt;م&gt;') && xml.includes('schemeID="TN">987654321<'));
+    assert.ok(xml.includes('name="012">388<') && xml.includes('<cbc:ID>555</cbc:ID>') && xml.includes('<cbc:UUID>1</cbc:UUID>'));
+    const a = J.amounts({ currency: 'USD', amount: i1.amount });
+    assert.ok(Math.abs(a.net + a.tax - a.total) < 1e-9);
+    assert.ok(xml.includes('currencyID="JOD">' + a.total.toFixed(3) + '<'));
+    assert.ok(a.tax > 0 && Math.abs(a.tax / a.net - 0.16) < 0.001, 'ضريبة 16% مفصولة عن السعر الشامل');
+
+    // 2) رفض المنصة (400) لا يمنع تفعيل الباقة، ويحفظ الرد
+    nextStatus = 400;
+    const i2 = await mkInvoice('einv2', 'شركة ب', '');
+    assert.strictEqual((await call('eadm', 'POST', '/api/billing/admin/invoices/' + i2.id + '/approve', { body: {} })).status, 200);
+    const s2 = await waitFor(i2.id, 'rejected');
+    assert.strictEqual(s2.status, 'rejected'); assert.strictEqual(s2.icv, 2); assert.ok(/invalid field/.test(s2.error));
+    assert.strictEqual(getDB().prepare('SELECT status FROM invoices WHERE id=?').get(i2.id).status, 'paid');
+    const list = await call('eadm', 'GET', '/api/billing/admin/invoices?status=paid');
+    assert.strictEqual(list.data.invoices.find((x) => x.id === i2.id).einvoice.status, 'rejected');
+
+    // 3) إعادة الإرسال تحتفظ بنفس UUID وICV
+    nextStatus = 200;
+    const re = await call('eadm', 'POST', '/api/billing/admin/invoices/' + i2.id + '/einvoice/retry', { body: {} });
+    assert.strictEqual(re.status, 200); assert.strictEqual(re.data.ok, true);
+    const s2b = getDB().prepare('SELECT * FROM einvoice_submissions WHERE invoice_id=?').get(i2.id);
+    assert.strictEqual(s2b.uuid, s2.uuid); assert.strictEqual(s2b.icv, 2); assert.strictEqual(s2b.status, 'accepted');
+
+    // 4) معاينة XML للمدير فقط
+    assert.strictEqual((await call('einv1', 'GET', '/api/billing/admin/invoices/' + i1.id + '/einvoice-xml')).status, 403);
+    assert.strictEqual((await call('eadm', 'GET', '/api/billing/admin/invoices/' + i1.id + '/einvoice-xml')).status, 200);
+
+    // 5) إعدادات ناقصة: لا إرسال، وخطأ واضح، والاعتماد يعمل
+    config.EINVOICE = { ...config.EINVOICE, clientId: '' };
+    const before = sent.length;
+    const i3 = await mkInvoice('einv3', 'شركة ج', '');
+    assert.strictEqual((await call('eadm', 'POST', '/api/billing/admin/invoices/' + i3.id + '/approve', { body: {} })).status, 200);
+    const s3 = await waitFor(i3.id, 'error');
+    assert.ok(/JOFOTARA_CLIENT_ID/.test(s3.error)); assert.strictEqual(sent.length, before);
+  } finally { global.fetch = realFetch; config.EINVOICE = saved; }
+});

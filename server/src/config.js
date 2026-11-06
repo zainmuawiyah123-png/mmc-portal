@@ -98,11 +98,6 @@ const config = {
   SUBSCRIPTION_EXPIRY_CRON: v('SUBSCRIPTION_EXPIRY_CRON', '0 3 * * *'),
   OPPORTUNITY_SYNC_ENABLED: v('OPPORTUNITY_SYNC_ENABLED', 'false') === 'true',
   UNGM_ACCESS_TOKEN: v('UNGM_ACCESS_TOKEN', ''),
-  /** Structured public JSON feeds, when an issuing portal provides one. */
-  ETIMAD_FEED_URL: v('ETIMAD_FEED_URL', ''),
-  UAE_MOF_FEED_URL: v('UAE_MOF_FEED_URL', ''),
-  IRAQ_TENDERS_FEED_URL: v('IRAQ_TENDERS_FEED_URL', ''),
-  JORDAN_PRIVATE_FEED_URL: v('JORDAN_PRIVATE_FEED_URL', ''),
   OPPORTUNITY_SYNC_CRON: v('OPPORTUNITY_SYNC_CRON', '15 */6 * * *'),
   BACKUP_TZ: v('BACKUP_TZ', 'Asia/Riyadh'),
 
@@ -120,6 +115,30 @@ config.PAYMENT = {
   swift: v('PAYMENT_SWIFT', '').replace(/\s+/g, '').toUpperCase(),
   cliqAlias: v('PAYMENT_CLIQ_ALIAS', ''),
   contactEmail: v('PAYMENT_CONTACT_EMAIL', '')
+};
+/* البريد الإلكتروني (SMTP). بلا MAIL_HOST تُسجَّل الرسائل في email_outbox بحالة skipped ولا تُرسل. MAIL_HOST=json للاختبار فقط. */
+config.MAIL = {
+  host: v('MAIL_HOST', ''),
+  port: Number(v('MAIL_PORT', 587)),
+  secure: String(v('MAIL_SECURE', 'false')).toLowerCase() === 'true',
+  user: v('MAIL_USER', ''),
+  pass: v('MAIL_PASS', ''),
+  from: v('MAIL_FROM', ''),
+  adminNotify: v('ADMIN_NOTIFY_EMAIL', ''),
+  publicUrl: v('PUBLIC_URL', '').replace(/\/+$/, '')
+};
+/* الفوترة الوطنية الأردنية (JoFotara) — فواتير اشتراكات MMC نفسها. معطّلة افتراضياً. */
+config.EINVOICE = {
+  enabled: String(v('JOFOTARA_ENABLED', 'false')).toLowerCase() === 'true',
+  url: v('JOFOTARA_URL', 'https://backend.jofotara.gov.jo/core/invoices/'),
+  clientId: v('JOFOTARA_CLIENT_ID', ''),
+  secretKey: v('JOFOTARA_SECRET_KEY', ''),
+  incomeSource: v('JOFOTARA_INCOME_SOURCE', ''),
+  sellerTin: v('EINVOICE_SELLER_TIN', '').replace(/\D/g, ''),
+  sellerName: v('EINVOICE_SELLER_NAME', ''),
+  vatRate: Number(v('EINVOICE_VAT_RATE', 16)),
+  pricesIncludeTax: String(v('EINVOICE_PRICES_INCLUDE_TAX', 'true')).toLowerCase() === 'true',
+  typeName: v('EINVOICE_TYPE_NAME', '012')
 };
 config.IS_PROD = config.NODE_ENV === 'production';
 

@@ -137,7 +137,7 @@
     API.login({email:email,password:pass}).then(function(res){
       showAlert(T('تم تسجيل الدخول. جارٍ التحويل…','Signed in. Redirecting…'),'ok');
       var next=new URLSearchParams(location.search).get('next');
-      if(!next) next=(res.user && res.user.role==='admin') ? '../../admin/index.html' : (res.user && res.user.role==='buyer' ? '../../procurement/index.html' : 'index.html');
+      if(!next) next=(res.user && res.user.role==='admin') ? '../../admin/index.html' : (res.user && res.user.role==='buyer' ? '../../procurement/index.html' : (res.user && res.user.role==='consultant' ? '../../consultant/index.html' : 'index.html'));
       setTimeout(function(){ location.replace(safeNext(next)); }, 350);
     }).catch(function(err){
       busy(false, defaultLabel);

@@ -106,6 +106,7 @@ router.post('/awards', wrap(async (req, res) => {
       currency, value, req.user.id, clip(b.notes, 2000) || null);
     event({ orgId:m.org_id,tenderId:tender.id,awardId:id,userId:req.user.id,role:m.role,action:'award_registered',to:'approved',detail:{submissionId:submission.id,awardedAmount:value},ip:req.ip });
   })();
+  require('../lib/mailer').notifyUser(submission.contractor_id, 'تمت ترسية العطاء عليكم / Tender awarded to you', 'تهانينا، تمت ترسية العطاء: ' + tender.name + ' بقيمة ' + value + ' ' + currency + '.\nسيصلكم أمر الشراء لاحقاً.');
   res.status(201).json({ award: db().prepare('SELECT * FROM project_awards WHERE id=?').get(id) });
 }));
 
@@ -160,6 +161,7 @@ router.post('/purchase-orders/:id/issue', wrap(async(req,res)=>{
     db().prepare("UPDATE purchase_orders SET status='issued',issued_at=unixepoch(),updated_at=unixepoch() WHERE id=?").run(p.id);
     event({orgId:m.org_id,tenderId:p.tender_id,awardId:p.award_id,poId:p.id,userId:req.user.id,role:m.role,action:'po_issued',from:p.status,to:'issued',ip:req.ip});
   })();
+  { const aw=db().prepare('SELECT contractor_user_id FROM project_awards WHERE id=?').get(p.award_id); if(aw) require('../lib/mailer').notifyUser(aw.contractor_user_id,'أمر شراء جديد / New purchase order','صدر لكم أمر شراء جديد. ادخلوا إلى بوابة المقاول > أوامر الشراء والفواتير لتقديم فواتيركم.'); }
   res.json({ok:true,status:'issued'});
 }));
 router.get('/purchase-orders',wrap(async(req,res)=>{
@@ -295,6 +297,7 @@ router.post('/invoices/:id/payments',wrap(async(req,res)=>{
     db().prepare('UPDATE project_invoices SET status=?,updated_at=unixepoch() WHERE id=?').run(next,i.id);
     event({orgId:m.org_id,tenderId:i.tender_id,awardId:i.award_id,poId:i.po_id,invoiceId:i.id,paymentId:id,userId:req.user.id,role:m.role,action:'payment_recorded',from:current.status,to:next,detail:{amount:value,reference:ref,date},ip:req.ip});
   }).immediate();
+  { const aw=db().prepare('SELECT contractor_user_id FROM project_awards WHERE id=?').get(i.award_id); if(aw) require('../lib/mailer').notifyUser(aw.contractor_user_id,'تم تسجيل دفعة / Payment recorded','سُجّلت دفعة بقيمة '+value+' '+i.currency+' (المرجع: '+ref+', بتاريخ '+date+').'); }
   res.status(201).json({ok:true,payment:db().prepare('SELECT * FROM project_payments WHERE id=?').get(id)});
 }));
 

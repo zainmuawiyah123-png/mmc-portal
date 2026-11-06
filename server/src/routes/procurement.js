@@ -59,9 +59,7 @@ function tenderShape(t, requirements) {
     id: t.id, name: t.name, nameEn: t.name_en || null, reference: t.reference, authority: t.authority,
     closing: t.closing, expired: isExpired(t.closing, t.country), country: t.country || 'JO', currency: (O.COUNTRIES[t.country] || O.COUNTRIES.JO).currency, notes: t.notes, notesEn: t.notes_en || null, status: t.procurement_status,
     technicalWeight: t.technical_weight, financialWeight: t.financial_weight,
-    technicalThreshold: t.technical_threshold, requirements: requirements || [],
-    accessMode: t.access_mode || 'public', questionDeadline: t.question_deadline || null,
-    submissionPolicy: t.submission_policy || 'platform'
+    technicalThreshold: t.technical_threshold, requirements: requirements || []
   };
 }
 
@@ -119,7 +117,7 @@ const withIssuer = (t, reqs) => ({ ...tenderShape(t, reqs), issuer: O.issuerOf(t
 /* قائمة العطاءات المنشورة للمقاول */
 router.get('/open-tenders', contractor, wrap(async (req, res) => {
   const db = getDB();
-  const rows = db.prepare("SELECT * FROM tenders WHERE procurement_status = 'published' AND (access_mode = 'public' OR EXISTS (SELECT 1 FROM tender_invites i WHERE i.tender_id=tenders.id AND i.email=?)) ORDER BY closing ASC, created_at DESC").all(req.user.email).filter((t) => O.ownerVerified(t.user_id));
+  const rows = db.prepare("SELECT * FROM tenders WHERE procurement_status = 'published' ORDER BY closing ASC, created_at DESC").all().filter((t) => O.ownerVerified(t.user_id));
   const submitted = new Set(db.prepare('SELECT tender_id FROM bid_submissions WHERE contractor_id = ?').all(req.user.id).map((r) => r.tender_id));
   res.json({ tenders: rows.map((t) => ({ ...withIssuer(t), alreadySubmitted: submitted.has(t.id) })) });
 }));
@@ -132,8 +130,6 @@ function createTender(user, b, opts = {}) {
   const technicalWeight = Number(b.technicalWeight ?? 60);
   const financialWeight = Number(b.financialWeight ?? 40);
   const threshold = Number(b.technicalThreshold ?? 50);
-  const accessMode = ['public', 'invite'].includes(b.accessMode) ? b.accessMode : 'public';
-  const submissionPolicy = ['platform', 'official_channel'].includes(b.submissionPolicy) ? b.submissionPolicy : 'platform';
   if (technicalWeight + financialWeight !== 100 || threshold <= 0 || threshold > technicalWeight) {
     throw E.validation('يجب أن يكون مجموع الأوزان 100، وأن يكون الحد الفني بين 1 والوزن الفني.');
   }
@@ -158,12 +154,12 @@ function createTender(user, b, opts = {}) {
   const id = uid('tnd_');
   db.transaction(() => {
     db.prepare(`INSERT INTO tenders
-      (id,user_id,name,authority,closing,notes,status,reference,technical_weight,financial_weight,technical_threshold,procurement_status,country,name_en,notes_en,org_id,request_id,access_mode,question_deadline,submission_policy)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,'published',?,?,?,?,?,?,?,?)`)
+      (id,user_id,name,authority,closing,notes,status,reference,technical_weight,financial_weight,technical_threshold,procurement_status,country,name_en,notes_en,org_id,request_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,'published',?,?,?,?,?)`)
       .run(id, user.id, String(b.name || '').trim().slice(0, 200), b.authority || null, b.closing || null,
         b.notes || null, 'new', String(b.reference || id).trim().slice(0, 80), technicalWeight, financialWeight, threshold, tenderCountry,
         String(b.nameEn || '').trim().slice(0, 200) || null, String(b.notesEn || '').trim().slice(0, 2000) || null,
-        member ? member.org_id : null, opts.requestId || null, accessMode, b.questionDeadline || null, submissionPolicy);
+        member ? member.org_id : null, opts.requestId || null);
     const ins = db.prepare('INSERT INTO tender_requirements (id,tender_id,title,description,weight,mandatory,sort_order,title_en,description_en) VALUES (?,?,?,?,?,?,?,?,?)');
     requirements.forEach((r, i) => ins.run(r.id, id, r.title, r.description || null, r.weight, r.mandatory, i, r.titleEn || null, r.descriptionEn || null));
   })();
@@ -172,8 +168,6 @@ function createTender(user, b, opts = {}) {
 
 router.post('/tenders', procOnly, wrap(async (req, res) => {
   const id = createTender(req.user, req.body || {});
-  const emails = [...new Set((Array.isArray(req.body?.inviteEmails) ? req.body.inviteEmails : []).map((x) => String(x).trim().toLowerCase()).filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)))].slice(0, 200);
-  if (emails.length) { const ins = getDB().prepare('INSERT OR IGNORE INTO tender_invites (id,tender_id,email) VALUES (?,?,?)'); getDB().transaction(() => emails.forEach((email) => ins.run(uid('inv_'), id, email)))(); }
   const out = getTender(id);
   res.status(201).json({ tender: tenderShape(out.t, out.reqs), message: 'تم نشر العطاء ومعايير التقييم.' });
 }));
@@ -191,31 +185,14 @@ router.get('/tenders/:id', wrap(async (req, res) => {
   const x = getTender(req.params.id);
   const isBuyer = req.user.role === 'buyer' || req.user.role === 'admin';
   if (isBuyer) ensureBuyerOwn(req, req.params.id);
-  if (!isBuyer && (x.t.procurement_status !== 'published' || (x.t.access_mode === 'invite' && !getDB().prepare('SELECT 1 FROM tender_invites WHERE tender_id=? AND email=?').get(x.t.id, req.user.email)))) throw E.notFound('العطاء غير متاح.');
+  if (!isBuyer && x.t.procurement_status !== 'published') throw E.notFound('العطاء غير متاح.');
   res.json({ tender: isBuyer ? tenderShape(x.t, x.reqs) : withIssuer(x.t, x.reqs) });
-}));
-
-router.get('/tenders/:id/invites', procOnly, wrap(async (req, res) => {
-  const x = ensureBuyerOwn(req, req.params.id);
-  res.json({ invites: getDB().prepare('SELECT id,email,status,invited_at invitedAt FROM tender_invites WHERE tender_id=? ORDER BY invited_at DESC').all(x.t.id) });
-}));
-
-router.post('/tenders/:id/invites', procOnly, wrap(async (req, res) => {
-  const x = ensureBuyerOwn(req, req.params.id);
-  const emails = [...new Set((Array.isArray(req.body?.emails) ? req.body.emails : String(req.body?.emails || '').split(/[,،\n]/)).map((x) => String(x).trim().toLowerCase()).filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)))].slice(0, 200);
-  if (!emails.length) throw E.validation('أدخل بريداً إلكترونياً صحيحاً واحداً على الأقل.');
-  const ins = getDB().prepare('INSERT OR IGNORE INTO tender_invites (id,tender_id,email) VALUES (?,?,?)');
-  getDB().transaction(() => emails.forEach((email) => ins.run(uid('inv_'), x.t.id, email)))();
-  audit({ action:'tender_invites_added', entity:'tender', entityId:x.t.id, userId:req.user.id, ip:req.ip, detail:{count:emails.length} });
-  res.status(201).json({ ok:true, count:emails.length, message:'تمت إضافة دعوات المقاولين. اربط مزود البريد لإرسال الإشعارات تلقائياً.' });
 }));
 
 /* تقديم فني ومالي؛ المالي يخزن في القاعدة لكنه لا يخرج للمقيم قبل الفتح */
 router.post('/tenders/:id/submit', contractor, bidUpload.fields([{ name: 'technicalFiles', maxCount: config.MAX_FILES_PER_REQUEST }, { name: 'financialFiles', maxCount: config.MAX_FILES_PER_REQUEST }]), wrap(async (req, res) => {
   const x = getTender(req.params.id);
   if (x.t.procurement_status !== 'published') throw E.conflict('العطاء غير منشور أو مغلق.');
-  if (x.t.access_mode === 'invite' && !getDB().prepare('SELECT 1 FROM tender_invites WHERE tender_id=? AND email=?').get(x.t.id, req.user.email)) throw E.forbidden('هذا العطاء مخصص للمقاولين المدعوين فقط.');
-  if (x.t.submission_policy === 'official_channel') throw E.conflict('هذا الإعلان للاستطلاع فقط؛ يتم التقديم عبر القناة الرسمية المحددة من الجهة.');
   if (!O.ownerVerified(x.t.user_id)) throw E.conflict('جهة هذا العطاء غير موثّقة حالياً، فلا تُقبل عروض جديدة عليه.');
   if (isExpired(x.t.closing, x.t.country)) throw E.conflict('انتهى موعد استلام العروض لهذا العطاء (' + x.t.closing + ').');
   if (req.user.role !== 'admin') {
@@ -276,6 +253,8 @@ router.post('/tenders/:id/submit', contractor, bidUpload.fields([{ name: 'techni
     throw err;
   }
   audit({ action:'bid_submit', entity:'bid_submission', entityId:id, userId:req.user.id, ip:req.ip, detail:{ tenderId:x.t.id, receiptReference:receipt, technicalFiles:technicalFiles.length, financialFiles:financialFiles.length } });
+  require('../lib/mailer').notify(req.user.email, 'إيصال استلام عرضك / Bid receipt', 'تم استلام عرضك الفني والمالي على العطاء: ' + x.t.name + '\nرقم الإيصال: ' + receipt + '\nاحتفظ بهذا الرقم.');
+  require('../lib/mailer').notifyUser(x.t.user_id, 'عرض جديد على عطائك / New bid received', 'وصل عرض جديد على العطاء: ' + x.t.name + '. يمكنك مراجعته من لوحة المشتريات.');
   res.status(201).json({ submissionId: id, receiptReference:receipt, submittedAt:db.prepare('SELECT submitted_at FROM bid_submissions WHERE id=?').get(id).submitted_at,
     technicalPoints: calc.points, message: 'تم استلام العرضين الفني والمالي والملفات المرفقة. احتفظ برقم الإيصال.' });
 }));
@@ -298,7 +277,8 @@ router.get('/submissions/:id/documents/:docId', A.requireAuth, wrap(async(req,re
   if(!d) throw E.notFound('الملف غير موجود.');
   const own=req.user.role==='contractor' && d.contractor_id===req.user.id;
   const staff=req.user.role==='admin' || (req.user.role==='buyer' && O.canManageUserTenders(req.user,d.buyer_id));
-  if(!own && !staff) throw E.notFound('الملف غير موجود.');
+  const evaluator=!own && !staff && d.doc_class==='technical' && require('../lib/committee').isEvaluator(req.user.id,d.tender_id);
+  if(!own && !staff && !evaluator) throw E.notFound('الملف غير موجود.');
   if(d.doc_class==='financial' && !own && !d.financial_unlocked) throw E.forbidden('العرض المالي مقفل حتى اعتماد فتحه رسمياً.');
   const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
   if(!(await store.exists(d.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
@@ -373,6 +353,7 @@ router.post('/submissions/:id/open-financial', procOnly, wrap(async (req,res)=>{
 function docsAccess(req, t) {
   const staff = req.user.role === 'admin' || (req.user.role === 'buyer' && O.canManageUserTenders(req.user, t.user_id));
   if (staff) return true;
+  if (require('../lib/committee').isEvaluator(req.user.id, t.id)) return true;
   return req.user.role === 'contractor' && t.procurement_status === 'published' && O.ownerVerified(t.user_id);
 }
 router.get('/tenders/:id/documents', wrap(async (req, res) => {
