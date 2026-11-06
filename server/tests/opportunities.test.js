@@ -94,3 +94,22 @@ test('APC parser reads the public list row, dates, bond, qualifications and keep
   assert.equal(rows[1].status, 'closed');
   assert.equal(new URL(rows[1].sourceUrl).origin, 'https://arabpotash.com');
 });
+
+const { parseJpmcRows } = require('../src/lib/jpmc-sync');
+test('JPMC parser imports official Arabic tender headings, dates and same-origin details links', () => {
+  const html = '<section><div>تاريخ بدء العطاء: 01-11-2026 تاريخ انتهاء العطاء: 12-11-2026</div>'
+    + '<h3>علان تمديد طرح العطاء رقم (T2026/35 SH) "مشروع إعادة تأهيل هنجر المستودعات الرئيسة في منجم الشيدية"</h3>'
+    + '<a href="/ar/tender/12345">اقرأ المزيد</a></section>'
+    + '<section><div>تاريخ بدء العطاء: 01-11-2026 تاريخ انتهاء العطاء: 05-11-2026</div>'
+    + '<h3>اعلان طرح العطاء رقم (T2026/41 F) التفتيش والمعاينة للشحنات المصدرة والمستوردة بحراً</h3>'
+    + '<a href="https://evil.example/steal">اقرأ المزيد</a></section>';
+  const rows = parseJpmcRows(html, '2026-11-06');
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].tenderNumber, 'T2026/35 SH');
+  assert.equal(rows[0].closingAt, '2026-11-12');
+  assert.equal(rows[0].status, 'open');
+  assert.equal(new URL(rows[0].sourceUrl).origin, 'https://www.jpmc.com.jo');
+  assert.equal(rows[1].closingAt, '2026-11-05');
+  assert.equal(rows[1].status, 'closed');
+  assert.equal(new URL(rows[1].sourceUrl).origin, 'https://www.jpmc.com.jo');
+});
