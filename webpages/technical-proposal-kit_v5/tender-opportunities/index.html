@@ -145,7 +145,7 @@
   try{
    const res=await fetch('/api/opportunities/admin/sync/jordan-official',{method:'POST',credentials:'same-origin'});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'فشلت مزامنة المصادر الأردنية');
-   const names={gam:'أمانة عمّان',jpmc:'الفوسفات',nepco:'الكهرباء الوطنية',jepco:'الكهرباء الأردنية',sepco:'السمرا',jprc:'المصفاة',jppmc:'تسويق المشتقات',jordan_bromine:'البرومين',memr:'وزارة الطاقة',mwi:'المياه والري',emrc:'هيئة تنظيم الطاقة',unicef_jo:'UNICEF'};
+   const names={gam:'أمانة عمّان',jpmc:'الفوسفات',nepco:'الكهرباء الوطنية',jepco:'الكهرباء الأردنية',sepco:'السمرا',jprc:'المصفاة',jppmc:'تسويق المشتقات',jordan_bromine:'البرومين',memr:'وزارة الطاقة',mwi:'المياه والري',emrc:'هيئة تنظيم الطاقة',unicef_jo:'UNICEF',unhcr_jo:'UNHCR'};
    msg.textContent=Object.entries(data.results||{}).map(([k,v])=>(names[k]||k)+': '+(v.ok?'نجاح — '+v.received+' إعلان، '+v.added+' جديد':'تعذّر — '+(v.error||'لم يتم استخراج إعلانات مؤكدة'))).join(' | ');
    load();loadSyncHistory();
   }catch(e){msg.textContent=e.message;}
