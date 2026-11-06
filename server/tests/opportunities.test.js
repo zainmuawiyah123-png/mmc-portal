@@ -200,7 +200,7 @@ test('Jordan public-source parser extracts tender metadata and rejects off-domai
  const rows=parseSource(html,source,'2026-11-06');
  assert.equal(rows.length,1);
  assert.equal(rows[0].authority,'شركة الكهرباء الوطنية');
- assert.match(rows[0].tenderNumber,/79\\/2026/);
+ assert.match(rows[0].tenderNumber,/79\/2026/);
  assert.equal(rows[0].closingAt,'2026-11-18');
  assert.equal(new URL(rows[0].sourceUrl).hostname,'www.nepco.com.jo');
 });
@@ -208,7 +208,7 @@ test('Jordan source sync endpoint is MMC-admin only and visible in admin page',(
  const fs=require('node:fs'),path=require('node:path');
  const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
  const page=fs.readFileSync(path.join(__dirname,'../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'),'utf8');
- assert.match(route,/router\\.post\\('\/admin\/sync\/jordan-official'/);
+ assert.match(route,/router\.post\('\/admin\/sync\/jordan-official'/);
  assert.match(route,/syncJordanPublicSources/);
  assert.match(page,/oa-sync-jordan-official/);
  assert.match(page,/الفوسفات/);
