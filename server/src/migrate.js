@@ -642,25 +642,6 @@ function upgradeTenderOpportunities(db) {
 }
 
 
-
-function upgradeTenderOpportunityDetails(db) {
-  const cols = new Set(db.prepare('PRAGMA table_info(tender_opportunities)').all().map(c=>c.name));
-  if (!cols.has('details_json')) db.exec('ALTER TABLE tender_opportunities ADD COLUMN details_json TEXT');
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS tender_opportunity_public_documents (
-      id TEXT PRIMARY KEY,
-      opportunity_id TEXT NOT NULL REFERENCES tender_opportunities(id) ON DELETE CASCADE,
-      label TEXT NOT NULL,
-      document_url TEXT NOT NULL,
-      availability TEXT NOT NULL DEFAULT 'public-source-link',
-      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      UNIQUE(opportunity_id, document_url)
-    );
-    CREATE INDEX IF NOT EXISTS idx_tender_opportunity_public_docs
-      ON tender_opportunity_public_documents(opportunity_id, created_at);
-  `);
-}
-
 function upgradeBidSubmissionDocuments(db) {
   const cols = new Set(db.prepare('PRAGMA table_info(bid_submissions)').all().map((c) => c.name));
   if (!cols.has('receipt_reference')) db.exec('ALTER TABLE bid_submissions ADD COLUMN receipt_reference TEXT');
@@ -751,6 +732,19 @@ function upgradeEInvoice(db) {
   if (!cols.has('buyer_tax_number')) db.exec('ALTER TABLE invoices ADD COLUMN buyer_tax_number TEXT');
 }
 
+
+/** مفضلة العطاءات الخارجية لكل مستخدم */
+function upgradeOpportunityWatch(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS opportunity_saved (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      opportunity_id TEXT NOT NULL REFERENCES tender_opportunities(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (user_id, opportunity_id)
+    );
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -776,13 +770,13 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
-  upgradeTenderOpportunityDetails(db);
   upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
   upgradeBidSubmissionDocuments(db);
   upgradeCommitteeAndMail(db);
   upgradeEInvoice(db);
+  upgradeOpportunityWatch(db);
 
   return db;
 }

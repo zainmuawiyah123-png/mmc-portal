@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>سوق العطاءات · MMC</title>
+<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
+<style>
+.mk-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.mk-stat{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;text-align:start;cursor:pointer;font:inherit;color:inherit}
+.mk-stat:hover,.mk-stat.on{border-color:var(--accent);box-shadow:var(--shadow)}
+.mk-stat b{display:block;font-size:24px;line-height:1.2;color:var(--ink)}.mk-stat span{font-size:12px;color:var(--mut)}
+.mk-stat.warn b{color:var(--red)}.mk-stat.good b{color:var(--teal)}
+.mk-bar{position:sticky;top:50px;z-index:40;background:var(--bg);padding:8px 0 10px}
+.mk-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mk-row input[type=search]{flex:1 1 260px;min-width:200px}
+.mk-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.mk-pill{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.mk-pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}.mk-pill small{opacity:.7;margin-inline-start:4px}
+.mk-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);margin:6px 0 10px}
+.mk-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.mk-card{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px 12px;border-inline-start:4px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.mk-card.u1{border-inline-start-color:var(--red)}.mk-card.u2{border-inline-start-color:var(--accent)}.mk-card.u3{border-inline-start-color:var(--teal)}.mk-card.cl{opacity:.72}
+.mk-card h3{margin:0;font-size:15px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mk-auth{font-size:12.5px;color:var(--mut)}
+.mk-tags{display:flex;gap:6px;flex-wrap:wrap}
+.mk-tag{font-size:11.5px;padding:2px 9px;border-radius:999px;background:var(--soft);border:1px solid var(--line)}
+.mk-tag.src{background:var(--blue-l);border-color:#cfe2f3;color:var(--blue)}.mk-tag.new{background:var(--green-l);border-color:#bfe5c6;color:var(--green)}
+.mk-tag.d1{background:var(--red-l);border-color:#f3c9c9;color:var(--red);font-weight:700}.mk-tag.d2{background:var(--accent-l);border-color:#f2d6b4;color:var(--accent-d);font-weight:700}
+.mk-sum{font-size:12.5px;color:var(--mut);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.4em}
+.mk-act{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;align-items:center}
+.mk-star{border:1px solid var(--line);background:var(--paper);border-radius:8px;width:34px;height:32px;cursor:pointer;font-size:16px;line-height:1;color:var(--mut)}
+.mk-star[aria-pressed=true]{color:#d97706;border-color:#d97706;background:var(--accent-l)}
+.mk-skel{height:150px;border-radius:var(--radius);background:linear-gradient(90deg,#e8ecf0 25%,#f3f5f7 50%,#e8ecf0 75%);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.mk-more{text-align:center;margin:16px 0}
+.mk-dim{position:fixed;inset:0;background:rgba(13,27,42,.45);z-index:120;display:none}.mk-dim.on{display:block}
+.mk-drawer{position:fixed;top:0;bottom:0;inset-inline-start:0;width:min(560px,100%);background:var(--paper);z-index:130;transform:translateX(-102%);transition:transform .2s;overflow:auto;padding:20px;box-shadow:var(--shadow)}
+html[dir=ltr] .mk-drawer{transform:translateX(102%)}.mk-drawer.on{transform:none}
+.mk-kv{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;margin:12px 0;font-size:13.5px}.mk-kv dt{color:var(--mut)}.mk-kv dd{margin:0}
+@media(max-width:820px){.mk-stats{grid-template-columns:repeat(2,1fr)}.mk-grid{grid-template-columns:1fr}.mk-bar{top:0;position:static}}
+</style></head>
+<body><div class="p-top"><div class="brand"><span class="mark">M</span><span><span data-ar="سوق العطاءات" data-en="Tender market">سوق العطاءات</span><small>MMC</small></span></div><div class="spacer"></div><a class="btn ghost" id="back" href="../portal/pt-9f3c7a1e5b2d/index.html" style="color:#fff"><span data-ar="← بوابتي" data-en="← My portal">← بوابتي</span></a><button class="btn ghost" id="logout" style="color:#fff">خروج / Log out</button></div>
+<main class="p-wrap">
+<div class="p-head"><div class="eyebrow">JONEPS · البوتاس العربية · البنك الدولي · الأمم المتحدة</div><h1 data-ar="سوق العطاءات" data-en="Tender market">سوق العطاءات</h1><p data-ar="كل العطاءات من المصادر المربوطة في مكان واحد، تُحدَّث تلقائياً. احفظ ما يهمك، وافتح ملفاً للعطاء في «ملفاتي» بضغطة واحدة." data-en="All tenders from connected sources in one place, updated automatically. Save what matters and open a bid file in “My files” in one click.">كل العطاءات من المصادر المربوطة في مكان واحد، تُحدَّث تلقائياً. احفظ ما يهمك، وافتح ملفاً للعطاء في «ملفاتي» بضغطة واحدة.</p></div>
+<div id="msg"></div>
+<div class="mk-stats" id="stats"></div>
+<div class="mk-bar"><div class="mk-row"><input id="q" type="search" placeholder="ابحث بعنوان العطاء أو الجهة أو الرقم / Search" aria-label="بحث">
+<select id="country" aria-label="الدولة"></select>
+<select id="closing" aria-label="الإغلاق"><option value="">كل مواعيد الإغلاق</option><option value="7">يغلق خلال 7 أيام</option><option value="14">خلال 14 يوماً</option><option value="30">خلال 30 يوماً</option></select>
+<select id="sort" aria-label="الترتيب"><option value="closing">الأقرب إغلاقاً</option><option value="new">الأحدث إضافة</option></select>
+<select id="state" aria-label="الحالة"><option value="open">المفتوحة</option><option value="closed">المنتهية</option></select>
+<button class="btn sm ghost" id="reset" type="button">إعادة ضبط</button></div>
+<div class="mk-pills" id="pills" role="group" aria-label="المصدر"></div></div>
+<div class="mk-meta"><span id="count"></span><span id="sync"></span></div>
+<div class="mk-grid" id="grid"></div><div class="mk-more"><button class="btn amber" id="more" type="button" hidden>عرض المزيد</button></div>
+</main>
+<div class="mk-dim" id="dim"></div><aside class="mk-drawer" id="drawer" aria-hidden="true"></aside>
+<script src="../portal/pt-9f3c7a1e5b2d/assets/api.js"></script><script src="../portal/pt-9f3c7a1e5b2d/assets/i18n.js"></script>
+<script>(function(){
+var $=function(s){return document.querySelector(s)};
+var SRC={joneps:['JONEPS · الأردن','JONEPS · Jordan'],apc:['البوتاس العربية','Arab Potash'],worldbank:['البنك الدولي','World Bank'],ungm:['الأمم المتحدة','UN · UNGM'],etimad:['اعتماد · السعودية','Etimad · KSA'],capt:['المناقصات المركزية · الكويت','CAPT · Kuwait'],tenderboard_om:['مجلس المناقصات · عُمان','Tender Board · Oman'],tenderboard_bh:['مجلس المناقصات · البحرين','Tender Board · Bahrain']};
+var CN={JO:['الأردن','Jordan'],SA:['السعودية','Saudi Arabia'],KW:['الكويت','Kuwait'],OM:['عُمان','Oman'],BH:['البحرين','Bahrain'],AE:['الإمارات','UAE'],QA:['قطر','Qatar'],IQ:['العراق','Iraq'],INT:['دولي','International']};
+var S={q:'',source:'',country:'',closing:'',sort:'closing',state:'open',saved:false},off=0,items=[],total=0,meta={},role='',busy=false,timer=null,PAGE=24;
+function T(a,e){return window.MMC_I18N?MMC_I18N.T(a,e):a}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function src(k){return SRC[k]?T(SRC[k][0],SRC[k][1]):esc(k)}
+function cn(c){return CN[c]?T(CN[c][0],CN[c][1]):esc(c||'')}
+function note(t,k){$('#msg').innerHTML=t?'<div class="note '+(k||'')+'">'+esc(t)+'</div>':''}
+var TODAY=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
+function daysLeft(o){if(!o.closingAt)return null;var d=(Date.parse(String(o.closingAt).slice(0,10)+'T00:00:00Z')-Date.parse(TODAY+'T00:00:00Z'))/864e5;return isNaN(d)?null:d}
+function dlText(d){if(d==null)return T('بلا موعد محدد','No set deadline');if(d<0)return T('منتهٍ','Closed');if(d===0)return T('يغلق اليوم','Closes today');if(d===1)return T('يغلق غداً','Closes tomorrow');if(d===2)return T('يغلق بعد يومين','Closes in 2 days');return T('يغلق خلال '+d+(d<=10?' أيام':' يوماً'),'Closes in '+d+' days')}
+function urg(d){return d==null||d<0?'':d<=3?'u1':d<=7?'u2':'u3'}
+function isNew(o){return o.importedAt&&(Date.now()/1000-o.importedAt)<3*86400}
+function qs(extra){var p=['limit='+PAGE,'offset='+off,'status='+S.state,'sort='+S.sort];if(S.q)p.push('q='+encodeURIComponent(S.q));if(S.source)p.push('source='+S.source);if(S.country)p.push('country='+S.country);if(S.closing)p.push('closing='+S.closing);if(S.saved)p.push('saved=1');return p.join('&')}
+function skel(){$('#grid').innerHTML='<div class="mk-skel"></div><div class="mk-skel"></div><div class="mk-skel"></div><div class="mk-skel"></div>'}
+function load(append){if(busy)return;busy=true;if(!append){off=0;skel()}
+ API.request('GET','/opportunities/feed?'+qs()).then(function(d){busy=false;meta=d;total=d.total;items=append?items.concat(d.opportunities):d.opportunities;note('');drawStats();drawControls();drawGrid();drawMeta()}).catch(function(e){busy=false;$('#grid').innerHTML='';note(e.message,'warn')})}
+function drawStats(){var s=meta.stats||{};var def=[['open',T('مفتوحة الآن','Open now'),s.open,'',function(){reset()}],['soon',T('تغلق خلال 7 أيام','Closing in 7 days'),s.closingSoon,'warn',function(){S.closing='7';S.sort='closing';S.saved=false;S.state='open';sync();load()}],['new',T('جديدة هذا الأسبوع','New this week'),s.newThisWeek,'good',function(){S.sort='new';S.closing='';S.saved=false;S.state='open';sync();load()}],['saved',T('المحفوظة','Saved'),s.saved,'',function(){S.saved=!S.saved;sync();load()}]];
+ $('#stats').innerHTML=def.map(function(x,i){return '<button type="button" class="mk-stat '+x[3]+((x[0]==='saved'&&S.saved)||(x[0]==='soon'&&S.closing==='7')||(x[0]==='new'&&S.sort==='new')?' on':'')+'" data-i="'+i+'"><b>'+(x[2]==null?'—':x[2])+'</b><span>'+x[1]+'</span></button>'}).join('');
+ document.querySelectorAll('.mk-stat').forEach(function(b){b.onclick=def[Number(b.dataset.i)][4]})}
+function drawControls(){var bc=meta.openByCountry||{},bs=meta.openBySource||{};var cs=$('#country'),cur=S.country;
+ var order=['JO','SA','KW','OM','BH','AE','QA','IQ','INT'],keys=order.concat(Object.keys(bc).filter(function(k){return order.indexOf(k)<0}));
+ cs.innerHTML='<option value="">'+T('كل الدول','All countries')+'</option>'+keys.map(function(k){return '<option value="'+esc(k)+'">'+cn(k)+' ('+(bc[k]||0)+')</option>'}).join('');cs.value=cur;
+ var all=Object.keys(bs).reduce(function(a,k){return a+bs[k]},0),ks=Object.keys(SRC).filter(function(k){return bs[k]||(meta.connectedSources||[]).indexOf(k)>=0});
+ $('#pills').innerHTML='<button type="button" class="mk-pill'+(S.source?'':' on')+'" data-s="">'+T('كل المصادر','All sources')+'<small>'+all+'</small></button>'+ks.map(function(k){return '<button type="button" class="mk-pill'+(S.source===k?' on':'')+'" data-s="'+k+'">'+src(k)+'<small>'+(bs[k]||0)+'</small></button>'}).join('');
+ document.querySelectorAll('.mk-pill').forEach(function(b){b.onclick=function(){S.source=b.dataset.s;load()}})}
+function drawMeta(){var shown=items.length;$('#count').textContent=total?T('يعرض '+shown+' من '+total+' عطاء','Showing '+shown+' of '+total+' tenders'):'';var ls=meta.lastSyncBySource||{},ks=Object.keys(ls);$('#sync').textContent=ks.length?T('آخر تحديث: ','Last update: ')+ks.map(function(k){return src(k)+' '+ls[k].slice(5,16).replace('T',' ')}).join(' · '):T('لم تتم أول مزامنة بعد.','No sync has run yet.');$('#more').hidden=!meta.hasMore}
+function card(o){var d=daysLeft(o),u=urg(d),closed=o.status==='closed'||(d!=null&&d<0);
+ return '<article class="mk-card '+u+(closed?' cl':'')+'" data-id="'+esc(o.id)+'"><div class="mk-tags"><span class="mk-tag src">'+src(o.sourceKey)+'</span><span class="mk-tag">'+cn(o.country)+'</span>'+(isNew(o)&&!closed?'<span class="mk-tag new">'+T('جديد','New')+'</span>':'')+'<span class="mk-tag '+(u==='u1'?'d1':u==='u2'?'d2':'')+'">'+dlText(d)+'</span></div>'+
+ '<h3>'+esc(o.title)+'</h3><div class="mk-auth">'+esc(o.authority||'')+(o.tenderNumber?' · '+esc(o.tenderNumber):'')+'</div>'+(o.summary?'<div class="mk-sum">'+esc(o.summary)+'</div>':'<div class="mk-sum"></div>')+
+ '<div class="mk-act"><button class="btn sm light" data-det="'+esc(o.id)+'" type="button">'+T('التفاصيل','Details')+'</button>'+(role==='consultant'?'':'<button class="btn sm amber" data-prep="'+esc(o.id)+'" type="button"'+(closed?' disabled':'')+'>'+T('حضّر عرضك','Prepare bid')+'</button>')+'<span class="spacer"></span><button class="mk-star" data-star="'+esc(o.id)+'" aria-pressed="'+(o.saved?'true':'false')+'" aria-label="'+T('حفظ','Save')+'" type="button">'+(o.saved?'★':'☆')+'</button></div></article>'}
+function drawGrid(){$('#grid').innerHTML=items.map(card).join('')||'<div class="empty" style="grid-column:1/-1">'+(S.saved?T('لا توجد عطاءات محفوظة بعد. اضغط ☆ على أي عطاء لحفظه.','No saved tenders yet. Press ☆ on any tender to save it.'):T('لا توجد عطاءات مطابقة. جرّب توسيع الفلاتر أو إعادة الضبط.','No matching tenders. Try widening the filters or reset.'))+'</div>';
+ document.querySelectorAll('[data-det]').forEach(function(b){b.onclick=function(){detail(b.dataset.det)}});document.querySelectorAll('[data-prep]').forEach(function(b){b.onclick=function(){prepare(b.dataset.prep,b)}});document.querySelectorAll('[data-star]').forEach(function(b){b.onclick=function(){star(b.dataset.star)}})}
+function find(id){return items.filter(function(x){return x.id===id})[0]}
+function star(id){var o=find(id);if(!o)return;var was=o.saved;o.saved=!was;API.request(was?'DELETE':'POST','/opportunities/'+encodeURIComponent(id)+'/save').then(function(){if(S.saved&&was){load()}else{if(meta.stats)meta.stats.saved+=was?-1:1;drawStats();drawGrid()}}).catch(function(e){o.saved=was;note(e.message,'warn');drawGrid()})}
+function prepare(id,btn){var o=find(id);if(!o)return;if(btn)btn.disabled=true;var body={name:(o.tenderNumber&&o.title.indexOf(o.tenderNumber)<0?o.tenderNumber+' - ':'')+o.title,authority:o.authority||null,closing:/^\d{4}-\d{2}-\d{2}/.test(o.closingAt||'')?o.closingAt.slice(0,10):null,notes:'المصدر: '+src(o.sourceKey)+' | الدولة: '+cn(o.country)+' | رقم العطاء: '+(o.tenderNumber||'-')+' | الرابط الرسمي: '+o.sourceUrl};
+ API.request('POST','/tenders',body).then(function(){location.href='../portal/pt-9f3c7a1e5b2d/index.html'}).catch(function(e){if(btn)btn.disabled=false;note(e.message,'warn');window.scrollTo(0,0)})}
+function detail(id){var o=find(id);if(!o)return;var d=daysLeft(o);var dr=$('#drawer');
+ dr.innerHTML='<button class="btn sm ghost" id="dx" type="button">✕ '+T('إغلاق','Close')+'</button><h2 style="margin:12px 0 6px;line-height:1.5">'+esc(o.title)+'</h2><div class="mk-tags"><span class="mk-tag src">'+src(o.sourceKey)+'</span><span class="mk-tag">'+cn(o.country)+'</span><span class="mk-tag '+(urg(d)==='u1'?'d1':urg(d)==='u2'?'d2':'')+'">'+dlText(d)+'</span></div>'+
+ '<dl class="mk-kv"><dt>'+T('الجهة','Issuer')+'</dt><dd>'+esc(o.authority||'—')+'</dd><dt>'+T('رقم العطاء','Tender no.')+'</dt><dd>'+esc(o.tenderNumber||'—')+'</dd><dt>'+T('تاريخ النشر','Published')+'</dt><dd>'+esc(o.publishedAt||'—')+'</dd><dt>'+T('تاريخ الإغلاق','Closing')+'</dt><dd>'+esc(o.closingAt||'—')+'</dd>'+(o.sector?'<dt>'+T('القطاع','Sector')+'</dt><dd>'+esc(o.sector)+'</dd>':'')+'</dl>'+
+ (o.summary?'<h3>'+T('ملخص','Summary')+'</h3><p style="white-space:pre-wrap">'+esc(o.summary)+'</p>':'')+
+ '<div class="mk-act" style="margin-top:16px">'+(role==='consultant'?'':'<button class="btn amber" id="dp" type="button">'+T('حضّر عرضك في «ملفاتي»','Prepare bid in “My files”')+'</button>')+'<a class="btn light" href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+T('وثائق العطاء عند الجهة','Tender documents at the issuer')+'</a></div><p class="mini" style="margin-top:10px">'+T('التقديم الفعلي يتم عبر القناة الرسمية للجهة المصدرة. هنا تحضّر ملفك الفني وجدول الكميات.','Actual submission is through the issuer’s official channel. Here you prepare your technical file and take-off.')+'</p>';
+ $('#dim').classList.add('on');dr.classList.add('on');dr.setAttribute('aria-hidden','false');$('#dx').onclick=closeD;var dp=$('#dp');if(dp)dp.onclick=function(){prepare(id,dp)}}
+function closeD(){$('#dim').classList.remove('on');$('#drawer').classList.remove('on');$('#drawer').setAttribute('aria-hidden','true')}
+$('#dim').onclick=closeD;document.addEventListener('keydown',function(e){if(e.key==='Escape')closeD()});
+function sync(){$('#q').value=S.q;$('#country').value=S.country;$('#closing').value=S.closing;$('#sort').value=S.sort;$('#state').value=S.state}
+function reset(){S={q:'',source:'',country:'',closing:'',sort:'closing',state:'open',saved:false};sync();load()}
+$('#q').oninput=function(){clearTimeout(timer);timer=setTimeout(function(){S.q=$('#q').value.trim();load()},350)};
+['country','closing','sort','state'].forEach(function(k){$('#'+k).onchange=function(){S[k]=$('#'+k).value;load()}});
+$('#reset').onclick=reset;$('#more').onclick=function(){off+=PAGE;load(true)};
+$('#logout').onclick=function(){API.logout().then(function(){location.href='../portal/pt-9f3c7a1e5b2d/login.html'})};
+API.me().then(function(d){role=d.user.role;if(['contractor','consultant','admin'].indexOf(role)<0){note(T('هذه الصفحة مخصصة للمقاولين والمكاتب الاستشارية.','This page is for contractors and consulting offices.'),'warn');return}
+ if(role==='consultant')$('#back').href='../consultant/index.html';if(location.hash==='#saved')S.saved=true;sync();load()}).catch(function(){location.href='../portal/pt-9f3c7a1e5b2d/login.html?next=../../bid/market.html'});
+})();</script></body></html>

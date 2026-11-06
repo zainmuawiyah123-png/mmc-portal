@@ -123,29 +123,6 @@ function createApp() {
     });
   });
 
-  // Procurement workspace is restricted to authenticated buying organizations and MMC admins.
-  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => {
-    const A = require('./lib/auth');
-    A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
-      if (!['buyer', 'admin'].includes(req.user.role)) return res.status(403).type('text').send('بوابة المشتريات مخصصة للجهات المشترية فقط.');
-      return sendFromWeb('procurement/index.html', res, next);
-    });
-  });
-
-  // The external tender directory is available to MMC admins and contractors,
-  // but remains excluded from buying-organization procurement workspaces.
-  app.get(['/tender-opportunities', '/tender-opportunities/', '/tender-opportunities/index.html'], (req, res, next) => {
-    const A = require('./lib/auth');
-    A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
-      if (!['admin', 'contractor'].includes(req.user.role)) {
-        return res.status(403).type('text').send('دليل العطاءات الخارجية مخصص لإدارة MMC والمقاولين فقط.');
-      }
-      return sendFromWeb('tender-opportunities/index.html', res, next);
-    });
-  });
-
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {

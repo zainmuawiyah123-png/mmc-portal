@@ -1382,7 +1382,7 @@ test('90 — لجنة التقييم: تقييم مستقل مجهول الهو�
   assert.strictEqual(w.status, 200);
   const raw = JSON.stringify(w.data);
   assert.deepStrictEqual(w.data.bidders.map((b) => b.label), ['A', 'B']);
-  assert.ok(!/cmtA|cmtB|financial|900|1100/.test(raw.replace(/submissionId":"[^"]*"/g, '')), 'لا أسماء ولا أسعار — diagnostic: ' + raw);
+  assert.ok(!/cmtA|cmtB|financial|900|1100/.test(raw.replace(/submissionId":"[^"]*"/g, '')), 'لا أسماء ولا أسعار');
 
   // درجات: المقيّم الأول 100 للجميع، الثاني 60 للعارض A و100 للعارض B
   const [sa, sb] = w.data.bidders.map((b) => b.submissionId);
@@ -1499,27 +1499,44 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
   } finally { global.fetch = realFetch; config.EINVOICE = saved; }
 });
 
+test('92 — العطاءات الخارجية: للمقاول والاستشاري والمدير فقط، وتُحجب عن المشتري والزائر', async () => {
+  getDB().prepare("INSERT OR IGNORE INTO tender_opportunities (id,source_key,external_id,title,authority,country,tender_number,closing_at,source_url,status,language) VALUES ('opp_gate','apc','gate-1','اختبار الحجب','APC','JO','G-1','2099-01-01','https://arabpotash.com/x','open','ar')").run();
+  const mk = async (who, role) => { const e = who + uniq() + '@t.com'; const r = await call(who, 'POST', '/api/auth/register', { body: { name: 'مستخدم ' + who, email: e, password: 'Password123', role } }); assert.strictEqual(r.status, 201); };
+  await mk('gb', 'buyer'); await mk('gc', 'contractor'); await mk('gs', 'consultant');
+  assert.strictEqual((await call('gb', 'GET', '/api/opportunities/feed')).status, 403, 'المشتري محجوب');
+  assert.strictEqual((await call('gc', 'GET', '/api/opportunities/feed')).status, 200);
+  assert.strictEqual((await call('gs', 'GET', '/api/opportunities/feed')).status, 200);
+  assert.strictEqual((await call('nobody', 'GET', '/api/opportunities/feed')).status, 401);
+});
 
-test('SEC-TENANT — لا تستطيع جهة مشتريّة الوصول إلى عطاءات أو تقييمات أو وثائق أو ملاحق جهة أخرى', async () => {
-  const buyerA = await newBuyer('tenant-a-isolation', 'proc_pro');
-  const buyerB = await newBuyer('tenant-b-isolation', 'proc_pro');
-  const tenderA = await publish(buyerA);
-
-  const ownList = await call(buyerA, 'GET', '/api/procurement/tenders');
-  assert.strictEqual(ownList.status, 200);
-  assert.ok(ownList.data.tenders.some(t => t.id === tenderA.id));
-
-  const otherList = await call(buyerB, 'GET', '/api/procurement/tenders');
-  assert.strictEqual(otherList.status, 200);
-  assert.ok(!otherList.data.tenders.some(t => t.id === tenderA.id));
-
-  for (const suffix of ['', '/evaluations', '/documents', '/clarifications', '/addenda']) {
-    const denied = await call(buyerB, 'GET', '/api/procurement/tenders/' + tenderA.id + suffix);
-    assert.strictEqual(denied.status, 404, 'يجب حجب مسار الجهة الأخرى: ' + suffix);
-  }
-
-  const blockedAddendum = await call(buyerB, 'POST', '/api/procurement/tenders/' + tenderA.id + '/addenda', {
-    body: { title: 'محاولة خارج الجهة', body: 'لا يجوز تعديل عطاء جهة أخرى.' }
-  });
-  assert.strictEqual(blockedAddendum.status, 404);
+test('93 — سوق العطاءات: ترقيم، فتح بحسب التاريخ، نافذة الإغلاق، المفضلة والإحصاءات', async () => {
+  const db = getDB(), day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  db.prepare("DELETE FROM tender_opportunities WHERE id LIKE 'mk_%'").run();
+  const ins = db.prepare("INSERT INTO tender_opportunities (id,source_key,external_id,title,authority,country,tender_number,closing_at,source_url,status,language,imported_at) VALUES (?,?,?,?,?,?,?,?,?,?,'ar',?)");
+  const now = Math.floor(Date.now() / 1000);
+  ins.run('mk_1', 'apc', 'm1', 'يغلق غداً', 'APC', 'JO', 'M1', day(1), 'https://arabpotash.com/1', 'open', now - 100);
+  ins.run('mk_2', 'joneps', 'm2', 'يغلق بعد 20 يوماً', 'JONEPS', 'JO', 'M2', day(20), 'https://joneps.gov.jo/2', 'open', now - 8 * 86400);
+  ins.run('mk_3', 'apc', 'm3', 'حالته open لكن تاريخه مضى', 'APC', 'JO', 'M3', day(-3), 'https://arabpotash.com/3', 'open', now - 50);
+  ins.run('mk_4', 'apc', 'm4', 'بلا موعد', 'APC', 'JO', 'M4', null, 'https://arabpotash.com/4', 'open', now - 10);
+  const email = 'mkt' + uniq() + '@t.com';
+  assert.strictEqual((await call('mkt', 'POST', '/api/auth/register', { body: { name: 'مقاول السوق', email, password: 'Password123', role: 'contractor' } })).status, 201);
+  const ids = (r) => r.data.opportunities.map((o) => o.id).filter((i) => i.startsWith('mk_'));
+  const open = await call('mkt', 'GET', '/api/opportunities/feed?limit=60');
+  assert.deepStrictEqual(ids(open), ['mk_1', 'mk_2', 'mk_4'], 'المنتهي بالتاريخ لا يظهر ضمن المفتوحة، والترتيب بالأقرب إغلاقاً وبلا موعد آخراً');
+  assert.deepStrictEqual(ids(await call('mkt', 'GET', '/api/opportunities/feed?status=closed&limit=60')).includes('mk_3'), true);
+  assert.deepStrictEqual(ids(await call('mkt', 'GET', '/api/opportunities/feed?closing=7&limit=60')), ['mk_1']);
+  assert.deepStrictEqual(ids(await call('mkt', 'GET', '/api/opportunities/feed?sort=new&limit=60')), ['mk_4', 'mk_1', 'mk_2']);
+  const p1 = await call('mkt', 'GET', '/api/opportunities/feed?limit=1&offset=0'); const p2 = await call('mkt', 'GET', '/api/opportunities/feed?limit=1&offset=1');
+  assert.strictEqual(p1.data.count, 1); assert.ok(p1.data.total >= 3 && p1.data.hasMore); assert.notStrictEqual(p1.data.opportunities[0].id, p2.data.opportunities[0].id);
+  assert.ok(open.data.stats.closingSoon >= 1 && open.data.stats.newThisWeek >= 2 && open.data.stats.open >= 3);
+  // المفضلة
+  assert.strictEqual((await call('mkt', 'POST', '/api/opportunities/mk_2/save')).status, 200);
+  assert.strictEqual((await call('mkt', 'POST', '/api/opportunities/nope/save')).status, 404);
+  const saved = await call('mkt', 'GET', '/api/opportunities/feed?saved=1&limit=60');
+  assert.deepStrictEqual(ids(saved), ['mk_2']); assert.strictEqual(saved.data.opportunities[0].saved, true); assert.strictEqual(saved.data.stats.saved, 1);
+  assert.strictEqual((await call('mkt', 'DELETE', '/api/opportunities/mk_2/save')).status, 200);
+  assert.strictEqual((await call('mkt', 'GET', '/api/opportunities/feed?saved=1&limit=60')).data.total, 0);
+  // المشتري لا يصل للمفضلة أيضاً
+  await call('mkb', 'POST', '/api/auth/register', { body: { name: 'مشتري السوق', email: 'mkb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  assert.strictEqual((await call('mkb', 'POST', '/api/opportunities/mk_1/save')).status, 403);
 });

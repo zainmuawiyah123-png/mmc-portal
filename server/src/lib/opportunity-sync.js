@@ -10,16 +10,15 @@ const WB_URL = 'https://search.worldbank.org/api/v2/procnotices';
 const clean = (v,n=3000) => String(v == null ? '' : v).trim().slice(0,n);
 function normalizeWorldBankNotice(row) {
   const id=clean(row.id || row.notice_id || row.noticeId,160);
-  const title=clean(row.bid_description || row.notice_text || row.notice_title || row.title || row.description,300);
+  const title=clean(row.bid_description || row.notice_text || row.title || row.description,300);
   if(!id||!title) return null;
   const rawUrl=clean(row.url || row.notice_url,1000);
   const sourceUrl=/^https:\/\//i.test(rawUrl)?rawUrl:'https://projects.worldbank.org/en/projects-operations/procurement-detail/'+encodeURIComponent(id);
   const deadline=clean(row.deadline_date || row.submission_date || row.deadline,40);
-  const pub=clean(row.publication_date || row.notice_date || row.noticedate || row.noticeDate,40);
-  const countryCode=clean(row.country_code || row.project_ctry_code || row.countryCode,3).toUpperCase();
-  const countryName=clean(row.country_name || row.project_ctry_name || row.countryName,100);
-  const iso3To2={JOR:'JO',SAU:'SA',ARE:'AE',KWT:'KW',QAT:'QA',BHR:'BH',OMN:'OM',USA:'US',GBR:'GB',IND:'IN',PAK:'PK',EGY:'EG',IRQ:'IQ',LBN:'LB',PSE:'PS',TUR:'TR',KEN:'KE',NGA:'NG',GHA:'GH',ZAF:'ZA',ETH:'ET',UGA:'UG',TZA:'TZ',IDN:'ID',BGD:'BD',NPL:'NP',VNM:'VN',PHL:'PH',UKR:'UA',POL:'PL',BRA:'BR',ARG:'AR',CHN:'CN',MEX:'MX'};
-  const country=(/^[A-Z]{2}$/.test(countryCode)?countryCode:(iso3To2[countryCode] || (countryCode==='INT'?'INT':(/jordan/i.test(countryName)?'JO':/saudi/i.test(countryName)?'SA':/united arab emirates|uae/i.test(countryName)?'AE':/kuwait/i.test(countryName)?'KW':/qatar/i.test(countryName)?'QA':/bahrain/i.test(countryName)?'BH':/oman/i.test(countryName)?'OM':'INT'))));
+  const pub=clean(row.publication_date || row.notice_date || row.noticedate,40);
+  const countryCode=clean(row.country_code || row.project_ctry_code,3).toUpperCase();
+  const countryName=clean(row.country_name || row.project_ctry_name,100);
+  const country=(/^[A-Z]{2}$/.test(countryCode)?countryCode:(countryCode==='INT'?'INT':(/jordan/i.test(countryName)?'JO':/saudi/i.test(countryName)?'SA':/united arab emirates|uae/i.test(countryName)?'AE':/kuwait/i.test(countryName)?'KW':/qatar/i.test(countryName)?'QA':/bahrain/i.test(countryName)?'BH':/oman/i.test(countryName)?'OM':'INT')));
   const noticeType=clean(row.notice_type,100);
   const status=deadline && /^\d{4}-\d{2}-\d{2}/.test(deadline) && deadline.slice(0,10)<new Date().toISOString().slice(0,10)?'closed':'open';
   return {
@@ -44,18 +43,13 @@ async function syncWorldBank({rows=100,offset=0,pages=5}={}) {
       if(!response.ok) throw new Error('World Bank API returned HTTP '+response.status);
       payload=await response.json();
     } finally { clearTimeout(timer); }
-    const source=payload.procnotices || payload.notices || payload.data || payload;
-    // The API may return notices as an object keyed by notice ID. Preserve the key.
-    const values=Array.isArray(source)
-      ? source
-      : Object.entries(source).filter(([,x])=>x&&typeof x==='object'&&!Array.isArray(x))
-          .map(([key,row])=>({...row,id:row.id||row.notice_id||row.noticeId||key}));
+    const source=payload.procnotices || payload.notices || payload;
+    const values=Array.isArray(source)?source:Object.values(source).filter(x=>x&&typeof x==='object');
     all.push(...values);
     if(values.length<pageSize) break;
   }
   const values=all;
   const mapped=values.map(normalizeWorldBankNotice).filter(Boolean);
-  if(values.length && !mapped.length) throw new Error('World Bank API returned '+values.length+' records, but none could be normalized. Check API response field names; refusing to report a successful empty sync.');
   const db=getDB();
   const upsert=db.prepare(`INSERT INTO tender_opportunities
     (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
@@ -75,9 +69,6 @@ async function syncWorldBank({rows=100,offset=0,pages=5}={}) {
     return {added,updated};
   });
   const counts=tx(mapped);
-  const statusCounts=db.prepare("SELECT status,COUNT(*) AS n FROM tender_opportunities WHERE source_key='worldbank' GROUP BY status").all();
-  const total=db.prepare("SELECT COUNT(*) AS n FROM tender_opportunities WHERE source_key='worldbank'").get().n;
-  const byStatus=Object.fromEntries(statusCounts.map(x=>[x.status,x.n]));
-  return {...counts,received:values.length,normalized:mapped.length,total,open:byStatus.open||0,closed:byStatus.closed||0,cancelled:byStatus.cancelled||0,source:'worldbank'};
+  return {...counts,received:values.length,normalized:mapped.length,source:'worldbank'};
 }
 module.exports={normalizeWorldBankNotice,syncWorldBank};

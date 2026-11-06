@@ -101,103 +101,63 @@ async function runOpportunitySyncJob() {
   const runSource=async(name,fn)=>{
     const sourceStarted=Date.now();
     try { results[name]={ok:true,...await fn()}; }
-    catch(err) { results[name]={ok:false,partial:!!err.partial,sourceResults:err.results||undefined,added:err.added||0,updated:err.updated||0,received:err.received||0,error:(err.message||String(err)).slice(0,300)}; }
+    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
   };
-  await runSource('jordan_official_sources',async()=>{
-    const results=await require('./jordan-public-sources-sync').syncJordanPublicSources();
-    const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
-    const added=Object.values(results).reduce((n,v)=>n+(v.added||0),0);
-    const updated=Object.values(results).reduce((n,v)=>n+(v.updated||0),0);
-    const received=Object.values(results).reduce((n,v)=>n+(v.received||0),0);
-    if(failed.length) throw Object.assign(new Error('تعذر تحديث بعض المصادر الأردنية: '+failed.join(', ')),{results,added,updated,received,partial:true});
-    return {added,updated,received,sourceResults:results};
-  });
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('apc',()=>require('./apc-sync').syncAPC());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
   const ms=Date.now()-started;
-  // A source skipped because credentials are not configured is not a connector failure.
-  const failed=Object.entries(results).filter(([,v])=>!v.ok&&!v.skipped).map(([k])=>k);
+  const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
   const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
   record({at:new Date().toISOString(),job:'opportunity-sync',ok:failed.length===0,ms,message:summary});
   return {ok:failed.length===0,partial:failed.length>0,failed,results,ms};
 }
 
 function startScheduler() {
-  // The World Bank feed has its own switch so it can run without enabling
-  // unrelated backup/subscription jobs.
-  if (!config.SCHEDULER_ENABLED && !config.OPPORTUNITY_SYNC_ENABLED) {
-    console.log('[scheduler] معطّل (لا توجد مهام مجدولة مفعّلة)');
+  if (!config.SCHEDULER_ENABLED) {
+    console.log('[scheduler] معطّل (SCHEDULER_ENABLED=false)');
     return { enabled: false, jobs: [] };
   }
-  if ((config.SCHEDULER_ENABLED &&
-       (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON))) ||
+  if (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON) ||
       (config.OPPORTUNITY_SYNC_ENABLED && !cron.validate(config.OPPORTUNITY_SYNC_CRON))) {
     console.error('[scheduler] تعبير cron غير صالح — لم تُجدول المهام');
     return { enabled: false, jobs: [], error: 'invalid cron' };
   }
-
-  const jobs = [];
-  if (config.SCHEDULER_ENABLED) {
-    const backupJob = cron.schedule(config.BACKUP_CRON, () => {
-      console.log('[scheduler] بدء النسخة الاحتياطية المجدولة...');
-      runBackupJob().catch((e) => console.error('[scheduler] خطأ النسخ:', e.message));
-    }, { timezone: config.BACKUP_TZ, name: 'db-backup' });
-    const expiryJob = cron.schedule(config.SUBSCRIPTION_EXPIRY_CRON, () => {
-      console.log('[scheduler] فحص الاشتراكات المنتهية...');
-      runSubscriptionExpiryJob();
-    }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
-    _jobs.push(backupJob, expiryJob);
-    jobs.push('db-backup', 'subscription-expiry');
-
-    if (require('./jofotara').enabled()) {
-      _jobs.push(cron.schedule('*/15 * * * *', () => {
-        require('./jofotara').processPending().catch((e) => console.error('[scheduler] الفوترة الوطنية:', e.message));
-      }, { timezone: config.BACKUP_TZ, name: 'jofotara-retry' }));
-    }
-    if (require('./mailer').enabled()) {
-      _jobs.push(cron.schedule('*/10 * * * *', () => {
-        require('./mailer').flush().catch((e) => console.error('[scheduler] البريد:', e.message));
-      }, { timezone: config.BACKUP_TZ, name: 'mail-outbox' }));
-    }
-    console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
-    console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
+  const backupJob = cron.schedule(config.BACKUP_CRON, () => {
+    console.log('[scheduler] بدء النسخة الاحتياطية المجدولة...');
+    runBackupJob().catch((e) => console.error('[scheduler] خطأ النسخ:', e.message));
+  }, { timezone: config.BACKUP_TZ, name: 'db-backup' });
+  const expiryJob = cron.schedule(config.SUBSCRIPTION_EXPIRY_CRON, () => {
+    console.log('[scheduler] فحص الاشتراكات المنتهية...');
+    runSubscriptionExpiryJob();
+  }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
+  _jobs.push(backupJob, expiryJob);
+  if (require('./jofotara').enabled()) {
+    _jobs.push(cron.schedule('*/15 * * * *', () => { require('./jofotara').processPending().catch((e) => console.error('[scheduler] الفوترة الوطنية:', e.message)); }, { timezone: config.BACKUP_TZ, name: 'jofotara-retry' }));
+    const miss = require('./jofotara').missingConfig();
+    console.log('[scheduler] ✓ إرسال الفوترة الوطنية مفعّل' + (miss.length ? ' — إعدادات ناقصة: ' + miss.join('، ') : ''));
   }
-
+  if (require('./mailer').enabled()) {
+    _jobs.push(cron.schedule('*/10 * * * *', () => { require('./mailer').flush().catch((e) => console.error('[scheduler] البريد:', e.message)); }, { timezone: config.BACKUP_TZ, name: 'mail-outbox' }));
+    console.log('[scheduler] ✓ إعادة إرسال البريد المعلّق كل 10 دقائق');
+  }
   if (config.OPPORTUNITY_SYNC_ENABLED) {
-    // Keep every supported public source in the same scheduled pipeline.
-    // This prevents a deployment from silently refreshing only World Bank
-    // while JONEPS and Arab Potash remain stale.
-    const opportunityJob = cron.schedule(config.OPPORTUNITY_SYNC_CRON, async () => {
-      console.log('[scheduler] بدء مزامنة جميع مصادر العطاءات...');
-      try {
-        const result = await runOpportunitySyncJob();
-        console.log('[scheduler] اكتملت مزامنة المصادر:', JSON.stringify(result.results));
-      } catch (err) {
-        console.error('[scheduler] فشلت دورة مزامنة مصادر العطاءات:', err.message || String(err));
-      }
-    }, { timezone: config.BACKUP_TZ, name: 'all-opportunity-sources-sync' });
+    const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
+      console.log('[scheduler] بدء مزامنة إعلانات البنك الدولي...');
+      runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
+    },{timezone:config.BACKUP_TZ,name:'opportunity-sync-worldbank'});
     _jobs.push(opportunityJob);
-    jobs.push('all-opportunity-sources-sync');
-
-    // Initial full import after boot, not just World Bank.
-    setTimeout(async () => {
-      console.log('[scheduler] بدء المزامنة الأولية لجميع مصادر العطاءات...');
-      try {
-        const result = await runOpportunitySyncJob();
-        console.log('[scheduler] نتيجة المزامنة الأولية لجميع المصادر:', JSON.stringify(result.results));
-      } catch (err) {
-        console.error('[scheduler] فشلت المزامنة الأولية لجميع المصادر:', err.message || String(err));
-      }
-    }, 20000).unref();
-    console.log('[scheduler] ✓ مزامنة جميع مصادر العطاءات مجدولة: "' + config.OPPORTUNITY_SYNC_CRON + '" (' + config.BACKUP_TZ + ')');
+    // أول مزامنة بعد الإقلاع بقليل حتى لا تبقى قائمة العطاءات فارغة حتى أول موعد مجدول
+    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),20000).unref();
+    console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }
-
-  console.log('[scheduler] ✓ المهام المفعّلة: ' + jobs.join(', '));
-  return { enabled: true, jobs,
+  console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
+  console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
+  return { enabled: true, jobs: config.OPPORTUNITY_SYNC_ENABLED ? ['db-backup', 'subscription-expiry', 'opportunity-sync'] : ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
+    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON,
     opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED,
     opportunitySyncCron: config.OPPORTUNITY_SYNC_CRON, tz: config.BACKUP_TZ };
 }

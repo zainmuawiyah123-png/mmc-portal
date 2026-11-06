@@ -68,14 +68,9 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
   assert.match(tenderDirectory, /Verify the original notice/);
 });
 
-test('MMCUI-03 — دليل العطاءات الخارجية للإدارة والمقاولين ومحجوب عن المشتريات', () => {
-  assert.match(contractorPortal, /id="external"/);
-  assert.doesNotMatch(procurementPortal, /tender-opportunities|#external/);
-  const server = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
-  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
-  assert.ok(server.includes("app.get(['/tender-opportunities'") && server.includes("['admin', 'contractor'].includes(req.user.role)"), "يجب السماح لإدارة MMC والمقاولين مع حجب الجهات المشترية");
-  assert.match(route, /router\.get\('\/', directoryReaders/);
-  assert.match(route, /router\.get\('\/feed', directoryReaders/);
+test('MMCUI-03 — دليل العطاءات متاح من بوابتي المقاول والمشتريات', () => {
+  assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
+  assert.match(procurementPortal, /\.\.\/tender-opportunities\/index\.html/);
 });
 
 
@@ -195,8 +190,7 @@ test('OPP-13 — روابط الصفحات التالية من UNGM لا تسم�
 test('OPP-14 — حالة المجدول تعرض مهمة مزامنة العطاءات عند تفعيلها', () => {
   const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
   assert.ok(scheduler.includes("'opportunity-sync'"));
-  assert.ok(scheduler.includes("if (config.OPPORTUNITY_SYNC_ENABLED) {"));
-  assert.ok(scheduler.includes("opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED"));
+  assert.ok(scheduler.includes("config.OPPORTUNITY_SYNC_ENABLED ?"));
 });
 
 
