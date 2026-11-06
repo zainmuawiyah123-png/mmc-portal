@@ -1382,7 +1382,7 @@ test('90 — لجنة التقييم: تقييم مستقل مجهول الهو�
   assert.strictEqual(w.status, 200);
   const raw = JSON.stringify(w.data);
   assert.deepStrictEqual(w.data.bidders.map((b) => b.label), ['A', 'B']);
-  assert.ok(!/cmtA|cmtB|financial|900|1100/.test(raw.replace(/submissionId":"[^"]*"/g, '')), 'لا أسماء ولا أسعار');
+  assert.ok(!/cmtA|cmtB|financial|900|1100/.test(raw.replace(/submissionId":"[^"]*"/g, '')), 'لا أسماء ولا أسعار — diagnostic: ' + raw);
 
   // درجات: المقيّم الأول 100 للجميع، الثاني 60 للعارض A و100 للعارض B
   const [sa, sb] = w.data.bidders.map((b) => b.submissionId);
