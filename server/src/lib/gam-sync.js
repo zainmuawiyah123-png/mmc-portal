@@ -1,23 +1,23 @@
 'use strict';
 /** Read-only importer for Greater Amman Municipality public tender announcements. */
 const LIST_URL='https://media.ammancity.gov.jo/AR/List/اعلانات_العطاءات', ORIGIN='https://media.ammancity.gov.jo';
-const clean=s=>String(s||'').replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#x([0-9a-f]+);/gi,(_,x)=>String.fromCodePoint(parseInt(x,16))).replace(/&#(\\d+);/g,(_,x)=>String.fromCodePoint(+x)).replace(/\\s+/g,' ').trim();
-function dateISO(v){const m=String(v||'').match(/(\\d{1,2})[\\/-](\\d{1,2})[\\/-](\\d{4})/);if(!m)return null;const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'):null;}
+const clean=s=>String(s||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#x([0-9a-f]+);/gi,(_,x)=>String.fromCodePoint(parseInt(x,16))).replace(/&#(\d+);/g,(_,x)=>String.fromCodePoint(+x)).replace(/\s+/g,' ').trim();
+function dateISO(v){const m=String(v||'').match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);if(!m)return null;const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'):null;}
 function extractDetailUrls(html){
  const urls=new Set([LIST_URL]);
- for(const m of String(html||'').matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>/gi)){
-  try{const u=new URL(m[1],LIST_URL);if(u.origin===ORIGIN&&/\\/AR\\/ListDetails\\//i.test(u.pathname))urls.add(u.toString());}catch(_){}
+ for(const m of String(html||'').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi)){
+  try{const u=new URL(m[1],LIST_URL);if(u.origin===ORIGIN&&/\/AR\/ListDetails\//i.test(u.pathname))urls.add(u.toString());}catch(_){}
  }
  return [...urls].filter(x=>x!==LIST_URL);
 }
 function parseGAMRows(html,today,detailUrl){
  const out=[],seen=new Set(),source=String(html||''),todayISO=today||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
- for(const tr of source.matchAll(/<tr\\b[\\s\\S]*?<\\/tr>/gi)){
-  const cells=[...tr[0].matchAll(/<t[dh]\\b[^>]*>([\\s\\S]*?)<\\/t[dh]>/gi)].map(m=>clean(m[1]));
+ for(const tr of source.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)){
+  const cells=[...tr[0].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m=>clean(m[1]));
   if(cells.length<4)continue;
-  const number=(cells.find(x=>/^\\d{1,4}\\s*\\/\\s*\\d{1,2}\\s*\\/\\s*202\\d$/.test(x))||cells.find(x=>/^\\d{1,4}\\s*\\/\\s*202\\d$/.test(x))||'').replace(/\\s+/g,'');
+  const number=(cells.find(x=>/^\d{1,4}\s*\/\s*\d{1,2}\s*\/\s*202\d$/.test(x))||cells.find(x=>/^\d{1,4}\s*\/\s*202\d$/.test(x))||'').replace(/\s+/g,'');
   if(!number)continue;
-  const title=cells.find(x=>x.length>12&&!/^\\d/.test(x)&&!/(?:دينار|مجانا|مجانا|%|كفالة|مؤهلات|آخر موعد)/.test(x))||cells[1]||'';
+  const title=cells.find(x=>x.length>12&&!/^\d/.test(x)&&!/(?:دينار|مجانا|مجانا|%|كفالة|مؤهلات|آخر موعد)/.test(x))||cells[1]||'';
   if(!title)continue;
   const dateCells=cells.map(dateISO).filter(Boolean);
   const closingAt=dateCells.length?dateCells[dateCells.length-1]:null;
