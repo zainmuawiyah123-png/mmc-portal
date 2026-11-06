@@ -146,6 +146,12 @@ async function runAndRecordSync(source,fn) {
  catch(err) { require('../lib/scheduler').persistOpportunitySync(source,started,{ok:false,error:err.message||String(err)}); throw err; }
 }
 
+router.post('/admin/sync/all', wrap(async(req,res)=>{
+ const result=await require('../lib/scheduler').runOpportunitySyncJob();
+ audit({action:'opportunity_source_sync_all',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{failed:result.failed,results:result.results}});
+ res.json(result);
+}));
+
 router.post('/admin/sync/worldbank', wrap(async(req,res)=>{
  const result=await runAndRecordSync('worldbank',()=>require('../lib/opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'worldbank',added:result.added,updated:result.updated,received:result.received}});
