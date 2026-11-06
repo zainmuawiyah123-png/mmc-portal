@@ -195,7 +195,8 @@ test('OPP-13 — روابط الصفحات التالية من UNGM لا تسم�
 test('OPP-14 — حالة المجدول تعرض مهمة مزامنة العطاءات عند تفعيلها', () => {
   const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
   assert.ok(scheduler.includes("'opportunity-sync'"));
-  assert.ok(scheduler.includes("config.OPPORTUNITY_SYNC_ENABLED ?"));
+  assert.ok(scheduler.includes("if (config.OPPORTUNITY_SYNC_ENABLED) {"));
+  assert.ok(scheduler.includes("opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED"));
 });
 
 
