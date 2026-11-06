@@ -145,3 +145,13 @@ test('Regional official tender source links include Bahrain and Iraq with correc
   assert.ok(page.includes('https://www.itp.iq/'));
   assert.match(page, /لن نستورد أو نعيد نشر بياناتها آلياً دون تصريح/);
 });
+
+test('Regional official procurement links include Qatar, Oman and UAE without claiming live sync', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const page = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html'), 'utf8');
+  assert.ok(page.includes('https://monaqasat.mof.gov.qa/TendersOnlineServices'));
+  assert.ok(page.includes('https://etendering.tenderboard.gov.om/'));
+  assert.ok(page.includes('https://mof.gov.ae/en/public-finance/government-procurement/digital-procurement-platform/'));
+  assert.match(page, /لم يُعتمد موصل آلي بعد/);
+});
