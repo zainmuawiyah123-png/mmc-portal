@@ -56,7 +56,7 @@ router.get('/feed', directoryReaders, wrap(async (req,res) => {
  res.json({opportunities:rows.map(shape),count:rows.length,
   openBySource:Object.fromEntries(counts.map(r=>[r.source_key,r.n])),
   openByCountry:Object.fromEntries(byCountry.map(r=>[r.country,r.n])),
-  connectedSources:['joneps','apc','worldbank','ungm'],
+  connectedSources:['joneps','apc','worldbank','ungm','jordan_official_sources'],
   lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
@@ -166,6 +166,19 @@ router.post('/admin/sync/all', wrap(async(req,res)=>{
  const result=await require('../lib/scheduler').runOpportunitySyncJob();
  audit({action:'opportunity_source_sync_all',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{failed:result.failed,results:result.results}});
  res.json(result);
+}));
+
+router.post('/admin/sync/jordan-official', wrap(async(req,res)=>{
+ const started=Date.now();
+ const results=await require('../lib/jordan-public-sources-sync').syncJordanPublicSources();
+ const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+ const added=Object.values(results).reduce((n,v)=>n+(v.added||0),0);
+ const updated=Object.values(results).reduce((n,v)=>n+(v.updated||0),0);
+ const received=Object.values(results).reduce((n,v)=>n+(v.received||0),0);
+ const summary={ok:failed.length===0,partial:failed.length>0,failed,results,added,updated,received};
+ require('../lib/scheduler').persistOpportunitySync('jordan_official_sources',started,summary);
+ audit({action:'opportunity_source_sync_jordan',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{failed,added,updated,received}});
+ res.json(summary);
 }));
 
 router.post('/admin/sync/worldbank', wrap(async(req,res)=>{
