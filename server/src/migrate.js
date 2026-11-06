@@ -99,15 +99,6 @@ CREATE TABLE IF NOT EXISTS tenders (
   financial_opened_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_tenders_user ON tenders(user_id, updated_at DESC);
-CREATE TABLE IF NOT EXISTS tender_invites (
-  id TEXT PRIMARY KEY,
-  tender_id TEXT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-  email TEXT NOT NULL COLLATE NOCASE,
-  status TEXT NOT NULL DEFAULT 'invited',
-  invited_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  UNIQUE(tender_id, email)
-);
-CREATE INDEX IF NOT EXISTS idx_tender_invites_email ON tender_invites(email, tender_id);
 
 -- ============ electronic procurement ============
 CREATE TABLE IF NOT EXISTS tender_requirements (
@@ -645,35 +636,11 @@ function upgradeTenderOpportunities(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_tender_opportunities_public
       ON tender_opportunities(status, country, closing_at);
-CREATE INDEX IF NOT EXISTS idx_tender_opportunities_source
+    CREATE INDEX IF NOT EXISTS idx_tender_opportunities_source
       ON tender_opportunities(source_key, imported_at DESC);
   `);
-  const cols = new Set(db.prepare('PRAGMA table_info(tender_opportunities)').all().map((c) => c.name));
-  if (!cols.has('source_type')) db.exec("ALTER TABLE tender_opportunities ADD COLUMN source_type TEXT NOT NULL DEFAULT 'official'");
-  if (!cols.has('trust_level')) db.exec("ALTER TABLE tender_opportunities ADD COLUMN trust_level TEXT NOT NULL DEFAULT 'verified'");
-  if (!cols.has('tags_json')) db.exec("ALTER TABLE tender_opportunities ADD COLUMN tags_json TEXT");
 }
 
-function upgradeContractorProfiles(db) {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS contractor_profiles (
-      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      sectors_json TEXT NOT NULL DEFAULT '[]',
-      countries_json TEXT NOT NULL DEFAULT '[]',
-      min_value REAL,
-      max_value REAL,
-      capabilities TEXT,
-      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
-    );
-  `);
-}
-
-function upgradeTenderWorkflow(db) {
-  const cols = new Set(db.prepare('PRAGMA table_info(tenders)').all().map((c) => c.name));
-  if (!cols.has('access_mode')) db.exec("ALTER TABLE tenders ADD COLUMN access_mode TEXT NOT NULL DEFAULT 'public'");
-  if (!cols.has('question_deadline')) db.exec('ALTER TABLE tenders ADD COLUMN question_deadline TEXT');
-  if (!cols.has('submission_policy')) db.exec("ALTER TABLE tenders ADD COLUMN submission_policy TEXT NOT NULL DEFAULT 'platform'");
-}
 
 function upgradeBidSubmissionDocuments(db) {
   const cols = new Set(db.prepare('PRAGMA table_info(bid_submissions)').all().map((c) => c.name));
@@ -696,6 +663,73 @@ function upgradeBidSubmissionDocuments(db) {
     CREATE INDEX IF NOT EXISTS idx_bid_docs_submission_class
       ON bid_submission_docs(submission_id, doc_class, uploaded_at);
   `);
+}
+
+
+/** طابور البريد + لجنة تقييم العروض (مقيّمون مستقلون، درجات منفصلة، اعتماد جماعي) */
+function upgradeCommitteeAndMail(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_outbox (
+      id TEXT PRIMARY KEY,
+      to_email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',   -- pending | sent | failed | skipped
+      attempts INTEGER NOT NULL DEFAULT 0,
+      error TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      sent_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_outbox_status ON email_outbox(status, created_at);
+    CREATE TABLE IF NOT EXISTS tender_evaluators (
+      tender_id TEXT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      member_role TEXT NOT NULL DEFAULT 'member',   -- chair | member | consultant
+      invited_by TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (tender_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_evaluators_user ON tender_evaluators(user_id);
+    CREATE TABLE IF NOT EXISTS evaluator_scores (
+      submission_id TEXT NOT NULL REFERENCES bid_submissions(id) ON DELETE CASCADE,
+      requirement_id TEXT NOT NULL,
+      evaluator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      score REAL NOT NULL,
+      note TEXT,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (submission_id, requirement_id, evaluator_id)
+    );
+    CREATE TABLE IF NOT EXISTS tender_committee (
+      tender_id TEXT PRIMARY KEY REFERENCES tenders(id) ON DELETE CASCADE,
+      finalized_at INTEGER,
+      finalized_by TEXT
+    );
+  `);
+}
+
+
+/** الفوترة الوطنية: سجل إرسال لكل فاتورة اشتراك + عدّاد ICV متسلسل بلا فجوات + الرقم الضريبي للمشتري */
+function upgradeEInvoice(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS einvoice_submissions (
+      invoice_id TEXT PRIMARY KEY REFERENCES invoices(id) ON DELETE CASCADE,
+      icv INTEGER NOT NULL UNIQUE,
+      uuid TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'pending',   -- pending | accepted | rejected | error
+      attempts INTEGER NOT NULL DEFAULT 0,
+      http_status INTEGER,
+      einv_number TEXT,
+      qr TEXT,
+      response TEXT,
+      error TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      submitted_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_einv_status ON einvoice_submissions(status, updated_at);
+  `);
+  const cols = new Set(db.prepare('PRAGMA table_info(invoices)').all().map((c) => c.name));
+  if (!cols.has('buyer_tax_number')) db.exec('ALTER TABLE invoices ADD COLUMN buyer_tax_number TEXT');
 }
 
 function migrate(dbPath = config.DB_PATH) {
@@ -723,12 +757,12 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
-  upgradeContractorProfiles(db);
-  upgradeTenderWorkflow(db);
   upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
   upgradeBidSubmissionDocuments(db);
+  upgradeCommitteeAndMail(db);
+  upgradeEInvoice(db);
 
   return db;
 }

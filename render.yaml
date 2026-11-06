@@ -25,6 +25,34 @@ services:
         sync: false
       - key: PAYMENT_CLIQ_ALIAS
         sync: false
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: ADMIN_NOTIFY_EMAIL
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      - key: JOFOTARA_ENABLED
+        sync: false
+      - key: JOFOTARA_URL
+        sync: false
+      - key: JOFOTARA_CLIENT_ID
+        sync: false
+      - key: JOFOTARA_SECRET_KEY
+        sync: false
+      - key: JOFOTARA_INCOME_SOURCE
+        sync: false
+      - key: EINVOICE_SELLER_TIN
+        sync: false
+      - key: EINVOICE_SELLER_NAME
+        sync: false
     disk:
       name: mmc-data
       mountPath: /data

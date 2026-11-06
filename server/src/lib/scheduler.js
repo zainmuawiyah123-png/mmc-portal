@@ -109,9 +109,6 @@ async function runOpportunitySyncJob() {
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
-  for (const source of ['etimad','uae_mof','iraq','jordan_private']) {
-    await runSource(source,()=>require('./regional-sync').syncRegionalSource(source));
-  }
   const ms=Date.now()-started;
   const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
   const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
@@ -138,6 +135,15 @@ function startScheduler() {
     runSubscriptionExpiryJob();
   }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
   _jobs.push(backupJob, expiryJob);
+  if (require('./jofotara').enabled()) {
+    _jobs.push(cron.schedule('*/15 * * * *', () => { require('./jofotara').processPending().catch((e) => console.error('[scheduler] الفوترة الوطنية:', e.message)); }, { timezone: config.BACKUP_TZ, name: 'jofotara-retry' }));
+    const miss = require('./jofotara').missingConfig();
+    console.log('[scheduler] ✓ إرسال الفوترة الوطنية مفعّل' + (miss.length ? ' — إعدادات ناقصة: ' + miss.join('، ') : ''));
+  }
+  if (require('./mailer').enabled()) {
+    _jobs.push(cron.schedule('*/10 * * * *', () => { require('./mailer').flush().catch((e) => console.error('[scheduler] البريد:', e.message)); }, { timezone: config.BACKUP_TZ, name: 'mail-outbox' }));
+    console.log('[scheduler] ✓ إعادة إرسال البريد المعلّق كل 10 دقائق');
+  }
   if (config.OPPORTUNITY_SYNC_ENABLED) {
     const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
       console.log('[scheduler] بدء مزامنة إعلانات البنك الدولي...');

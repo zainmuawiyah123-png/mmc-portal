@@ -17,26 +17,8 @@ const shape = r => ({
   id:r.id, title:r.title, authority:r.authority, country:r.country, sector:r.sector,
   tenderNumber:r.tender_number, summary:r.summary, publishedAt:r.published_at,
   closingAt:r.closing_at, sourceUrl:r.source_url, applicationUrl:r.application_url,
-  status:r.status, language:r.language, sourceKey:r.source_key, importedAt:r.imported_at,
-  sourceType:r.source_type || 'official', trustLevel:r.trust_level || 'verified',
-  tags:r.tags_json ? (()=>{try{return JSON.parse(r.tags_json)}catch(_){return []}})() : []
+  status:r.status, language:r.language, sourceKey:r.source_key, importedAt:r.imported_at
 });
-
-function profileFor(userId) {
- const r=getDB().prepare('SELECT * FROM contractor_profiles WHERE user_id=?').get(userId);
- if(!r) return null;
- const parse=v=>{try{return JSON.parse(v||'[]')}catch(_){return[]}};
- return {...r,sectors:parse(r.sectors_json),countries:parse(r.countries_json)};
-}
-function matchScore(row, profile) {
- if(!profile) return null;
- let score=0;
- if(profile.countries.includes(row.country)) score+=35;
- if(profile.sectors.length && row.sector && profile.sectors.some(x=>String(row.sector).toLowerCase().includes(String(x).toLowerCase()))) score+=35;
- if(profile.capabilities && row.summary && String(profile.capabilities).toLowerCase().split(/[,،]/).some(x=>x.trim() && String(row.summary).toLowerCase().includes(x.trim()))) score+=15;
- if(!profile.countries.length && !profile.sectors.length) score=50;
- return Math.min(100,score+15);
-}
 
 // Public directory: only published records; no account or internal tender fields.
 router.get('/', wrap(async (req,res) => {
@@ -61,17 +43,15 @@ router.get('/feed', A.requireAuth, wrap(async (req,res) => {
  if(['open','closed'].includes(state)){clauses.push('status=?');vals.push(state);}
  if(country){clauses.push('country=?');vals.push(country);}
  if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
- let rows=source==='platform'?[]:db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 300').all(...vals);
- const profile=profileFor(req.user.id);
- rows=rows.map(r=>({...r,match_score:matchScore(r,profile)})).sort((a,b)=>(b.match_score??-1)-(a.match_score??-1));
+ const rows=source==='platform'?[]:db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 300').all(...vals);
  const counts=db.prepare("SELECT source_key, COUNT(*) n FROM tender_opportunities WHERE status='open' GROUP BY source_key").all();
  const byCountry=db.prepare("SELECT country, COUNT(*) n FROM tender_opportunities WHERE status='open' GROUP BY country").all();
  const last=db.prepare("SELECT source_key, MAX(finished_at) t FROM opportunity_sync_runs WHERE status='success' GROUP BY source_key").all();
  res.setHeader('Cache-Control','private, max-age=30');
- res.json({opportunities:rows.map(r=>({...shape(r),matchScore:r.match_score})),count:rows.length,
+ res.json({opportunities:rows.map(shape),count:rows.length,
   openBySource:Object.fromEntries(counts.map(r=>[r.source_key,r.n])),
   openByCountry:Object.fromEntries(byCountry.map(r=>[r.country,r.n])),
-  connectedSources:['joneps','apc','worldbank','ungm','etimad','uae_mof','iraq','jordan_private'],
+  connectedSources:['joneps','apc','worldbank','ungm'],
   lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
@@ -189,11 +169,4 @@ router.post('/admin/sync/apc', wrap(async(req,res)=>{
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'apc',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
-for (const source of ['etimad','uae_mof','iraq','jordan_private']) {
- router.post('/admin/sync/'+source, wrap(async(req,res)=>{
-  const result=await runAndRecordSync(source,()=>require('../lib/regional-sync').syncRegionalSource(source));
-  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source,added:result.added,updated:result.updated,received:result.received,skipped:result.skipped||false}});
-  res.json({ok:true,...result});
- }));
-}
 module.exports=router;

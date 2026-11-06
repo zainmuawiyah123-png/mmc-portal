@@ -1,4 +1,5 @@
 'use strict';
+const Mail = require('../lib/mailer');
 /**
  * Billing / invoices and bank-transfer receipts.
  */
@@ -98,6 +99,8 @@ router.post('/invoices', auth, wrap(async (req, res) => {
   const currency = String(body.currency || 'USD').toUpperCase();
   const paymentMethod = ['bank_transfer', 'cliq'].includes(body.paymentMethod) ? body.paymentMethod : 'bank_transfer';
   if (!O.INVOICE_CURRENCIES.includes(currency)) throw E.validation('العملة غير مدعومة. المتاح: ' + O.INVOICE_CURRENCIES.join('، ') + ' (الدينار الكويتي بالدولار).');
+  const buyerTax = String(body.buyerTaxNumber || '').replace(/\D/g, '');
+  if (buyerTax && (buyerTax.length < 8 || buyerTax.length > 12)) throw E.validation('الرقم الضريبي للمشتري يجب أن يكون من 8 إلى 12 رقماً.');
   const db = getDB();
   const plan = db.prepare("SELECT * FROM plans WHERE key = ? AND key != 'free'").get(planKey);
   if (!plan) throw E.validation('اختر باقة مدفوعة صالحة.');
@@ -105,9 +108,9 @@ router.post('/invoices', auth, wrap(async (req, res) => {
   const usd = billingCycle === 'annual' ? plan.price_year : plan.price_month;
   const amount = O.convertUsd(usd, currency);
   const id = uid('inv_');
-  db.prepare(`INSERT INTO invoices (id,invoice_number,user_id,plan_key,billing_cycle,currency,amount,status,payment_method,due_at,notes)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(id, invoiceNumber(), req.user.id, planKey, billingCycle, currency, amount,
-    'pending', paymentMethod, Math.floor(Date.now() / 1000) + 7 * 86400, String(body.notes || '').slice(0, 1000) || null);
+  db.prepare(`INSERT INTO invoices (id,invoice_number,user_id,plan_key,billing_cycle,currency,amount,status,payment_method,due_at,notes,buyer_tax_number)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run(id, invoiceNumber(), req.user.id, planKey, billingCycle, currency, amount,
+    'pending', paymentMethod, Math.floor(Date.now() / 1000) + 7 * 86400, String(body.notes || '').slice(0, 1000) || null, buyerTax || null);
   res.status(201).json({ invoice: shapeInvoice(invoiceQuery('WHERE i.id=?', [id])[0]), message: 'تم إنشاء الفاتورة. ارفع إيصال التحويل لإكمال الطلب.' });
 }));
 router.get('/invoices', auth, wrap(async (req, res) => {
@@ -132,6 +135,7 @@ router.post('/invoices/:id/receipt', auth, receiptUpload.single('receipt'), wrap
     receipt_size=?, receipt_checksum_sha256=?, receipt_uploaded_at=unixepoch(), transfer_reference=?, transfer_date=?, status='pending', updated_at=unixepoch() WHERE id=?`)
     .run(key, store.DRIVER, S.displayName(req.file.originalname), req.file.mimetype, req.file.size, put.checksum, transferReference, transferDate, invoice.id);
   audit({ action: 'upload', entity: 'invoice_receipt', entityId: invoice.id, userId: req.user.id, driver: store.DRIVER, ip: req.ip, detail: { key, size: req.file.size, checksum: put.checksum } });
+  if (config.MAIL.adminNotify) Mail.notify(config.MAIL.adminNotify, 'إيصال دفع جديد بانتظار المراجعة / New payment receipt', 'رفع المستخدم ' + req.user.email + ' إيصال تحويل. المرجع: ' + transferReference + ' بتاريخ ' + transferDate + '. راجعه من لوحة الإدارة وطابقه مع كشف البنك.'); 
   res.status(201).json({ invoice: shapeInvoice(invoiceQuery('WHERE i.id=?', [invoice.id])[0]), message: 'تم رفع الإيصال وباتت الفاتورة بانتظار مراجعة الإدارة.' });
 }));
 
@@ -139,7 +143,21 @@ router.post('/invoices/:id/receipt', auth, receiptUpload.single('receipt'), wrap
 router.get('/admin/invoices', admin, wrap(async (req, res) => {
   const status = String(req.query.status || '').trim();
   const rows = invoiceQuery(status ? 'WHERE i.status=?' : '', status ? [status] : []);
-  res.json({ invoices: rows.map(shapeInvoice), count: rows.length });
+  const ei = new Map(getDB().prepare('SELECT invoice_id,status,error,einv_number,http_status FROM einvoice_submissions').all().map((r) => [r.invoice_id, r]));
+  res.json({ invoices: rows.map((r) => ({ ...shapeInvoice(r), einvoice: ei.get(r.id) ? { status: ei.get(r.id).status, number: ei.get(r.id).einv_number, error: ei.get(r.id).error } : null })), count: rows.length, einvoiceEnabled: require('../lib/jofotara').enabled() });
+}));
+router.post('/admin/invoices/:id/einvoice/retry', admin, wrap(async (req, res) => {
+  const J = require('../lib/jofotara');
+  if (!J.enabled()) throw E.conflict('الفوترة الوطنية غير مفعّلة (JOFOTARA_ENABLED).');
+  const row = getDB().prepare('SELECT status FROM invoices WHERE id=?').get(req.params.id);
+  if (!row || row.status !== 'paid') throw E.conflict('تُرسل الفاتورة بعد اعتماد الدفع فقط.');
+  const s = await J.retry(req.params.id);
+  res.json({ ok: !!s && s.status === 'accepted', einvoice: s ? { status: s.status, error: s.error, number: s.einv_number } : null });
+}));
+router.get('/admin/invoices/:id/einvoice-xml', admin, wrap(async (req, res) => {
+  const xml = require('../lib/jofotara').previewXml(req.params.id);
+  if (!xml) throw E.notFound('الفاتورة غير موجودة.');
+  res.type('application/xml').send(xml);
 }));
 router.get('/admin/invoices/:id/receipt', admin, wrap(async (req, res) => {
   const row = getDB().prepare('SELECT * FROM invoices WHERE id=?').get(req.params.id);
@@ -174,6 +192,7 @@ router.post('/admin/invoices/:id/reject', admin, wrap(async (req, res) => {
   const reason = String(req.body?.reason || 'لم تتم مطابقة التحويل.').slice(0, 1000);
   db.prepare("UPDATE invoices SET status='rejected', notes=?, updated_at=unixepoch() WHERE id=?").run(reason, row.id);
   audit({ action: 'billing_reject', entity: 'invoice', entityId: row.id, userId: req.user.id, ip: req.ip, detail: { reason } });
+  Mail.notifyUser(row.user_id, 'تعذّر اعتماد التحويل / Payment could not be confirmed', 'لم نتمكن من مطابقة تحويلك. السبب: ' + reason + '\nيمكنك رفع إيصال جديد من صفحة الفواتير.'); 
   res.json({ ok: true, message: 'تم رفض الفاتورة وإبلاغ سبب الرفض.' });
 }));
 router.post('/admin/invoices/:id/approve', admin, wrap(async (req, res) => {
@@ -194,6 +213,8 @@ router.post('/admin/invoices/:id/approve', admin, wrap(async (req, res) => {
   });
   tx();
   audit({ action: 'billing_approve', entity: 'invoice', entityId: row.id, userId: req.user.id, ip: req.ip, detail: { customerId: row.user_id, plan: row.plan_key, endsAt: ends } });
+  Mail.notifyUser(row.user_id, 'تم تفعيل باقتك / Your plan is active', 'تم اعتماد تحويلك وتفعيل الباقة حتى ' + new Date(ends * 1000).toISOString().slice(0, 10) + '.\nYour payment was confirmed and your plan is now active.'); 
+  require('../lib/jofotara').enqueue(row.id);
   res.json({ ok: true, planKey: row.plan_key, startsAt: now, endsAt: ends, message: 'تم اعتماد التحويل وتفعيل الباقة للمستخدم.' });
 }));
 
