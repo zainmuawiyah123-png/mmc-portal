@@ -44,13 +44,18 @@ async function syncWorldBank({rows=100,offset=0,pages=5}={}) {
       if(!response.ok) throw new Error('World Bank API returned HTTP '+response.status);
       payload=await response.json();
     } finally { clearTimeout(timer); }
-    const source=payload.procnotices || payload.notices || payload;
-    const values=Array.isArray(source)?source:Object.values(source).filter(x=>x&&typeof x==='object');
+    const source=payload.procnotices || payload.notices || payload.data || payload;
+    // The API may return notices as an object keyed by notice ID. Preserve the key.
+    const values=Array.isArray(source)
+      ? source
+      : Object.entries(source).filter(([,x])=>x&&typeof x==='object'&&!Array.isArray(x))
+          .map(([key,row])=>({...row,id:row.id||row.notice_id||row.noticeId||key}));
     all.push(...values);
     if(values.length<pageSize) break;
   }
   const values=all;
   const mapped=values.map(normalizeWorldBankNotice).filter(Boolean);
+  if(values.length && !mapped.length) throw new Error('World Bank API returned '+values.length+' records, but none could be normalized. Check API response field names; refusing to report a successful empty sync.');
   const db=getDB();
   const upsert=db.prepare(`INSERT INTO tender_opportunities
     (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
