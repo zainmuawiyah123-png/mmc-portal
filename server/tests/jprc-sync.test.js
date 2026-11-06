@@ -31,9 +31,9 @@ test('JPRC detail parser extracts public tender conditions and only same-host do
 });
 test('JPRC detail persistence stores verified detail and deduplicated public attachments',()=>{
  const db=getDB();
- db.prepare(\`INSERT INTO tender_opportunities
+ db.prepare(`INSERT INTO tender_opportunities
  (id,source_key,external_id,title,authority,country,tender_number,summary,source_url,status,language)
- VALUES (?,?,?,?,?,?,?,?,?,?,?)\`).run('jprc-test','jprc','12/2026','أعمال مدنية','مصفاة البترول','JO','12/2026','إعلان','https://jopetrol.com.jo/ar/TendersDetails/123','open','ar');
+ VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run('jprc-test','jprc','12/2026','أعمال مدنية','مصفاة البترول','JO','12/2026','إعلان','https://jopetrol.com.jo/ar/TendersDetails/123','open','ar');
  const detail={id:'12/2026',detail:{bidBond:'5%',qualification:'فئة أولى',docs:[
   {label:'BOQ',url:'https://jopetrol.com.jo/files/boq.pdf'},
   {label:'Duplicate',url:'https://jopetrol.com.jo/files/boq.pdf'}
