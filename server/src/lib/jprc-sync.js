@@ -104,3 +104,4 @@ async function syncJPRC(){
  return {...counts,...detailStats,received:rows.length,normalized:rows.length,failed:failures,source:'jprc',sourceUrl:LIST_URL};
 }
 module.exports={parseJprcRows,parseJprcDetail,fetchJprcDetail,persistJprcDetails,syncJPRC,LIST_URL};
+// Public-source connector regression coverage is in tests/jprc-sync.test.js.
