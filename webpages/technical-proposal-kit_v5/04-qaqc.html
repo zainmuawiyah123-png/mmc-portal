@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TP-04 · خطة ضبط الجودة QA/QC</title>
+<link rel="stylesheet" href="assets/kit.css">
+
+<style>
+  .topbar .switch{display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;flex:0 0 auto}
+  .topbar .switch a,.topbar .switch span{font-size:11px;font-weight:800;padding:5px 9px;letter-spacing:.4px;
+    color:#9fb0c2;text-decoration:none;line-height:1.4}
+  .topbar .switch a:hover{background:#1d3a58;color:#fff}
+  .topbar .switch .on{background:#b45309;color:#fff}
+</style>
+</head>
+<body data-doc="tp04">
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> حزمة العروض الفنية</div>
+  <span class="code">FORM TP-04</span>
+  <div class="spacer"></div>
+  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="بوابة MMC — رفع المخططات وإنتاج العرض">🔓 بوابة MMC</a>
+  <a class="btn ghost" href="index-ar.html">الفهرس</a>
+  <button class="btn" data-print>🖨️ طباعة / PDF</button>
+  <button class="btn ghost" data-reset>مسح</button>
+  <div class="switch" role="group" aria-label="اللغة"><span class="on" aria-current="true">AR</span><a href="en/04-qaqc.html" title="English edition">EN</a></div>
+  </div>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">Form TP-04 · Quality Assurance &amp; Quality Control Plan</div>
+    <h1>خطة ضبط الجودة</h1>
+    <p class="sub">الهيكل التنظيمي للجودة · خطة الفحوصات والاختبارات ITP · نقاط الإيقاف · معالجة عدم المطابقة</p>
+    <div class="doc-meta">
+      <div><span>رقم الخطة</span><b>QAP-___</b></div>
+      <div><span>الإصدار</span><b>Rev. 0</b></div>
+      <div><span>مدير الجودة</span><b>—</b></div>
+      <div><span>المرجع</span><b>ISO 9001:2015</b></div>
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="num">1</span> سياسة الجودة وأهدافها</h2>
+  <div class="box teal">
+    <p style="margin:0"><strong>السياسة:</strong> نلتزم بتنفيذ الأعمال <em>صحيحة من المرة الأولى</em>، وفق المواصفات المعتمدة والمخططات التنفيذية، من خلال ضبط المواد قبل توريدها، وضبط التنفيذ قبل تغطيته، وتوثيق كل مرحلة بمحضر فحص موقَّع. لا يُعتبر أي عمل منجزاً إلا إذا اكتمل مستنده.</p>
+  </div>
+
+  <table class="t compact">
+    <thead><tr><th style="width:52%">هدف الجودة</th><th style="width:18%" class="c">المستهدف</th><th>طريقة القياس</th></tr></thead>
+    <tbody>
+      <tr><td>نسبة الأعمال المقبولة من أول فحص</td><td class="c"><input class="fi sm" placeholder="≥ 95%"></td><td>سجل محاضر الفحص</td></tr>
+      <tr><td>عدد حالات عدم المطابقة الحرجة (NCR)</td><td class="c"><input class="fi sm" placeholder="صفر"></td><td>سجل NCR الشهري</td></tr>
+      <tr><td>مدة إغلاق ملاحظات الإشراف</td><td class="c"><input class="fi sm" placeholder="≤ 7 أيام"></td><td>قائمة الملاحظات (Snag Log)</td></tr>
+      <tr><td>نسبة المواد الموردة بشهادات مطابقة</td><td class="c"><input class="fi sm" placeholder="100%"></td><td>سجل اعتماد المواد</td></tr>
+      <tr><td>نسبة اكتمال ملف التسليم قبل الاستلام</td><td class="c"><input class="fi sm" placeholder="100%"></td><td>قائمة تحقق التسليم</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sec"><span class="num">2</span> الهيكل التنظيمي للجودة ومسؤولياته</h2>
+
+  <div class="org">
+    <div class="node base">مدير المشروع<small>Project Manager — المسؤول الأول أمام المالك</small></div>
+    <div class="vline"></div>
+    <div class="node">مدير الجودة<small>QA/QC Manager — مستقل عن التنفيذ</small></div>
+    <div class="row">
+      <div class="col"><div class="node">مهندس ضبط جودة<small>QC Engineer — خرسانة وإنشاءات</small></div></div>
+      <div class="col"><div class="node">مهندس ضبط جودة<small>QC Engineer — تشطيبات ومعماري</small></div></div>
+      <div class="col"><div class="node">مهندس ضبط جودة<small>QC Engineer — كهروميكانيك</small></div></div>
+      <div class="col"><div class="node">فني مختبر<small>Lab Technician — أخذ العينات</small></div></div>
+      <div class="col"><div class="node">موثّق الجودة<small>Document Controller</small></div></div>
+    </div>
+  </div>
+
+  <p class="small"><strong>مبدأ الاستقلالية:</strong> مدير الجودة يتبع إدارياً لمدير المشروع لكنه يملك صلاحية <strong>إيقاف العمل</strong> (Stop Work Authority) عند رصد مخالفة جوهرية، ولا يجوز له الجمع بين مسؤولية الجودة ومسؤولية التنفيذ في نفس الوقت.</p>
+
+  <h2 class="sec"><span class="num">3</span> خطة الفحوصات والاختبارات (Inspection &amp; Test Plan — ITP)</h2>
+  <p class="small">الرموز: <strong>H</strong> = نقطة إيقاف (Hold Point، لا يُستكمل العمل قبل حضور الجهة) · <strong>W</strong> = نقطة إشعار (Witness، يُبلَّغ ويُتابع بدون إيقاف) · <strong>S</strong> = مراجعة سجلات (Surveillance) · <strong>R</strong> = تقرير فقط.</p>
+
+  <table class="t">
+    <thead>
+      <tr>
+        <th style="width:5%" class="c">م</th>
+        <th style="width:23%">النشاط / البند</th>
+        <th style="width:22%">الفحص أو الاختبار</th>
+        <th style="width:14%">المرجع/المعيار</th>
+        <th style="width:9%" class="c">النوع</th>
+        <th style="width:9%" class="c">التكرار</th>
+        <th>السجل</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="grp"><td colspan="7">أ) أعمال ترابية وأساسات</td></tr>
+      <tr><td class="c n">1</td><td>توقيع المحاور والنقاط</td><td>مطابقة المحاور للمخططات</td><td>المخطط الإنشائي</td><td class="c"><span class="chip no">H</span></td><td class="c">مرة</td><td>شهادة مساحية</td></tr>
+      <tr><td class="c n">2</td><td>الحفر والوصول لمنسوب التأسيس</td><td>فحص المناسيب وأبعاد الحفر</td><td>مخططات الأساسات</td><td class="c"><span class="chip no">H</span></td><td class="c">لكل قاعدة</td><td>محضر فحص</td></tr>
+      <tr><td class="c n">3</td><td>الإحلال والردم</td><td>اختبار الكثافة الحقلي (Field Density)</td><td>95% معدّل بروكتور</td><td class="c"><span class="chip warn">W</span></td><td class="c">كل طبقة 25 سم</td><td>تقرير مختبر</td></tr>
+      <tr class="grp"><td colspan="7">ب) أعمال الخرسانة والحديد</td></tr>
+      <tr><td class="c n">4</td><td>حديد التسليح — الاستلام</td><td>شهادة المنشأ + اختبار الشد والثني</td><td>B420 / B500 حسب المواصفة</td><td class="c"><span class="chip no">H</span></td><td class="c">كل إرسالية</td><td>شهادة + تقرير</td></tr>
+      <tr><td class="c n">5</td><td>الشدات والقوالب</td><td>الأبعاد، الاستواء، الدعامات، الفواصل</td><td>المخططات التنفيذية</td><td class="c"><span class="chip warn">W</span></td><td class="c">قبل كل صب</td><td>محضر فحص شدات</td></tr>
+      <tr><td class="c n">6</td><td>تسليح العنصر قبل الصب</td><td>الأقطار، العدد، التباعد، الغطاء الخرساني</td><td>جداول التسليح</td><td class="c"><span class="chip no">H</span></td><td class="c">قبل كل صب</td><td>محضر فحص تسليح</td></tr>
+      <tr><td class="c n">7</td><td>الخرسانة الطازجة</td><td>الهبوط (Slump) + درجة الحرارة</td><td>حسب المواصفة</td><td class="c"><span class="chip warn">W</span></td><td class="c">كل شاحنة</td><td>سجل صب</td></tr>
+      <tr><td class="c n">8</td><td>مقاومة الخرسانة</td><td>مكعبات 15×15×15 سم (7 و28 يوم)</td><td>≥ 30 N/mm² للـ C30</td><td class="c"><span class="chip no">H</span></td><td class="c">6 مكعبات/50 م³</td><td>تقرير مختبر</td></tr>
+      <tr><td class="c n">9</td><td>المعالجة (Curing)</td><td>الرش/التغطية والمدة</td><td>≥ 7 أيام</td><td class="c"><span class="chip info">S</span></td><td class="c">يومياً</td><td>سجل يومي</td></tr>
+      <tr class="grp"><td colspan="7">ج) أعمال معمارية وعزل</td></tr>
+      <tr><td class="c n">10</td><td>العزل المائي للأسطح والحمامات</td><td>اختبار الغمر 48 ساعة</td><td>لا يوجد تسرب</td><td class="c"><span class="chip no">H</span></td><td class="c">لكل منطقة</td><td>محضر اختبار غمر</td></tr>
+      <tr><td class="c n">11</td><td>البياض</td><td>الاستواء بالقدّة (2 م)، السماكة، التعشيش</td><td>±3 مم</td><td class="c"><span class="chip info">S</span></td><td class="c">لكل غرفة</td><td>محضر فحص</td></tr>
+      <tr><td class="c n">12</td><td>البلاط والأرضيات</td><td>الاستواء، الميول، الفراغات، اللون</td><td>لا فراغ تحت البلاطة</td><td class="c"><span class="chip info">S</span></td><td class="c">لكل دور</td><td>محضر فحص</td></tr>
+      <tr class="grp"><td colspan="7">د) أعمال كهروميكانيكية</td></tr>
+      <tr><td class="c n">13</td><td>مواسير الضغط (PPR/PEX)</td><td>اختبار ضغط 10 بار لمدة ساعة</td><td>لا هبوط في الضغط</td><td class="c"><span class="chip no">H</span></td><td class="c">لكل شبكة</td><td>محضر اختبار ضغط</td></tr>
+      <tr><td class="c n">14</td><td>شبكات الصرف</td><td>اختبار التسرب/الانسداد بالكرة</td><td>انسياب حر</td><td class="c"><span class="chip warn">W</span></td><td class="c">لكل خط رئيسي</td><td>محضر اختبار</td></tr>
+      <tr><td class="c n">15</td><td>الكابلات واللوحات</td><td>قياس مقاومة العزل (Megger) والاستمرارية</td><td>≥ 1 MΩ</td><td class="c"><span class="chip no">H</span></td><td class="c">لكل دائرة</td><td>سجل قياسات</td></tr>
+      <tr><td class="c n">16</td><td>التكييف والتهوية</td><td>اختبار التدفق، الضغط، ومستوى الصوت</td><td>حسب التصميم</td><td class="c"><span class="chip warn">W</span></td><td class="c">لكل نظام</td><td>تقرير تشغيل</td></tr>
+      <tr class="grp"><td colspan="7">هـ) التسليم</td></tr>
+      <tr><td class="c n">17</td><td>التشغيل التجريبي (Commissioning)</td><td>تشغيل جميع الأنظمة لمدة 72 ساعة متصلة</td><td>بدون أعطال</td><td class="c"><span class="chip no">H</span></td><td class="c">مرة</td><td>تقرير تشغيل</td></tr>
+      <tr><td class="c n">18</td><td>ملف التسليم</td><td>As-Built + O&amp;M + الضمانات + التدريب</td><td>مطابق للقائمة</td><td class="c"><span class="chip no">H</span></td><td class="c">مرة</td><td>محضر تسليم</td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2 class="sec"><span class="num">4</span> ضبط المواد والتوريد</h2>
+  <ol class="steps">
+    <li><b>طلب اعتماد المادة (Material Submittal)</b><p>يُقدَّم قبل التوريد بوقت كافٍ ويشمل: المواصفة، اسم المصنع، بلد المنشأ، شهادات المطابقة، كتالوج فني، وعينات عند الطلب. لا تُورَّد أي مادة قبل الاعتماد الكتابي.</p></li>
+    <li><b>الاستلام في الموقع (Receiving Inspection)</b><p>مطابقة الإرسالية لطلب الاعتماد: النوع، الدفعة (Batch)، تاريخ الإنتاج، سلامة التغليف. تُرفض الإرسالية غير المطابقة وتُعاد للمورد فوراً مع توثيق الرفض.</p></li>
+    <li><b>التخزين والحماية</b><p>تخزين الأسمنت على منصات خشبية بعيداً عن الرطوبة، الحديد على عوارض مرتفعة، البلاط في عبواته الأصلية، والمواد الكيميائية حسب بطاقة السلامة (SDS).</p></li>
+    <li><b>تتبّع الدفعات (Traceability)</b><p>يُسجَّل رقم دفعة الخرسانة والمورد في محضر الصب، ويربط بمكعبات الاختبار لضمان إمكانية التتبع عند أي إخلال لاحق.</p></li>
+  </ol>
+
+  <h2 class="sec"><span class="num">5</span> إجراءات عدم المطابقة (NCR) والتصحيحية</h2>
+  <table class="t compact">
+    <thead><tr><th style="width:16%">الخطوة</th><th style="width:44%">الإجراء</th><th style="width:14%">المسؤول</th><th>المدة</th></tr></thead>
+    <tbody>
+      <tr><td>1. الرصد</td><td>تسجيل الحالة في سجل NCR مع الموقع والصورة والمرجع الفني</td><td>مهندس الجودة</td><td>نفس اليوم</td></tr>
+      <tr><td>2. الاحتواء</td><td>إيقاف العمل في النطاق المتأثر ومنع تفاقم الحالة</td><td>مدير الجودة</td><td>فوري</td></tr>
+      <tr><td>3. التصنيف</td><td>حرج / رئيسي / ثانوي بحسب الأثر على السلامة والوظيفة والمتانة</td><td>مدير الجودة</td><td>يوم واحد</td></tr>
+      <tr><td>4. المعالجة</td><td>إعادة تنفيذ / إصلاح معتمد / قبول مشروط بموافقة الاستشاري</td><td>مدير المشروع</td><td>حسب التصنيف</td></tr>
+      <tr><td>5. السبب الجذري</td><td>تحليل 5-Why أو Ishikawa ومنع التكرار</td><td>فريق الجودة</td><td>3 أيام</td></tr>
+      <tr><td>6. الإغلاق</td><td>التحقق من فعالية المعالجة وتوقيع الإغلاق</td><td>مدير الجودة</td><td>7 أيام</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sec"><span class="num">6</span> ضبط الوثائق والسجلات</h2>
+  <div class="grid2">
+    <div class="box">
+      <h4>الوثائق الخاضعة للضبط</h4>
+      <ul>
+        <li>المخططات التنفيذية (Shop Drawings) وإصداراتها.</li>
+        <li>طلبات اعتماد المواد (Material Submittals).</li>
+        <li>محاضر الفحص والاختبار وسجلات الصب.</li>
+        <li>تقارير المختبر ومكعبات الاختبار.</li>
+        <li>سجل NCR والملاحظات (Snag Log).</li>
+        <li>طلبات الاستفسار (RFI) وردودها.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>قواعد الضبط</h4>
+      <ul>
+        <li>لكل وثيقة رقم فريد وتاريخ إصدار ورقم مراجعة.</li>
+        <li>الإصدار المعتمد فقط هو المرجع في الموقع (لا نسخ غير مختومة).</li>
+        <li>النسخ الملغاة تُسحب فوراً من الموقع وتُوسم «ملغاة».</li>
+        <li>تُحفظ السجلات ٥ سنوات على الأقل بعد الاستلام النهائي.</li>
+        <li>موثق وثائق مخصص — لا تُدار الوثائق بالتساهل عبر مجموعات المراسلة.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="num">7</span> التدقيق الداخلي والتقارير</h2>
+  <p>يُنفَّذ تدقيق جودة داخلي <strong>شهرياً</strong> على نشاطين على الأقل حسب خطة تدقيق سنوية، ويُصدر تقرير جودة شهري يتضمن: نسب القبول من أول فحص، حالات NCR المفتوحة والمغلقة، حالة ملف الاعتمادات، ومؤشرات الأداء مقابل الأهداف. ويُرفع التقرير للمالك وجهة الإشراف مع تقرير التقدم.</p>
+
+  <div class="sig-grid">
+    <div class="sig"><b><input class="fi" placeholder="اسم مدير الجودة"></b><span>مدير الجودة — QA/QC Manager</span></div>
+    <div class="sig"><b><input class="fi" placeholder="اسم مدير المشروع"></b><span>مدير المشروع — Project Manager</span></div>
+  </div>
+
+  <div class="print-foot">
+    <span>FORM TP-04 · خطة ضبط الجودة QA/QC</span>
+    <span>حزمة العروض الفنية للمقاولات — TP-KIT v1.0</span>
+  </div>
+</div>
+
+<script src="assets/kit.js"></script>
+
+<script>
+/* Portal prefill: ?p=<project>&a=<authority> */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var proj = q.get('p'), auth = q.get('a');
+  if (!proj && !auth) return;
+  var PROJ = /(project|المشروع|اسم المشروع|مشروع)/i;
+  var AUTH = /(authority|client|employer|owner|الجهة|صاحب العمل|المالك|الجهة صاحبة)/i;
+  function labelOf(el) {
+    var f = el.closest('.field, .fld, tr, div');
+    if (!f) return '';
+    var l = f.querySelector('label');
+    if (l) return l.textContent;
+    var td = el.closest('td');
+    if (td && td.previousElementSibling) return td.previousElementSibling.textContent;
+    return f.textContent.slice(0, 80);
+  }
+  function fill(re, val) {
+    if (!val) return false;
+    var nodes = document.querySelectorAll('input.fi, input[type="text"], textarea.fi');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].value) continue;
+      if (re.test(labelOf(nodes[i]))) { nodes[i].value = val; return true; }
+    }
+    return false;
+  }
+  function run() {
+    fill(PROJ, proj);
+    fill(AUTH, auth);
+    document.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+</body>
+</html>

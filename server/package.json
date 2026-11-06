@@ -1,0 +1,39 @@
+{
+  "name": "mmc-proposal-portal-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MMC Technical Proposal Kit — portal backend (Phase 1: auth, DB, tenders | Phase 2: S3 storage, backups)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "migrate": "node src/migrate.js",
+    "seed": "node src/seed.js",
+    "test": "node --test tests/api.test.js",
+    "test:s3": "node --test tests/s3.test.js",
+    "test:all": "node --test tests/api.test.js && node --test tests/s3.test.js && node --test tests/project-finance-ui.test.js && node --test tests/opportunities.test.js",
+    "backup": "node scripts/backup.js",
+    "expire-subscriptions": "node scripts/expire-subscriptions.js",
+    "restore": "node scripts/restore.js",
+    "migrate:cloud": "node scripts/migrate-to-cloud.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1154.0",
+    "@aws-sdk/s3-request-presigner": "^3.1154.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.5.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.6.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "s3rver": "^3.7.1"
+  }
+}
