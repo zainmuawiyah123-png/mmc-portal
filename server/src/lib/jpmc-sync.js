@@ -26,8 +26,12 @@ function parseJpmcRows(html, today) {
     const h=headings[i], title=clean(h[1]);
     if (!/(?:T\d{4}\s*\/\s*\d+|(?:طرح|إعلان|اعلان|تمديد)\s*(?:طرح\s*)?(?:العطاء|المزاودة)\s*رقم|العطاء\s*رقم)/i.test(title)) continue;
     const start=h.index, end=i+1<headings.length?headings[i+1].index:Math.min(source.length,start+5000);
-    const before=source.slice(Math.max(0,start-900),start), after=source.slice(h.index+h[0].length,end);
-    const context=clean(source.slice(Math.max(0,start-500),end));
+    const sectionStart=Math.max(0,source.lastIndexOf('<section',start));
+    const sectionClose=source.indexOf('</section>',start);
+    const cardStart=sectionClose>=0 && sectionClose<end?sectionStart:Math.max(0,start-900);
+    const cardEnd=sectionClose>=0 && sectionClose<end?sectionClose:end;
+    const before=source.slice(cardStart,start), after=source.slice(h.index+h[0].length,end);
+    const context=clean(source.slice(cardStart,cardEnd));
     const closingMatch=before.match(/تاريخ\s*(?:انتهاء|إغلاق)\s*العطاء\s*[:：]?\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})/i)
       || context.match(/تاريخ\s*(?:انتهاء|إغلاق)\s*العطاء\s*[:：]?\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})/i);
     const publishedMatch=before.match(/تاريخ\s*بدء\s*العطاء\s*[:：]?\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})/i)
