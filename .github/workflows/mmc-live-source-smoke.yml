@@ -7,6 +7,7 @@ on:
       - 'server/src/lib/joneps-sync.js'
       - 'server/src/lib/opportunity-sync.js'
       - 'server/src/lib/ungm-sync.js'
+      - 'server/src/lib/bahrain-sync.js'
       - '.github/workflows/mmc-live-source-smoke.yml'
   workflow_dispatch:
   schedule:
