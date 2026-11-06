@@ -1,0 +1,34 @@
+name: MMC procurement isolation and workflow tests
+on:
+  pull_request:
+    paths:
+      - 'server/src/routes/procurement.js'
+      - 'server/src/routes/opportunities.js'
+      - 'server/src/index.js'
+      - 'server/src/routes/project-finance.js'
+      - 'server/src/routes/requests.js'
+      - 'server/tests/**'
+      - 'server/package.json'
+      - 'server/package-lock.json'
+      - 'webpages/technical-proposal-kit_v5/procurement/**'
+      - 'webpages/technical-proposal-kit_v5/tender-opportunities/**'
+      - '.github/workflows/mmc-procurement-isolation.yml'
+permissions:
+  contents: read
+jobs:
+  procurement-and-portal-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - name: Run full server and portal regression suite
+        run: npm run test:all

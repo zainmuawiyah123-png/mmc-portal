@@ -1320,8 +1320,18 @@ test('79 — رمز الدعوة أحادي الاستخدام ولا يقبل �
   assert.strictEqual(members, 2, 'المدير والعضو الأول فقط');
 });
 
-test('80 — دليل العطاءات العام يرشح حسب الجهة وفترة الإغلاق ويعرض التفاصيل داخل MMC', async () => {
+test('80 — دليل العطاءات الخارجية متاح للمقاول فقط مع تفاصيل الإعلان داخل MMC', async () => {
   await makeAdmin('opportunity-admin');
+  const buyer = await newBuyer('external-directory-buyer', 'proc_pro');
+  const contractor = 'external-directory-contractor';
+  const registered = await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول الدليل', email: contractor + uniq() + '@t.com', password: 'Password123' } });
+  assert.strictEqual(registered.status, 201);
+  assert.strictEqual((await call('anon', 'GET', '/api/opportunities')).status, 401);
+  assert.strictEqual((await call(buyer, 'GET', '/api/opportunities')).status, 403);
+  assert.strictEqual((await call(buyer, 'GET', '/tender-opportunities/index.html')).status, 403);
+  assert.strictEqual((await call(buyer, 'GET', '/procurement/index.html')).status, 200);
+  assert.strictEqual((await call(contractor, 'GET', '/procurement/index.html')).status, 403);
+  assert.strictEqual((await call(contractor, 'GET', '/tender-opportunities/index.html')).status, 200);
   const db = getDB();
   const firstId = 'opp_' + uniq();
   const secondId = 'opp_' + uniq();
@@ -1335,18 +1345,18 @@ test('80 — دليل العطاءات العام يرشح حسب الجهة و�
   db.prepare('INSERT INTO tender_opportunity_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)')
     .run('doc_'+uniq(),firstId,'وثائق العطاء','https://www.arabpotash.com/files/test.pdf','public');
 
-  const filtered = await call('anon', 'GET', '/api/opportunities?authority=APC%20Test%20Authority&sector=%D8%A3%D8%B9%D9%85%D8%A7%D9%84%20%D9%85%D8%AF%D9%86%D9%8A%D8%A9&closingFrom=2026-12-01&closingTo=2026-12-31');
+  const filtered = await call(contractor, 'GET', '/api/opportunities?authority=APC%20Test%20Authority&sector=%D8%A3%D8%B9%D9%85%D8%A7%D9%84%20%D9%85%D8%AF%D9%86%D9%8A%D8%A9&closingFrom=2026-12-01&closingTo=2026-12-31');
   assert.strictEqual(filtered.status, 200, JSON.stringify(filtered.data));
   assert.strictEqual(filtered.data.count, 1);
   assert.strictEqual(filtered.data.opportunities[0].id, firstId);
 
-  const detail = await call('anon', 'GET', '/api/opportunities/detail/' + firstId);
+  const detail = await call(contractor, 'GET', '/api/opportunities/detail/' + firstId);
   assert.strictEqual(detail.status, 200, JSON.stringify(detail.data));
   assert.strictEqual(detail.data.details.documentFee, '25 JOD');
   assert.strictEqual(detail.data.details.bidBond, '5%');
   assert.strictEqual(detail.data.documents.length, 1);
 
-  const invalidRange = await call('anon', 'GET', '/api/opportunities?closingFrom=2026-12-31&closingTo=2026-12-01');
+  const invalidRange = await call(contractor, 'GET', '/api/opportunities?closingFrom=2026-12-31&closingTo=2026-12-01');
   assert.strictEqual(invalidRange.status, 400);
 });
 
@@ -1397,6 +1407,36 @@ test('82 — ملحق العطاء يصدره المشتريات ويظهر لل
   assert.strictEqual((await call(otherBuyer, 'POST', '/api/procurement/tenders/' + tender.id + '/addenda', { body: { title: 'ملحق', body: 'محاولة غير مصرح بها' } })).status, 404);
 });
 
+
+test('84 — عزل كامل بين الجهات المشترية في قائمة العطاءات والتفاصيل والتقييم والوثائق والملحقات', async () => {
+  const buyerA = await newBuyer('tenant-a', 'proc_pro');
+  const buyerB = await newBuyer('tenant-b', 'proc_pro');
+  const tenderA = await publish(buyerA);
+
+  const ownList = await call(buyerA, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(ownList.status, 200);
+  assert.ok(ownList.data.tenders.some(t => t.id === tenderA.id));
+
+  const otherList = await call(buyerB, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(otherList.status, 200);
+  assert.ok(!otherList.data.tenders.some(t => t.id === tenderA.id), 'لا تظهر عطاءات الجهة الأخرى في القائمة');
+
+  for (const suffix of [
+    '',
+    '/evaluations',
+    '/documents',
+    '/clarifications',
+    '/addenda'
+  ]) {
+    const denied = await call(buyerB, 'GET', '/api/procurement/tenders/' + tenderA.id + suffix);
+    assert.strictEqual(denied.status, 404, 'يجب حجب مسار الجهة الأخرى: ' + suffix);
+  }
+
+  const blockedAddendum = await call(buyerB, 'POST', '/api/procurement/tenders/' + tenderA.id + '/addenda', {
+    body: { title: 'محاولة خارج الجهة', body: 'لا يجوز تعديل عطاء جهة أخرى.' }
+  });
+  assert.strictEqual(blockedAddendum.status, 404);
+});
 
 test('83 — ملفات ملحق العطاء ترتبط بالملحق الصحيح وتتاح فقط لمن يحق له الاطلاع على العطاء', async () => {
   const buyer = await newBuyer('addendum-file-buyer', 'proc_pro');
@@ -1489,7 +1529,10 @@ test('84 — العطاء الخارجي يفتح مساحة تجهيز خاصة
   assert.strictEqual((await call('anon','GET','/api/opportunities/'+id+'/workspace')).status,401);
 });
 
-test('80A — دليل العطاءات يدعم التنقل بين صفحات النتائج دون فقدان العدد الإجمالي', async () => {
+test('80A — دليل المقاولين يدعم التنقل بين صفحات النتائج دون فقدان العدد الإجمالي', async () => {
+  const contractor = 'external-pagination-contractor';
+  const registered = await call(contractor, 'POST', '/api/auth/register', { body: { name: 'مقاول التصفح', email: contractor + uniq() + '@t.com', password: 'Password123' } });
+  assert.strictEqual(registered.status, 201);
   const db = getDB(), token = 'PaginationCheck' + uniq();
   const insert = db.prepare(`INSERT INTO tender_opportunities
     (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
@@ -1497,13 +1540,13 @@ test('80A — دليل العطاءات يدعم التنقل بين صفحات 
   for (let i = 1; i <= 5; i++) {
     insert.run('opp_' + uniq(),'pagination-test',token + '-' + i,token + ' tender ' + i,'Pagination Authority','INT','Works',token + '-' + i,'Pagination fixture','2099-12-' + String(i).padStart(2,'0'),'https://example.com/pagination/' + i,'open','en');
   }
-  const first = await call('anon','GET','/api/opportunities?q=' + token + '&page=1&pageSize=2');
+  const first = await call(contractor,'GET','/api/opportunities?q=' + token + '&page=1&pageSize=2');
   assert.strictEqual(first.status,200);
   assert.strictEqual(first.data.count,2);
   assert.strictEqual(first.data.total,5);
   assert.strictEqual(first.data.page,1);
   assert.strictEqual(first.data.pages,3);
-  const last = await call('anon','GET','/api/opportunities?q=' + token + '&page=3&pageSize=2');
+  const last = await call(contractor,'GET','/api/opportunities?q=' + token + '&page=3&pageSize=2');
   assert.strictEqual(last.status,200);
   assert.strictEqual(last.data.count,1);
   assert.strictEqual(last.data.total,5);
