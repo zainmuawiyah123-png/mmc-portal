@@ -39,6 +39,97 @@ function candidateBlocks(html){
  for(const m of String(html||'').matchAll(/<(?:article|li)\b[\s\S]*?<\/(?:article|li)>/gi))out.push(m[0]);
  return out;
 }
+function labeledValue(body, labels, stopLabels) {
+ const start='(?:'+labels.join('|')+')';
+ const stop=stopLabels&&stopLabels.length?'(?=\\s*(?:'+stopLabels.join('|')+')\\s*[:：]|$)':'
+ const blocks=candidateBlocks(html),items=[],seen=new Set();
+ const consume=(block,baseUrl)=>{
+  const plain=decode(block);if(plain.length<18||plain.length>12000)return;
+  const links=[...String(block).matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+  if(!links.length)return;
+  const relevant=source.key==='unicef_jo'?/(request for proposal|invitation to bid|tender|procurement|expression of interest|lrps|rfp)/i.test(plain):/(tender|مناقصة|عطاء|مزايدة|مناقصات|عطاءات|bid|rfp|ifb|rfq)/i.test(plain);
+  if(!relevant)return;
+  const number=(plain.match(/(?:tender\s*(?:no\.?|#)?|عطاء\s*(?:رقم)?|مناقصة\s*(?:رقم)?|LRPS\s*)[:#№\s-]*([A-Z0-9][A-Z0-9\/-]{2,})/i)||[])[1]||null;
+  const dateMatches=[...plain.matchAll(/(?:20\d{2}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]20\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[,]?\s+20\d{2})/gi)].map(m=>dateISO(m[0])).filter(Boolean);
+  const closingLabel=(plain.match(/(?:تاريخ الإغلاق|تاريخ الاغلاق|آخر موعد(?: لتقديم العروض)?|اخر موعد(?: لتقديم العروض)?|Closing Date|Submission Deadline|Deadline)\\s*[:：-]?\\s*([^|،;]{4,50})/i)||[])[1];\n  const closing=(closingLabel&&dateISO(closingLabel))||(dateMatches.length?dateMatches[dateMatches.length-1]:null);\n  const details=extractTenderDetails(plain,dateMatches,closing);
+  const titleLink=links.map(x=>decode(x[2])).find(x=>x.length>8&&!/read more|المزيد|التفاصيل|download|اقرأ المزيد/i.test(x));
+  const title=titleLink||plain.slice(0,220);
+  if(!title||title.length<8)return;
+  const link=links.map(x=>allowedUrl(x[1],baseUrl)).find(Boolean)||baseUrl;
+  const external=number||link;
+  if(seen.has(external))return;seen.add(external);
+  const published=dateMatches.length>1?dateMatches[0]:null;
+  items.push({id:source.key+':'+(number||BufferlessHash(link)),title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:plain.slice(0,2500),publishedAt:published,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\u0600-\u06FF]/.test(title)?'ar':'en'});
+ };
+ for(const block of blocks)consume(block,source.url);
+ if(!items.length){
+  const anchors=[...String(html||'').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+  for(const a of anchors){
+   const link=allowedUrl(a[1],source.url);if(!link||/[.](?:pdf|docx?|xlsx?|zip|rar|jpg|png)(?:$|[?#])/i.test(link))continue;
+   const label=decode(a[2]);if(/^(?:download|تحميل|مرفق|attachment)$/i.test(label))continue;
+   const at=a.index||0,context=decode(String(html||'').slice(Math.max(0,at-1800),Math.min(String(html||'').length,at+900)));
+   if(!/tender|عطاء|مناقصة|bid|procurement|LRPS|RFP/i.test(label+' '+context))continue;
+   const number=(context.match(/(?:tender\s*(?:no\.?|#)?|عطاء\s*(?:رقم)?|مناقصة\s*(?:رقم)?|LRPS\s*)[:#№\s-]*([A-Z0-9][A-Z0-9\/-]{2,})/i)||[])[1]||null;
+   const title=label.length>8&&!/read more|اقرأ المزيد|التفاصيل|details/i.test(label)?label:
+    ((context.match(/(?:اعلان|إعلان|طرح|عطاء|مناقصة|Tender)[^.!؟]{8,240}/i)||[])[0]||context.slice(-260));
+   const id=source.key+':'+(number||BufferlessHash(link));if(seen.has(id))continue;seen.add(id);
+   const dates=[...context.matchAll(/(?:20\d{2}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]20\d{2})/g)].map(m=>dateISO(m[0])).filter(Boolean);
+   const closing=dates.length?dates[dates.length-1]:null;
+   items.push({id,title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:context.slice(-2500),publishedAt:dates.length>1?dates[0]:null,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\u0600-\u06FF]/.test(title)?'ar':'en'});
+  }
+ }
+ return items;
+}
+function BufferlessHash(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0).toString(36);}
+async function fetchHtml(url){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
+ try{const r=await fetch(url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'},signal:controller.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.text();}
+ finally{clearTimeout(timer);}
+}
+async function syncOne(source){
+ const html=await fetchHtml(source.url),items=parseSource(html,source);
+ if(!items.length)throw new Error('Official page loaded but no tender records were confidently parsed; no database changes were made.');
+ const db=getDB(),upsert=db.prepare(`INSERT INTO tender_opportunities
+ (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language)
+ VALUES (@rowId,@sourceKey,@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language)
+ ON CONFLICT(source_key,external_id) DO UPDATE SET title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,tender_number=excluded.tender_number,summary=excluded.summary,published_at=COALESCE(excluded.published_at,tender_opportunities.published_at),closing_at=COALESCE(excluded.closing_at,tender_opportunities.closing_at),source_url=excluded.source_url,status=excluded.status,language=excluded.language,updated_at=unixepoch()`);
+ const tx=db.transaction(rows=>{let added=0,updated=0;for(const n of rows){const old=db.prepare('SELECT id FROM tender_opportunities WHERE source_key=? AND external_id=?').get(source.key,n.id);upsert.run({rowId:old?old.id:uid('opp_'),sourceKey:source.key,externalId:n.id,title:n.title,authority:n.authority,country:n.country,sector:n.sector,tenderNumber:n.tenderNumber,summary:n.summary,publishedAt:n.publishedAt,closingAt:n.closingAt,sourceUrl:n.sourceUrl,applicationUrl:n.applicationUrl,status:n.status,language:n.language,detailsJson:n.details?JSON.stringify(n.details):null});if(old)updated++;else added++;}return {added,updated};});
+ return {...tx(items),received:items.length,normalized:items.length,source:source.key,sourceUrl:source.url};
+}
+async function syncJordanPublicSources(){
+ const results={};
+ for(let i=0;i<SOURCES.length;i+=4){
+  const batch=await Promise.all(SOURCES.slice(i,i+4).map(async source=>{
+   try{return [source.key,{ok:true,...await syncOne(source)}];}
+   catch(e){return [source.key,{ok:false,error:(e.message||String(e)).slice(0,240)}];}
+  }));
+  for(const [key,result] of batch)results[key]=result;
+ }
+ return results;
+}
+module.exports={SOURCES,parseSource,extractTenderDetails,syncOne,syncJordanPublicSources};
+;
+ const re=new RegExp(start+'\\s*[:：-]?\\s*([\\s\\S]{1,240}?)\\s*'+stop,'i');
+ const m=String(body||'').match(re);
+ return m?m[1].replace(/[|•·]+$/,'').trim().slice(0,500):null;
+}
+function extractTenderDetails(plain, dateMatches, fallbackClosing) {
+ const published=labeledValue(plain,['تاريخ النشر','تاريخ الإعلان','تاريخ الاعلان','Publication Date','Published Date','Date Published'],['تاريخ الإغلاق','تاريخ الاغلاق','آخر موعد','اخر موعد','Closing Date','Deadline','كفالة','Bid Bond']);
+ const closing=labeledValue(plain,['تاريخ الإغلاق','تاريخ الاغلاق','آخر موعد لتقديم العروض','اخر موعد لتقديم العروض','آخر موعد','اخر موعد','Closing Date','Submission Deadline','Deadline'],['كفالة','كفالة دخول العطاء','Bid Bond','رسوم','ثمن النسخة','Copy Price','شروط التأهيل','Qualifications']);
+ const purchase=labeledValue(plain,['تاريخ شراء الوثائق','موعد شراء الوثائق','Purchase Date','Documents Purchase Date'],['تاريخ الإغلاق','تاريخ الاغلاق','Closing Date','كفالة','Bid Bond']);
+ const bond=labeledValue(plain,['كفالة دخول العطاء','كفالة العطاء','قيمة الكفالة','Bid Bond Value','Bid Bond','Tender Bond'],['رسوم','ثمن النسخة','Copy Price','شروط التأهيل','Qualifications','ملاحظات','Remarks']);
+ const copy=labeledValue(plain,['رسوم وثائق العطاء','ثمن نسخة العطاء','ثمن النسخة','رسوم النسخة','Copy Price','Document Fee'],['كفالة','Bid Bond','شروط التأهيل','Qualifications','ملاحظات','Remarks']);
+ const qualifications=labeledValue(plain,['شروط التأهيل','المؤهلات المطلوبة','Qualifications','Vendor Qualifications'],['ملاحظات','Remarks','كفالة','Bid Bond','رسوم','Copy Price']);
+ const remarks=labeledValue(plain,['ملاحظات الإعلان','ملاحظات','Remarks'],['وثائق العطاء','Tender Documents','تحميل','Download']);
+ const pubDate=published?dateISO(published):null, closeDate=closing?dateISO(closing):null;
+ return {
+  publicationDate:pubDate || (dateMatches.length>1?dateMatches[0]:null),
+  closingDate:closeDate || fallbackClosing || null,
+  purchaseDate:purchase?dateISO(purchase):null,
+  bidBond:bond, copyPrice:copy, qualifications, remarks,
+  source:'official-listing'
+ };
+}
 function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
  const blocks=candidateBlocks(html),items=[],seen=new Set();
  const consume=(block,baseUrl)=>{
