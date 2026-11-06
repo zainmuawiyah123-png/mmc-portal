@@ -58,7 +58,7 @@ async function syncGAM(){
  try{
   const html=await getPage(LIST_URL,ctl.signal),urls=extractDetailUrls(html),pages=[];
   for(const url of urls.slice(0,50)){try{pages.push({url,html:await getPage(url,ctl.signal)});}catch(err){console.warn('[GAM] detail page skipped:',err.message);}}
-  const rows=pages.flatMap(p=>parseGAMRows(p.html,undefined,p.url));
+  const parsed=pages.flatMap(p=>parseGAMRows(p.html,undefined,p.url));\n  const rows=[...new Map(parsed.map(row=>[row.id,row])).values()];
   if(!rows.length)throw new Error('GAM listing loaded but no recognizable tender table rows were found; no records changed.');
   const db=getDB();
   const up=db.prepare(\`INSERT INTO tender_opportunities
