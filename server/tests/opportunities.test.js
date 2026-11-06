@@ -136,3 +136,23 @@ test('JEPCO parser extracts tender number, specification and submission deadline
   assert.equal(row.status, 'open');
   assert.equal(row.country, 'JO');
 });
+
+const { parseGAMRows, extractDetailUrls, LIST_URL: GAM_LIST_URL } = require('../src/lib/gam-sync');
+test('Greater Amman Municipality parser extracts tender number, title and final submission date', () => {
+  const html = '<table><tr><th>رقم المناقصة</th><th>اسم المناقصة</th><th>كفالة</th><th>آخر موعد للبيع</th><th>آخر موعد للاستفسارات</th><th>آخر موعد لإيداع العروض</th></tr>'
+    + '<tr><td>74/1/2026</td><td>عطاء إعادة تأهيل أدراج متنوعة ضمن نطاق صحن عمان</td><td>13000 دينار</td><td>11/11/2026</td><td>17/11/2026</td><td>23/11/2026</td></tr></table>';
+  const rows = parseGAMRows(html, '2026-11-06', 'https://media.ammancity.gov.jo/AR/ListDetails/example');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].tenderNumber, '74/1/2026');
+  assert.match(rows[0].title, /إعادة تأهيل أدراج/);
+  assert.equal(rows[0].closingAt, '2026-11-23');
+  assert.equal(rows[0].status, 'open');
+  assert.equal(new URL(rows[0].sourceUrl).origin, 'https://media.ammancity.gov.jo');
+});
+test('Greater Amman Municipality detail discovery only accepts same-origin official detail links', () => {
+  const html = '<a href="/AR/ListDetails/x/1117/37">المزيد</a><a href="https://evil.example/AR/ListDetails/x">bad</a>';
+  const urls = extractDetailUrls(html);
+  assert.equal(urls.length, 1);
+  assert.equal(new URL(urls[0]).origin, 'https://media.ammancity.gov.jo');
+  assert.match(GAM_LIST_URL, /^https:\\/\\/media\\.ammancity\\.gov\\.jo\\//);
+});
