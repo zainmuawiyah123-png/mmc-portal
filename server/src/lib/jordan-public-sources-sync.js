@@ -63,8 +63,9 @@ function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
  if(!items.length){
   const anchors=[...String(html||'').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
   for(const a of anchors){
-   const link=allowedUrl(a[1],source.url);if(!link)continue;
-   const label=decode(a[2]),at=a.index||0,context=decode(String(html||'').slice(Math.max(0,at-1800),Math.min(String(html||'').length,at+900)));
+   const link=allowedUrl(a[1],source.url);if(!link||/\\.(?:pdf|docx?|xlsx?|zip|rar|jpg|png)(?:$|[?#])/i.test(link))continue;
+   const label=decode(a[2]);if(/^(?:download|تحميل|مرفق|attachment)$/i.test(label))continue;
+   const at=a.index||0,context=decode(String(html||'').slice(Math.max(0,at-1800),Math.min(String(html||'').length,at+900)));
    if(!/tender|عطاء|مناقصة|bid|procurement|LRPS|RFP/i.test(label+' '+context))continue;
    const number=(context.match(/(?:tender\s*(?:no\.?|#)?|عطاء\s*(?:رقم)?|مناقصة\s*(?:رقم)?|LRPS\s*)[:#№\s-]*([A-Z0-9][A-Z0-9\/-]{2,})/i)||[])[1]||null;
    const title=label.length>8&&!/read more|اقرأ المزيد|التفاصيل|details/i.test(label)?label:
