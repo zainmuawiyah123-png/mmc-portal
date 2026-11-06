@@ -19,7 +19,17 @@ const { hashPassword } = require('../src/lib/auth');
 
   migrate(config.DB_PATH);
   const db = getDB();
-  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) { console.log('[setup-admin] الحساب موجود مسبقاً — لم يُغيَّر شيء.'); return; }
+  const existing = db.prepare('SELECT id, role FROM users WHERE lower(trim(email)) = ?').get(email);
+  if (existing) {
+    if (existing.role !== 'admin') { console.warn('[setup-admin] البريد مرتبط بحساب غير إداري — لم يُجرَ أي تغيير.'); return; }
+    if (String(process.env.ADMIN_PASSWORD_RESET || '').trim().toLowerCase() !== 'true') {
+      console.log('[setup-admin] حساب المدير موجود؛ لم تتغير كلمة المرور. لإعادة ضبط مقصودة استخدم ADMIN_PASSWORD_RESET=true.');
+      return;
+    }
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(await hashPassword(password), existing.id);
+    console.log('[setup-admin] ✓ تم تحديث كلمة مرور المدير. احذف ADMIN_PASSWORD_RESET و ADMIN_PASSWORD من إعدادات البيئة الآن.');
+    return;
+  }
 
   const id = uid('usr_');
   db.prepare("INSERT INTO users (id, email, password_hash, name, company, role, plan_key) VALUES (?,?,?,?,?,'admin','free')")
