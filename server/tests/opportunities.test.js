@@ -53,6 +53,22 @@ test('World Bank normalizer maps Jordan and builds a safe official fallback URL'
   assert.match(row.sourceUrl, /WB%2F2026%2F001/);
 });
 
+test('World Bank normalizer maps ISO-3 country codes for all Arab countries', () => {
+  const samples = { SAU:'SA', ARE:'AE', IRQ:'IQ', KWT:'KW', QAT:'QA', BHR:'BH', OMN:'OM',
+    EGY:'EG', LBN:'LB', PSE:'PS', SYR:'SY', YEM:'YE', LBY:'LY', DZA:'DZ', MAR:'MA',
+    TUN:'TN', SDN:'SD', MRT:'MR', SOM:'SO', DJI:'DJ', COM:'KM' };
+  for (const [iso3, iso2] of Object.entries(samples)) {
+    const row = normalizeWorldBankNotice({id:'WB-'+iso3,title:'Public works notice',country_code:iso3});
+    assert.equal(row.country, iso2, iso3+' should map to '+iso2);
+  }
+});
+
+test('World Bank normalizer falls back to Arab country names when no ISO code is supplied', () => {
+  assert.equal(normalizeWorldBankNotice({id:'WB-IQ',title:'Road works',country_name:'Iraq'}).country,'IQ');
+  assert.equal(normalizeWorldBankNotice({id:'WB-QA',title:'Civil works',country_name:'Qatar'}).country,'QA');
+  assert.equal(normalizeWorldBankNotice({id:'WB-MA',title:'Water works',country_name:'Morocco'}).country,'MA');
+});
+
 test('World Bank normalizer ignores records without a stable id or title', () => {
   assert.equal(normalizeWorldBankNotice({ id: 'WB-2' }), null);
   assert.equal(normalizeWorldBankNotice({ title: 'No ID' }), null);
