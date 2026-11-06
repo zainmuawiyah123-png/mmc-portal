@@ -90,5 +90,5 @@ async function run(name, fn) {
   }
   const passed = results.filter(Boolean).length;
   console.log('LIVE_SOURCE_SMOKE_SUMMARY ' + JSON.stringify({ passed, checked: results.length, status: passed === results.length ? 'success' : 'partial_failure' }));
-  if (!passed) process.exitCode = 1;
+  if (results.some(ok => !ok)) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });
