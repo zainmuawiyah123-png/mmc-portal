@@ -1498,3 +1498,28 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
     assert.ok(/JOFOTARA_CLIENT_ID/.test(s3.error)); assert.strictEqual(sent.length, before);
   } finally { global.fetch = realFetch; config.EINVOICE = saved; }
 });
+
+
+test('SEC-TENANT — لا تستطيع جهة مشتريّة الوصول إلى عطاءات أو تقييمات أو وثائق أو ملاحق جهة أخرى', async () => {
+  const buyerA = await newBuyer('tenant-a-isolation', 'proc_pro');
+  const buyerB = await newBuyer('tenant-b-isolation', 'proc_pro');
+  const tenderA = await publish(buyerA);
+
+  const ownList = await call(buyerA, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(ownList.status, 200);
+  assert.ok(ownList.data.tenders.some(t => t.id === tenderA.id));
+
+  const otherList = await call(buyerB, 'GET', '/api/procurement/tenders');
+  assert.strictEqual(otherList.status, 200);
+  assert.ok(!otherList.data.tenders.some(t => t.id === tenderA.id));
+
+  for (const suffix of ['', '/evaluations', '/documents', '/clarifications', '/addenda']) {
+    const denied = await call(buyerB, 'GET', '/api/procurement/tenders/' + tenderA.id + suffix);
+    assert.strictEqual(denied.status, 404, 'يجب حجب مسار الجهة الأخرى: ' + suffix);
+  }
+
+  const blockedAddendum = await call(buyerB, 'POST', '/api/procurement/tenders/' + tenderA.id + '/addenda', {
+    body: { title: 'محاولة خارج الجهة', body: 'لا يجوز تعديل عطاء جهة أخرى.' }
+  });
+  assert.strictEqual(blockedAddendum.status, 404);
+});
