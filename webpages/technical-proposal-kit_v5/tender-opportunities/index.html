@@ -83,7 +83,10 @@
     card.innerHTML='<span class="tag">'+state+' · '+esc(o.country)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'الجهة غير محددة')+'</p><p>'+esc(o.summary||'لا يوجد ملخص إضافي.')+'</p><p class="muted">رقم العطاء: '+esc(o.tenderNumber||'غير محدد')+' · الإغلاق: '+esc(o.closingAt||'غير محدد')+'</p><p class="muted">المصدر: '+esc(o.sourceKey)+'</p><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">الإعلان الأصلي ↗</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">التقديم الرسمي ↗</a>':'');
     results.appendChild(card);
    });
-   document.getElementById('opp-count').textContent='عدد النتائج: '+data.count;
+   const sourceNames={joneps:'JONEPS',apc:'البوتاس',worldbank:'البنك الدولي',ungm:'UNGM'};
+   const breakdown=Object.entries(data.sourceCounts||{}).map(([key,v])=>(sourceNames[key]||key)+': '+v.total+' (مفتوح '+v.open+' / مغلق '+v.closed+')').join(' — ');
+   const totals=data.allCounts||{open:0,closed:0,total:0};
+   document.getElementById('opp-count').textContent='النتائج المطابقة: '+data.count+' | إجمالي السجلات: '+totals.total+' (مفتوح '+totals.open+' / مغلق '+totals.closed+')'+(breakdown?' | '+breakdown:'');
   }catch(e){results.textContent=e.message;}
  }
  document.getElementById('opp-search').addEventListener('click',load);
