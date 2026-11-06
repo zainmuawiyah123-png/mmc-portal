@@ -94,3 +94,65 @@ test('APC parser reads the public list row, dates, bond, qualifications and keep
   assert.equal(rows[1].status, 'closed');
   assert.equal(new URL(rows[1].sourceUrl).origin, 'https://arabpotash.com');
 });
+
+const { parseJpmcRows } = require('../src/lib/jpmc-sync');
+test('JPMC parser imports official Arabic tender headings, dates and same-origin details links', () => {
+  const html = '<section><div>تاريخ بدء العطاء: 01-11-2026 تاريخ انتهاء العطاء: 12-11-2026</div>'
+    + '<h3>علان تمديد طرح العطاء رقم (T2026/35 SH) "مشروع إعادة تأهيل هنجر المستودعات الرئيسة في منجم الشيدية"</h3>'
+    + '<a href="/ar/tender/12345">اقرأ المزيد</a></section>'
+    + '<section><div>تاريخ بدء العطاء: 01-11-2026 تاريخ انتهاء العطاء: 05-11-2026</div>'
+    + '<h3>اعلان طرح العطاء رقم (T2026/41 F) التفتيش والمعاينة للشحنات المصدرة والمستوردة بحراً</h3>'
+    + '<a href="https://evil.example/steal">اقرأ المزيد</a></section>';
+  const rows = parseJpmcRows(html, '2026-11-06');
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].tenderNumber, 'T2026/35 SH');
+  assert.equal(rows[0].closingAt, '2026-11-12');
+  assert.equal(rows[0].status, 'open');
+  assert.equal(new URL(rows[0].sourceUrl).origin, 'https://www.jpmc.com.jo');
+  assert.equal(rows[1].closingAt, '2026-11-05');
+  assert.equal(rows[1].status, 'closed');
+  assert.equal(new URL(rows[1].sourceUrl).origin, 'https://www.jpmc.com.jo');
+});
+
+const { parseJprcRows } = require('../src/lib/jprc-sync');
+test('JPRC parser extracts tender metadata from official notice cards', () => {
+  const html = '<a href="/ar/modules/tenders/158"><span>رقم العطاء: 158/2026 موضوع العطاء: مناقصة اشغال 158-2026 اعمال مدنية متفرقة في دائرة مستودعات العقبة تاريخ طرح العطاء: 2026/10/29 تاريخ الاغلاق: 2026/11/12 سعر النسخة: مجاناً</span></a>';
+  const [row] = parseJprcRows(html, '2026-11-06');
+  assert.ok(row);
+  assert.equal(row.tenderNumber, '158/2026');
+  assert.equal(row.closingAt, '2026-11-12');
+  assert.equal(row.status, 'open');
+  assert.equal(new URL(row.sourceUrl).origin, 'https://jopetrol.com.jo');
+});
+
+const { parseJepcoRows } = require('../src/lib/jepco-sync');
+test('JEPCO parser extracts tender number, specification and submission deadline from official table', () => {
+  const html = '<table><tr><th>رقم العطاء</th><th>التفصيل</th><th>ثمن النسخة</th><th>موعد التسليم</th></tr>'
+    + '<tr><td>42/2026</td><td>12 &amp; 36 KV O.H.L DROP OUT FUSED ISOLATORS</td><td>15</td><td>12/11/2026</td></tr></table>';
+  const [row] = parseJepcoRows(html, '2026-11-06');
+  assert.ok(row);
+  assert.equal(row.tenderNumber, '42/2026');
+  assert.equal(row.closingAt, '2026-11-12');
+  assert.equal(row.status, 'open');
+  assert.equal(row.country, 'JO');
+});
+
+const { parseGAMRows, extractDetailUrls, LIST_URL: GAM_LIST_URL } = require('../src/lib/gam-sync');
+test('Greater Amman Municipality parser extracts tender number, title and final submission date', () => {
+  const html = '<table><tr><th>رقم المناقصة</th><th>اسم المناقصة</th><th>كفالة</th><th>آخر موعد للبيع</th><th>آخر موعد للاستفسارات</th><th>آخر موعد لإيداع العروض</th></tr>'
+    + '<tr><td>74/1/2026</td><td>عطاء إعادة تأهيل أدراج متنوعة ضمن نطاق صحن عمان</td><td>13000 دينار</td><td>11/11/2026</td><td>17/11/2026</td><td>23/11/2026</td></tr></table>';
+  const rows = parseGAMRows(html, '2026-11-06', 'https://media.ammancity.gov.jo/AR/ListDetails/example');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].tenderNumber, '74/1/2026');
+  assert.match(rows[0].title, /إعادة تأهيل أدراج/);
+  assert.equal(rows[0].closingAt, '2026-11-23');
+  assert.equal(rows[0].status, 'open');
+  assert.equal(new URL(rows[0].sourceUrl).origin, 'https://media.ammancity.gov.jo');
+});
+test('Greater Amman Municipality detail discovery only accepts same-origin official detail links', () => {
+  const html = '<a href="/AR/ListDetails/x/1117/37">المزيد</a><a href="https://evil.example/AR/ListDetails/x">bad</a>';
+  const urls = extractDetailUrls(html);
+  assert.equal(urls.length, 1);
+  assert.equal(new URL(urls[0]).origin, 'https://media.ammancity.gov.jo');
+  assert.equal(new URL(GAM_LIST_URL).origin, 'https://media.ammancity.gov.jo');
+});

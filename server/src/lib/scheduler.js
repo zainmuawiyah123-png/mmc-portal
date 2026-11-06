@@ -106,6 +106,10 @@ async function runOpportunitySyncJob() {
   };
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('apc',()=>require('./apc-sync').syncAPC());
+  await runSource('jpmc',()=>require('./jpmc-sync').syncJPMC());
+  await runSource('jprc',()=>require('./jprc-sync').syncJPRC());
+  await runSource('jepco',()=>require('./jepco-sync').syncJEPCO());
+  await runSource('gam',()=>require('./gam-sync').syncGAM());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
@@ -158,33 +162,19 @@ function startScheduler() {
   }
 
   if (config.OPPORTUNITY_SYNC_ENABLED) {
-    const worldBankJob = cron.schedule(config.OPPORTUNITY_SYNC_CRON, async () => {
-      const started = Date.now();
-      try {
-        const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
-        persistOpportunitySync('worldbank', started, { ok: true, ...result });
-        console.log('[scheduler] مزامنة البنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated + ', total=' + result.total + ', open=' + result.open + ', closed=' + result.closed + ', cancelled=' + result.cancelled);
-      } catch (err) {
-        persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
-        console.error('[scheduler] فشلت مزامنة البنك الدولي:', err.message);
-      }
-    }, { timezone: config.BACKUP_TZ, name: 'worldbank-opportunity-sync' });
-    _jobs.push(worldBankJob);
-    jobs.push('worldbank-opportunity-sync');
+    const opportunityJob = cron.schedule(config.OPPORTUNITY_SYNC_CRON, async () => {
+      const result = await runOpportunitySyncJob();
+      console.log('[scheduler] مزامنة مصادر العطاءات: ' + JSON.stringify(result.results));
+    }, { timezone: config.BACKUP_TZ, name: 'opportunity-sync' });
+    _jobs.push(opportunityJob);
+    jobs.push('opportunity-sync');
 
-    // Initial import after boot; this does not enable unrelated scheduler tasks.
+    // Initial full-source import after boot; failed sources are recorded independently.
     setTimeout(async () => {
-      const started = Date.now();
-      try {
-        const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
-        persistOpportunitySync('worldbank', started, { ok: true, ...result });
-        console.log('[scheduler] المزامنة الأولية للبنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated + ', total=' + result.total + ', open=' + result.open + ', closed=' + result.closed + ', cancelled=' + result.cancelled);
-      } catch (err) {
-        persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
-        console.error('[scheduler] فشلت المزامنة الأولية للبنك الدولي:', err.message);
-      }
+      const result = await runOpportunitySyncJob();
+      console.log('[scheduler] المزامنة الأولية لمصادر العطاءات: ' + JSON.stringify(result.results));
     }, 20000).unref();
-    console.log('[scheduler] ✓ مزامنة البنك الدولي مجدولة: "' + config.OPPORTUNITY_SYNC_CRON + '" (' + config.BACKUP_TZ + ')');
+    console.log('[scheduler] ✓ مزامنة مصادر العطاءات مجدولة: "' + config.OPPORTUNITY_SYNC_CRON + '" (' + config.BACKUP_TZ + ')');
   }
 
   console.log('[scheduler] ✓ المهام المفعّلة: ' + jobs.join(', '));

@@ -62,15 +62,23 @@ test('MMCUI-01 — دليل العطاءات يضم مصادر الأردن وا
   assert.ok(links.length >= 10, 'يجب توفير مجموعة روابط مصادر مباشرة');
 });
 
+test('MMCUI-ORG-01 — دليل المنظمات في الأردن يعرض مصادر التوريد الرسمية', () => {
+  for (const token of ['UNICEF Jordan', 'UNDP Jordan', 'UNHCR Jordan', 'UNOPS', 'UN Global Marketplace', 'EU Delegation to Jordan', 'GIZ']) {
+    assert.ok(tenderDirectory.includes(token), 'منظمة أو مصدر مفقود: ' + token);
+  }
+  assert.ok(tenderDirectory.includes('ليست دليلاً على وجود موصل استيراد مباشر'));
+});
+
 test('MMCUI-02 — روابط المصادر الخارجية تفتح بأمان، والدليل لا يدّعي الاستيراد الآلي', () => {
   assert.match(tenderDirectory, /target="_blank" rel="noopener"/);
   assert.match(tenderDirectory, /لا ندّعي أن كل إعلان/);
   assert.match(tenderDirectory, /Verify the original notice/);
 });
 
-test('MMCUI-03 — دليل العطاءات متاح من بوابتي المقاول والمشتريات', () => {
-  assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
-  assert.match(procurementPortal, /\.\.\/tender-opportunities\/index\.html/);
+test('MMCUI-03 — دليل العطاءات الخارجية متاح من بوابتي المقاول والمشتريات', () => {
+  assert.match(contractorPortal, /id="external"/);
+  assert.match(contractorPortal, /عطاءات الجهات الأخرى/);
+  assert.match(procurementPortal, /\.\.\/bid\/index\.html#external/);
 });
 
 
@@ -190,7 +198,8 @@ test('OPP-13 — روابط الصفحات التالية من UNGM لا تسم�
 test('OPP-14 — حالة المجدول تعرض مهمة مزامنة العطاءات عند تفعيلها', () => {
   const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
   assert.ok(scheduler.includes("'opportunity-sync'"));
-  assert.ok(scheduler.includes("config.OPPORTUNITY_SYNC_ENABLED ?"));
+  assert.ok(scheduler.includes('if (config.OPPORTUNITY_SYNC_ENABLED)'));
+  assert.ok(scheduler.includes("name: 'opportunity-sync'"));
 });
 
 
