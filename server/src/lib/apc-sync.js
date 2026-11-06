@@ -56,7 +56,7 @@ function parseApcRows(html, today) {
 
 function parseApcDetail(html, pid, fallback = {}) {
   const body = text(html);
-  const titleMatch = body.match(/Tender title and number:\\s*(.*?)(?=\\s*Purchase Date:)/i);
+  const titleMatch = body.match(/Tender title and number:\s*(.*?)(?=\s*Purchase Date:)/i);
   const title = (titleMatch && titleMatch[1] || fallback.title || '').trim().slice(0,300);
   const purchaseDate = field(body, 'Purchase Date', 'Closing date');
   const closingDate = field(body, 'Closing date', 'Copy Price');
@@ -65,7 +65,7 @@ function parseApcDetail(html, pid, fallback = {}) {
   const qualifications = field(body, 'Vendor Qualifications', 'Remarks|Announcement|Tender Documents');
   const remarks = field(body, 'Remarks', 'Announcement|Tender Documents');
   const documents = [];
-  for (const m of String(html || '').matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)) {
+  for (const m of String(html || '').matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const label = text(m[2]);
     if (!/announcement|document|وثائق|اعلان|إعلان/i.test(label)) continue;
     try {
