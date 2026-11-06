@@ -117,47 +117,78 @@ async function runOpportunitySyncJob() {
 }
 
 function startScheduler() {
-  if (!config.SCHEDULER_ENABLED) {
-    console.log('[scheduler] معطّل (SCHEDULER_ENABLED=false)');
+  // The World Bank feed has its own switch so it can run without enabling
+  // unrelated backup/subscription jobs.
+  if (!config.SCHEDULER_ENABLED && !config.OPPORTUNITY_SYNC_ENABLED) {
+    console.log('[scheduler] معطّل (لا توجد مهام مجدولة مفعّلة)');
     return { enabled: false, jobs: [] };
   }
-  if (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON) ||
+  if ((config.SCHEDULER_ENABLED &&
+       (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON))) ||
       (config.OPPORTUNITY_SYNC_ENABLED && !cron.validate(config.OPPORTUNITY_SYNC_CRON))) {
     console.error('[scheduler] تعبير cron غير صالح — لم تُجدول المهام');
     return { enabled: false, jobs: [], error: 'invalid cron' };
   }
-  const backupJob = cron.schedule(config.BACKUP_CRON, () => {
-    console.log('[scheduler] بدء النسخة الاحتياطية المجدولة...');
-    runBackupJob().catch((e) => console.error('[scheduler] خطأ النسخ:', e.message));
-  }, { timezone: config.BACKUP_TZ, name: 'db-backup' });
-  const expiryJob = cron.schedule(config.SUBSCRIPTION_EXPIRY_CRON, () => {
-    console.log('[scheduler] فحص الاشتراكات المنتهية...');
-    runSubscriptionExpiryJob();
-  }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
-  _jobs.push(backupJob, expiryJob);
-  if (require('./jofotara').enabled()) {
-    _jobs.push(cron.schedule('*/15 * * * *', () => { require('./jofotara').processPending().catch((e) => console.error('[scheduler] الفوترة الوطنية:', e.message)); }, { timezone: config.BACKUP_TZ, name: 'jofotara-retry' }));
-    const miss = require('./jofotara').missingConfig();
-    console.log('[scheduler] ✓ إرسال الفوترة الوطنية مفعّل' + (miss.length ? ' — إعدادات ناقصة: ' + miss.join('، ') : ''));
+
+  const jobs = [];
+  if (config.SCHEDULER_ENABLED) {
+    const backupJob = cron.schedule(config.BACKUP_CRON, () => {
+      console.log('[scheduler] بدء النسخة الاحتياطية المجدولة...');
+      runBackupJob().catch((e) => console.error('[scheduler] خطأ النسخ:', e.message));
+    }, { timezone: config.BACKUP_TZ, name: 'db-backup' });
+    const expiryJob = cron.schedule(config.SUBSCRIPTION_EXPIRY_CRON, () => {
+      console.log('[scheduler] فحص الاشتراكات المنتهية...');
+      runSubscriptionExpiryJob();
+    }, { timezone: config.BACKUP_TZ, name: 'subscription-expiry' });
+    _jobs.push(backupJob, expiryJob);
+    jobs.push('db-backup', 'subscription-expiry');
+
+    if (require('./jofotara').enabled()) {
+      _jobs.push(cron.schedule('*/15 * * * *', () => {
+        require('./jofotara').processPending().catch((e) => console.error('[scheduler] الفوترة الوطنية:', e.message));
+      }, { timezone: config.BACKUP_TZ, name: 'jofotara-retry' }));
+    }
+    if (require('./mailer').enabled()) {
+      _jobs.push(cron.schedule('*/10 * * * *', () => {
+        require('./mailer').flush().catch((e) => console.error('[scheduler] البريد:', e.message));
+      }, { timezone: config.BACKUP_TZ, name: 'mail-outbox' }));
+    }
+    console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
+    console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
   }
-  if (require('./mailer').enabled()) {
-    _jobs.push(cron.schedule('*/10 * * * *', () => { require('./mailer').flush().catch((e) => console.error('[scheduler] البريد:', e.message)); }, { timezone: config.BACKUP_TZ, name: 'mail-outbox' }));
-    console.log('[scheduler] ✓ إعادة إرسال البريد المعلّق كل 10 دقائق');
-  }
+
   if (config.OPPORTUNITY_SYNC_ENABLED) {
-    const opportunityJob=cron.schedule(config.OPPORTUNITY_SYNC_CRON,()=>{
-      console.log('[scheduler] بدء مزامنة إعلانات البنك الدولي...');
-      runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
-    },{timezone:config.BACKUP_TZ,name:'opportunity-sync-worldbank'});
-    _jobs.push(opportunityJob);
-    // أول مزامنة بعد الإقلاع بقليل حتى لا تبقى قائمة العطاءات فارغة حتى أول موعد مجدول
-    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),20000).unref();
-    console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
+    const worldBankJob = cron.schedule(config.OPPORTUNITY_SYNC_CRON, async () => {
+      const started = Date.now();
+      try {
+        const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
+        persistOpportunitySync('worldbank', started, { ok: true, ...result });
+        console.log('[scheduler] مزامنة البنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated);
+      } catch (err) {
+        persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
+        console.error('[scheduler] فشلت مزامنة البنك الدولي:', err.message);
+      }
+    }, { timezone: config.BACKUP_TZ, name: 'worldbank-opportunity-sync' });
+    _jobs.push(worldBankJob);
+    jobs.push('worldbank-opportunity-sync');
+
+    // Initial import after boot; this does not enable unrelated scheduler tasks.
+    setTimeout(async () => {
+      const started = Date.now();
+      try {
+        const result = await require('./opportunity-sync').syncWorldBank({ rows: 100, offset: 0, pages: 5 });
+        persistOpportunitySync('worldbank', started, { ok: true, ...result });
+        console.log('[scheduler] المزامنة الأولية للبنك الدولي: received=' + result.received + ', added=' + result.added + ', updated=' + result.updated);
+      } catch (err) {
+        persistOpportunitySync('worldbank', started, { ok: false, error: err.message || String(err) });
+        console.error('[scheduler] فشلت المزامنة الأولية للبنك الدولي:', err.message);
+      }
+    }, 20000).unref();
+    console.log('[scheduler] ✓ مزامنة البنك الدولي مجدولة: "' + config.OPPORTUNITY_SYNC_CRON + '" (' + config.BACKUP_TZ + ')');
   }
-  console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
-  console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
-  return { enabled: true, jobs: config.OPPORTUNITY_SYNC_ENABLED ? ['db-backup', 'subscription-expiry', 'opportunity-sync'] : ['db-backup', 'subscription-expiry'], cron: config.BACKUP_CRON,
-    subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON,
+
+  console.log('[scheduler] ✓ المهام المفعّلة: ' + jobs.join(', '));
+  return { enabled: true, jobs,
     opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED,
     opportunitySyncCron: config.OPPORTUNITY_SYNC_CRON, tz: config.BACKUP_TZ };
 }
