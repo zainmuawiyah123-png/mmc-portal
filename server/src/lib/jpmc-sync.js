@@ -24,7 +24,7 @@ function parseJpmcRows(html, today) {
   const headings=[...source.matchAll(/<h[1-6]\b[^>]*>([\s\S]*?)<\/h[1-6]>/gi)];
   for (let i=0;i<headings.length;i++) {
     const h=headings[i], title=clean(h[1]);
-    if (!/(?:T\d{4}\s*\/\s*\d+|عطاء|مناقصة|مزاودة)/i.test(title)) continue;
+    if (!/(?:T\d{4}\s*\/\s*\d+|(?:طرح|إعلان|اعلان|تمديد)\s*(?:طرح\s*)?(?:العطاء|المزاودة)\s*رقم|العطاء\s*رقم)/i.test(title)) continue;
     const start=h.index, end=i+1<headings.length?headings[i+1].index:Math.min(source.length,start+5000);
     const before=source.slice(Math.max(0,start-900),start), after=source.slice(h.index+h[0].length,end);
     const context=clean(source.slice(Math.max(0,start-500),end));
