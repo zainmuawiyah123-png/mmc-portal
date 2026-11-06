@@ -69,7 +69,7 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
 });
 
 test('MMCUI-03 — دليل العطاءات الخارجية للمقاول فقط ومحجوب عن المشتريات', () => {
-  assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
+  assert.match(contractorPortal, /id="external"/);
   assert.doesNotMatch(procurementPortal, /tender-opportunities|#external/);
   const server = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
