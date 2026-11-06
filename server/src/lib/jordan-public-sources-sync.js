@@ -62,10 +62,16 @@ function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
  if(!items.length){
   const anchors=[...String(html||'').matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)];
   for(const a of anchors){
-   const label=decode(a[2]);if(label.length<12||!/tender|عطاء|مناقصة|bid|procurement|LRPS|RFP/i.test(label))continue;
    const link=allowedUrl(a[1],source.url);if(!link)continue;
-   const id=source.key+':'+BufferlessHash(link);if(seen.has(id))continue;seen.add(id);
-   items.push({id,title:label.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:null,summary:label,publishedAt:null,closingAt:null,sourceUrl:link,applicationUrl:null,status:'open',language:/[\\u0600-\\u06FF]/.test(label)?'ar':'en'});
+   const label=decode(a[2]),at=a.index||0,context=decode(String(html||'').slice(Math.max(0,at-1800),Math.min(String(html||'').length,at+900)));
+   if(!/tender|عطاء|مناقصة|bid|procurement|LRPS|RFP/i.test(label+' '+context))continue;
+   const number=(context.match(/(?:tender\\s*(?:no\\.?|#)?|عطاء\\s*(?:رقم)?|مناقصة\\s*(?:رقم)?|LRPS\\s*)[:#№\\s-]*([A-Z0-9][A-Z0-9\\/-]{2,})/i)||[])[1]||null;
+   const title=label.length>8&&!/read more|اقرأ المزيد|التفاصيل|details/i.test(label)?label:
+    ((context.match(/(?:اعلان|إعلان|طرح|عطاء|مناقصة|Tender)[^.!؟]{8,240}/i)||[])[0]||context.slice(-260));
+   const id=source.key+':'+(number||BufferlessHash(link));if(seen.has(id))continue;seen.add(id);
+   const dates=[...context.matchAll(/(?:20\\d{2}[\\/-]\\d{1,2}[\\/-]\\d{1,2}|\\d{1,2}[\\/-]\\d{1,2}[\\/-]20\\d{2})/g)].map(m=>dateISO(m[0])).filter(Boolean);
+   const closing=dates.length?dates[dates.length-1]:null;
+   items.push({id,title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:context.slice(-2500),publishedAt:dates.length>1?dates[0]:null,closingAt:closing,sourceUrl:link,applicationUrl:null,status:closing&&closing<today?'closed':'open',language:/[\\u0600-\\u06FF]/.test(title)?'ar':'en'});
   }
  }
  return items;
