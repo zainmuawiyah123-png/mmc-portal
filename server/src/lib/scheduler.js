@@ -101,7 +101,7 @@ async function runOpportunitySyncJob() {
   const runSource=async(name,fn)=>{
     const sourceStarted=Date.now();
     try { results[name]={ok:true,...await fn()}; }
-    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
+    catch(err) { results[name]={ok:false,partial:!!err.partial,sourceResults:err.results||undefined,added:err.added||0,updated:err.updated||0,received:err.received||0,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
   };
   await runSource('jordan_official_sources',async()=>{
