@@ -214,3 +214,11 @@ test('Jordan source sync endpoint is MMC-admin only and visible in admin page',(
  assert.match(page,/الفوسفات/);
  assert.match(page,/مصفاة البترول/);
 });
+
+test('Jordan source parser does not mistake linked tender PDF attachments for separate notices',()=>{
+ const source=SOURCES.find(x=>x.key==='jpmc');
+ const html='<div>اعلان طرح العطاء رقم T2026/35 SH مشروع إعادة تأهيل هنجر المستودعات الرئيسية تاريخ بدء العطاء 01-11-2026 تاريخ انتهاء 12-11-2026 <a href="/ar/tender/detail/35">اقرأ المزيد</a><a href="/uploads/tender.pdf">Tender Documents</a></div>';
+ const rows=parseSource(html,source,'2026-11-06');
+ assert.equal(rows.length,1);
+ assert.equal(new URL(rows[0].sourceUrl).hostname,'www.jpmc.com.jo');
+});
