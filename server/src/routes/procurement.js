@@ -276,12 +276,13 @@ router.get('/submissions/:id/receipt', contractor, wrap(async (req,res)=>{
 
 router.get('/submissions/:id/documents/:docId', A.requireAuth, wrap(async(req,res)=>{
   const db=getDB();
-  const d=db.prepare(`SELECT d.*,s.contractor_id,s.tender_id,s.financial_unlocked,t.user_id buyer_id
+  const d=db.prepare(`SELECT d.*,s.contractor_id,s.tender_id,s.financial_unlocked,t.user_id buyer_id,t.org_id
     FROM bid_submission_docs d JOIN bid_submissions s ON s.id=d.submission_id JOIN tenders t ON t.id=s.tender_id
     WHERE d.id=? AND s.id=?`).get(req.params.docId,req.params.id);
   if(!d) throw E.notFound('الملف غير موجود.');
   const own=req.user.role==='contractor' && d.contractor_id===req.user.id;
-  const staff=req.user.role==='admin' || (req.user.role==='buyer' && O.canManageUserTenders(req.user,d.buyer_id));
+  const member = req.user.role === 'buyer' ? O.ensureOrg(req.user) : null;
+  const staff=req.user.role==='admin' || (req.user.role==='buyer' && member && d.org_id === member.org_id && O.canManageUserTenders(req.user,d.buyer_id));
   const evaluator=!own && !staff && d.doc_class==='technical' && require('../lib/committee').isEvaluator(req.user.id,d.tender_id);
   if(!own && !staff && !evaluator) throw E.notFound('الملف غير موجود.');
   if(d.doc_class==='financial' && !own && !d.financial_unlocked) throw E.forbidden('العرض المالي مقفل حتى اعتماد فتحه رسمياً.');
@@ -343,8 +344,9 @@ router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
 /* فتح مالي مستقل بعد اعتماد النتيجة الفنية — إجراء صريح مسجل في سجل التدقيق */
 router.post('/submissions/:id/open-financial', procOnly, wrap(async (req,res)=>{
   const db=getDB();
-  const s=db.prepare('SELECT s.*,t.user_id buyer_id FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
-  if(!s || (req.user.role!=='admin' && !O.canManageUserTenders(req.user,s.buyer_id))) throw E.notFound('التقديم غير موجود.');
+  const s=db.prepare('SELECT s.*,t.user_id buyer_id,t.org_id FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
+  const member = req.user.role === 'buyer' ? O.ensureOrg(req.user) : null;
+  if(!s || (req.user.role!=='admin' && (!member || s.org_id !== member.org_id || !O.canManageUserTenders(req.user,s.buyer_id)))) throw E.notFound('التقديم غير موجود.');
   if(s.status !== 'evaluated' || !s.evaluated_at) throw E.conflict('يجب إكمال التقييم الفني الرسمي وتسجيل نتيجته قبل فتح العرض المالي.');
   if(!s.technical_passed) throw E.conflict('لا يمكن فتح العرض المالي قبل اجتياز التقييم الفني.');
   if(s.financial_unlocked) throw E.conflict('سبق فتح العرض المالي.');
