@@ -1,5 +1,8 @@
 name: Procurement tenant isolation regression
 on:
+  push:
+    branches:
+      - 'fix/production-tenant-isolation-mainline'
   pull_request:
     paths:
       - 'server/src/routes/procurement.js'
