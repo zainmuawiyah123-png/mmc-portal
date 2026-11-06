@@ -70,7 +70,7 @@ router.get('/:id', directoryReaders, wrap(async(req,res,next)=>{
  const documents=db.prepare('SELECT label,document_url AS url,availability FROM tender_opportunity_public_documents WHERE opportunity_id=? ORDER BY created_at').all(row.id);
  res.setHeader('Cache-Control','private, max-age=60');
  res.json({opportunity:shape(row),details,documents});
-});
+}));
 
 // MMC administrators curate/import official notices. No public write access.
 router.use(A.requireAuth, A.requireRole('admin'));
