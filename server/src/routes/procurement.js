@@ -74,7 +74,12 @@ function getTender(id) {
 
 function ensureBuyerOwn(req, id) {
   const x = getTender(id);
-  if (req.user.role !== 'admin' && !O.canManageUserTenders(req.user, x.t.user_id)) throw E.notFound('العطاء غير موجود.');
+  if (req.user.role !== 'admin') {
+    const member = O.ensureOrg(req.user);
+    if (!member || !x.t.org_id || x.t.org_id !== member.org_id || !O.canManageUserTenders(req.user, x.t.user_id)) {
+      throw E.notFound('العطاء غير موجود.');
+    }
+  }
   return x;
 }
 
@@ -175,9 +180,9 @@ router.post('/tenders', procOnly, wrap(async (req, res) => {
 router.get('/tenders', procOnly, wrap(async (req, res) => {
   const db = getDB();
   const m = req.user.role === 'buyer' ? O.ensureOrg(req.user) : null;
-  const ids = m ? O.orgMemberIds(m.org_id) : [req.user.id];
-  const rows = req.user.role === 'admin' ? db.prepare('SELECT * FROM tenders ORDER BY created_at DESC').all()
-    : db.prepare('SELECT * FROM tenders WHERE user_id IN (' + ids.map(() => '?').join(',') + ') ORDER BY created_at DESC').all(...ids);
+  const rows = req.user.role === 'admin'
+    ? db.prepare('SELECT * FROM tenders ORDER BY created_at DESC').all()
+    : db.prepare('SELECT * FROM tenders WHERE org_id = ? ORDER BY created_at DESC').all(m.org_id);
   res.json({ tenders: rows.map((t) => tenderShape(t)), count: rows.length });
 }));
 
@@ -185,7 +190,7 @@ router.get('/tenders/:id', wrap(async (req, res) => {
   const x = getTender(req.params.id);
   const isBuyer = req.user.role === 'buyer' || req.user.role === 'admin';
   if (isBuyer) ensureBuyerOwn(req, req.params.id);
-  if (!isBuyer && x.t.procurement_status !== 'published') throw E.notFound('العطاء غير متاح.');
+  else if (req.user.role !== 'contractor' || x.t.procurement_status !== 'published') throw E.notFound('العطاء غير متاح.');
   res.json({ tender: isBuyer ? tenderShape(x.t, x.reqs) : withIssuer(x.t, x.reqs) });
 }));
 
@@ -312,8 +317,9 @@ router.get('/tenders/:id/evaluations', procOnly, wrap(async (req, res) => {
 
 router.post('/submissions/:id/evaluate', procOnly, wrap(async (req, res) => {
   const db = getDB();
-  const s = db.prepare('SELECT s.*, t.user_id buyer_id, t.technical_weight, t.financial_weight, t.technical_threshold FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
-  if (!s || (req.user.role !== 'admin' && !O.canManageUserTenders(req.user, s.buyer_id))) throw E.notFound('التقديم غير موجود.');
+  const s = db.prepare('SELECT s.*, t.user_id buyer_id, t.org_id, t.technical_weight, t.financial_weight, t.technical_threshold FROM bid_submissions s JOIN tenders t ON t.id=s.tender_id WHERE s.id=?').get(req.params.id);
+  const member = req.user.role === 'buyer' ? O.ensureOrg(req.user) : null;
+  if (!s || (req.user.role !== 'admin' && (!member || s.org_id !== member.org_id || !O.canManageUserTenders(req.user, s.buyer_id)))) throw E.notFound('التقديم غير موجود.');
   const reqs = db.prepare('SELECT * FROM tender_requirements WHERE tender_id=? ORDER BY sort_order').all(s.tender_id);
   const scores = new Map((Array.isArray(req.body?.scores) ? req.body.scores : []).map((a) => [a.requirementId, Math.max(0, Math.min(100, Number(a.score) || 0))]));
   const responses = db.prepare('SELECT * FROM bid_responses WHERE submission_id=?').all(s.id);
@@ -351,8 +357,11 @@ router.post('/submissions/:id/open-financial', procOnly, wrap(async (req,res)=>{
 
 /* وثائق العطاء (المخططات والمواصفات والشروط) — للمقاول بعد النشر ولأعضاء الجهة */
 function docsAccess(req, t) {
-  const staff = req.user.role === 'admin' || (req.user.role === 'buyer' && O.canManageUserTenders(req.user, t.user_id));
-  if (staff) return true;
+  if (req.user.role === 'admin') return true;
+  if (req.user.role === 'buyer') {
+    const member = O.ensureOrg(req.user);
+    return !!(member && t.org_id && t.org_id === member.org_id && O.canManageUserTenders(req.user, t.user_id));
+  }
   if (require('../lib/committee').isEvaluator(req.user.id, t.id)) return true;
   return req.user.role === 'contractor' && t.procurement_status === 'published' && O.ownerVerified(t.user_id);
 }
