@@ -24,7 +24,7 @@ const shape = r => ({
   status:r.status, language:r.language, sourceKey:r.source_key, importedAt:r.imported_at
 });
 
-// Public directory: only published records; no account or internal tender fields.
+// Contractor-only external directory: published records only; no account or internal tender fields.
 router.get('/', contractorDirectoryOnly, wrap(async (req,res) => {
   const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
