@@ -61,7 +61,8 @@ router.get('/feed', directoryReaders, wrap(async (req,res) => {
 }));
 
 
-router.get('/:id', directoryReaders, wrap(async(req,res)=>{
+router.get('/:id', directoryReaders, wrap(async(req,res,next)=>{
+ if(req.params.id==='admin') return next();
  const db=getDB(),row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
  if(!row) throw E.notFound('العطاء غير موجود.');
  let details=null;
