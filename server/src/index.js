@@ -122,6 +122,16 @@ function createApp() {
     });
   });
 
+  // Procurement workspace is restricted to authenticated buying organizations and MMC admins.
+  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
+      if (!['buyer', 'admin'].includes(req.user.role)) return res.status(403).type('text').send('بوابة المشتريات مخصصة للجهات المشترية فقط.');
+      return sendFromWeb('procurement/index.html', res, next);
+    });
+  });
+
   // The external tender directory is a contractor-only area, not a buyer/procurement page.
   app.get(['/tender-opportunities', '/tender-opportunities/', '/tender-opportunities/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
