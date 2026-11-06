@@ -17,7 +17,7 @@ test('GAM parser extracts tender details and deadlines into MMC fields',()=>{
  assert.equal(item.sourceUrl,LIST_URL);
  assert.equal(item.status,'open');
 });
-test('GAM parser safely returns no details for non-tender or incomplete rows',()=>{
+test('GAM parser deduplicates the same tender across paginated announcement pages',()=>{\n const cells=['74/1/2026','إعادة تأهيل أدراج متنوعة','13000 دينار','250','إنشاء أبنية فئة ثالثة أو رابعة','11/11/2026','17/11/2026','23/11/2026'];\n const row='<table><tr>'+cells.map(x=>'<td>'+x+'</td>').join('')+'</tr></table>';\n const rows=[...parseGAMRows(row,'2026-11-06','https://media.ammancity.gov.jo/AR/ListDetails/x/1'),...parseGAMRows(row,'2026-11-06','https://media.ammancity.gov.jo/AR/ListDetails/x/2')];\n assert.equal(rows[0].id,rows[1].id);\n assert.equal(rows[0].tenderNumber,'74/1/2026');\n});\ntest('GAM parser safely returns no details for non-tender or incomplete rows',()=>{
  assert.deepEqual(parseGAMRows('<table><tr><td>عنوان</td><td>نص فقط</td></tr></table>','2026-03-01','https://media.ammancity.gov.jo/AR/ListDetails/1'),[]);
  assert.equal(dateISO('31/02/2026'),null);
 });
