@@ -133,7 +133,7 @@
    const lines=[
     ['آخر موعد لبيع نسخ العطاء',d.lastSaleDate],['آخر موعد للاستفسارات',d.inquiryDeadline],['آخر موعد لإيداع العروض',d.closingDate],
     ['ثمن نسخة العطاء',d.documentFee],['كفالة الدخول',d.bidBond],
-    ['مؤهلات المناقص',d.qualification],['تعليمات الحصول على الوثائق',d.documentInstructions],['ملاحظات الجهة',d.remarks]
+    ['مؤهلات المناقص',d.qualification],['تعليمات الحصول على الوثائق',d.documentInstructions],['حالة وثائق التنزيل',d.documentsNote],['ملاحظات الجهة',d.remarks]
    ].filter(x=>x[1]).map(x=>'<p><b>'+esc(x[0])+':</b> '+esc(x[1])+'</p>').join('');
    const docHtml=docs.length?'<h4>الوثائق المتاحة</h4>'+docs.map(x=>'<p><a href="/api/opportunities/documents/'+encodeURIComponent(x.id)+'" target="_blank" rel="noopener">'+esc(x.label)+' — فتح / تنزيل داخل MMC</a></p>').join(''):'<p>لم تُكتشف وثائق عامة قابلة للتحميل لهذا الإعلان.</p>';
    const detail=document.createElement('section');detail.className='intro';detail.style.marginTop='16px';
