@@ -24,7 +24,7 @@ function refreshExpiredOpportunities(db=getDB(), now=Date.now()) {
   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date(now));
   const nowIso=new Date(now).toISOString();
   const dateOnly=db.prepare("UPDATE tender_opportunities SET status='closed',updated_at=unixepoch() WHERE status='open' AND closing_at IS NOT NULL AND length(closing_at)=10 AND closing_at<?").run(today).changes;
-  const timed=db.prepare("UPDATE tender_opportunities SET status='closed',updated_at=unixepoch() WHERE status='open' AND closing_at IS NOT NULL AND length(closing_at)>10 AND datetime(closing_at)<datetime(?)").run(nowIso).changes;
+  const timed=db.prepare("UPDATE tender_opportunities SET status='closed',updated_at=unixepoch() WHERE status='open' AND closing_at IS NOT NULL AND length(closing_at)>10 AND datetime(closing_at)<=datetime(?)").run(nowIso).changes;
   return dateOnly+timed;
 }
 

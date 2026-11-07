@@ -163,6 +163,19 @@ test('GAM curated import adds verified tenders once and refreshes their deadline
   assert.ok(rows.every(row => row.status === 'closed'), 'all 14 past deadlines must update the stored status');
 });
 
+test('GAM notice closes at the exact 11:00 Amman deadline', () => {
+  const { refreshExpiredOpportunities } = require('../src/routes/opportunities');
+  const db = getDB();
+  db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`).run('opp-gam-exact-deadline','amman','test-exact-deadline','اختبار حد الإغلاق','أمانة عمّان الكبرى','JO',
+      '2026-11-23T11:00:00+03:00','https://www.gamtenders.gov.jo/adlocaltenders.aspx','open','ar');
+  assert.equal(refreshExpiredOpportunities(db, Date.parse('2026-11-23T07:59:59.000Z')), 0);
+  assert.equal(db.prepare("SELECT status FROM tender_opportunities WHERE external_id='test-exact-deadline'").get().status, 'open');
+  assert.equal(refreshExpiredOpportunities(db, Date.parse('2026-11-23T08:00:00.000Z')), 1);
+  assert.equal(db.prepare("SELECT status FROM tender_opportunities WHERE external_id='test-exact-deadline'").get().status, 'closed');
+});
+
 test('UNGM curated FAO notice respects its 23:59 deadline and shares the existing notice ID for deduplication', () => {
   const { syncUNGMCurated } = require('../src/lib/ungm-curated-sync');
   const { refreshExpiredOpportunities } = require('../src/routes/opportunities');

@@ -21,7 +21,7 @@ function normalizeGAMNotice(row, source, nowLocal = ammanNow()) {
   const closingAt = String(row.closingAt).slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(closingAt)) return null;
   const closingTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(row.closingTime || '') ? row.closingTime : '23:59';
-  const status = closingAt + 'T' + closingTime < nowLocal ? 'closed' : 'open';
+  const status = closingAt + 'T' + closingTime <= nowLocal ? 'closed' : 'open';
   return {
     id: String(row.externalId),
     title: String(row.title).trim().slice(0, 300),
