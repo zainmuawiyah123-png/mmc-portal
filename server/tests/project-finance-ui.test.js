@@ -279,6 +279,15 @@ test('OPP-25 — فشل المصادقة يعرض تسجيل الدخول وإع
   assert.ok(login.includes('(bid|procurement|admin|tender-opportunities)'));
 });
 
+test('OPP-26 — لوحة تفاصيل سوق العطاءات مخفية تماماً قبل الفتح في RTL وLTR', () => {
+  const market = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/market.html'), 'utf8');
+  assert.match(market, /\.mk-drawer\{[^}]*transform:translateX\(102%\)[^}]*visibility:hidden;pointer-events:none/);
+  assert.match(market, /html\[dir=ltr\] \.mk-drawer\{transform:translateX\(-102%\)\}/);
+  assert.match(market, /\.mk-drawer\.on\{transform:none;visibility:visible;pointer-events:auto/);
+  assert.ok(market.includes("$('#dim').onclick=closeD"));
+  assert.ok(market.includes("if(e.key==='Escape')closeD()"));
+});
+
 
 test('OPP-09 — تفاصيل العطاء والوثائق العامة تُعرض وتُنزل من داخل MMC بأمان', () => {
   const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
