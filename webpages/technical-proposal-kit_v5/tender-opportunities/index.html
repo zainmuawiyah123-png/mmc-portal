@@ -81,7 +81,7 @@
  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const isEn=()=>document.documentElement.lang==='en';
  const countryNames={JO:['الأردن','Jordan'],SA:['السعودية','Saudi Arabia'],AE:['الإمارات','UAE'],QA:['قطر','Qatar'],OM:['عُمان','Oman'],BH:['البحرين','Bahrain'],KW:['الكويت','Kuwait'],EG:['مصر','Egypt'],INT:['دولي','International']};
- const sourceNames={joneps:['JONEPS','JONEPS'],apc:['شركة البوتاس','Arab Potash'],amman:['أمانة عمّان','Greater Amman Municipality'],jpmc:['الفوسفات','JPMC'],nepco:['الكهرباء','NEPCO'],worldbank:['البنك الدولي','World Bank'],ungm:['UNGM','UNGM']};
+ const sourceNames={joneps:['JONEPS','JONEPS'],apc:['شركة البوتاس','Arab Potash'],amman:['أمانة عمّان','Greater Amman Municipality'],jpmc:['الفوسفات','JPMC'],nepco:['الكهرباء الوطنية','NEPCO'],jepco:['شركة الكهرباء الأردنية','JEPCO'],sepco:['السمرا','SEPCO'],jprc:['مصفاة البترول','Jordan Petroleum Refinery'],jppmc:['تسويق المشتقات','JPPMC'],jordan_bromine:['البرومين الأردنية','Jordan Bromine'],memr:['وزارة الطاقة','Ministry of Energy'],mwi:['وزارة المياه','Ministry of Water'],emrc:['هيئة تنظيم الطاقة','Energy and Minerals Regulatory Commission'],unicef_jo:['UNICEF الأردن','UNICEF Jordan'],unhcr_jo:['UNHCR الأردن','UNHCR Jordan'],worldbank:['البنك الدولي','World Bank'],ungm:['UNGM','UNGM']};
  const closingLabel=(value,country,en)=>{if(!value)return en?'Not specified':'غير محدد';if(country==='JO'&&String(value).includes('T')){const d=new Date(value);if(!Number.isNaN(d.getTime()))return new Intl.DateTimeFormat(en?'en-GB':'ar-JO',{calendar:'gregory',timeZone:'Asia/Amman',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d)+' (Amman)'}return value};
  async function load(){
   const en=isEn();
@@ -98,11 +98,66 @@
     const state=o.status==='open'?(en?'Open':'مفتوح'):(en?'Closed':'مغلق');
     const countryLabel=(countryNames[o.country]||[o.country,o.country])[en?1:0];
     const sourceLabel=(sourceNames[o.sourceKey]||[o.sourceKey,o.sourceKey])[en?1:0];
-    card.innerHTML='<span class="tag">'+state+' · '+esc(countryLabel)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||(en?'Unspecified authority':'الجهة غير محددة'))+'</p><p>'+esc(o.summary||(en?'No additional summary.':'لا يوجد ملخص إضافي.'))+'</p><p class="muted">'+(en?'Tender no.: ':'رقم العطاء: ')+esc(o.tenderNumber||(en?'Not specified':'غير محدد'))+' · '+(en?'Closing: ':'الإغلاق: ')+esc(closingLabel(o.closingAt,o.country,en))+'</p><p class="muted">'+(en?'Source: ':'المصدر: ')+esc(sourceLabel)+'</p><a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+(en?'Original notice ↗':'الإعلان الأصلي ↗')+'</a>'+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+(en?'Official submission ↗':'التقديم الرسمي ↗')+'</a>':'');
+    card.innerHTML = [
+     '<span class="tag">'+state+' · '+esc(countryLabel)+'</span><h3>'+esc(o.title)+'</h3>',
+     '<p>'+esc(o.authority||(en?'Unspecified authority':'الجهة غير محددة'))+'</p>',
+     '<p>'+esc(o.summary||(en?'No additional summary.':'لا يوجد ملخص إضافي.'))+'</p>',
+     '<p class="muted">'+(en?'Tender no.: ':'رقم العطاء: ')+esc(o.tenderNumber||(en?'Not specified':'غير محدد'))+' · '+(en?'Closing: ':'الإغلاق: ')+esc(closingLabel(o.closingAt,o.country,en))+'</p>',
+     '<p class="muted">'+(en?'Source: ':'المصدر: ')+esc(sourceLabel)+'</p>',
+     '<button type="button" class="btn" data-opportunity-detail>'+ (en?'Details and public documents inside MMC':'تفاصيل الإعلان والوثائق العامة داخل MMC')+'</button>',
+     '<div class="opportunity-detail" style="margin:1rem 0;padding:1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px" hidden></div>',
+     '<a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+(en?'Original notice ↗':'الإعلان الأصلي ↗')+'</a>',
+     (o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+(en?'Official submission ↗':'التقديم الرسمي ↗')+'</a>':'')
+    ].join('');
+    card.querySelector('[data-opportunity-detail]').addEventListener('click',()=>showOpportunityDetails(o,card));
     results.appendChild(card);
    });
    document.getElementById('opp-count').textContent=(en?'Results: ':'عدد النتائج: ')+data.count;
   }catch(e){results.textContent=e.message;}
+ }
+ async function showOpportunityDetails(o,card){
+  const panel=card.querySelector('.opportunity-detail'),en=isEn();
+  if(!panel.hidden){panel.hidden=true;return;}
+  panel.hidden=false;panel.textContent=en?'Loading notice details and public attachments...':'جارٍ تحميل تفاصيل الإعلان والمرفقات العامة...';
+  try{
+   const res=await fetch('/api/opportunities/'+encodeURIComponent(o.id),{credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||(en?'Could not load details':'تعذر تحميل التفاصيل'));
+   const d=data.details||{},op=data.opportunity||o;
+   const fields=[
+    [en?'Authority':'الجهة',op.authority||o.authority],
+    [en?'Tender number':'رقم العطاء',op.tenderNumber||o.tenderNumber],
+    [en?'Publication date':'تاريخ النشر',d.publicationDate||op.publishedAt||o.publishedAt],
+    [en?'Closing date':'موعد الإغلاق',d.closingDate||op.closingAt||o.closingAt],
+    [en?'Document purchase deadline':'آخر موعد لشراء الوثائق',d.purchaseDate],
+    [en?'Document fee':'ثمن الوثائق',d.copyPrice],
+    [en?'Bid bond':'كفالة دخول العطاء',d.bidBond],
+    [en?'Qualifications':'شروط التأهيل',d.qualifications],
+    [en?'Notice remarks':'ملاحظات الإعلان',d.remarks]
+   ].filter(x=>x[1]);
+   const detailRows=fields.map(x=>'<p><b>'+esc(x[0])+':</b> '+esc(x[1])+'</p>').join('');
+   const docs=data.documents||[];
+   const docRows=docs.map((doc,index)=>'<li style="margin:.5rem 0"><b>'+esc(doc.label)+'</b> '+
+    (doc.downloadUrl?'<button type="button" class="btn" data-doc-download="'+esc(doc.downloadUrl)+'" data-doc-status="doc-status-'+index+'">'+(doc.cached?(en?'Download stored MMC copy':'تنزيل النسخة المحفوظة في MMC'):(en?'Download via MMC (public file)':'تنزيل عبر MMC (ملف عام)'))+'</button><span id="doc-status-'+index+'" class="muted" style="margin-inline-start:.5rem"></span>':('<span class="muted">'+(en?'No safe public file URL was found for this attachment.':'لم يُعثر على رابط ملف عام آمن لهذا المرفق.')+'</span>'))+'</li>').join('');
+   panel.innerHTML='<h4>'+esc(op.title||o.title)+'</h4>'+detailRows+
+    '<h4>'+(en?'Public tender documents':'وثائق العطاء العامة')+'</h4>'+
+    (docRows?'<ul>'+docRows+'</ul>':'<p class="muted">'+(en?'No direct public attachment was found in the source record. Official copies may require vendor registration or purchase.':'لم يتضمن سجل المصدر مرفقاً عاماً مباشراً. قد تتطلب النسخة الرسمية التسجيل كمورد أو شراء الوثائق.')+'</p>')+
+    '<p class="muted">'+(en?'MMC saves a publicly downloadable file to the configured platform storage on its first download. It does not bypass vendor registration or document fees.':'يحفظ MMC الملف العام في مساحة تخزين المنصة عند أول تنزيل، ولا يتجاوز تسجيل المورد أو رسوم الوثائق.')+'</p>'+
+    '<p><a href="'+esc(op.sourceUrl||o.sourceUrl)+'" target="_blank" rel="noopener">'+(en?'Official source notice ↗':'الإعلان لدى المصدر الرسمي ↗')+'</a></p>';
+   panel.querySelectorAll('[data-doc-download]').forEach(button=>button.addEventListener('click',async()=>{
+    const status=document.getElementById(button.getAttribute('data-doc-status'));
+    button.disabled=true;if(status)status.textContent=en?'Downloading from official source...':'جارٍ التنزيل من المصدر الرسمي...';
+    try{
+     const fileRes=await fetch(button.getAttribute('data-doc-download'),{credentials:'same-origin'});
+     if(!fileRes.ok){let payload={};try{payload=await fileRes.json();}catch(_){}throw new Error(payload.error?.message||(en?'The file could not be downloaded':'تعذر تنزيل الملف'));}
+     const blob=await fileRes.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+     let filename='tender-document';const disposition=fileRes.headers.get('content-disposition')||'',match=disposition.match(/filename\*=UTF-8''([^;]+)/i);
+     if(match){try{filename=decodeURIComponent(match[1]);}catch(_){filename='tender-document';}}
+     a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+     if(status)status.textContent=en?'Downloaded and cached in MMC':'تم التنزيل وحفظ نسخة في MMC';
+    }catch(err){if(status)status.textContent=err.message;}
+    finally{button.disabled=false;}
+   }));
+  }catch(err){panel.textContent=err.message;}
  }
  window.reloadTenderList=load;
  document.getElementById('opp-search').addEventListener('click',load);

@@ -269,3 +269,22 @@ test('OPP-24 — لوحة العطاءات تعرض سجل المصدر ونتي
   assert.ok(tenderDirectory.includes('received'));
   assert.ok(tenderDirectory.includes('duration_ms'));
 });
+
+
+test('OPP-09 — تفاصيل العطاء والوثائق العامة تُعرض وتُنزل من داخل MMC بأمان', () => {
+  const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
+  const downloader=fs.readFileSync(path.join(__dirname,'../src/lib/public-tender-documents.js'),'utf8');
+  const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
+  assert.ok(tenderDirectory.includes('data-opportunity-detail'));
+  assert.ok(tenderDirectory.includes('showOpportunityDetails'));
+  assert.ok(tenderDirectory.includes('data-doc-download'));
+  assert.ok(tenderDirectory.includes('Download via MMC (public file)'));
+  assert.ok(route.includes("router.get('/:id', A.requireAuth, A.requireRole(...MARKET_ROLES)"));
+  assert.ok(route.includes("'/:id/documents/:documentId/download'"));
+  assert.ok(route.includes("'public-tenders/'+doc.source_key+'/'+doc.id"));
+  assert.ok(downloader.includes("redirect: 'manual'"));
+  assert.ok(downloader.includes('DOCUMENT_REDIRECT_NOT_ALLOWED'));
+  assert.ok(downloader.includes('MAX_REDIRECTS'));
+  assert.ok(migration.includes('tender_opportunity_public_documents'));
+  assert.ok(migration.includes('details_json'));
+});

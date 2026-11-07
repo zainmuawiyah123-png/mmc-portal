@@ -99,7 +99,7 @@ test('UNGM timestamp deadline expires at the stated instant, including on the sa
   assert.equal(isDeadlineExpired('2026-11-07', before), false, 'date-only source data remains open through its date');
 });
 
-const { parseApcRows } = require('../src/lib/apc-sync');
+const { parseApcRows, parseApcDetail } = require('../src/lib/apc-sync');
 test('APC parser reads the public list row, dates, bond, qualifications and keeps the link on arabpotash.com', () => {
   const html = '<div><a href="https://arabpotash.com/En/TendersDetails?PID=2310">IFB NO. 202602574/NA - Construction of Army Towers / South Expansion Requirements Purchase Date: 09/11/2026 Closing date: 29/11/2026 Copy Price: JOD 232 Bid Bond Value: JOD 17,500 Vendor Qualifications: المقاولين المحليين درجة ثالثة Remarks: Construction of Army Towers Read More</a>'
     + '<a href="/En/TendersDetails?PID=2302">IFB No. 202603358/AS - Supply 400 Panels Purchase Date: 13/10/2026 Closing date: 26/10/2026 Copy Price: JOD 116.00 Bid Bond Value: JOD 7,000.00 Vendor Qualifications: الشركات ذات الإختصاص Remarks: x Read More</a></div>';
@@ -114,6 +114,18 @@ test('APC parser reads the public list row, dates, bond, qualifications and keep
   assert.match(rows[0].summary, /JOD 17,500/);
   assert.equal(rows[1].status, 'closed');
   assert.equal(new URL(rows[1].sourceUrl).origin, 'https://arabpotash.com');
+});
+
+test('APC detail parser extracts public attachments only from the official Arab Potash domain', () => {
+  const html = '<p>Purchase Date: 09/11/2026 Closing date: 29/11/2026 Copy Price: JOD 232 Bid Bond Value: JOD 17,500 Vendor Qualifications: Contractors</p>'
+    + '<a href="/documents/202602574.pdf">Download tender document</a>'
+    + '<a href="https://evil.example/tender.pdf">Download mirror</a>';
+  const result = parseApcDetail(html, 'https://arabpotash.com/En/TendersDetails?PID=2310');
+  assert.equal(result.details.purchaseDate, '2026-11-09');
+  assert.equal(result.details.closingDate, '2026-11-29');
+  assert.equal(result.documents.length, 1);
+  assert.equal(result.documents[0].label, 'Download tender document');
+  assert.equal(result.documents[0].url, 'https://arabpotash.com/documents/202602574.pdf');
 });
 
 test('JONEPS sync deduplicates by source and tender ID while updating a closed tender', async () => {
@@ -169,4 +181,39 @@ test('UNGM curated FAO notice respects its 23:59 deadline and shares the existin
 test.after(() => {
   closeDB();
   fs.rmSync(TMP, { recursive: true, force: true });
+});
+
+const { isAllowedPublicDocumentUrl, downloadPublicDocument } = require('../src/lib/public-tender-documents');
+
+test('public tender document allowlist requires HTTPS and the official source domain', () => {
+  assert.equal(isAllowedPublicDocumentUrl('apc', 'https://arabpotash.com/files/tender.pdf'), true);
+  assert.equal(isAllowedPublicDocumentUrl('apc', 'https://files.arabpotash.com/files/tender.pdf'), true);
+  assert.equal(isAllowedPublicDocumentUrl('apc', 'http://arabpotash.com/files/tender.pdf'), false);
+  assert.equal(isAllowedPublicDocumentUrl('apc', 'https://arabpotash.com.evil.example/files/tender.pdf'), false);
+  assert.equal(isAllowedPublicDocumentUrl('apc', 'https://evil.example/files/tender.pdf'), false);
+});
+
+test('public document downloader accepts bounded PDF bytes from an allowlisted official source', async () => {
+  const originalFetch = global.fetch;
+  const bytes = Buffer.from('%PDF-1.7\n');
+  global.fetch = async (url, options) => {
+    assert.equal(url, 'https://arabpotash.com/files/tender.pdf');
+    assert.equal(options.redirect, 'manual');
+    return new Response(bytes, { status: 200, headers: { 'content-type': 'application/pdf', 'content-length': String(bytes.length) } });
+  };
+  try {
+    const result = await downloadPublicDocument('apc', 'https://arabpotash.com/files/tender.pdf');
+    assert.deepEqual(result.buffer, bytes);
+    assert.equal(result.mime, 'application/pdf');
+    assert.equal(result.extension, '.pdf');
+    assert.equal(result.filename, 'وثيقة العطاء.pdf');
+  } finally { global.fetch = originalFetch; }
+});
+
+test('public document downloader refuses an official-source redirect to an untrusted host', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => new Response(null, { status: 302, headers: { location: 'https://evil.example/tender.pdf' } });
+  try {
+    await assert.rejects(downloadPublicDocument('apc', 'https://arabpotash.com/files/tender.pdf'), error => error.code === 'DOCUMENT_REDIRECT_NOT_ALLOWED');
+  } finally { global.fetch = originalFetch; }
 });

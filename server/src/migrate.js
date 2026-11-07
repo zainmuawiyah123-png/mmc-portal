@@ -642,6 +642,44 @@ function upgradeTenderOpportunities(db) {
 }
 
 
+function upgradeTenderOpportunityDocuments(db) {
+  const opportunityCols = new Set(db.prepare('PRAGMA table_info(tender_opportunities)').all().map(c => c.name));
+  if (!opportunityCols.has('details_json')) db.exec('ALTER TABLE tender_opportunities ADD COLUMN details_json TEXT');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tender_opportunity_public_documents (
+      id TEXT PRIMARY KEY,
+      opportunity_id TEXT NOT NULL REFERENCES tender_opportunities(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      document_url TEXT NOT NULL,
+      availability TEXT NOT NULL DEFAULT 'public-source-link',
+      storage_key TEXT,
+      storage_driver TEXT,
+      content_type TEXT,
+      file_size INTEGER,
+      checksum_sha256 TEXT,
+      downloaded_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(opportunity_id, document_url)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tender_public_documents_opportunity
+      ON tender_opportunity_public_documents(opportunity_id, created_at);
+  `);
+  const documentCols = new Set(db.prepare('PRAGMA table_info(tender_opportunity_public_documents)').all().map(c => c.name));
+  const additions = {
+    availability: "TEXT NOT NULL DEFAULT 'public-source-link'",
+    storage_key: 'TEXT',
+    storage_driver: 'TEXT',
+    content_type: 'TEXT',
+    file_size: 'INTEGER',
+    checksum_sha256: 'TEXT',
+    downloaded_at: 'INTEGER'
+  };
+  for (const [name, type] of Object.entries(additions)) {
+    if (!documentCols.has(name)) db.exec('ALTER TABLE tender_opportunity_public_documents ADD COLUMN ' + name + ' ' + type);
+  }
+}
+
+
 function upgradeBidSubmissionDocuments(db) {
   const cols = new Set(db.prepare('PRAGMA table_info(bid_submissions)').all().map((c) => c.name));
   if (!cols.has('receipt_reference')) db.exec('ALTER TABLE bid_submissions ADD COLUMN receipt_reference TEXT');
@@ -770,6 +808,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeWorkflow(db);
   upgradeProjectFinance(db);
   upgradeTenderOpportunities(db);
+  upgradeTenderOpportunityDocuments(db);
   upgradeMultiCountry(db);
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);

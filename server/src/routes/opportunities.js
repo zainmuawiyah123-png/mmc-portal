@@ -4,6 +4,7 @@ const { getDB, uid } = require('../db');
 const { E, wrap } = require('../lib/errors');
 const A = require('../lib/auth');
 const { audit } = require('../lib/audit');
+const { isAllowedPublicDocumentUrl, downloadPublicDocument, safeDocumentFilename } = require('../lib/public-tender-documents');
 
 const router = express.Router();
 const clean = (v, n=500) => String(v == null ? '' : v).trim().slice(0,n);
@@ -79,8 +80,83 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
   connectedSources:['joneps','apc','worldbank','ungm','amman'],
-  lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
+	 lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
+
+// Tender details and public document links are served inside MMC to signed-in contractors/admins.
+router.get('/:id', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res,next) => {
+ if(req.params.id==='admin') return next();
+ const db=getDB();
+ const row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
+ if(!row) throw E.notFound('العطاء غير موجود أو غير منشور.');
+ let details={};
+ try { details=row.details_json?JSON.parse(row.details_json):{}; } catch (_) { details={}; }
+ const documents=db.prepare(`SELECT id,label,availability,document_url,storage_key,content_type,file_size,downloaded_at
+   FROM tender_opportunity_public_documents WHERE opportunity_id=? ORDER BY created_at,id`).all(row.id)
+   .map(doc=>({
+     id:doc.id,label:doc.label,availability:doc.availability,
+     downloadUrl:isAllowedPublicDocumentUrl(row.source_key,doc.document_url)
+       ? '/api/opportunities/'+encodeURIComponent(row.id)+'/documents/'+encodeURIComponent(doc.id)+'/download' : null,
+     cached:Boolean(doc.storage_key), downloadedAt:doc.downloaded_at?new Date(doc.downloaded_at*1000).toISOString():null
+   }));
+ res.setHeader('Cache-Control','private, max-age=30');
+ res.json({opportunity:shape(row),details,documents});
+}));
+
+router.get('/:id/documents/:documentId/download', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res) => {
+ const db=getDB();
+ const doc=db.prepare(`SELECT d.*,o.source_key,o.status AS opportunity_status,o.title AS opportunity_title
+   FROM tender_opportunity_public_documents d JOIN tender_opportunities o ON o.id=d.opportunity_id
+   WHERE d.id=? AND o.id=? AND o.status IN ('open','closed')`).get(req.params.documentId,req.params.id);
+ if(!doc) throw E.notFound('وثيقة العطاء غير موجودة أو غير منشورة.');
+ if(doc.availability!=='public-source-link' || !isAllowedPublicDocumentUrl(doc.source_key,doc.document_url)) {
+   throw E.forbidden('هذا الملف ليس رابطاً عاماً من نطاق المصدر الرسمي المعتمد.');
+ }
+
+ const storageApi=require('../lib/storage');
+ const storage=storageApi.getStorage();
+ let buffer=null, mime=doc.content_type||'', filename='', cacheState='hit';
+ const expectedPrefix='public-tenders/'+doc.source_key+'/';
+ if(doc.storage_key && doc.storage_key.startsWith(expectedPrefix)) {
+   try {
+     buffer=await storage.get(doc.storage_key);
+     if(!Buffer.isBuffer(buffer) || !buffer.length || buffer.length>require('../config').MAX_FILE_BYTES) buffer=null;
+   } catch (_) { buffer=null; }
+ }
+ if(!buffer) {
+   const fetched=await downloadPublicDocument(doc.source_key,doc.document_url);
+   buffer=fetched.buffer; mime=fetched.mime; cacheState='stored';
+   filename=safeDocumentFilename(doc.label,fetched.finalUrl,fetched.mime);
+   storageApi.assertAllowed(filename,buffer.length);
+   if(!/^[a-z0-9_]+$/.test(doc.source_key) || !/^[A-Za-z0-9_-]+$/.test(doc.id)) throw E.badRequest('معرّف ملف العطاء غير صالح.');
+   const storageKey='public-tenders/'+doc.source_key+'/'+doc.id+fetched.extension;
+   try {
+     const stored=await storage.put(storageKey,buffer,{mime,originalName:filename});
+     db.prepare(`UPDATE tender_opportunity_public_documents SET storage_key=?,storage_driver=?,content_type=?,file_size=?,checksum_sha256=?,downloaded_at=unixepoch()
+       WHERE id=? AND document_url=?`).run(stored.key,stored.driver,mime,buffer.length,stored.checksum,doc.id,doc.document_url);
+   } catch(err) {
+     cacheState='uncached';
+     console.warn('[tender-doc] تعذّر حفظ نسخة عامة في التخزين:',String(err&&err.message||err).slice(0,180));
+   }
+ } else {
+   try { filename=safeDocumentFilename(doc.label,doc.document_url,mime); }
+   catch (_) {
+     const ext=(String(doc.storage_key||'').match(/\.[a-z0-9]{1,8}$/i)||[])[0]||'.bin';
+     filename=(String(doc.label||'وثيقة العطاء').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').slice(0,90)||'وثيقة العطاء')+ext;
+   }
+ }
+ audit({action:'opportunity_document_download',entity:'tender_opportunity_document',entityId:doc.id,userId:req.user.id,ip:req.ip,detail:{opportunityId:doc.opportunity_id,sourceKey:doc.source_key,bytes:buffer.length,cache:cacheState}});
+ const fallback=filename.replace(/[^\x20-\x7e]/g,'_').replace(/["\\]/g,'_').slice(0,140)||'tender-document';
+ const encoded=encodeURIComponent(filename).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
+ res.setHeader('Content-Type',mime||'application/octet-stream');
+ res.setHeader('Content-Length',String(buffer.length));
+ res.setHeader('Content-Disposition',`attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`);
+ res.setHeader('X-Content-Type-Options','nosniff');
+ res.setHeader('X-MMC-Document-Cache',cacheState);
+ res.setHeader('Cache-Control','private, no-store');
+ res.send(buffer);
+}));
+
 router.post('/:id/save', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res) => {
  const db=getDB();
  if(!db.prepare('SELECT 1 FROM tender_opportunities WHERE id=?').get(req.params.id)) throw E.notFound('العطاء غير موجود.');

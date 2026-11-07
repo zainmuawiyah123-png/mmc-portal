@@ -1578,3 +1578,59 @@ test('95 — استيراد عطاءات أمانة عمّان وFAO متاح ل
   assert.strictEqual(ungm.status, 200, JSON.stringify(ungm.data));
   assert.deepStrictEqual([ungm.data.added, ungm.data.received, ungm.data.snapshotOnly], [1, 1, true]);
 });
+
+
+test('96 — وثائق العطاء العامة تُنزّل عبر MMC وتُخزّن بعد أول طلب مع حماية الدخول', async () => {
+  const db=getDB(), token='doc-download-'+uniq(), opportunityId='doc-opp-'+token, documentId='doc-file-'+token;
+  const documentUrl='https://arabpotash.com/public/'+token+'.pdf', apiPath='/api/opportunities/'+opportunityId+'/documents/'+documentId+'/download';
+  const bytes=Buffer.from('%PDF-1.7\nMMC tender document\n');
+  db.prepare(`INSERT INTO tender_opportunities (id,source_key,external_id,title,authority,country,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?)`).run(opportunityId,'apc',token,'Public APC tender','Arab Potash','JO','https://arabpotash.com/EN/Modules/Tenders','open','en');
+  db.prepare(`INSERT INTO tender_opportunity_public_documents (id,opportunity_id,label,document_url,availability)
+    VALUES (?,?,?,?,?)`).run(documentId,opportunityId,'كراسة العطاء',documentUrl,'public-source-link');
+  const denied=await call('anon-doc-download','GET',apiPath);
+  assert.strictEqual(denied.status,401);
+  const contractor='doc-contractor-'+uniq();
+  await call(contractor,'POST','/api/auth/register',{body:{name:'مقاول تنزيل',email:contractor+'@t.com',password:'Password123'}});
+  const originalFetch=global.fetch;let upstreamRequests=0;
+  global.fetch=async(url,options)=>{
+    if(String(url)===documentUrl){upstreamRequests++;return new Response(bytes,{status:200,headers:{'content-type':'application/pdf','content-length':String(bytes.length)}});}
+    return originalFetch(url,options);
+  };
+  try {
+    const first=await fetch(base+apiPath,{headers:cookieFor(contractor),redirect:'manual'});
+    assert.strictEqual(first.status,200);
+    assert.strictEqual(first.headers.get('x-mmc-document-cache'),'stored');
+    assert.deepStrictEqual(Buffer.from(await first.arrayBuffer()),bytes);
+    const stored=db.prepare('SELECT storage_key,storage_driver,content_type,file_size,checksum_sha256,downloaded_at FROM tender_opportunity_public_documents WHERE id=?').get(documentId);
+    assert.ok(stored.storage_key.startsWith('public-tenders/apc/'+documentId));
+    assert.ok(stored.storage_driver);
+    assert.strictEqual(stored.content_type,'application/pdf');
+    assert.strictEqual(stored.file_size,bytes.length);
+    assert.ok(stored.checksum_sha256&&stored.downloaded_at);
+    const second=await fetch(base+apiPath,{headers:cookieFor(contractor),redirect:'manual'});
+    assert.strictEqual(second.status,200);
+    assert.strictEqual(second.headers.get('x-mmc-document-cache'),'hit');
+    assert.deepStrictEqual(Buffer.from(await second.arrayBuffer()),bytes);
+    assert.strictEqual(upstreamRequests,1,'the cached MMC copy should prevent a second source fetch');
+  } finally {
+    global.fetch=originalFetch;
+    db.prepare('DELETE FROM tender_opportunities WHERE id=?').run(opportunityId);
+  }
+});
+
+test('97 — تفاصيل العطاء تعيد رابط تنزيل داخلياً للوثيقة الرسمية', async () => {
+  const db=getDB(),token='doc-details-'+uniq(),opportunityId='detail-opp-'+token,documentId='detail-file-'+token,user='detail-contractor-'+uniq();
+  await call(user,'POST','/api/auth/register',{body:{name:'مقاول تفاصيل',email:user+'@t.com',password:'Password123'}});
+  db.prepare(`INSERT INTO tender_opportunities (id,source_key,external_id,title,authority,country,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?)`).run(opportunityId,'apc',token,'APC notice','Arab Potash','JO','https://arabpotash.com/EN/Modules/Tenders','open','en');
+  db.prepare(`INSERT INTO tender_opportunity_public_documents (id,opportunity_id,label,document_url,availability)
+    VALUES (?,?,?,?,?)`).run(documentId,opportunityId,'Tender PDF','https://arabpotash.com/docs/'+token+'.pdf','public-source-link');
+  try {
+    const result=await call(user,'GET','/api/opportunities/'+opportunityId);
+    assert.strictEqual(result.status,200,JSON.stringify(result.data));
+    assert.strictEqual(result.data.opportunity.id,opportunityId);
+    assert.strictEqual(result.data.documents.length,1);
+    assert.strictEqual(result.data.documents[0].downloadUrl,'/api/opportunities/'+opportunityId+'/documents/'+documentId+'/download');
+  } finally { db.prepare('DELETE FROM tender_opportunities WHERE id=?').run(opportunityId); }
+});

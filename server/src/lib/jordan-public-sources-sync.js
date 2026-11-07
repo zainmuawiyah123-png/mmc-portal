@@ -4,6 +4,7 @@
  * Only public notice metadata is imported; no logins, bid submissions or paywalls are bypassed.
  */
 const {getDB,uid}=require('../db');
+const {isAllowedPublicDocumentUrl}=require('./public-tender-documents');
 const SOURCES=[
  {key:'gam',name:'أمانة عمّان الكبرى',url:'https://gamtenders.gov.jo/adlocaltenders.aspx',country:'JO',authority:'أمانة عمّان الكبرى'},
  {key:'jpmc',name:'شركة مناجم الفوسفات الأردنية',url:'https://www.jpmc.com.jo/ar/tender',country:'JO',authority:'شركة مناجم الفوسفات الأردنية'},
@@ -120,7 +121,7 @@ function extractNoticeDetails(html,source,item){
   const label=decode(a[2]).slice(0,180),href=a[1];
   if(!label&&!/[.](?:pdf|docx?|xlsx?|zip|rar)(?:$|[?#])/i.test(href))continue;
   let u;try{u=new URL(href,item.sourceUrl);}catch(_){continue;}
-  if(u.protocol!=='https:'||seen.has(u.toString()))continue;
+  if(!isAllowedPublicDocumentUrl(source.key,u.toString())||seen.has(u.toString()))continue;
   const looksDoc=/[.](?:pdf|docx?|xlsx?|zip|rar)(?:$|[?#])/i.test(u.pathname)||/(?:document|attachment|download|وثائق|مرفق|تحميل|كراسة|مواصفات|boq|bill of quantities)/i.test(label+' '+href);
   if(!looksDoc)continue;
   seen.add(u.toString());docs.push({label:label||'وثيقة العطاء',url:u.toString(),availability:'public-source-link'});
@@ -162,8 +163,8 @@ async function syncOne(source){
    upsert.run({rowId:opportunityId,sourceKey:source.key,externalId:n.id,title:detail?.title||n.title,authority:n.authority,country:n.country,sector:n.sector,tenderNumber:n.tenderNumber,summary:n.summary,publishedAt:n.publishedAt,closingAt:n.closingAt,sourceUrl:n.sourceUrl,applicationUrl:n.applicationUrl,status:n.status,language:n.language,detailsJson:detail?JSON.stringify(detail):null});
    if(detail){
     detailsReceived++;
-    db.prepare('DELETE FROM tender_opportunity_public_documents WHERE opportunity_id=?').run(opportunityId);
-    const ins=db.prepare('INSERT OR IGNORE INTO tender_opportunity_public_documents (id,opportunity_id,label,document_url,availability) VALUES (?,?,?,?,?)');
+    const ins=db.prepare(`INSERT INTO tender_opportunity_public_documents (id,opportunity_id,label,document_url,availability)
+      VALUES (?,?,?,?,?) ON CONFLICT(opportunity_id,document_url) DO UPDATE SET label=excluded.label,availability=excluded.availability`);
     detail.documents.forEach(doc=>{ins.run(uid('oppdoc_'),opportunityId,doc.label,doc.url,doc.availability);documentsAdded++;});
    }
    if(old)updated++;else added++;
