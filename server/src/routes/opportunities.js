@@ -19,14 +19,23 @@ const shape = r => ({
   closingAt:r.closing_at, sourceUrl:r.source_url, applicationUrl:r.application_url,
   status:r.status, language:r.language, sourceKey:r.source_key, importedAt:r.imported_at
 });
+function refreshExpiredOpportunities(db=getDB(), now=Date.now()) {
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date(now));
+  const nowIso=new Date(now).toISOString();
+  const dateOnly=db.prepare("UPDATE tender_opportunities SET status='closed',updated_at=unixepoch() WHERE status='open' AND closing_at IS NOT NULL AND length(closing_at)=10 AND closing_at<?").run(today).changes;
+  const timed=db.prepare("UPDATE tender_opportunities SET status='closed',updated_at=unixepoch() WHERE status='open' AND closing_at IS NOT NULL AND length(closing_at)>10 AND datetime(closing_at)<datetime(?)").run(nowIso).changes;
+  return dateOnly+timed;
+}
 
-// Public directory: only published records; no account or internal tender fields.
+// Authenticated directory: only published records; no account or internal tender fields.
 router.get('/', A.requireAuth, A.requireRole('contractor', 'admin'), wrap(async (req,res) => {
-  const db=getDB(), q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
-  const sector=clean(req.query.sector,80), status=clean(req.query.status,20);
+  const db=getDB(); refreshExpiredOpportunities(db);
+  const q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
+  const sector=clean(req.query.sector,80), status=clean(req.query.status,20), source=clean(req.query.source,80);
   const clauses=["status IN ('open','closed')"], vals=[];
   if(country){clauses.push('country=?');vals.push(country);}
   if(sector){clauses.push('sector=?');vals.push(sector);}
+  if(source){clauses.push('source_key=?');vals.push(source);}
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
   if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
   const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 250').all(...vals);
@@ -39,7 +48,8 @@ router.get('/', A.requireAuth, A.requireRole('contractor', 'admin'), wrap(async 
 const ymd = (days=0) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date(Date.now()+days*86400000));
 const MARKET_ROLES = ['contractor','admin'];
 router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res) => {
- const db=getDB(), me=req.user.id;
+ const db=getDB(); refreshExpiredOpportunities(db);
+ const me=req.user.id;
  const q=clean(req.query.q,120), source=clean(req.query.source,20), country=clean(req.query.country,3).toUpperCase();
  const state=req.query.status==='closed'?'closed':'open', sort=req.query.sort==='new'?'new':'closing';
  const within=[7,14,30].includes(Number(req.query.closing))?Number(req.query.closing):0;
@@ -68,7 +78,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
   stats:{open:openN(), closingSoon:openN('closing_at IS NOT NULL AND closing_at<=?',ymd(7)), newThisWeek:openN('imported_at>=?',Math.floor(Date.now()/1000)-7*86400),
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
-  connectedSources:['joneps','apc','worldbank','ungm'],
+  connectedSources:['joneps','apc','worldbank','ungm','amman'],
   lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 router.post('/:id/save', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res) => {
@@ -196,4 +206,15 @@ router.post('/admin/sync/apc', wrap(async(req,res)=>{
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'apc',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
+router.post('/admin/import/amman-curated', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('amman',()=>require('../lib/gam-curated-sync').syncGAMCurated());
+ audit({action:'opportunity_curated_import',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'amman',added:result.added,updated:result.updated,received:result.received,verifiedAt:result.verifiedAt}});
+ res.json({ok:true,...result});
+}));
+router.post('/admin/import/ungm-jordan-curated', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('ungm',()=>require('../lib/ungm-curated-sync').syncUNGMCurated());
+ audit({action:'opportunity_curated_import',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'ungm',added:result.added,updated:result.updated,received:result.received,verifiedAt:result.verifiedAt}});
+ res.json({ok:true,...result});
+}));
+router.refreshExpiredOpportunities=refreshExpiredOpportunities;
 module.exports=router;

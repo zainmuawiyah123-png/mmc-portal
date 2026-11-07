@@ -7,8 +7,15 @@
  */
 const { getDB, uid } = require('../db');
 const clean=(v,n=3000)=>String(v==null?'':v).replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/\s+/g,' ').trim().slice(0,n);
-const ISO3_TO_ISO2={JOR:'JO',SAU:'SA',ARE:'AE'};
-function normalizeUNGMNotice(row){
+const ISO3_TO_ISO2={JOR:'JO',SAU:'SA',ARE:'AE',QAT:'QA',OMN:'OM',BHR:'BH',KWT:'KW',EGY:'EG',IRQ:'IQ',SYR:'SY',LBN:'LB',YEM:'YE',PSE:'PS',MAR:'MA',TUN:'TN',DZA:'DZ',LBY:'LY',SDN:'SD',MRT:'MR',SOM:'SO',DJI:'DJ',COM:'KM'};
+function isDeadlineExpired(deadline, now=Date.now()){
+ const value=clean(deadline,40);if(!value)return false;
+ const today=new Date(now).toISOString().slice(0,10);
+ if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value<today;
+ const parsed=Date.parse(value);if(Number.isFinite(parsed))return parsed<now;
+ return /^\d{4}-\d{2}-\d{2}/.test(value)&&value.slice(0,10)<today;
+}
+function normalizeUNGMNotice(row, now=Date.now()){
  const id=clean(row.Id||row.ID,100),title=clean(row.Title,300);
  if(!id||!title)return null;
  const statusText=clean(row.Status,40).toLowerCase();
@@ -17,7 +24,7 @@ function normalizeUNGMNotice(row){
  const deadline=clean(row.Deadline,40),published=clean(row.DatePublished,40);
  const iso=Array.isArray(row.CountryISO3Codes)?row.CountryISO3Codes.map(x=>clean(x,3).toUpperCase()):[];
  const country=iso.length===1?(ISO3_TO_ISO2[iso[0]]||'INT'):'INT';
- const expired=deadline&&/^\d{4}-\d{2}-\d{2}/.test(deadline)&&deadline.slice(0,10)<new Date().toISOString().slice(0,10);
+ const expired=isDeadlineExpired(deadline,now);
  const reference=clean(row.Reference,120);
  const description=clean(row.Description,2500);
  const publicUrl='https://www.ungm.org/Public/Notice';
@@ -68,4 +75,4 @@ async function syncUNGM({accessToken,rows=100,pages=5}={}){
  });
  return {...tx(mapped),received:items.length,normalized:mapped.length,source:'ungm'};
 }
-module.exports={normalizeUNGMNotice,syncUNGM};
+module.exports={normalizeUNGMNotice,isDeadlineExpired,syncUNGM};

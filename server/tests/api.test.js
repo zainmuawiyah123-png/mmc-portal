@@ -1541,3 +1541,40 @@ test('93 — سوق العطاءات: ترقيم، فتح بحسب التاري�
   await call('mkb', 'POST', '/api/auth/register', { body: { name: 'مشتري السوق', email: 'mkb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
   assert.strictEqual((await call('mkb', 'POST', '/api/opportunities/mk_1/save')).status, 403);
 });
+
+
+test('94 — دليل العطاءات يرشّح حسب المصدر مع بقاء الوصول مقتصراً على المقاول أو المسؤول', async () => {
+  const db = getDB(), token = 'source-filter-' + uniq(), user = 'source-filter-admin';
+  await makeAdmin(user);
+  const insert = db.prepare(`INSERT INTO tender_opportunities
+    (id,source_key,external_id,title,authority,country,sector,tender_number,summary,closing_at,source_url,status,language)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  insert.run('filter-jpmc-' + token, 'jpmc', 'filter-jpmc-' + token, token, 'JPMC', 'JO', 'أعمال', token, 'test', '2099-12-31', 'https://www.jpmc.com.jo/ar/tender', 'open', 'ar');
+  insert.run('filter-ungm-' + token, 'ungm', 'filter-ungm-' + token, token, 'UNGM', 'JO', 'أعمال', token, 'test', '2099-12-31', 'https://www.ungm.org/Public/Notice', 'open', 'en');
+  try {
+    const filtered = await call(user, 'GET', '/api/opportunities?source=jpmc&country=JO&status=open&q=' + token);
+    assert.strictEqual(filtered.status, 200, JSON.stringify(filtered.data));
+    assert.strictEqual(filtered.data.count, 1);
+    assert.strictEqual(filtered.data.opportunities[0].sourceKey, 'jpmc');
+  } finally {
+    db.prepare("DELETE FROM tender_opportunities WHERE external_id IN (?,?)").run('filter-jpmc-' + token, 'filter-ungm-' + token);
+  }
+});
+
+test('95 — استيراد عطاءات أمانة عمّان وFAO متاح للمسؤول ويحدّث السجلات دون تكرار', async () => {
+  const db = getDB(), admin = 'curated-import-admin';
+  const denied = await call('anon-curated-import', 'POST', '/api/opportunities/admin/import/amman-curated', { body: {} });
+  assert.strictEqual(denied.status, 401);
+  await makeAdmin(admin);
+  db.prepare("DELETE FROM tender_opportunities WHERE source_key='amman' OR (source_key='ungm' AND external_id='318902')").run();
+  const first = await call(admin, 'POST', '/api/opportunities/admin/import/amman-curated', { body: {} });
+  assert.strictEqual(first.status, 200, JSON.stringify(first.data));
+  assert.deepStrictEqual([first.data.added, first.data.updated, first.data.received, first.data.snapshotOnly], [3, 0, 3, true]);
+  const second = await call(admin, 'POST', '/api/opportunities/admin/import/amman-curated', { body: {} });
+  assert.strictEqual(second.status, 200, JSON.stringify(second.data));
+  assert.deepStrictEqual([second.data.added, second.data.updated], [0, 3]);
+  assert.strictEqual(db.prepare("SELECT COUNT(*) n FROM tender_opportunities WHERE source_key='amman'").get().n, 3);
+  const ungm = await call(admin, 'POST', '/api/opportunities/admin/import/ungm-jordan-curated', { body: {} });
+  assert.strictEqual(ungm.status, 200, JSON.stringify(ungm.data));
+  assert.deepStrictEqual([ungm.data.added, ungm.data.received, ungm.data.snapshotOnly], [1, 1, true]);
+});

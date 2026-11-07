@@ -1,10 +1,22 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'mmc-opportunities-'));
+process.env.NODE_ENV = 'test';
+process.env.DB_PATH = path.join(TMP, 'test.db');
+process.env.UPLOAD_DIR = path.join(TMP, 'uploads');
+process.env.BACKUP_DIR = path.join(TMP, 'backups');
+process.env.JWT_SECRET = 'opportunity-test-secret-not-production';
+const { migrate } = require('../src/migrate');
+const { getDB, closeDB } = require('../src/db');
+migrate(process.env.DB_PATH);
 
 const { parseJonepsRows, extractPageUrls, LIST_URL } = require('../src/lib/joneps-sync');
 const { normalizeWorldBankNotice } = require('../src/lib/opportunity-sync');
-const { normalizeUNGMNotice } = require('../src/lib/ungm-sync');
+const { normalizeUNGMNotice, isDeadlineExpired } = require('../src/lib/ungm-sync');
 
 test('JONEPS parser maps an official tender row and keeps its source on the JONEPS domain', () => {
   const html = '<table><tr><td>2026-001</td><td><a href="/ep/invt/viewTender.do?id=2026-001">أعمال طرق</a></td><td>وزارة الأشغال</td><td>أشغال</td><td>01/11/2026</td><td>31/12/2099</td></tr></table>';
@@ -72,10 +84,19 @@ test('UNGM normalizer imports finalized notices and maps Jordan country codes', 
   assert.equal(row.tenderNumber, 'UNGM-REF-001');
   assert.equal(row.status, 'open');
   assert.equal(row.title, 'Supply and installation');
+  assert.equal(normalizeUNGMNotice({ Id: 'UN-SA-1', Title: 'Saudi notice', Status: 'Finalized', CountryISO3Codes: ['SAU'], Deadline: '2099-12-31' }).country, 'SA');
 });
 
 test('UNGM normalizer never imports draft or non-finalized notices', () => {
   assert.equal(normalizeUNGMNotice({ Id: 'UN-2', Title: 'Draft', Status: 'Draft' }), null);
+});
+
+test('UNGM timestamp deadline expires at the stated instant, including on the same date', () => {
+  const before = Date.parse('2026-11-07T20:58:00Z'); // 23:58 in Amman
+  const after = Date.parse('2026-11-07T21:00:00Z'); // 00:00 in Amman on 8 November
+  assert.equal(isDeadlineExpired('2026-11-07T23:59:00+03:00', before), false);
+  assert.equal(isDeadlineExpired('2026-11-07T23:59:00+03:00', after), true);
+  assert.equal(isDeadlineExpired('2026-11-07', before), false, 'date-only source data remains open through its date');
 });
 
 const { parseApcRows } = require('../src/lib/apc-sync');
@@ -93,4 +114,59 @@ test('APC parser reads the public list row, dates, bond, qualifications and keep
   assert.match(rows[0].summary, /JOD 17,500/);
   assert.equal(rows[1].status, 'closed');
   assert.equal(new URL(rows[1].sourceUrl).origin, 'https://arabpotash.com');
+});
+
+test('JONEPS sync deduplicates by source and tender ID while updating a closed tender', async () => {
+  const originalFetch = global.fetch;
+  const makePage = (title, deadline) => '<table><tr><td>2026-991</td><td>' + title + '</td><td>أمانة عمّان الكبرى</td><td>أشغال</td><td>01/11/2026</td><td>' + deadline + '</td></tr></table>';
+  let html = makePage('تأهيل طريق تجريبي', '31/12/2099');
+  global.fetch = async () => ({ ok: true, status: 200, text: async () => html });
+  try {
+    const first = await require('../src/lib/joneps-sync').syncJONEPS({ maxPages: 1 });
+    assert.deepEqual([first.added, first.updated, first.received], [1, 0, 1]);
+    html = makePage('تأهيل طريق تجريبي — تحديث', '01/01/2020');
+    const second = await require('../src/lib/joneps-sync').syncJONEPS({ maxPages: 1 });
+    assert.deepEqual([second.added, second.updated, second.received], [0, 1, 1]);
+    const rows = getDB().prepare("SELECT title,status FROM tender_opportunities WHERE source_key='joneps' AND external_id='2026-991'").all();
+    assert.equal(rows.length, 1, 'the same external notice must not create a duplicate');
+    assert.equal(rows[0].title, 'تأهيل طريق تجريبي — تحديث');
+    assert.equal(rows[0].status, 'closed', 'a passed closing date must update the existing status');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('GAM curated import adds verified tenders once and refreshes their deadline status', () => {
+  const { syncGAMCurated } = require('../src/lib/gam-curated-sync');
+  const { refreshExpiredOpportunities } = require('../src/routes/opportunities');
+  const first = syncGAMCurated({ nowLocal: '2026-11-07T08:00' });
+  assert.deepEqual([first.added, first.updated, first.normalized, first.snapshotOnly], [3, 0, 3, true]);
+  assert.equal(refreshExpiredOpportunities(getDB(), Date.parse('2026-11-23T09:00:01Z')), 1, 'the 23 November noon Amman deadline must auto-close without re-import');
+  const mid = getDB().prepare("SELECT status FROM tender_opportunities WHERE source_key='amman' AND external_id='74/1/2026'").get();
+  assert.equal(mid.status, 'closed');
+  const second = syncGAMCurated({ nowLocal: '2026-11-25T12:01' });
+  assert.deepEqual([second.added, second.updated, second.normalized], [0, 3, 3]);
+  const rows = getDB().prepare("SELECT status FROM tender_opportunities WHERE source_key='amman' ORDER BY external_id").all();
+  assert.equal(rows.length, 3, 'a repeated import must not duplicate GAM tender records');
+  assert.ok(rows.every(row => row.status === 'closed'), 'all three past deadlines must update the stored status');
+});
+
+test('UNGM curated FAO notice respects its 23:59 deadline and shares the existing notice ID for deduplication', () => {
+  const { syncUNGMCurated } = require('../src/lib/ungm-curated-sync');
+  const { refreshExpiredOpportunities } = require('../src/routes/opportunities');
+  const first = syncUNGMCurated({ nowLocal: '2026-11-07T23:58' });
+  assert.deepEqual([first.added, first.updated, first.received, first.snapshotOnly], [1, 0, 1, true]);
+  assert.equal(refreshExpiredOpportunities(getDB(), Date.parse('2026-11-07T21:00:00Z')), 1, 'FAO notice must close automatically after 23:59 GMT+3');
+  const second = syncUNGMCurated({ nowLocal: '2026-11-08T00:00' });
+  assert.deepEqual([second.added, second.updated], [0, 1]);
+  const rows = getDB().prepare("SELECT title,status,closing_at FROM tender_opportunities WHERE source_key='ungm' AND external_id='318902'").all();
+  assert.equal(rows.length, 1, 'the same official UNGM notice must not be duplicated');
+  assert.equal(rows[0].title, 'Vehicle to FAO office in Jordan');
+  assert.equal(rows[0].closing_at, '2026-11-07T23:59:00+03:00');
+  assert.equal(rows[0].status, 'closed');
+});
+
+test.after(() => {
+  closeDB();
+  fs.rmSync(TMP, { recursive: true, force: true });
 });
