@@ -280,6 +280,9 @@ test('OPP-09 — تفاصيل العطاء والوثائق العامة تُع�
   assert.ok(tenderDirectory.includes('data-doc-download'));
   assert.ok(tenderDirectory.includes('Download via MMC (public file)'));
   assert.match(tenderDirectory,/href="'\+esc\(doc\.downloadUrl\)\+'" download data-doc-download/);
+  assert.ok(tenderDirectory.includes("method:'HEAD'"));
+  assert.ok(tenderDirectory.includes('payload.error?.message'));
+  assert.ok(tenderDirectory.includes('window.location.href=link.href'));
   assert.ok(!tenderDirectory.includes('URL.createObjectURL'));
   assert.ok(!tenderDirectory.includes('a.href=url'));
   assert.ok(route.includes("router.get('/:id', A.requireAuth, A.requireRole(...MARKET_ROLES)"));

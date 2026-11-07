@@ -1598,9 +1598,14 @@ test('96 — وثائق العطاء العامة تُنزّل عبر MMC وتُ
     return originalFetch(url,options);
   };
   try {
+    const preflight=await fetch(base+apiPath,{method:'HEAD',headers:cookieFor(contractor),redirect:'manual'});
+    assert.strictEqual(preflight.status,200);
+    assert.strictEqual(preflight.headers.get('x-mmc-document-cache'),'stored');
+    assert.match(preflight.headers.get('content-disposition')||'',/attachment/);
+    assert.strictEqual((await preflight.arrayBuffer()).byteLength,0,'HEAD checks/caches the document without delivering the body');
     const first=await fetch(base+apiPath,{headers:cookieFor(contractor),redirect:'manual'});
     assert.strictEqual(first.status,200);
-    assert.strictEqual(first.headers.get('x-mmc-document-cache'),'stored');
+    assert.strictEqual(first.headers.get('x-mmc-document-cache'),'hit');
     assert.deepStrictEqual(Buffer.from(await first.arrayBuffer()),bytes);
     const stored=db.prepare('SELECT storage_key,storage_driver,content_type,file_size,checksum_sha256,downloaded_at FROM tender_opportunity_public_documents WHERE id=?').get(documentId);
     assert.ok(stored.storage_key.startsWith('public-tenders/apc/'+documentId));
