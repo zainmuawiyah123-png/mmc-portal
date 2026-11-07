@@ -39,6 +39,8 @@ html[dir=ltr] .mk-drawer{transform:translateX(-102%)}.mk-drawer.on{transform:non
 <body><div class="p-top"><div class="brand"><span class="mark">M</span><span><span data-ar="سوق العطاءات" data-en="Tender market">سوق العطاءات</span><small>MMC</small></span></div><div class="spacer"></div><a class="btn ghost" id="back" href="../portal/pt-9f3c7a1e5b2d/index.html" style="color:#fff"><span data-ar="← بوابتي" data-en="← My portal">← بوابتي</span></a><button class="btn ghost" id="logout" style="color:#fff">خروج / Log out</button></div>
 <main class="p-wrap">
 <div class="p-head"><div class="eyebrow">JONEPS · البوتاس العربية · البنك الدولي · الأمم المتحدة</div><h1 data-ar="سوق العطاءات" data-en="Tender market">سوق العطاءات</h1><p data-ar="كل العطاءات من المصادر المربوطة في مكان واحد، تُحدَّث تلقائياً. احفظ ما يهمك، وافتح ملفاً للعطاء في «ملفاتي» بضغطة واحدة." data-en="All tenders from connected sources in one place, updated automatically. Save what matters and open a bid file in “My files” in one click.">كل العطاءات من المصادر المربوطة في مكان واحد، تُحدَّث تلقائياً. احفظ ما يهمك، وافتح ملفاً للعطاء في «ملفاتي» بضغطة واحدة.</p></div>
+<p class="mini" style="margin-top:-8px" data-ar="تظهر هنا الجهات التي تصل بياناتها إلى سوق العطاءات. للبوابات الرسمية التي لم تُربط بعد، افتح دليل المصادر الرسمية." data-en="Only sources with a connected feed appear here. Browse the official-source directory for other portals not yet connected.">تظهر هنا الجهات التي تصل بياناتها إلى سوق العطاءات. للبوابات الرسمية التي لم تُربط بعد، افتح دليل المصادر الرسمية.</p>
+<p style="margin-top:-8px"><a class="btn light" href="../tender-opportunities/index.html" data-ar="استعراض البوابات الرسمية" data-en="Browse official portals">استعراض البوابات الرسمية</a></p>
 <div id="msg"></div>
 <div class="mk-stats" id="stats"></div>
 <div class="mk-bar"><div class="mk-row"><input id="q" type="search" placeholder="ابحث بعنوان العطاء أو الجهة أو الرقم / Search" aria-label="بحث">
@@ -53,9 +55,9 @@ html[dir=ltr] .mk-drawer{transform:translateX(-102%)}.mk-drawer.on{transform:non
 </main>
 <div class="mk-dim" id="dim"></div><aside class="mk-drawer" id="drawer" aria-hidden="true"></aside>
 <script src="../portal/pt-9f3c7a1e5b2d/assets/api.js"></script><script src="../portal/pt-9f3c7a1e5b2d/assets/i18n.js"></script>
-<script>(function(){
+ <script>(function(){
 var $=function(s){return document.querySelector(s)};
-var SRC={joneps:['JONEPS · الأردن','JONEPS · Jordan'],apc:['البوتاس العربية','Arab Potash'],worldbank:['البنك الدولي','World Bank'],ungm:['الأمم المتحدة','UN · UNGM'],etimad:['اعتماد · السعودية','Etimad · KSA'],capt:['المناقصات المركزية · الكويت','CAPT · Kuwait'],tenderboard_om:['مجلس المناقصات · عُمان','Tender Board · Oman'],tenderboard_bh:['مجلس المناقصات · البحرين','Tender Board · Bahrain']};
+var SRC={joneps:['JONEPS · الأردن','JONEPS · Jordan'],apc:['البوتاس العربية','Arab Potash'],amman:['أمانة عمّان الكبرى','Greater Amman Municipality'],worldbank:['البنك الدولي','World Bank'],ungm:['الأمم المتحدة','UN · UNGM'],etimad:['اعتماد · السعودية','Etimad · KSA'],capt:['المناقصات المركزية · الكويت','CAPT · Kuwait'],tenderboard_om:['مجلس المناقصات · عُمان','Tender Board · Oman'],tenderboard_bh:['مجلس المناقصات · البحرين','Tender Board · Bahrain']};
 var CN={JO:['الأردن','Jordan'],SA:['السعودية','Saudi Arabia'],KW:['الكويت','Kuwait'],OM:['عُمان','Oman'],BH:['البحرين','Bahrain'],AE:['الإمارات','UAE'],QA:['قطر','Qatar'],IQ:['العراق','Iraq'],INT:['دولي','International']};
 var S={q:'',source:'',country:'',closing:'',sort:'closing',state:'open',saved:false},off=0,items=[],total=0,meta={},role='',busy=false,timer=null,PAGE=24;
 function T(a,e){return window.MMC_I18N?MMC_I18N.T(a,e):a}

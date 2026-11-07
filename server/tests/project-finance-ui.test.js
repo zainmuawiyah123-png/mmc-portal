@@ -288,6 +288,16 @@ test('OPP-26 — لوحة تفاصيل سوق العطاءات مخفية تما
   assert.ok(market.includes("if(e.key==='Escape')closeD()"));
 });
 
+test('OPP-27 — سوق العطاءات يعرض أمانة عمّان ويشرح بوابات المصادر غير الموصولة', () => {
+  const market = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/market.html'), 'utf8');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.ok(market.includes("amman:['أمانة عمّان الكبرى','Greater Amman Municipality']"));
+  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman']"));
+  assert.ok(market.includes('دليل المصادر الرسمية'));
+  assert.ok(market.includes('../tender-opportunities/index.html'));
+  assert.ok(market.includes('لم تُربط بعد'));
+});
+
 
 test('OPP-09 — تفاصيل العطاء والوثائق العامة تُعرض وتُنزل من داخل MMC بأمان', () => {
   const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');
