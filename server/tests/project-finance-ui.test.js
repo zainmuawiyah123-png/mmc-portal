@@ -270,6 +270,15 @@ test('OPP-24 — لوحة العطاءات تعرض سجل المصدر ونتي
   assert.ok(tenderDirectory.includes('duration_ms'));
 });
 
+test('OPP-25 — فشل المصادقة يعرض تسجيل الدخول وإعادة المحاولة بدلاً من مساحة بيضاء', () => {
+  const login = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/portal/pt-9f3c7a1e5b2d/login.html'), 'utf8');
+  assert.ok(tenderDirectory.includes('function showOpportunityLoadError'));
+  assert.ok(tenderDirectory.includes("setAttribute('role','alert')"));
+  assert.ok(tenderDirectory.includes("setAttribute('data-opp-retry','')"));
+  assert.ok(tenderDirectory.includes('login.html?next=../../tender-opportunities/index.html'));
+  assert.ok(login.includes('(bid|procurement|admin|tender-opportunities)'));
+});
+
 
 test('OPP-09 — تفاصيل العطاء والوثائق العامة تُعرض وتُنزل من داخل MMC بأمان', () => {
   const route=fs.readFileSync(path.join(__dirname,'../src/routes/opportunities.js'),'utf8');

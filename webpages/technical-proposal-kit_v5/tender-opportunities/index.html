@@ -89,8 +89,8 @@
   const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(country.value)p.set('country',country.value);if(status.value)p.set('status',status.value);if(source.value)p.set('source',source.value);
   try{
    const res=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'});
-   if(!res.ok)throw new Error(en?'Could not load notices':'تعذر تحميل الإعلانات');
-   const data=await res.json();
+   const data=await res.json().catch(()=>({}));
+   if(!res.ok){const error=new Error(data.error?.message||(en?'Could not load notices':'تعذر تحميل الإعلانات'));error.status=res.status;throw error;}
    results.innerHTML='';
    if(!data.opportunities.length){results.innerHTML='<p class="muted">'+(en?'No registered notices match these filters.':'لا توجد إعلانات مسجلة تطابق البحث حالياً.')+'</p>';}
    data.opportunities.forEach(o=>{
@@ -113,7 +113,18 @@
     results.appendChild(card);
    });
    document.getElementById('opp-count').textContent=(en?'Results: ':'عدد النتائج: ')+data.count;
-  }catch(e){results.textContent=e.message;}
+  }catch(e){showOpportunityLoadError(e.status,e.message);}
+ }
+ function showOpportunityLoadError(status,message){
+  const en=isEn(),needsLogin=status===401,forbidden=status===403;
+  const box=document.createElement('div');box.className='source';box.style.cssText='grid-column:1/-1;background:#fffaeb;border-color:#fedf89';box.setAttribute('role','alert');
+  const title=document.createElement('strong');title.textContent=needsLogin?(en?'Sign-in required':'يلزم تسجيل الدخول'):forbidden?(en?'Access not permitted':'لا تملك صلاحية عرض هذه القائمة'):(en?'Could not load notices':'تعذر تحميل الإعلانات');
+  const detail=document.createElement('p');detail.textContent=needsLogin?(en?'Your session may have expired. Sign in to view the tender directory.':'قد تكون جلسة الدخول قد انتهت. سجّل الدخول لعرض دليل العطاءات.'):forbidden?(en?'This directory is available to contractors and administrators.':'هذا الدليل متاح للمقاولين والمسؤولين فقط.'):(message||(en?'Check your connection and try again.':'تحقق من الاتصال ثم أعد المحاولة.'));
+  const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+  if(needsLogin){const login=document.createElement('a');login.className='btn';login.href='../portal/pt-9f3c7a1e5b2d/login.html?next=../../tender-opportunities/index.html';login.textContent=en?'Sign in':'تسجيل الدخول';actions.appendChild(login);}
+  const retry=document.createElement('button');retry.type='button';retry.className='btn';retry.setAttribute('data-opp-retry','');retry.textContent=en?'Retry':'إعادة المحاولة';retry.addEventListener('click',load);actions.appendChild(retry);
+  const back=document.createElement('a');back.className='btn ghost';back.href='../portal/pt-9f3c7a1e5b2d/index.html';back.textContent=en?'Back to portal':'العودة للبوابة';actions.appendChild(back);
+  box.append(title,detail,actions);results.replaceChildren(box);document.getElementById('opp-count').textContent='';
  }
  async function showOpportunityDetails(o,card){
   const panel=card.querySelector('.opportunity-detail'),en=isEn();
