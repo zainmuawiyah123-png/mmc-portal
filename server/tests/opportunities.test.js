@@ -152,15 +152,15 @@ test('GAM curated import adds verified tenders once and refreshes their deadline
   const { syncGAMCurated } = require('../src/lib/gam-curated-sync');
   const { refreshExpiredOpportunities } = require('../src/routes/opportunities');
   const first = syncGAMCurated({ nowLocal: '2026-11-07T08:00' });
-  assert.deepEqual([first.added, first.updated, first.normalized, first.snapshotOnly], [3, 0, 3, true]);
-  assert.equal(refreshExpiredOpportunities(getDB(), Date.parse('2026-11-23T09:00:01Z')), 1, 'the 23 November noon Amman deadline must auto-close without re-import');
+  assert.deepEqual([first.added, first.updated, first.normalized, first.snapshotOnly], [14, 0, 14, true]);
+  assert.equal(refreshExpiredOpportunities(getDB(), Date.parse('2026-11-23T09:00:01Z')), 2, 'both 23 November deadlines must auto-close after the conservative 11:00 Amman cutoff');
   const mid = getDB().prepare("SELECT status FROM tender_opportunities WHERE source_key='amman' AND external_id='74/1/2026'").get();
   assert.equal(mid.status, 'closed');
   const second = syncGAMCurated({ nowLocal: '2026-11-25T12:01' });
-  assert.deepEqual([second.added, second.updated, second.normalized], [0, 3, 3]);
+  assert.deepEqual([second.added, second.updated, second.normalized], [0, 14, 14]);
   const rows = getDB().prepare("SELECT status FROM tender_opportunities WHERE source_key='amman' ORDER BY external_id").all();
-  assert.equal(rows.length, 3, 'a repeated import must not duplicate GAM tender records');
-  assert.ok(rows.every(row => row.status === 'closed'), 'all three past deadlines must update the stored status');
+  assert.equal(rows.length, 14, 'a repeated import must not duplicate GAM tender records');
+  assert.ok(rows.every(row => row.status === 'closed'), 'all 14 past deadlines must update the stored status');
 });
 
 test('UNGM curated FAO notice respects its 23:59 deadline and shares the existing notice ID for deduplication', () => {

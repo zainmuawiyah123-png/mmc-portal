@@ -1569,11 +1569,11 @@ test('95 — استيراد عطاءات أمانة عمّان وFAO متاح ل
   db.prepare("DELETE FROM tender_opportunities WHERE source_key='amman' OR (source_key='ungm' AND external_id='318902')").run();
   const first = await call(admin, 'POST', '/api/opportunities/admin/import/amman-curated', { body: {} });
   assert.strictEqual(first.status, 200, JSON.stringify(first.data));
-  assert.deepStrictEqual([first.data.added, first.data.updated, first.data.received, first.data.snapshotOnly], [3, 0, 3, true]);
+  assert.deepStrictEqual([first.data.added, first.data.updated, first.data.received, first.data.snapshotOnly], [14, 0, 14, true]);
   const second = await call(admin, 'POST', '/api/opportunities/admin/import/amman-curated', { body: {} });
   assert.strictEqual(second.status, 200, JSON.stringify(second.data));
-  assert.deepStrictEqual([second.data.added, second.data.updated], [0, 3]);
-  assert.strictEqual(db.prepare("SELECT COUNT(*) n FROM tender_opportunities WHERE source_key='amman'").get().n, 3);
+  assert.deepStrictEqual([second.data.added, second.data.updated], [0, 14]);
+  assert.strictEqual(db.prepare("SELECT COUNT(*) n FROM tender_opportunities WHERE source_key='amman'").get().n, 14);
   const ungm = await call(admin, 'POST', '/api/opportunities/admin/import/ungm-jordan-curated', { body: {} });
   assert.strictEqual(ungm.status, 200, JSON.stringify(ungm.data));
   assert.deepStrictEqual([ungm.data.added, ungm.data.received, ungm.data.snapshotOnly], [1, 1, true]);

@@ -175,6 +175,18 @@ function start() {
   fs.mkdirSync(config.BACKUP_DIR, { recursive: true });
   migrate(config.DB_PATH);              // idempotent
 
+  // The verified GAM snapshot is curated in source control; import it after
+  // migrations so new deployments populate the tender directory automatically.
+  const gamSyncStartedAt = Date.now();
+  try {
+    const result = require('./lib/gam-curated-sync').syncGAMCurated();
+    require('./lib/scheduler').persistOpportunitySync('amman', gamSyncStartedAt, { ok: true, ...result });
+    console.log(`[GAM] snapshot imported: received=${result.received}, added=${result.added}, updated=${result.updated}, verified=${result.verifiedAt}`);
+  } catch (err) {
+    try { require('./lib/scheduler').persistOpportunitySync('amman', gamSyncStartedAt, { ok: false, error: err.message }); } catch (_) {}
+    console.error('[GAM] snapshot import failed; server will continue:', err.message);
+  }
+
   const app = createApp();
   const server = app.listen(config.PORT, config.HOST, async () => {
     console.log('');
