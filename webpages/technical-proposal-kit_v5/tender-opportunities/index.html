@@ -136,27 +136,13 @@
    ].filter(x=>x[1]);
    const detailRows=fields.map(x=>'<p><b>'+esc(x[0])+':</b> '+esc(x[1])+'</p>').join('');
    const docs=data.documents||[];
-   const docRows=docs.map((doc,index)=>'<li style="margin:.5rem 0"><b>'+esc(doc.label)+'</b> '+
-    (doc.downloadUrl?'<button type="button" class="btn" data-doc-download="'+esc(doc.downloadUrl)+'" data-doc-status="doc-status-'+index+'">'+(doc.cached?(en?'Download stored MMC copy':'تنزيل النسخة المحفوظة في MMC'):(en?'Download via MMC (public file)':'تنزيل عبر MMC (ملف عام)'))+'</button><span id="doc-status-'+index+'" class="muted" style="margin-inline-start:.5rem"></span>':('<span class="muted">'+(en?'No safe public file URL was found for this attachment.':'لم يُعثر على رابط ملف عام آمن لهذا المرفق.')+'</span>'))+'</li>').join('');
+   const docRows=docs.map(doc=>'<li style="margin:.5rem 0"><b>'+esc(doc.label)+'</b> '+
+    (doc.downloadUrl?'<a class="btn" href="'+esc(doc.downloadUrl)+'" download data-doc-download>'+(doc.cached?(en?'Download stored MMC copy':'تنزيل النسخة المحفوظة في MMC'):(en?'Download via MMC (public file)':'تنزيل عبر MMC (ملف عام)'))+'</a>':('<span class="muted">'+(en?'No safe public file URL was found for this attachment.':'لم يُعثر على رابط ملف عام آمن لهذا المرفق.')+'</span>'))+'</li>').join('');
    panel.innerHTML='<h4>'+esc(op.title||o.title)+'</h4>'+detailRows+
     '<h4>'+(en?'Public tender documents':'وثائق العطاء العامة')+'</h4>'+
     (docRows?'<ul>'+docRows+'</ul>':'<p class="muted">'+(en?'No direct public attachment was found in the source record. Official copies may require vendor registration or purchase.':'لم يتضمن سجل المصدر مرفقاً عاماً مباشراً. قد تتطلب النسخة الرسمية التسجيل كمورد أو شراء الوثائق.')+'</p>')+
     '<p class="muted">'+(en?'MMC saves a publicly downloadable file to the configured platform storage on its first download. It does not bypass vendor registration or document fees.':'يحفظ MMC الملف العام في مساحة تخزين المنصة عند أول تنزيل، ولا يتجاوز تسجيل المورد أو رسوم الوثائق.')+'</p>'+
     '<p><a href="'+esc(op.sourceUrl||o.sourceUrl)+'" target="_blank" rel="noopener">'+(en?'Official source notice ↗':'الإعلان لدى المصدر الرسمي ↗')+'</a></p>';
-   panel.querySelectorAll('[data-doc-download]').forEach(button=>button.addEventListener('click',async()=>{
-    const status=document.getElementById(button.getAttribute('data-doc-status'));
-    button.disabled=true;if(status)status.textContent=en?'Downloading from official source...':'جارٍ التنزيل من المصدر الرسمي...';
-    try{
-     const fileRes=await fetch(button.getAttribute('data-doc-download'),{credentials:'same-origin'});
-     if(!fileRes.ok){let payload={};try{payload=await fileRes.json();}catch(_){}throw new Error(payload.error?.message||(en?'The file could not be downloaded':'تعذر تنزيل الملف'));}
-     const blob=await fileRes.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
-     let filename='tender-document';const disposition=fileRes.headers.get('content-disposition')||'',match=disposition.match(/filename\*=UTF-8''([^;]+)/i);
-     if(match){try{filename=decodeURIComponent(match[1]);}catch(_){filename='tender-document';}}
-     a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
-     if(status)status.textContent=en?'Downloaded and cached in MMC':'تم التنزيل وحفظ نسخة في MMC';
-    }catch(err){if(status)status.textContent=err.message;}
-    finally{button.disabled=false;}
-   }));
   }catch(err){panel.textContent=err.message;}
  }
  window.reloadTenderList=load;
