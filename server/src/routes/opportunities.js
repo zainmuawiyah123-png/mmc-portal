@@ -79,7 +79,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
   stats:{open:openN(), closingSoon:openN('closing_at IS NOT NULL AND closing_at<=?',ymd(7)), newThisWeek:openN('imported_at>=?',Math.floor(Date.now()/1000)-7*86400),
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
-  connectedSources:['joneps','apc','worldbank','ungm','amman'],
+  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco'],
 	 lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
@@ -280,6 +280,21 @@ router.post('/admin/sync/joneps', wrap(async(req,res)=>{
 router.post('/admin/sync/apc', wrap(async(req,res)=>{
  const result=await runAndRecordSync('apc',()=>require('../lib/apc-sync').syncAPC());
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'apc',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+router.post('/admin/sync/jprc', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('jprc',()=>require('../lib/jprc-sync').syncJPRC());
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'jprc',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+router.post('/admin/sync/nepco', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('nepco',()=>require('../lib/nepco-sync').syncNEPCO());
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'nepco',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+router.post('/admin/import/jpmc-curated', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('jpmc',()=>require('../lib/jpmc-curated-sync').syncJPMCCurated());
+ audit({action:'opportunity_curated_import',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'jpmc',added:result.added,updated:result.updated,received:result.received,verifiedAt:result.verifiedAt}});
  res.json({ok:true,...result});
 }));
 router.post('/admin/import/amman-curated', wrap(async(req,res)=>{

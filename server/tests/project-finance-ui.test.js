@@ -62,10 +62,10 @@ test('MMCUI-01 — دليل العطاءات يضم مصادر الأردن وا
   assert.ok(links.length >= 10, 'يجب توفير مجموعة روابط مصادر مباشرة');
 });
 
-test('MMCUI-02 — روابط المصادر الخارجية تفتح بأمان، والدليل لا يدّعي الاستيراد الآلي', () => {
+test('MMCUI-02 — روابط المصادر الخارجية تفتح بأمان وتوضح حدود التسجيل والوثائق', () => {
   assert.match(tenderDirectory, /target="_blank" rel="noopener"/);
-  assert.match(tenderDirectory, /لا ندّعي أن كل إعلان/);
-  assert.match(tenderDirectory, /Verify the original notice/);
+  assert.match(tenderDirectory, /لا يتجاوز MMC تسجيل المورد أو شراء الوثائق/);
+  assert.match(tenderDirectory, /does not bypass vendor registration or document purchases/);
 });
 
 test('MMCUI-03 — دليل العطاءات الخارجية متاح للمقاول وغير مربوط ببوابة المشتريات', () => {
@@ -188,10 +188,12 @@ test('OPP-13 — روابط الصفحات التالية من UNGM لا تسم�
 });
 
 
-test('OPP-14 — حالة المجدول تعرض مهمة مزامنة العطاءات عند تفعيلها', () => {
+test('OPP-14 — مزامنة العطاءات مستقلة عن جدولة النسخ الاحتياطي والاشتراكات', () => {
   const scheduler = fs.readFileSync(path.join(__dirname, '../src/lib/scheduler.js'), 'utf8');
   assert.ok(scheduler.includes("'opportunity-sync'"));
-  assert.ok(scheduler.includes("config.OPPORTUNITY_SYNC_ENABLED ?"));
+  assert.ok(scheduler.includes('!config.SCHEDULER_ENABLED && !config.OPPORTUNITY_SYNC_ENABLED'));
+  assert.ok(scheduler.includes('opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED'));
+  assert.ok(scheduler.includes('active: _jobs.length > 0'));
 });
 
 
@@ -288,14 +290,35 @@ test('OPP-26 — لوحة تفاصيل سوق العطاءات مخفية تما
   assert.ok(market.includes("if(e.key==='Escape')closeD()"));
 });
 
-test('OPP-27 — سوق العطاءات يعرض أمانة عمّان ويشرح بوابات المصادر غير الموصولة', () => {
+test('OPP-27 — سوق العطاءات يعرض المصادر المتصلة وروابط البوابات الرسمية', () => {
   const market = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/market.html'), 'utf8');
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
   assert.ok(market.includes("amman:['أمانة عمّان الكبرى','Greater Amman Municipality']"));
-  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman']"));
-  assert.ok(market.includes('دليل المصادر الرسمية'));
-  assert.ok(market.includes('../tender-opportunities/index.html'));
-  assert.ok(market.includes('لم تُربط بعد'));
+  assert.ok(market.includes("jprc:['مصفاة البترول الأردنية','Jordan Petroleum Refinery']"));
+  assert.ok(market.includes("jpmc:['مناجم الفوسفات الأردنية','Jordan Phosphate Mines']"));
+  assert.ok(market.includes("nepco:['الكهرباء الوطنية','National Electric Power Company']"));
+  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco']"));
+  assert.ok(market.includes('https://www.jopetrol.com.jo/ar/modules/tenders'));
+  assert.ok(market.includes('https://www.jpmc.com.jo/en/tender'));
+  assert.ok(market.includes('https://www.nepco.com.jo/en/Tenders.aspx'));
+  assert.ok(market.includes('https://www.jepco.com.jo/ar/Home/'));
+  assert.ok(market.includes('JEPCO — رابط رسمي'));
+});
+
+test('OPP-28 — تفاصيل سوق العطاءات تعرض مرفقات MMC مع فحص HEAD قبل التنزيل', () => {
+  const market = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/market.html'), 'utf8');
+  const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
+  assert.ok(market.includes("API.request('GET','/opportunities/'+encodeURIComponent(id))"));
+  assert.ok(market.includes('data-market-doc'));
+  assert.ok(market.includes("method:'HEAD'"));
+  assert.ok(market.includes("window.location.href=link.href"));
+  assert.ok(market.includes('data.documents||[]'));
+  assert.ok(route.includes("router.post('/admin/sync/jprc'"));
+  assert.ok(route.includes("router.post('/admin/sync/nepco'"));
+  assert.ok(route.includes("router.post('/admin/import/jpmc-curated'"));
+  assert.ok(tenderDirectory.includes('id="oa-sync-jprc"'));
+  assert.ok(tenderDirectory.includes('id="oa-sync-nepco"'));
+  assert.ok(tenderDirectory.includes('id="oa-import-jpmc"'));
 });
 
 

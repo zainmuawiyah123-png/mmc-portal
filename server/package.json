@@ -11,7 +11,7 @@
     "seed": "node src/seed.js",
     "test": "node --test tests/api.test.js",
     "test:s3": "node --test tests/s3.test.js",
-    "test:all": "node --test tests/api.test.js && node --test tests/s3.test.js && node --test tests/project-finance-ui.test.js && node --test tests/opportunities.test.js",
+    "test:all": "node --test tests/api.test.js && node --test tests/s3.test.js && node --test tests/project-finance-ui.test.js && node --test tests/opportunities.test.js && node --test tests/scheduler.test.js",
     "backup": "node scripts/backup.js",
     "expire-subscriptions": "node scripts/expire-subscriptions.js",
     "restore": "node scripts/restore.js",

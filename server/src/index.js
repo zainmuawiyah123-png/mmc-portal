@@ -187,6 +187,16 @@ function start() {
     console.error('[GAM] snapshot import failed; server will continue:', err.message);
   }
 
+  const jpmcSyncStartedAt = Date.now();
+  try {
+    const result = require('./lib/jpmc-curated-sync').syncJPMCCurated();
+    require('./lib/scheduler').persistOpportunitySync('jpmc', jpmcSyncStartedAt, { ok: true, ...result });
+    console.log(`[JPMC] verified snapshot imported: received=${result.received}, added=${result.added}, updated=${result.updated}, verified=${result.verifiedAt}`);
+  } catch (err) {
+    try { require('./lib/scheduler').persistOpportunitySync('jpmc', jpmcSyncStartedAt, { ok: false, error: err.message }); } catch (_) {}
+    console.error('[JPMC] snapshot import failed; server will continue:', err.message);
+  }
+
   const app = createApp();
   const server = app.listen(config.PORT, config.HOST, async () => {
     console.log('');

@@ -1,0 +1,36 @@
+{
+  "source": "jpmc",
+  "authority": "شركة مناجم الفوسفات الأردنية",
+  "sourceUrl": "https://www.jpmc.com.jo/en/tender",
+  "verifiedAt": "2026-11-07",
+  "tenders": [
+    {
+      "externalId": "T2026/35 SH",
+      "title": "إعلان تمديد طرح العطاء T2026/35 SH — إعادة تأهيل هنجر المستودعات الرئيسية في منجم الشيدية",
+      "authority": "شركة مناجم الفوسفات الأردنية",
+      "country": "JO",
+      "sector": "الأشغال والصيانة الصناعية",
+      "tenderNumber": "T2026/35 SH",
+      "summary": "آخر موعد لشراء نسخة العطاء: 12/11/2026 الساعة 12:00 ظهراً. آخر موعد لتسليم العروض: 24/12/2026 الساعة 12:00 ظهراً. سعر النسخة غير المسترد: 250 ديناراً. يلزم تصنيف المقاول درجة ثانية أو أعلى في أعمال المعادن والأعمال الكهروميكانيكية، وسجل تجاري حديث ورخصة مهن سارية. الإعلان العام لا يحدد قيمة كفالة دخول. المرفق صورة الإعلان فقط؛ الشروط الكاملة تُرسل بعد التحقق من الأهلية وسداد الرسوم لدى JPMC.",
+      "publishedAt": "2026-11-01",
+      "closingAt": "2026-12-24T12:00:00+03:00",
+      "sourceUrl": "https://www.jpmc.com.jo/en/tender/lan-tmdyd-trh-alta-rqm-t202635-sh-mshrw-aadt-tahyl-hnjr-almstwdat-alryyst-fy-mnjm-alshydyt",
+      "applicationUrl": null,
+      "details": {
+        "documentSaleDeadline": "2026-11-12T12:00:00+03:00",
+        "bidDeadline": "2026-12-24T12:00:00+03:00",
+        "copyPrice": "250 JOD, non-refundable",
+        "qualifications": "Grade 2 or higher in metal and electromechanical works; consortium conditions are stated in the official notice.",
+        "requiredDocuments": "Recent commercial registration issued within one month and valid professional license.",
+        "bidBond": "No amount stated in the public notice.",
+        "accessNotes": "The public poster is available here. Full tender conditions are emailed after JPMC reviews eligibility documents and the fee is paid; MMC does not bypass registration or payment."
+      },
+      "documents": [
+        {
+          "label": "إعلان تمديد العطاء الرسمي — صورة WebP",
+          "url": "https://www.jpmc.com.jo/uploads/2026/11/2222-default.webp"
+        }
+      ]
+    }
+  ]
+}

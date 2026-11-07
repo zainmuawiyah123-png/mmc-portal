@@ -230,3 +230,73 @@ test('public document downloader refuses an official-source redirect to an untru
     await assert.rejects(downloadPublicDocument('apc', 'https://arabpotash.com/files/tender.pdf'), error => error.code === 'DOCUMENT_REDIRECT_NOT_ALLOWED');
   } finally { global.fetch = originalFetch; }
 });
+
+function makeJprcFixture(id='64/2026', title='عطاء توريد كوابل كهربائية', closing='2099/12/31', attachment='/uploads/64.pdf', category='عطاءات مطروحة') {
+  return `<div class="tender-card"><a href="/Ar/TendersDetails/${encodeURIComponent(id)}"><span class="tender-number">${id}</span><span id="ctl_lblTitle">${title}</span><span id="ctl_lblTender_PublishDate">2026/11/01</span><span id="ctl_lblTender_ExpiredhDate">${closing}</span><span id="ctl_Label8">30 دينار</span><span id="ctl_lblCategory">${category}</span><a href="${attachment}">ملف الإعلان.pdf</a></a></div>`;
+}
+
+test('JPRC parser imports only offered rows, validates official files, and withholds the mismatched 153 attachment', () => {
+  const { parseJPRCRows } = require('../src/lib/jprc-sync');
+  const html = makeJprcFixture() + makeJprcFixture('153/2026','صيانة خلايا برج التبريد','2099/12/31','/uploads/wrong-scope.pdf') + makeJprcFixture('90/2026','عطاء مستقبلي','2099/12/31','/uploads/future.pdf','عطاءات قادمة');
+  const rows = parseJPRCRows(html, '2026-11-07');
+  assert.deepEqual(rows.map(row => row.id), ['64/2026','153/2026']);
+  assert.equal(rows[0].status, 'open');
+  assert.equal(rows[0].documents.length, 1);
+  assert.equal(new URL(rows[0].documents[0].url).hostname, 'www.jopetrol.com.jo');
+  assert.equal(rows[1].documents.length, 0);
+  assert.match(rows[1].details.qualityNote, /اختلاف/);
+});
+
+test('JPRC sync upserts the same tender and public document without creating duplicates', async () => {
+  const originalFetch = global.fetch, { syncJPRC, LIST_URL } = require('../src/lib/jprc-sync');
+  const html = makeJprcFixture();
+  global.fetch = async url => { assert.equal(String(url), LIST_URL); return { ok: true, url: '', text: async () => html }; };
+  try {
+    const first = await syncJPRC(), second = await syncJPRC();
+    assert.deepEqual([first.added,first.updated,first.documentsFound],[1,0,1]);
+    assert.deepEqual([second.added,second.updated,second.documentsFound],[0,1,1]);
+    assert.equal(getDB().prepare("SELECT COUNT(*) n FROM tender_opportunities WHERE source_key='jprc' AND external_id='64/2026'").get().n,1);
+    assert.equal(getDB().prepare("SELECT COUNT(*) n FROM tender_opportunity_public_documents d JOIN tender_opportunities o ON o.id=d.opportunity_id WHERE o.source_key='jprc' AND o.external_id='64/2026'").get().n,1);
+  } finally { global.fetch = originalFetch; }
+});
+
+function makeNepcoFixture({ id='49/2026', title='شراء عبر JONEPS وتقديم العروض إلكترونياً', closing='2099-12-31', price='300 JOD', href='/en/TenderPage.aspx?ID=49' }={}) {
+  return `<div class="col-lg-6 tender-hover"><span id="ContentPlaceHolder1_tenders_tenderNo_0">${id}</span><span id="ContentPlaceHolder1_tenders_tenderDesc_0">${title}</span><span id="ContentPlaceHolder1_tenders_closeDate_0">${closing}</span><span id="ContentPlaceHolder1_tenders_copyPrice_0">${price}</span><a href="${href}">تفاصيل العطاء</a></div>`;
+}
+
+test('NEPCO parser preserves listed prices and official details while rejecting unsafe detail links', () => {
+  const { parseNEPCORows } = require('../src/lib/nepco-sync');
+  const rows = parseNEPCORows(makeNepcoFixture() + makeNepcoFixture({id:'99/2026',href:'https://evil.example/TenderPage.aspx?ID=99'}), '2026-11-07');
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].id,'49/2026');
+  assert.equal(rows[0].status,'open');
+  assert.match(rows[0].summary,/300 JOD/);
+  assert.match(rows[0].details.accessNotes,/JONEPS/);
+  assert.equal(new URL(rows[0].sourceUrl).hostname,'www.nepco.com.jo');
+  assert.equal(rows[0].details.hasPublicAttachment,false);
+});
+
+test('NEPCO sync is idempotent and keeps the official closing date', async () => {
+  const originalFetch = global.fetch, { syncNEPCO, LIST_URL } = require('../src/lib/nepco-sync');
+  const html = makeNepcoFixture();
+  global.fetch = async url => { assert.equal(String(url), LIST_URL); return { ok: true, url: '', text: async () => html }; };
+  try {
+    const first=await syncNEPCO(), second=await syncNEPCO();
+    assert.deepEqual([first.added,first.updated,first.received],[1,0,1]);
+    assert.deepEqual([second.added,second.updated,second.received],[0,1,1]);
+    const row=getDB().prepare("SELECT closing_at,status FROM tender_opportunities WHERE source_key='nepco' AND external_id='49/2026'").get();
+    assert.deepEqual(row,{closing_at:'2099-12-31',status:'open'});
+  } finally { global.fetch = originalFetch; }
+});
+
+test('JPMC verified snapshot imports its public notice, deduplicates, and closes at the precise bid deadline', () => {
+  const { syncJPMCCurated } = require('../src/lib/jpmc-curated-sync');
+  const first=syncJPMCCurated({now:Date.parse('2026-11-07T10:00:00Z')});
+  const second=syncJPMCCurated({now:Date.parse('2026-11-07T10:00:00Z')});
+  assert.deepEqual([first.added,first.updated,first.documentsFound],[1,0,1]);
+  assert.deepEqual([second.added,second.updated,second.documentsFound],[0,1,1]);
+  assert.equal(getDB().prepare("SELECT COUNT(*) n FROM tender_opportunities WHERE source_key='jpmc' AND external_id='T2026/35 SH'").get().n,1);
+  assert.equal(getDB().prepare("SELECT COUNT(*) n FROM tender_opportunity_public_documents d JOIN tender_opportunities o ON o.id=d.opportunity_id WHERE o.source_key='jpmc' AND o.external_id='T2026/35 SH'").get().n,1);
+  syncJPMCCurated({now:Date.parse('2026-12-24T09:00:00Z')});
+  assert.equal(getDB().prepare("SELECT status FROM tender_opportunities WHERE source_key='jpmc' AND external_id='T2026/35 SH'").get().status,'closed');
+});
