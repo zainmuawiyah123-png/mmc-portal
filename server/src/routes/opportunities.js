@@ -79,7 +79,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
   stats:{open:openN(), closingSoon:openN('closing_at IS NOT NULL AND closing_at<=?',ymd(7)), newThisWeek:openN('imported_at>=?',Math.floor(Date.now()/1000)-7*86400),
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
-  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','findatender','pcs'],
+  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','findatender','contractsfinder','pcs'],
 	 lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
@@ -269,6 +269,12 @@ router.post('/admin/sync/findatender', wrap(async(req,res)=>{
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'findatender',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
+router.post('/admin/sync/contractsfinder', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('contractsfinder',()=>require('../lib/uk-public-procurement-sync').syncContractsFinder({days:30,maxPages:5}));
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'contractsfinder',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+
 router.post('/admin/sync/pcs', wrap(async(req,res)=>{
  const result=await runAndRecordSync('pcs',()=>require('../lib/uk-public-procurement-sync').syncPublicContractsScotland({months:2}));
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'pcs',added:result.added,updated:result.updated,received:result.received}});
