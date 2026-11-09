@@ -72,8 +72,8 @@
    const p=new URLSearchParams({status:st,source:SOURCE,country:'GB',limit:'60',offset:String(offset)});
    if(q.value.trim())p.set('q',q.value.trim());
    const r=await fetch('/api/opportunities/feed?'+p.toString(),{credentials:'same-origin'});
-   const d=await r.json();
-   if(!r.ok)throw new Error(d.error?.message||(en()?'Unable to load MMC records':'تعذر تحميل سجلات MMC'));
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok){const err=new Error(d.error?.message||(en()?'Unable to load MMC records':'تعذر تحميل سجلات MMC'));err.status=r.status;err.code=d.error?.code||('HTTP_'+r.status);throw err;}
    rows.push(...(d.opportunities||[]));more=Boolean(d.hasMore);offset+=60;
    if(rows.length>3000)throw new Error(en()?'Please narrow your search.':'يرجى تضييق البحث.');
   }
