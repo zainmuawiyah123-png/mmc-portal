@@ -102,7 +102,9 @@
    const state=o.status==='open'?(en()?'Open':'مفتوح'):(en()?'Closed':'مغلق');
    const ctry=countryNames[String(o.country||'').toUpperCase()]||[o.country||'دولي',o.country||'International'];
    const countryLabel=ctry[en()?1:0];
-   c.innerHTML='<span class="tag">'+state+' · '+esc(countryLabel)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'')+'</p><p>'+esc(o.summary||'')+'</p><p class="muted">'+(en()?'Tender no.: ':'رقم العطاء: ')+esc(o.tenderNumber||'—')+' · '+(en()?'Closing: ':'الإغلاق: ')+esc(o.closingAt||'—')+'</p>'+'<button class="btn mmc-detail-btn" data-mmc-detail-id="'+esc(o.id)+'">'+(en()?'View full tender':'عرض تفاصيل العطاء')+'</button>' +(o.sourceUrl?'<a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+(en()?'Original notice ↗':'الإعلان الأصلي ↗')+'</a>':'')+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+(en()?'Official application ↗':'التقديم الرسمي ↗')+'</a>':'');
+   const src=sourceNames[String(o.sourceKey||'').toLowerCase()]||[o.sourceKey||'مصدر دولي',o.sourceKey||'International source'];
+   const sourceLabel=src[en()?1:0];
+   c.innerHTML='<span class="tag">'+state+' · '+esc(countryLabel)+' · '+esc(sourceLabel)+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'')+'</p><p>'+esc(o.summary||'')+'</p><p class="muted">'+(en()?'Tender no.: ':'رقم العطاء: ')+esc(o.tenderNumber||'—')+' · '+(en()?'Closing: ':'الإغلاق: ')+esc(o.closingAt||'—')+'</p>'+'<button class="btn mmc-detail-btn" data-mmc-detail-id="'+esc(o.id)+'">'+(en()?'View full tender':'عرض تفاصيل العطاء')+'</button>' +(o.sourceUrl?'<a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+(en()?'Original notice ↗':'الإعلان الأصلي ↗')+'</a>':'')+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+(en()?'Official application ↗':'التقديم الرسمي ↗')+'</a>':'');
    box.appendChild(c);
   });
   document.getElementById('count').textContent=(en()?'International tenders: ':'عدد العطاءات الدولية: ')+rows.length;
