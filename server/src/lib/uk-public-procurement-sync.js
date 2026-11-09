@@ -10,6 +10,7 @@ const { isAllowedPublicDocumentUrl } = require('./public-tender-documents');
 const FTS_URL = 'https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages';
 const PCS_URL = 'https://api.publiccontractsscotland.gov.uk/v1/Notices';
 const CF_URL = 'https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search';
+const S2W_URL = 'https://api.sell2wales.gov.wales/v1/Notices';
 const clean = (v, n=3000) => String(v == null ? '' : v).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,n);
 const isoDate = v => {
   if (!v) return null;
@@ -195,4 +196,24 @@ async function syncPublicContractsScotland({months=3}={}) {
   const counts=saveRows('pcs',normalized);
   return {...counts,received:releases.length,normalized:normalized.length,source:'pcs',months:Math.min(6,Math.max(1,months))};
 }
-module.exports={normalizeOcdsRelease,unpackPackages,dedupeLatest,syncFindATender,syncContractsFinder,syncPublicContractsScotland};
+async function syncSell2Wales({months=3}={}) {
+  const releases=[],now=new Date();
+  const types=[2,51];
+  for(let i=0;i<Math.min(6,Math.max(1,months));i++){
+    const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-i,1));
+    const dateFrom=String(d.getUTCMonth()+1).padStart(2,'0')+'-'+d.getUTCFullYear();
+    for(const noticeType of types){
+      const url=new URL(S2W_URL);
+      url.searchParams.set('dateFrom',dateFrom);
+      url.searchParams.set('noticeType',String(noticeType));
+      url.searchParams.set('outputType','0');
+      url.searchParams.set('locale','2057');
+      const payload=await getJson(url);
+      releases.push(...unpackPackages(payload));
+    }
+  }
+  const normalized=dedupeLatest(releases,'sell2wales');
+  const counts=saveRows('sell2wales',normalized);
+  return {...counts,received:releases.length,normalized:normalized.length,source:'sell2wales',months:Math.min(6,Math.max(1,months))};
+}
+module.exports={normalizeOcdsRelease,unpackPackages,dedupeLatest,syncFindATender,syncContractsFinder,syncPublicContractsScotland,syncSell2Wales};
