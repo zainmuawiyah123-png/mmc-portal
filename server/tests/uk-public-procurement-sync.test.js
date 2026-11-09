@@ -4,11 +4,9 @@ const assert = require('node:assert/strict');
 const { normalizeOcdsRelease, unpackPackages } = require('../src/lib/uk-public-procurement-sync');
 
 test('unpacks OCDS release packages and records', () => {
-  const releases = unpackPackages({packages:[{releases:[{id:'R1'}]}]});
-  // The API may return a top-level release package or an array of packages.
+  assert.deepEqual(unpackPackages({packages:[{releases:[{id:'R1'}]}]}), [{id:'R1'}]);
   assert.deepEqual(unpackPackages([{releases:[{id:'R2'}]}]), [{id:'R2'}]);
   assert.deepEqual(unpackPackages({releases:[{id:'R3'}]}), [{id:'R3'}]);
-  assert.equal(releases.length, 0, 'unknown wrappers are ignored rather than guessed');
 });
 
 test('normalizes a UK OCDS contract notice with stable OCID and official source', () => {
