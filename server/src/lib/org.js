@@ -28,7 +28,7 @@ const ORG_TYPES_EN = {
   consultancy: 'Consulting office', developer: 'Real-estate developer', other: 'Other'
 };
 /* عملات العروض المالية التي يقدّمها المقاول */
-const BID_CURRENCIES = ['JOD', 'SAR', 'AED', 'KWD', 'QAR', 'BHD', 'OMR', 'USD'];
+const BID_CURRENCIES = ['JOD', 'SAR', 'AED', 'GBP', 'EUR', 'KWD', 'QAR', 'BHD', 'OMR', 'USD'];
 /* وحدات من العملة لكل 1 دولار — الربط الرسمي الثابت فقط. الدينار الكويتي غير مربوط بالدولار فتُصدَر فواتيره بالدولار */
 const PEG = { USD: 1, JOD: 0.709, SAR: 3.75, AED: 3.6725, QAR: 3.64, BHD: 0.376, OMR: 0.3845 };
 const DECIMALS = { BHD: 3, OMR: 3 };
