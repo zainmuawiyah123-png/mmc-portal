@@ -29,6 +29,8 @@ function unpackPackages(payload) {
 }
 function normalizeOcdsRelease(release, sourceKey) {
   if (!release || typeof release !== 'object') return null;
+  const tags = Array.isArray(release.tag) ? release.tag.map(x=>String(x).toLowerCase()) : (release.tag ? [String(release.tag).toLowerCase()] : []);
+  if(tags.length && !tags.some(x=>['tender','tenderupdate'].includes(x))) return null;
   const tender = release.tender || {};
   const buyer = release.buyer || {};
   const title = clean(tender.title || release.title, 300);
@@ -132,7 +134,6 @@ async function syncFindATender({days=45,maxPages=20}={}) {
   url.searchParams.set('updatedFrom',stamp(from));
   url.searchParams.set('updatedTo',stamp(now));
   url.searchParams.set('limit','100');
-  url.searchParams.set('stages','tender');
   const releases=[],visited=new Set();
   for(let page=0;page<Math.min(50,Math.max(1,maxPages))&&url;page++){
     if(visited.has(url.toString()))throw new Error('Find a Tender pagination loop detected');
@@ -155,7 +156,6 @@ async function syncContractsFinder({days=30,maxPages=10,pageDelayMs=3200}={}) {
   let url=new URL(CF_URL);
   url.searchParams.set('publishedFrom',stamp(from));
   url.searchParams.set('publishedTo',stamp(now));
-  url.searchParams.set('stages','tender');
   url.searchParams.set('limit','100');
   const releases=[],visited=new Set();
   for(let page=0;page<Math.min(20,Math.max(1,maxPages))&&url;page++){
