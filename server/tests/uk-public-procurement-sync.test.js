@@ -1,6 +1,9 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const { normalizeOcdsRelease, unpackPackages } = require('../src/lib/uk-public-procurement-sync');
 
 test('unpacks OCDS release packages and records', () => {
@@ -43,4 +46,25 @@ test('normalizes Scottish notices to the short source key used by the contractor
   },'pcs');
   assert.equal(row.country,'GB');
   assert.match(row.sourceUrl,/publiccontractsscotland\.gov\.uk/);
+});
+
+test('all international and UK portal inline scripts are syntactically valid', () => {
+  const root = path.resolve(__dirname, '../../webpages/technical-proposal-kit_v5/international-tenders');
+  const files = [
+    path.join(root, 'index.html'),
+    path.join(root, 'uk/index.html'),
+    path.join(root, 'uk/find-a-tender.html'),
+    path.join(root, 'uk/contracts-finder.html'),
+    path.join(root, 'uk/sell2wales.html'),
+    path.join(root, 'uk/defra-atamis.html'),
+    path.join(root, 'uk/public-contracts-scotland.html'),
+    path.join(root, 'uk/etendersni.html')
+  ];
+  for (const file of files) {
+    const html = fs.readFileSync(file, 'utf8');
+    const scripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)];
+    for (const [index, match] of scripts.entries()) {
+      assert.doesNotThrow(() => new vm.Script(match[1], {filename:file+'#script-'+index}), file);
+    }
+  }
 });
