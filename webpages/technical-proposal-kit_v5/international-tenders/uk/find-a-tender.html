@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Find a Tender Service | MMC / TenderWise</title><link rel="stylesheet" href="../../portal/pt-9f3c7a1e5b2d/assets/portal.css">
+<style>
+:root{--ink:#172b4d;--muted:#667085;--line:#e4e7ec}.wrap{max-width:1100px;margin:28px auto;padding:0 18px}.hero{background:#f5f8fc;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}.hero h1{margin:8px 0;color:var(--ink)}.hero p{color:var(--muted);line-height:1.75}.notice{background:#fffaeb;border:1px solid #fedf89;border-radius:10px;padding:13px;color:#7a2e0e;line-height:1.7}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.toolbar input,.toolbar select{padding:10px;border:1px solid #d0d5dd;border-radius:9px;min-width:180px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.notice-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;gap:8px}.notice-card h3{font-size:17px;margin:0;color:var(--ink)}.notice-card p{margin:0;font-size:14px;line-height:1.6}.notice-card a{color:#175cd3;font-weight:700;text-decoration:none;padding-top:6px}.tag{font-size:11px;background:#eef2f7;color:#344054;border-radius:20px;padding:4px 9px;width:max-content}.muted{font-size:12px;color:var(--muted)}.empty{border:1px dashed #d0d5dd;border-radius:12px;padding:20px;color:var(--muted);grid-column:1/-1}
+</style></head><body>
+<header class="p-top"><div class="brand"><span class="mark">M</span><span><b>MMC / TenderWise</b><small data-ar="بوابة العطاءات البريطانية" data-en="UK Tender Portal">بوابة العطاءات البريطانية</small></span></div><div class="spacer"></div><a class="btn ghost" href="index.html" data-ar="بوابات بريطانيا" data-en="UK portals">بوابات بريطانيا</a><a class="btn ghost" href="../index.html" data-ar="العطاءات الدولية" data-en="International tenders">العطاءات الدولية</a><button class="btn ghost" id="lang">EN</button></header>
+<main class="wrap">
+<section class="hero"><div class="eyebrow">UNITED KINGDOM · UK GOVERNMENT</div><h1 data-ar="Find a Tender Service" data-en="Find a Tender Service">Find a Tender Service</h1><p data-ar="إعلانات المشتريات العامة البريطانية، بما فيها الفرص التي تتطلب إجراءات تأهيل ومنافسة وفق نظام المشتريات البريطاني." data-en="UK public procurement notices and contract opportunities. Check each notice for the applicable procurement procedure and supplier eligibility.">إعلانات المشتريات العامة البريطانية، بما فيها الفرص التي تتطلب إجراءات تأهيل ومنافسة وفق نظام المشتريات البريطاني.</p><a href="https://www.find-tender.service.gov.uk/" target="_blank" rel="noopener" data-ar="فتح الموقع الرسمي للجهة ↗" data-en="Open official source ↗">فتح الموقع الرسمي للجهة ↗</a></section>
+<div class="notice" data-ar="مهم: يقوم MMC باستيراد إعلانات هذا المصدر عبر واجهته الرسمية العامة وإظهارها داخل دليل العطاءات. تظهر السجلات بعد نجاح دورة المزامنة، وقد لا تكون كل الإعلانات أو التعديلات الفورية متاحة فوراً. راجع الإعلان الأصلي للتحقق من الأهلية والتعديلات والوثائق والتقديم." data-en="Important: MMC imports notices from this source through its public official feed and displays them in the tender directory. Records appear after a successful synchronization cycle; not every notice or live amendment is guaranteed to appear immediately. Verify eligibility, amendments, documents and submission on the original notice.">مهم: هذه واجهة MMC لعرض الإعلانات المسجلة لدينا من هذا المصدر فقط. لا يوجد ادعاء بأن هذا المصدر متصل آلياً أو أن جميع إعلاناته مستوردة. إذا لم تظهر نتائج، فهذا يعني أنه لا توجد حالياً سجلات منشورة في MMC لهذا المصدر؛ راجع الموقع الرسمي. شروط التأهيل والتقديم النهائية لدى الجهة صاحبة العطاء.</div>
+<div class="toolbar"><input id="q" type="search" placeholder="ابحث باسم المشروع أو الجهة" data-ar-placeholder="ابحث باسم المشروع أو الجهة" data-en-placeholder="Search project or authority"><select id="status"><option value="open">العطاءات المفتوحة</option><option value="">كل الحالات</option><option value="closed">العطاءات المغلقة</option></select><button class="btn" id="search" data-ar="بحث" data-en="Search">بحث</button></div>
+<div id="results" class="grid"><div class="empty" data-ar="جارٍ تحميل العطاءات..." data-en="Loading tenders...">جارٍ تحميل العطاءات...</div></div><p class="muted" id="count"></p>
+</main>
+<style>
+.mmc-detail-backdrop{position:fixed;inset:0;background:rgba(16,24,40,.58);z-index:9998;display:none;align-items:center;justify-content:center;padding:16px}
+.mmc-detail-panel{background:#fff;border-radius:16px;max-width:850px;width:100%;max-height:88vh;overflow:auto;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22);direction:inherit}
+.mmc-detail-panel h2{margin:0 0 12px;color:#172b4d}.mmc-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:14px 0}
+.mmc-detail-field{background:#f8fafc;border:1px solid #e4e7ec;border-radius:9px;padding:10px}.mmc-detail-field small{display:block;color:#667085;margin-bottom:5px}.mmc-detail-field b{overflow-wrap:anywhere}
+.mmc-detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.mmc-doc-list{display:grid;gap:8px;margin-top:10px}.mmc-doc-list a{display:block;padding:10px;border:1px solid #e4e7ec;border-radius:9px;color:#175cd3;text-decoration:none}
+.mmc-detail-close{float:inline-end;border:0;background:#eef2f7;border-radius:8px;padding:8px 12px;cursor:pointer}.mmc-detail-btn{border:0;cursor:pointer}
+</style>
+<div class="mmc-detail-backdrop" id="mmc-detail-modal" role="dialog" aria-modal="true" aria-label="Tender details"><section class="mmc-detail-panel"><button class="mmc-detail-close" id="mmc-detail-close">إغلاق ✕</button><div id="mmc-detail-content">جارٍ تحميل تفاصيل العطاء...</div></section></div>
+<script>
+(function(){
+ const modal=document.getElementById('mmc-detail-modal'),content=document.getElementById('mmc-detail-content');
+ if(!modal||!content)return;
+ const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const label=(ar,en)=>document.documentElement.lang==='en'?en:ar;
+ function field(ar,en,value){if(value==null||value==='')return '';if(typeof value==='object')value=JSON.stringify(value);return '<div class="mmc-detail-field"><small>'+label(ar,en)+'</small><b>'+esc(value)+'</b></div>';}
+ async function show(id){
+  modal.style.display='flex';content.textContent=label('جارٍ تحميل تفاصيل العطاء...','Loading tender details...');
+  try{
+   const res=await fetch('/api/opportunities/'+encodeURIComponent(id),{credentials:'same-origin'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error?.message||label('تعذر تحميل التفاصيل','Unable to load details'));
+   const o=data.opportunity||{},d=data.details||{},t=d.tender||{},buyer=d.buyer||{};
+   const docs=(data.documents||[]);
+   const cells=[
+    field('الجهة المالكة','Contracting authority',o.authority||buyer.name),
+    field('الدولة','Country',o.country),
+    field('رقم العطاء','Tender reference',o.tenderNumber||t.id),
+    field('تاريخ النشر','Publication date',o.publishedAt||d.releaseDate),
+    field('آخر موعد للتقديم','Closing date',o.closingAt||t.tenderPeriod?.endDate),
+    field('حالة العطاء','Tender status',o.status),
+    field('طريقة الشراء','Procurement method',t.procurementMethodDetails||t.procurementMethod),
+    field('نوع العقد','Contract category',t.mainProcurementCategory),
+    field('قيمة العقد','Estimated value',t.value),
+    field('مدة العقد','Contract period',t.contractPeriod),
+    field('شروط الأهلية','Eligibility',t.eligibilityCriteria),
+    field('معايير التقييم','Award criteria',t.awardCriteriaDetails||t.awardCriteria)
+   ].join('');
+   const description=t.description||o.summary||'';
+   content.innerHTML='<h2>'+esc(o.title||label('تفاصيل العطاء','Tender details'))+'</h2><p>'+esc(description)+'</p><div class="mmc-detail-grid">'+cells+'</div><h3>'+label('وثائق العطاء المتاحة','Available tender documents')+'</h3><div class="mmc-doc-list">'+(docs.length?docs.map(x=>'<a href="'+esc(x.downloadUrl||x.documentUrl||'#')+'" '+(x.downloadUrl?'':'target="_blank" rel="noopener"')+'>'+esc(x.label||'Tender document')+(x.cached?' · '+label('نسخة محفوظة في MMC','Cached in MMC'):'')+'</a>').join(''):'<p>'+label('لا توجد وثائق عامة مرفقة من المصدر حتى الآن. قد تتطلب الوثائق التسجيل أو الشراء من الجهة.','No public documents are attached yet. Documents may require registration or purchase from the authority.')+'</p>')+'</div><div class="mmc-detail-actions">'+(o.sourceUrl?'<a class="btn" href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+label('الإعلان الرسمي','Official notice')+' ↗</a>':'')+(o.applicationUrl?'<a class="btn" href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+label('التقديم الرسمي','Official submission')+' ↗</a>':'')+'</div>';
+  }catch(e){content.innerHTML='<p>'+esc(e.message)+'</p>';}
+ }
+ document.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-mmc-detail-id]');
+  if(btn){e.preventDefault();show(btn.getAttribute('data-mmc-detail-id'));}
+ });
+ document.getElementById('mmc-detail-close').addEventListener('click',()=>modal.style.display='none');
+ modal.addEventListener('click',e=>{if(e.target===modal)modal.style.display='none';});
+})();
+</script>
+<script>
+(function(){
+ const SOURCE="findatender",OFFICIAL="https://www.find-tender.service.gov.uk/";
+ const box=document.getElementById('results'),q=document.getElementById('q'),status=document.getElementById('status'),count=document.getElementById('count');
+ const esc=v=>String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const en=()=>document.documentElement.lang==='en';
+ async function fetchState(st){
+  const rows=[];let offset=0,more=true;
+  while(more){
+   const p=new URLSearchParams({status:st,source:SOURCE,country:'GB',limit:'60',offset:String(offset)});
+   if(q.value.trim())p.set('q',q.value.trim());
+   const r=await fetch('/api/opportunities/feed?'+p.toString(),{credentials:'same-origin'});
+   const d=await r.json();
+   if(!r.ok)throw new Error(d.error?.message||(en()?'Unable to load MMC records':'تعذر تحميل سجلات MMC'));
+   rows.push(...(d.opportunities||[]));more=Boolean(d.hasMore);offset+=60;
+   if(rows.length>3000)throw new Error(en()?'Please narrow your search.':'يرجى تضييق البحث.');
+  }
+  return rows;
+ }
+ function render(rows){
+  box.innerHTML='';
+  if(!rows.length){box.innerHTML='<div class="empty">'+(en()?'No MMC records are currently listed for this source. Use the official portal link above to search the source directly.':'لا توجد حالياً عطاءات مسجلة في MMC لهذا المصدر. استخدم رابط الموقع الرسمي أعلاه للبحث المباشر.')+'</div>';}
+  rows.forEach(o=>{
+   const c=document.createElement('article');c.className='notice-card';
+   const open=o.status==='open';
+   c.innerHTML='<span class="tag">'+(open?(en()?'Open':'مفتوح'):(en()?'Closed':'مغلق'))+' · '+esc(o.country||'GB')+'</span><h3>'+esc(o.title)+'</h3><p>'+esc(o.authority||'')+'</p><p>'+esc(o.summary||'')+'</p><p class="muted">'+(en()?'Reference: ':'رقم العطاء: ')+esc(o.tenderNumber||'—')+' · '+(en()?'Closing: ':'الإغلاق: ')+esc(o.closingAt||'—')+'</p>'+'<button class="btn mmc-detail-btn" data-mmc-detail-id="'+esc(o.id)+'">'+(en()?'View full tender':'عرض تفاصيل العطاء')+'</button>' +(o.sourceUrl?'<a href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+(en()?'Original notice ↗':'الإعلان الأصلي ↗')+'</a>':'')+(o.applicationUrl?'<a href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+(en()?'Submission / application ↗':'التقديم الرسمي ↗')+'</a>':'');
+   box.appendChild(c);
+  });
+  count.textContent=(en()?'MMC records: ':'عدد السجلات في MMC: ')+rows.length;
+ }
+ async function load(){
+  box.innerHTML='<div class="empty">'+(en()?'Loading tenders...':'جارٍ تحميل العطاءات...')+'</div>';
+  try{const states=status.value?[status.value]:['open','closed'];const batches=await Promise.all(states.map(fetchState));render(batches.flat());}
+  catch(e){box.innerHTML='<div class="empty">'+esc(e.message)+'</div>';count.textContent='';}
+ }
+ window.reloadSourceTenders=load;
+ document.getElementById('search').addEventListener('click',load);q.addEventListener('keydown',e=>{if(e.key==='Enter')load()});status.addEventListener('change',load);load();
+})();
+(function(){let english=false;const b=document.getElementById('lang');b.addEventListener('click',()=>{english=!english;document.documentElement.lang=english?'en':'ar';document.documentElement.dir=english?'ltr':'rtl';document.querySelectorAll('[data-ar][data-en]').forEach(x=>x.textContent=english?x.dataset.en:x.dataset.ar);document.querySelectorAll('[data-ar-placeholder][data-en-placeholder]').forEach(x=>x.placeholder=english?x.dataset.enPlaceholder:x.dataset.arPlaceholder);b.textContent=english?'عربي':'EN';if(window.reloadSourceTenders)window.reloadSourceTenders();});})();
+</script></body></html>
