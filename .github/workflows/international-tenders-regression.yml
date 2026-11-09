@@ -1,0 +1,28 @@
+name: International tenders regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'server/src/routes/opportunities.js'
+      - 'server/src/lib/uk-public-procurement-sync.js'
+      - 'server/tests/opportunities.test.js'
+      - 'server/tests/uk-public-procurement-sync.test.js'
+      - 'webpages/technical-proposal-kit_v5/international-tenders/**'
+      - '.github/workflows/international-tenders-regression.yml'
+  workflow_dispatch:
+jobs:
+  international-tenders:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - name: Test opportunity API and source normalization
+        run: node --test tests/opportunities.test.js tests/uk-public-procurement-sync.test.js
