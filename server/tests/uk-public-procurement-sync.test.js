@@ -33,6 +33,13 @@ test('normalizes a UK OCDS contract notice with stable OCID and official source'
   assert.match(row.summary,/45233200/);
 });
 
+test('excludes award-only and implementation releases from tender listings', () => {
+  const base={ocid:'ocds-test-1',buyer:{name:'Buyer'},tender:{id:'T-1',title:'Road works'}};
+  assert.equal(normalizeOcdsRelease({...base,tag:['award']},'findatender'),null);
+  assert.equal(normalizeOcdsRelease({...base,tag:['implementation']},'contractsfinder'),null);
+  assert.ok(normalizeOcdsRelease({...base,tag:['tender']},'findatender'));
+});
+
 test('rejects incomplete or non-tender OCDS releases', () => {
   assert.equal(normalizeOcdsRelease({id:'x',buyer:{name:'Buyer'}},'pcs'),null);
   assert.equal(normalizeOcdsRelease({tender:{title:'No stable id'}},'pcs'),null);
