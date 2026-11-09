@@ -151,6 +151,10 @@ function createApp() {
     const target = path.resolve(root, relPath);
     if (!target.startsWith(root + path.sep)) return res.status(400).type('text').send('Bad path');
     if (!fs.existsSync(target)) return res.status(404).type('text').send('File not found: /' + relPath.replace(/\\/g, '/'));
+    // Explicit portal routes bypass express.static; prevent stale HTML from being retained by browsers or proxies.
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     return res.sendFile(target, (err) => { if (err) next(err); });
   }
   app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
