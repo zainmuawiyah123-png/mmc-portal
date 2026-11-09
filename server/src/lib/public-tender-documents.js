@@ -23,7 +23,9 @@ const SOURCE_HOSTS = Object.freeze({
   unhcr_jo: ['unhcr.org'],
   joneps: ['joneps.gov.jo'],
   ungm: ['ungm.org'],
-  worldbank: ['worldbank.org']
+  worldbank: ['worldbank.org'],
+  findatender: ['find-tender.service.gov.uk'],
+  pcs: ['publiccontractsscotland.gov.uk','api.publiccontractsscotland.gov.uk']
 });
 
 const MIME_EXT = Object.freeze({
