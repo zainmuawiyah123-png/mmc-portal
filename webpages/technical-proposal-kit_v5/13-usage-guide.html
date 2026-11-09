@@ -23,6 +23,17 @@
   <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="بوابة MMC — رفع المخططات وإنتاج العرض">🔓 بوابة MMC</a>
   <a class="btn ghost" href="index-ar.html">الفهرس</a>
   <a class="btn ghost" href="11-drawings.html">قراءة المخططات</a>
+  <div class="cur-wrap" style="display:flex;align-items:center;gap:6px;direction:ltr">
+    <label for="curSel" style="font-size:11px;color:#9fb0c2">العملة</label>
+    <select id="curSel" aria-label="العملة" style="background:#10243a;color:#fff;border:1px solid #37506b;border-radius:5px;padding:5px 7px;font-size:11px">
+      <option value="USD">USD $</option>
+      <option value="JOD">JOD</option>
+      <option value="SAR">SAR</option>
+      <option value="AED">AED</option>
+      <option value="GBP">GBP £</option>
+      <option value="EUR">EUR €</option>
+    </select>
+  </div>
   <button class="btn" data-print>🖨️ طباعة / PDF</button>
   <div class="switch" role="group" aria-label="اللغة"><span class="on" aria-current="true">AR</span><a href="en/13-usage-guide.html" title="English edition">EN</a></div>
   </div>
@@ -226,6 +237,18 @@
 </div>
 
 <script src="assets/kit.js"></script>
+<script>
+(function () {
+  var select = document.getElementById('curSel');
+  if (!select) return;
+  var key = 'tpkit-en-currency';
+  try { select.value = localStorage.getItem(key) || 'USD'; } catch (e) {}
+  select.addEventListener('change', function () {
+    try { localStorage.setItem(key, select.value); } catch (e) {}
+  });
+})();
+</script>
+
 
 <script>
 /* Portal prefill: ?p=<project>&a=<authority> */
