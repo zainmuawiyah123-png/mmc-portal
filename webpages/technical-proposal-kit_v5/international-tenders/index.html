@@ -42,11 +42,18 @@
  const countryNames={SA:['السعودية','Saudi Arabia'],AE:['الإمارات','United Arab Emirates'],GB:['بريطانيا','United Kingdom'],INT:['جهة دولية','International organization'],US:['الولايات المتحدة','United States'],QA:['قطر','Qatar'],OM:['عُمان','Oman'],BH:['البحرين','Bahrain'],KW:['الكويت','Kuwait'],EG:['مصر','Egypt'],DE:['ألمانيا','Germany'],FR:['فرنسا','France'],IT:['إيطاليا','Italy'],ES:['إسبانيا','Spain'],NL:['هولندا','Netherlands'],BE:['بلجيكا','Belgium'],CH:['سويسرا','Switzerland'],TR:['تركيا','Türkiye'],IN:['الهند','India'],PK:['باكستان','Pakistan'],BD:['بنغلاديش','Bangladesh'],CN:['الصين','China'],JP:['اليابان','Japan'],KR:['كوريا الجنوبية','South Korea'],AU:['أستراليا','Australia'],CA:['كندا','Canada'],BR:['البرازيل','Brazil'],ZA:['جنوب أفريقيا','South Africa'],NG:['نيجيريا','Nigeria'],KE:['كينيا','Kenya'],TZ:['تنزانيا','Tanzania'],ET:['إثيوبيا','Ethiopia'],IQ:['العراق','Iraq'],LB:['لبنان','Lebanon'],PS:['فلسطين','Palestine'],MA:['المغرب','Morocco'],TN:['تونس','Tunisia'],DZ:['الجزائر','Algeria'],LY:['ليبيا','Libya'],YE:['اليمن','Yemen']};
  async function load(){
   box.innerHTML='<div class="empty">'+(en()?'Loading international tenders...':'جارٍ تحميل العطاءات الدولية...')+'</div>';
-  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(status.value)p.set('status',status.value);
+  const p=new URLSearchParams({excludeCountry:'JO',limit:'250'});if(q.value.trim())p.set('q',q.value.trim());if(status.value)p.set('status',status.value);
   try{
-   const r=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'}),d=await r.json();
-   if(!r.ok)throw new Error(d.error?.message||(en()?'Unable to load opportunities':'تعذر تحميل العطاءات'));
-   const allRows=(d.opportunities||[]).filter(o=>String(o.country||'').toUpperCase()!=='JO');
+   let allRows=[],offset=0;
+   while(true){
+    p.set('offset',String(offset));
+    const r=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'}),d=await r.json();
+    if(!r.ok)throw new Error(d.error?.message||(en()?'Unable to load opportunities':'تعذر تحميل العطاءات'));
+    allRows=allRows.concat(d.opportunities||[]);
+    if(!d.hasMore)break;
+    offset+=d.count||0;
+    if(!d.count)break;
+   }
    const previousCountry=country.value;const codes=[...new Set(allRows.map(o=>String(o.country||'').toUpperCase()).filter(Boolean))].sort();
    country.innerHTML='<option value="">'+(en()?'All countries outside Jordan':'كل الدول خارج الأردن')+'</option>'+codes.map(code=>'<option value="'+esc(code)+'">'+esc((countryNames[code]||[code,code])[en()?1:0])+'</option>').join('');country.value=codes.includes(previousCountry)?previousCountry:'';
    const rows=allRows.filter(o=>!country.value||String(o.country||'').toUpperCase()===country.value)
