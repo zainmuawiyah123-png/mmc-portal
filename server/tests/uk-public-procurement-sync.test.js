@@ -75,3 +75,22 @@ test('all international and UK portal inline scripts are syntactically valid', (
     }
   }
 });
+
+test('Find a Tender notice URL uses the official individual notice ID when available', () => {
+  const row = normalizeOcdsRelease({
+    ocid:'ocds-h6vhtk-abc123', id:'075023-2026',
+    buyer:{name:'Example Council'},
+    tender:{id:'REF-075023',title:'Road works'}
+  },'findatender');
+  assert.equal(row.sourceUrl,'https://www.find-tender.service.gov.uk/Notice/075023-2026');
+});
+
+test('Find a Tender falls back to the official portal when release ID is not a notice number', () => {
+  const row = normalizeOcdsRelease({
+    ocid:'ocds-h6vhtk-abc123', id:'release-id-not-notice',
+    buyer:{name:'Example Council'},
+    tender:{id:'REF-001',title:'Road works'}
+  },'findatender');
+  assert.equal(row.sourceUrl,'https://www.find-tender.service.gov.uk/');
+});
+
