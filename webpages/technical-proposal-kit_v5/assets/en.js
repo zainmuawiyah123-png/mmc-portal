@@ -1,7 +1,7 @@
 /* ============================================================
    MMC Technical Proposal Kit — English Edition behaviour
    · per-document autosave (localStorage)
-   · currency switcher  USD / JOD / SAR / AED
+   · currency switcher  USD / JOD / SAR / AED / GBP / EUR
    · live quantity take-off arithmetic
    ============================================================ */
 (function () {
@@ -12,7 +12,9 @@
     USD: { rate: 1,      symbol: '$',   code: 'USD', label: 'US Dollar' },
     JOD: { rate: 0.709,  symbol: 'JD',  code: 'JOD', label: 'Jordanian Dinar' },
     SAR: { rate: 3.75,   symbol: 'SR',  code: 'SAR', label: 'Saudi Riyal' },
-    AED: { rate: 3.673,  symbol: 'AED', code: 'AED', label: 'UAE Dirham' }
+    AED: { rate: 3.673,  symbol: 'AED', code: 'AED', label: 'UAE Dirham' },
+    GBP: { rate: 0.79,   symbol: '£',   code: 'GBP', label: 'British Pound' },
+    EUR: { rate: 0.92,   symbol: '€',   code: 'EUR', label: 'Euro' }
   };
   var CUR_KEY = 'tpkit-en-currency';
 
