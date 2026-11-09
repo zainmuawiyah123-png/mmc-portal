@@ -9,6 +9,7 @@ const { isAllowedPublicDocumentUrl } = require('./public-tender-documents');
 
 const FTS_URL = 'https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages';
 const PCS_URL = 'https://api.publiccontractsscotland.gov.uk/v1/Notices';
+const CF_URL = 'https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search';
 const clean = (v, n=3000) => String(v == null ? '' : v).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,n);
 const isoDate = v => {
   if (!v) return null;
@@ -42,7 +43,7 @@ function normalizeOcdsRelease(release, sourceKey) {
   const items = Array.isArray(tender.items) ? tender.items : [];
   const cpv = items.map(x => x && x.classification && x.classification.description).filter(Boolean).slice(0,6).join(' · ');
   const categories = items.map(x => x && x.classification && x.classification.id).filter(Boolean).slice(0,8).join(', ');
-  const docs = (Array.isArray(tender.documents) ? tender.documents : []).map((d,i)=>({
+  const docs = [...(Array.isArray(tender.documents)?tender.documents:[]),...(Array.isArray(release.documents)?release.documents:[])].map((d,i)=>({
     id:clean(d.id || ('doc-'+i),120),
     title:clean(d.title || d.description || ('Tender document '+(i+1)),240),
     description:clean(d.description,800),
@@ -52,7 +53,9 @@ function normalizeOcdsRelease(release, sourceKey) {
   })).filter(d=>d.url && isAllowedPublicDocumentUrl(sourceKey,d.url));
   let sourceUrl = sourceKey === 'findatender'
     ? (release.id ? 'https://www.find-tender.service.gov.uk/Notice/'+encodeURIComponent(String(release.id)) : 'https://www.find-tender.service.gov.uk/')
-    : 'https://www.publiccontractsscotland.gov.uk/';
+    : sourceKey === 'contractsfinder'
+      ? 'https://www.contractsfinder.service.gov.uk/'
+      : 'https://www.publiccontractsscotland.gov.uk/';
   const summary = [clean(tender.description,2200), categories, cpv].filter(Boolean).join(' · ').slice(0,3000);
   const details = {
     standard:'OCDS',
@@ -146,6 +149,31 @@ async function syncFindATender({days=45,maxPages=20}={}) {
   const counts=saveRows('findatender',normalized);
   return {...counts,received:releases.length,normalized:normalized.length,source:'findatender',pages:visited.size};
 }
+async function syncContractsFinder({days=30,maxPages=10,pageDelayMs=3200}={}) {
+  const now=new Date(),from=new Date(now.getTime()-Math.max(1,days)*86400000);
+  const stamp=d=>d.toISOString().slice(0,19)+'Z';
+  let url=new URL(CF_URL);
+  url.searchParams.set('publishedFrom',stamp(from));
+  url.searchParams.set('publishedTo',stamp(now));
+  url.searchParams.set('stages','tender');
+  url.searchParams.set('limit','100');
+  const releases=[],visited=new Set();
+  for(let page=0;page<Math.min(20,Math.max(1,maxPages))&&url;page++){
+    if(visited.has(url.toString()))throw new Error('Contracts Finder pagination loop detected');
+    visited.add(url.toString());
+    const payload=await getJson(url);
+    releases.push(...unpackPackages(payload));
+    const next=payload&&payload.links&&payload.links.next;
+    if(!next){url=null;break;}
+    const nextUrl=new URL(next,CF_URL);
+    if(nextUrl.origin!=='https://www.contractsfinder.service.gov.uk')throw new Error('Contracts Finder returned an unexpected pagination host');
+    url=nextUrl;
+    if(url&&page+1<maxPages)await new Promise(resolve=>setTimeout(resolve,Math.max(1000,Math.min(10000,pageDelayMs))));
+  }
+  const normalized=dedupeLatest(releases,'contractsfinder');
+  const counts=saveRows('contractsfinder',normalized);
+  return {...counts,received:releases.length,normalized:normalized.length,source:'contractsfinder',pages:visited.size};
+}
 async function syncPublicContractsScotland({months=3}={}) {
   const releases=[],now=new Date();
   const types=[2,102];
@@ -165,4 +193,4 @@ async function syncPublicContractsScotland({months=3}={}) {
   const counts=saveRows('pcs',normalized);
   return {...counts,received:releases.length,normalized:normalized.length,source:'pcs',months:Math.min(6,Math.max(1,months))};
 }
-module.exports={normalizeOcdsRelease,unpackPackages,dedupeLatest,syncFindATender,syncPublicContractsScotland};
+module.exports={normalizeOcdsRelease,unpackPackages,dedupeLatest,syncFindATender,syncContractsFinder,syncPublicContractsScotland};
