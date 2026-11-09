@@ -25,6 +25,7 @@ const SOURCE_HOSTS = Object.freeze({
   ungm: ['ungm.org'],
   worldbank: ['worldbank.org'],
   findatender: ['find-tender.service.gov.uk'],
+  contractsfinder: ['contractsfinder.service.gov.uk'],
   pcs: ['publiccontractsscotland.gov.uk','api.publiccontractsscotland.gov.uk']
 });
 
