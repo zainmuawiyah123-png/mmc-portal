@@ -62,7 +62,7 @@ test('all international and UK portal inline scripts are syntactically valid', (
   ];
   for (const file of files) {
     const html = fs.readFileSync(file, 'utf8');
-    const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\ /script>/gi)];
+    const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)];
     for (const [index, match] of scripts.entries()) {
       assert.doesNotThrow(() => new vm.Script(match[1], {filename:file+'#script-'+index}), file);
     }
