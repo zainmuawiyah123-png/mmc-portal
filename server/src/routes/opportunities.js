@@ -32,21 +32,16 @@ function refreshExpiredOpportunities(db=getDB(), now=Date.now()) {
 router.get('/', A.requireAuth, A.requireRole('contractor', 'admin'), wrap(async (req,res) => {
   const db=getDB(); refreshExpiredOpportunities(db);
   const q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
-  const excludeCountry=clean(req.query.excludeCountry,3).toUpperCase();
   const sector=clean(req.query.sector,80), status=clean(req.query.status,20), source=clean(req.query.source,80);
-  const limit=Math.min(Math.max(parseInt(req.query.limit,10)||250,1),250), offset=Math.max(parseInt(req.query.offset,10)||0,0);
   const clauses=["status IN ('open','closed')"], vals=[];
   if(country){clauses.push('country=?');vals.push(country);}
-  if(excludeCountry){clauses.push('country<>?');vals.push(excludeCountry);}
   if(sector){clauses.push('sector=?');vals.push(sector);}
   if(source){clauses.push('source_key=?');vals.push(source);}
   if(status && ['open','closed'].includes(status)){clauses.push('status=?');vals.push(status);}
   if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';vals.push(like,like,like,like);}
-  const where=clauses.join(' AND ');
-  const total=db.prepare('SELECT COUNT(*) n FROM tender_opportunities WHERE '+where).get(...vals).n;
-  const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+where+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT ? OFFSET ?').all(...vals,limit,offset);
-  res.setHeader('Cache-Control','private, max-age=30');
-  res.json({opportunities:rows.map(shape),count:rows.length,total,hasMore:offset+rows.length<total});
+  const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+clauses.join(' AND ')+' ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, COALESCE(closing_at,\'9999\') ASC, imported_at DESC LIMIT 250').all(...vals);
+  res.setHeader('Cache-Control','public, max-age=60');
+  res.json({opportunities:rows.map(shape),count:rows.length});
 }));
 
 // Unified feed inside the contractor portal: tenders published on the platform by procurement
