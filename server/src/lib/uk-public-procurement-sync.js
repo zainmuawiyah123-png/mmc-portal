@@ -54,7 +54,7 @@ function normalizeOcdsRelease(release, sourceKey) {
     url:clean(d.url,1500)
   })).filter(d=>d.url && isAllowedPublicDocumentUrl(sourceKey,d.url));
   let sourceUrl = sourceKey === 'findatender'
-    ? (release.id ? 'https://www.find-tender.service.gov.uk/Notice/'+encodeURIComponent(String(release.id)) : 'https://www.find-tender.service.gov.uk/')
+    ? (/^\\d{4,}-\\d{4,}$/.test(String(release.id||'')) ? 'https://www.find-tender.service.gov.uk/Notice/'+encodeURIComponent(String(release.id)) : 'https://www.find-tender.service.gov.uk/')
     : sourceKey === 'contractsfinder'
       ? 'https://www.contractsfinder.service.gov.uk/'
       : 'https://www.publiccontractsscotland.gov.uk/';
