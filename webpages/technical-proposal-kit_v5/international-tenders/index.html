@@ -57,13 +57,23 @@
   });
   document.getElementById('count').textContent=(en()?'International tenders: ':'عدد العطاءات الدولية: ')+rows.length;
  }
+ async function fetchState(state){
+  const rows=[];let offset=0,more=true;
+  while(more){
+   const p=new URLSearchParams({status:state,limit:'60',offset:String(offset)});if(q.value.trim())p.set('q',q.value.trim());
+   const r=await fetch('/api/opportunities/feed?'+p.toString(),{credentials:'same-origin'}),d=await r.json();
+   if(!r.ok)throw new Error(d.error?.message||(en()?'Unable to load opportunities':'تعذر تحميل العطاءات'));
+   rows.push(...(d.opportunities||[]));more=Boolean(d.hasMore);offset+=60;
+   if(rows.length>10000)throw new Error(en()?'Too many records to load at once. Refine your search.':'عدد النتائج كبير جداً. يرجى تضييق البحث.');
+  }
+  return rows;
+ }
  async function load(){
   box.innerHTML='<div class="empty">'+(en()?'Loading international tenders...':'جارٍ تحميل العطاءات الدولية...')+'</div>';
-  const p=new URLSearchParams();if(q.value.trim())p.set('q',q.value.trim());if(status.value)p.set('status',status.value);
   try{
-   const r=await fetch('/api/opportunities?'+p.toString(),{credentials:'same-origin'}),d=await r.json();
-   if(!r.ok)throw new Error(d.error?.message||(en()?'Unable to load opportunities':'تعذر تحميل العطاءات'));
-   const allRows=(d.opportunities||[]).filter(o=>String(o.country||'').toUpperCase()!=='JO');
+   const states=status.value?[status.value]:['open','closed'];
+   const batches=await Promise.all(states.map(fetchState));
+   const allRows=batches.flat().filter(o=>String(o.country||'').toUpperCase()!=='JO');
    const previousCountry=country.value,previousSource=source.value;
    const codes=[...new Set(allRows.map(o=>String(o.country||'').toUpperCase()).filter(Boolean))].sort();
    country.innerHTML='<option value="">'+(en()?'All countries outside Jordan':'كل الدول خارج الأردن')+'</option>'+codes.map(code=>'<option value="'+esc(code)+'">'+esc((countryNames[code]||[code,code])[en()?1:0])+'</option>').join('');
