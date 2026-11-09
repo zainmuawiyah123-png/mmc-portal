@@ -8,6 +8,15 @@
 <style>
 :root{--ink:#172b4d;--muted:#667085;--line:#e4e7ec;--soft:#f7f9fc}
 .wrap{max-width:1120px;margin:28px auto;padding:0 18px}.hero{background:#f5f8fc;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:22px}.hero h1{color:var(--ink);margin:8px 0}.hero p,.source p{color:var(--muted);line-height:1.75}.section{margin:26px 0}.section h2{font-size:20px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:10px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}.source,.notice-card{border:1px solid var(--line);border-radius:12px;padding:17px;background:#fff;display:flex;flex-direction:column;gap:9px}.source h3,.notice-card h3{font-size:17px;margin:0;color:var(--ink)}.source p,.notice-card p{margin:0;font-size:14px}.tag{font-size:11px;background:#eef2f7;color:#344054;border-radius:20px;padding:4px 9px;width:max-content}.source a,.notice-card a{color:#175cd3;font-weight:700;text-decoration:none;padding-top:7px}.source a:hover,.notice-card a:hover{text-decoration:underline}.notice{background:#fffaeb;border:1px solid #fedf89;border-radius:10px;padding:14px;line-height:1.7;color:#7a2e0e}.muted{font-size:12px;color:var(--muted)}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.toolbar input,.toolbar select{padding:10px;border:1px solid #d0d5dd;border-radius:9px;min-width:180px}.empty{border:1px dashed #d0d5dd;border-radius:12px;padding:20px;color:var(--muted);grid-column:1/-1}
+/* iOS Safari: avoid sticky/flex repaint glitches on the long RTL tender list */
+@media screen and (max-width:760px){
+  html{scroll-behavior:auto!important}
+  .p-top{position:relative!important;top:auto!important;transform:none!important}
+  .wrap{margin:16px auto;padding-left:14px;padding-right:14px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .notice-card,.source{min-width:0;overflow-wrap:anywhere}
+  .toolbar input,.toolbar select{min-width:0;width:100%;max-width:100%}
+}
 </style>
 </head>
 <body>
