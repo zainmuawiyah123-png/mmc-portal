@@ -40,11 +40,8 @@ function normalizeOcdsRelease(release, sourceKey) {
   let sourceUrl = sourceKey === 'findatender'
     ? 'https://www.find-tender.service.gov.uk/'
     : 'https://www.publiccontractsscotland.gov.uk/';
-  const links = Array.isArray(tender.documents) ? tender.documents : [];
-  const publicLink = links.find(x => x && /^https:\/\//i.test(x.url || '') && /find-tender\.service\.gov\.uk|publiccontractsscotland\.gov\.uk/i.test(x.url));
-  if (publicLink) sourceUrl = publicLink.url;
-  else if (sourceKey === 'findatender' && /^\d{4,}-\d{4,}$/.test(String(release.id || ''))) {
-    sourceUrl = 'https://www.find-tender.service.gov.uk/Notice/' + encodeURIComponent(release.id);
+  if (sourceKey === 'findatender' && release.id) {
+    sourceUrl = 'https://www.find-tender.service.gov.uk/Notice/' + encodeURIComponent(String(release.id));
   }
   const description = clean(tender.description || release.description, 2400);
   const summary = [clean(tender.status,80), clean(tender.procurementMethod,100), categories, cpv, description].filter(Boolean).join(' · ').slice(0,3000);
@@ -93,6 +90,7 @@ async function syncFindATender({days=14,maxPages=10}={}) {
   url.searchParams.set('updatedFrom',stamp(from));
   url.searchParams.set('updatedTo',stamp(now));
   url.searchParams.set('limit','100');
+  url.searchParams.set('stages','tender');
   const releases = [], visited = new Set();
   for (let page=0; page<Math.min(20,Math.max(1,maxPages)) && url; page++) {
     if (visited.has(url.toString())) throw new Error('Find a Tender pagination loop detected');
