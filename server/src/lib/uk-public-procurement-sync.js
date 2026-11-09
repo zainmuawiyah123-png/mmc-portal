@@ -156,7 +156,9 @@ async function syncContractsFinder({days=30,maxPages=10,pageDelayMs=3200}={}) {
   let url=new URL(CF_URL);
   url.searchParams.set('publishedFrom',stamp(from));
   url.searchParams.set('publishedTo',stamp(now));
-  url.searchParams.set('limit','100');
+  url.searchParams.set('size','100');
+  url.searchParams.set('orderBy','publishedDate');
+  url.searchParams.set('order','DESC');
   const releases=[],visited=new Set();
   for(let page=0;page<Math.min(20,Math.max(1,maxPages))&&url;page++){
     if(visited.has(url.toString()))throw new Error('Contracts Finder pagination loop detected');
