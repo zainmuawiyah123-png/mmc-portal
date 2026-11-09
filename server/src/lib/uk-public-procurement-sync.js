@@ -18,6 +18,7 @@ function unpackPackages(payload) {
   if (!payload || typeof payload !== 'object') return [];
   if (Array.isArray(payload)) return payload.flatMap(unpackPackages);
   if (Array.isArray(payload.releases)) return payload.releases;
+  if (Array.isArray(payload.packages)) return payload.packages.flatMap(unpackPackages);
   if (Array.isArray(payload.records)) return payload.records.flatMap(x => x && x.releases ? x.releases : []);
   if (Array.isArray(payload.results)) return payload.results.flatMap(unpackPackages);
   if (payload.package && Array.isArray(payload.package.releases)) return payload.package.releases;
