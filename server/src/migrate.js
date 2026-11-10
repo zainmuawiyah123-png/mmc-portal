@@ -1114,6 +1114,218 @@ function upgradeConsultingContractTracking(db) {
   `);
 }
 
+
+/**
+ * MMC AI project workspace — separate from tender and procurement records.
+ * Idempotent: creates only additive tables and indexes; never rewrites legacy rows.
+ */
+function upgradeMmcAiProjects(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_projects (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      country TEXT,
+      currency TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      org_id TEXT REFERENCES organizations(id) ON DELETE SET NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','archived')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_projects_creator ON ai_projects(created_by,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_projects_org ON ai_projects(org_id,created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS ai_project_members (
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK(role IN ('owner','project_manager','engineer','quantity_surveyor','reviewer','viewer')),
+      invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      joined_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY(project_id,user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_project_members_user ON ai_project_members(user_id,project_id);
+
+    CREATE TABLE IF NOT EXISTS ai_audit_log (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL,
+      entity_type TEXT,
+      entity_id TEXT,
+      detail_json TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_audit_project ON ai_audit_log(project_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_audit_actor ON ai_audit_log(actor_user_id,created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS ai_documents (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      original_name TEXT NOT NULL,
+      file_ext TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),
+      sha256 TEXT NOT NULL,
+      storage_key TEXT NOT NULL UNIQUE,
+      processing_status TEXT NOT NULL DEFAULT 'uploaded'
+        CHECK(processing_status IN ('uploaded','queued','processing','completed','failed','quarantined')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_documents_project ON ai_documents(project_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_documents_uploader ON ai_documents(uploaded_by,created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS ai_project_images (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png')),
+      size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),
+      sha256 TEXT NOT NULL,
+      storage_key TEXT NOT NULL UNIQUE,
+      caption TEXT,
+      captured_at TEXT,
+      is_cover INTEGER NOT NULL DEFAULT 0 CHECK(is_cover IN (0,1)),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_project_images_project ON ai_project_images(project_id,created_at DESC);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_project_single_cover ON ai_project_images(project_id) WHERE is_cover=1;
+
+    CREATE TABLE IF NOT EXISTS ai_takeoff_runs (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      document_id TEXT NOT NULL REFERENCES ai_documents(id) ON DELETE CASCADE,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      engine TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'needs_review' CHECK(status IN ('needs_review','approved','rejected')),
+      units_json TEXT NOT NULL,
+      summary_json TEXT NOT NULL,
+      unsupported_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_takeoff_runs_project ON ai_takeoff_runs(project_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_takeoff_items (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL REFERENCES ai_takeoff_runs(id) ON DELETE CASCADE,
+      entity_index INTEGER NOT NULL,
+      entity_type TEXT NOT NULL,
+      layer_name TEXT NOT NULL,
+      quantity REAL NOT NULL,
+      unit TEXT NOT NULL,
+      detail_json TEXT NOT NULL,
+      review_status TEXT NOT NULL DEFAULT 'needs_review' CHECK(review_status IN ('needs_review','approved','rejected'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_takeoff_items_run ON ai_takeoff_items(run_id,entity_index);
+
+    CREATE TABLE IF NOT EXISTS ai_boq_items (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      item_code TEXT,
+      description TEXT NOT NULL,
+      unit TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK(quantity >= 0),
+      rate REAL NOT NULL CHECK(rate >= 0),
+      source_takeoff_item_id TEXT REFERENCES ai_takeoff_items(id) ON DELETE SET NULL,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_boq_project ON ai_boq_items(project_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_schedule_tasks (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      task_code TEXT,
+      name TEXT NOT NULL,
+      duration_days INTEGER NOT NULL CHECK(duration_days >= 0),
+      predecessors_json TEXT NOT NULL DEFAULT '[]',
+      planned_start TEXT,
+      actual_start TEXT,
+      actual_finish TEXT,
+      percent_complete INTEGER NOT NULL DEFAULT 0 CHECK(percent_complete BETWEEN 0 AND 100),
+      status TEXT NOT NULL DEFAULT 'planned' CHECK(status IN ('planned','in_progress','completed','blocked')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_schedule_project ON ai_schedule_tasks(project_id,created_at);
+    CREATE TABLE IF NOT EXISTS ai_project_risks (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      risk_code TEXT,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      description TEXT NOT NULL,
+      probability INTEGER NOT NULL CHECK(probability BETWEEN 1 AND 5),
+      impact INTEGER NOT NULL CHECK(impact BETWEEN 1 AND 5),
+      mitigation TEXT NOT NULL DEFAULT '',
+      owner_name TEXT,
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','mitigating','accepted','closed')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_risks_project ON ai_project_risks(project_id,status);
+    CREATE TABLE IF NOT EXISTS ai_contract_events (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      event_code TEXT,
+      title TEXT NOT NULL,
+      event_type TEXT NOT NULL DEFAULT 'general',
+      fidic_clause TEXT,
+      notice_date TEXT,
+      event_date TEXT,
+      particulars TEXT NOT NULL,
+      time_impact_days INTEGER NOT NULL DEFAULT 0 CHECK(time_impact_days >= 0),
+      cost_impact REAL NOT NULL DEFAULT 0 CHECK(cost_impact >= 0),
+      currency TEXT NOT NULL DEFAULT 'JOD',
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','notice_sent','submitted','under_review','agreed','rejected','closed')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_contract_events_project ON ai_contract_events(project_id,status);
+    CREATE TABLE IF NOT EXISTS ai_bim_issues (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      issue_code TEXT,
+      model_reference TEXT,
+      discipline TEXT NOT NULL DEFAULT 'general',
+      issue_type TEXT NOT NULL DEFAULT 'coordination',
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      location_reference TEXT,
+      element_ids_json TEXT NOT NULL DEFAULT '[]',
+      severity TEXT NOT NULL DEFAULT 'medium' CHECK(severity IN ('low','medium','high','critical')),
+      proposed_resolution TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','assigned','in_review','resolved','closed')),
+      assigned_to TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_bim_issues_project ON ai_bim_issues(project_id,status,severity);
+    CREATE TABLE IF NOT EXISTS ai_bim_models (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      original_name TEXT NOT NULL,
+      model_format TEXT NOT NULL CHECK(model_format IN ('ifc','glb')),
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),
+      sha256 TEXT NOT NULL,
+      storage_key TEXT NOT NULL UNIQUE,
+      model_reference TEXT,
+      discipline TEXT NOT NULL DEFAULT 'general',
+      processing_status TEXT NOT NULL DEFAULT 'uploaded' CHECK(processing_status IN ('uploaded','queued','processing','ready','failed','needs_review')),
+      processing_message TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_bim_models_project ON ai_bim_models(project_id,created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1154,6 +1366,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingOfficeTenderDocuments(db);
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
+  upgradeMmcAiProjects(db);
 
   return db;
 }

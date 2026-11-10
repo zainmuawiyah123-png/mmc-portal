@@ -25,6 +25,16 @@ const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
 const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
+const mmcAiRoutes = require('./routes/mmc-ai');
+const mmcAiDocumentRoutes = require('./routes/mmc-ai-documents');
+const mmcAiImageRoutes = require('./routes/mmc-ai-images');
+const mmcAiTakeoffRoutes = require('./routes/mmc-ai-takeoff');
+const mmcAiBoqRoutes = require('./routes/mmc-ai-boq');
+const mmcAiScheduleRoutes = require('./routes/mmc-ai-schedule');
+const mmcAiRiskRoutes = require('./routes/mmc-ai-risks');
+const mmcAiContractEventRoutes = require('./routes/mmc-ai-contract-events');
+const mmcAiBimRoutes = require('./routes/mmc-ai-bim');
+const mmcAiBimModelRoutes = require('./routes/mmc-ai-bim-models');
 
 function createApp() {
   const app = express();
@@ -99,6 +109,16 @@ function createApp() {
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
+  app.use('/api/mmc-ai', mmcAiRoutes);
+  app.use('/api/mmc-ai', mmcAiDocumentRoutes);
+  app.use('/api/mmc-ai', mmcAiImageRoutes);
+  app.use('/api/mmc-ai', mmcAiTakeoffRoutes);
+  app.use('/api/mmc-ai', mmcAiBoqRoutes);
+  app.use('/api/mmc-ai', mmcAiScheduleRoutes);
+  app.use('/api/mmc-ai', mmcAiRiskRoutes);
+  app.use('/api/mmc-ai', mmcAiContractEventRoutes.router);
+  app.use('/api/mmc-ai', mmcAiBimRoutes);
+  app.use('/api/mmc-ai', mmcAiBimModelRoutes);
   app.use('/api/committee', require('./routes/committee'));
 
   app.use('/api', (req, res) => {
@@ -116,6 +136,9 @@ function createApp() {
   // صفحة دورة المشروع تحتوي بيانات مالية؛ لا تُقدَّم كملف ثابت قبل التحقق من الجلسة.
   // يسمح للمقاول والجهة المشترية فقط، بينما تبقى صلاحيات كل عملية مفروضة في API.
   app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
+    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
+      return sendFromWeb('mmc-ai/index.html', res, next);
+    }
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
       if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
@@ -187,6 +210,20 @@ function createApp() {
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
+
+  // MMC AI is an independent workspace within MMC, not a tender portal role.
+  app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res, next) => {
+    // Public preview is strictly visual-only: the page skips all project/API loading
+    // unless an authenticated member opens the normal workspace without preview=1.
+    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
+      return sendFromWeb('mmc-ai/index.html', res, next);
+    }
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/mmc-ai/');
+      return sendFromWeb('mmc-ai/index.html', res, next);
+    });
+  });
 
 
   app.get(/^\/portal(\/.*)?$/, (req, res, next) => {

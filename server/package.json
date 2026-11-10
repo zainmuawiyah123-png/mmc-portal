@@ -15,7 +15,8 @@
     "backup": "node scripts/backup.js",
     "expire-subscriptions": "node scripts/expire-subscriptions.js",
     "restore": "node scripts/restore.js",
-    "migrate:cloud": "node scripts/migrate-to-cloud.js"
+    "migrate:cloud": "node scripts/migrate-to-cloud.js",
+    "test:mmc-ai": "node --test tests/mmc-ai-ui.test.js tests/mmc-ai-pdf-preflight.test.js tests/mmc-ai-pdf-text-extract.test.js tests/mmc-ai-dxf-takeoff.test.js tests/mmc-ai-projects.test.js tests/mmc-ai-schedule-engine.test.js tests/mmc-ai-ifc-inspector.test.js tests/mmc-ai-plan-calibration.test.js"
   },
   "engines": {
     "node": "22.x"

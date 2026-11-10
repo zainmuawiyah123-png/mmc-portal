@@ -1,0 +1,59 @@
+name: MMC AI DXF geometry kernel tests
+on:
+  push:
+    branches:
+      - feature/mmc-ai-construction-intelligence
+    paths:
+      - 'server/src/lib/mmc-ai/**'
+      - 'server/src/routes/mmc-ai.js'
+      - 'server/src/routes/mmc-ai-documents.js'
+      - 'server/src/routes/mmc-ai-images.js'
+      - 'server/src/routes/mmc-ai-takeoff.js'
+      - 'server/src/routes/mmc-ai-boq.js'
+      - 'server/src/routes/mmc-ai-schedule.js'
+      - 'server/src/routes/mmc-ai-risks.js'
+      - 'server/src/routes/mmc-ai-contract-events.js'
+      - 'server/src/routes/mmc-ai-bim.js'
+      - 'server/src/routes/mmc-ai-bim-models.js'
+      - 'webpages/mmc-ai/**'
+      - 'server/src/migrate.js'
+      - 'server/src/index.js'
+      - 'server/tests/mmc-ai-*.test.js'
+      - 'server/src/lib/mmc-ai/schedule-engine.js'
+      - 'server/src/lib/storage/**'
+      - 'server/package-lock.json'
+      - '.github/workflows/mmc-ai-kernel.yml'
+  pull_request:
+    paths:
+      - 'server/src/lib/mmc-ai/**'
+      - 'server/src/routes/mmc-ai.js'
+      - 'server/tests/mmc-ai-*.test.js'
+      - 'server/src/routes/mmc-ai-boq.js'
+      - 'server/src/routes/mmc-ai-schedule.js'
+      - 'server/src/routes/mmc-ai-risks.js'
+      - 'server/src/routes/mmc-ai-contract-events.js'
+      - 'server/src/routes/mmc-ai-bim.js'
+      - 'server/src/routes/mmc-ai-bim-models.js'
+      - 'server/src/migrate.js'
+      - 'server/src/index.js'
+      - 'webpages/mmc-ai/**'
+      - 'server/package-lock.json'
+      - '.github/workflows/mmc-ai-kernel.yml'
+permissions:
+  contents: read
+jobs:
+  dxf-kernel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: node --test tests/mmc-ai-dxf-takeoff.test.js tests/mmc-ai-projects.test.js tests/mmc-ai-ui.test.js tests/mmc-ai-schedule-engine.test.js tests/mmc-ai-ifc-inspector.test.js tests/mmc-ai-pdf-preflight.test.js
