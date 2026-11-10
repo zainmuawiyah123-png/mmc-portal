@@ -104,6 +104,16 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const images=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/images');
  assert.equal(images.status,200);assert.equal(images.data.images.length,1);
  assert.equal(images.data.images[0].caption,'واجهة المشروع أثناء التنفيذ');
+ const secondImage=await uploadImage('ai-owner',projectId,'site-phase-2.png',png,{caption:'مرحلة تنفيذ ثانية',capturedAt:'2026-11-11'});
+ assert.equal(secondImage.status,201,JSON.stringify(secondImage.data));
+ assert.equal(secondImage.data.image.is_cover,0);
+ const coverChange=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/images/'+secondImage.data.image.id+'/cover',{});
+ assert.equal(coverChange.status,200);
+ const afterCover=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/images');
+ assert.equal(afterCover.data.images.filter(x=>x.is_cover===1).length,1);
+ assert.equal(afterCover.data.images.find(x=>x.is_cover===1).id,secondImage.data.image.id);
+ const viewerCoverChange=await call('ai-viewer','PATCH','/api/mmc-ai/projects/'+projectId+'/images/'+ownerImage.data.image.id+'/cover',{});
+ assert.equal(viewerCoverChange.status,403);
  const imageDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/images/'+ownerImage.data.image.id+'/download',{headers:{Cookie:jar['ai-owner']}});
  assert.equal(imageDownload.status,200);assert.equal(imageDownload.headers.get('content-type'),'image/png');
  assert.deepEqual(Buffer.from(await imageDownload.arrayBuffer()),png);
