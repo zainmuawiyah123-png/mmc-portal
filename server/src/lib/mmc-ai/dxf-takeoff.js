@@ -219,11 +219,14 @@ function expandBlockInserts(entities, blocks) {
   const mark = name => { unsupported[name] = (unsupported[name] || 0) + 1; };
   for (const entity of entities) {
     if (entity.type !== 'INSERT') { expanded.push(entity); continue; }
+    requireCodes(entity, [2, 10, 20], 'INSERT entity');
     const name = entity.pairs.find(p => p.code === 2)?.value;
     const block = blocks.get(name);
     if (!block) { mark('INSERT_MISSING_BLOCK'); continue; }
     const sx = first(entity,41,1), sy = first(entity,42,1), sz = first(entity,43,1);
+    const columns = first(entity,70,1), rows = first(entity,71,1);
     const rotation = first(entity,50,0);
+    if (columns !== 1 || rows !== 1) { mark('INSERT_ARRAY_UNSUPPORTED'); continue; }
     if (![sx,sy,sz,rotation].every(Number.isFinite) || sx <= 0 || sy <= 0 || sz <= 0 || Math.abs(sx-sy)>1e-9 || Math.abs(sx-sz)>1e-9) {
       mark('INSERT_UNSUPPORTED_SCALE'); continue;
     }
