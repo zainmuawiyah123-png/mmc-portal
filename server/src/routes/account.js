@@ -105,6 +105,7 @@ router.post('/plan', auth, wrap(async (req, res) => {
 
 /* ---------------- طلب تسجيل اهتمام (صفحة ترقية الباقة) ---------------- */
 router.post('/upgrade-interest', auth, wrap(async (req, res) => {
+  if (req.user.role === 'consultant') throw E.forbidden('تُدار خدمات المكتب الاستشاري من بوابته المستقلة.');
   const planKey = String((req.body && req.body.planKey) || '').slice(0, 20);
   // في هذه المرحلة نسجّل الاهتمام فقط، بلا دفع
   console.log('[upgrade-interest]', req.user.email, planKey, new Date().toISOString());

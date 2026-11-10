@@ -70,6 +70,8 @@ function shapePlan(p) {
 
 /* الباقات المتاحة (عامة) — ?audience=buyer|contractor */
 router.get('/plans', wrap(async (req, res) => {
+  const token = A.extractToken(req);
+  if (token) { try { const payload = A.verifyToken(token); const user = A.loadUser(payload.sub); if (user && user.role === 'consultant') return res.json({ plans: [], consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false } }); } catch (_) {} }
   if (req.query.audience === 'consultant') return res.json({ plans: [], consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false } });
   const aud = req.query.audience === 'buyer' ? 'buyer' : 'contractor';
   const rows = getDB().prepare("SELECT * FROM plans WHERE audience = ? AND key != 'free' ORDER BY sort_order").all(aud);
