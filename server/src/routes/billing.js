@@ -57,7 +57,8 @@ function ownInvoice(req, id) {
   return row;
 }
 
-function audienceFor(user) { return user.role === 'buyer' ? 'buyer' : user.role === 'consultant' ? 'consultant' : 'contractor'; }
+function isConsultingFirmMember(user) { return !!(user && user.role === 'consultant' && getDB().prepare("SELECT 1 FROM consulting_firm_members WHERE user_id=? AND status='active'").get(user.id)); }
+function audienceFor(user) { return user.role === 'buyer' ? 'buyer' : isConsultingFirmMember(user) ? 'consultant' : 'contractor'; }
 function shapePlan(p) {
   return { key: p.key, nameAr: p.name_ar, nameEn: p.name_en, audience: p.audience,
     maxTenders: p.max_tenders === -1 ? null : p.max_tenders, maxSubmissions: p.max_submissions === -1 ? null : p.max_submissions, maxUsers: p.max_users === -1 ? null : p.max_users,
@@ -68,7 +69,7 @@ function shapePlan(p) {
 router.get('/plans', wrap(async (req, res) => {
   let aud = ['buyer','consultant'].includes(req.query.audience) ? req.query.audience : 'contractor';
   const token = A.extractToken(req);
-  if (token) { try { const payload = A.verifyToken(token); const account = A.loadUser(payload.sub); if (account && account.role === 'consultant') aud = 'consultant'; } catch (_) {} }
+  if (token) { try { const payload = A.verifyToken(token); const account = A.loadUser(payload.sub); if (isConsultingFirmMember(account)) aud = 'consultant'; } catch (_) {} }
   if (aud === 'buyer') return res.json({ plans: [], buyerCoreFree: true, message: 'بوابة المشتريات الأساسية مجانية بالكامل ولا تتطلب باقة أو تجربة.' });
   if (aud === 'consultant') return res.json({ plans: [], consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false }, message: 'الباقة الأساسية للمكتب مجانية. الباقة الاحترافية بسعر 20 دولاراً شهرياً، وسيُفتح تفعيلها بعد اكتمال بوابة الفوترة المستقلة.' });
   const rows = getDB().prepare("SELECT * FROM plans WHERE audience = 'contractor' AND key != 'free' ORDER BY sort_order").all();
@@ -78,7 +79,7 @@ router.get('/plans', wrap(async (req, res) => {
 /* تجربة مجانية لمرة واحدة لكل مستخدم على باقة مشتريات */
 router.post('/trial', auth, wrap(async (req, res) => {
   if (req.user.role === 'buyer') throw E.forbidden('بوابة المشتريات الأساسية مجانية دائماً ولا تحتاج إلى تجربة أو تفعيل باقة.');
-  if (req.user.role === 'consultant') throw E.forbidden('لا توجد تجربة احترافية مجانية للمكاتب الاستشارية. الباقة الأساسية مجانية، والاحترافية بسعر 20 USD شهرياً عند إتاحة الفوترة المستقلة.');
+  if (isConsultingFirmMember(req.user)) throw E.forbidden('لا توجد تجربة احترافية مجانية للمكاتب الاستشارية. الباقة الأساسية مجانية، والاحترافية بسعر 20 USD شهرياً عند إتاحة الفوترة المستقلة.');
   const db = getDB();
   const plan = db.prepare('SELECT * FROM plans WHERE key = ?').get(String(req.body?.planKey || ''));
   if (!plan || plan.trial_days <= 0) throw E.validation('هذه الباقة لا تدعم التجربة المجانية.');
@@ -100,7 +101,7 @@ router.post('/trial', auth, wrap(async (req, res) => {
 /* Contractor: create and view invoices */
 router.post('/invoices', auth, wrap(async (req, res) => {
   if (req.user.role === 'buyer') throw E.forbidden('لا تُصدر فواتير اشتراك لبوابة المشتريات؛ خدماتها الأساسية مجانية بالكامل.');
-  if (req.user.role === 'consultant') throw E.forbidden('فوترة المكاتب الاستشارية المستقلة لم تُفعّل بعد. لا يمكن استخدام باقات أو فواتير المقاولين.');
+  if (isConsultingFirmMember(req.user)) throw E.forbidden('فوترة المكاتب الاستشارية المستقلة لم تُفعّل بعد. لا يمكن استخدام باقات أو فواتير المقاولين.');
   const body = req.body || {};
   const planKey = String(body.planKey || '');
   const billingCycle = body.billingCycle === 'annual' ? 'annual' : 'monthly';
