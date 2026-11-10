@@ -130,7 +130,7 @@ function createApp() {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
       if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/');
-      if (!['consultant', 'admin'].includes(req.user.role)) {
+      if (req.user.role !== 'consultant') {
         return res.status(403).type('text').send('هذه البوابة مخصصة لحسابات المكاتب الاستشارية.');
       }
       return sendFromWeb('consulting/index.html', res, next);
