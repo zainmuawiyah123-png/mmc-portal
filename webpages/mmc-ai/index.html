@@ -74,6 +74,22 @@
     <p class="note" id="answerNote">المساعد الظاهر هنا تصميم واجهة فقط؛ لم يتم توصيل نموذج AI أو بيانات مشروع بعد.</p>
    </div></section>
   </div>
+  <section class="panel" id="boqPanel" style="margin:18px 0"><div class="panelhead"><h2>جدول الكميات والتكلفة التقديرية</h2><span>PROJECT BOQ & ESTIMATE</span></div>
+   <div style="padding:14px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+     <input id="boqCode" placeholder="رقم البند" style="flex:1;min-width:90px;padding:9px;border:1px solid var(--line);border-radius:7px">
+     <input id="boqDescription" placeholder="وصف البند" style="flex:3;min-width:180px;padding:9px;border:1px solid var(--line);border-radius:7px">
+     <input id="boqUnit" placeholder="الوحدة (م³، م²، طن)" style="flex:1;min-width:100px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+     <input id="boqQuantity" type="number" min="0" step="any" placeholder="الكمية" style="flex:1;min-width:100px;padding:9px;border:1px solid var(--line);border-radius:7px">
+     <input id="boqRate" type="number" min="0" step="any" placeholder="سعر الوحدة" style="flex:1;min-width:100px;padding:9px;border:1px solid var(--line);border-radius:7px">
+     <button id="boqAdd" type="button" class="btn primary">＋ إضافة بند</button>
+    </div>
+    <div id="boqSummary" class="note">اختر مشروعاً لعرض جدول الكميات.</div>
+    <div class="tablewrap"><table style="width:100%"><thead><tr><th>رقم</th><th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>إجراء</th></tr></thead><tbody id="boqRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد بنود بعد.</td></tr></tbody></table></div>
+    <p class="note">هذا جدول كميات وتقدير تكلفة للمشروع، مستقل عن أسعار العطاءات في بوابة المشتريات. الأسعار والقياسات تحتاج مراجعة واعتماداً من الفريق المختص.</p>
+   </div></section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>سجل حصر الكميات</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>البند</th><th>الوحدة</th><th>الكمية</th><th>الحالة</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">لا توجد كميات فعلية بعد. ستظهر النتائج هنا بعد تفعيل محرك القياس والتحقق الهندسي.</td></tr></tbody></table></div></section>
    <section class="panel"><div class="panelhead"><h2>مستندات ومخططات المشروع</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>ارفع مخططاً أو مستنداً إلى المشروع الحالي</strong><small>PDF · DXF · PNG · JPG<br>حتى 25 MB · تخزين خاص بالمشروع</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">اختر مشروعاً لعرض مستنداته.</p></div><p class="note">الرفع والحفظ الآمن متاحان. حالة المستند بعد الرفع «تم الاستلام»؛ لا ندّعي تحليله آلياً حتى اكتمال محرك PDF/DXF ومعايرة القياس.</p></div></section>
@@ -126,11 +142,30 @@
    host.appendChild(card);
   }
  }
+ async function loadProjectBoq(id){
+  const body=document.getElementById('boqRows'),summary=document.getElementById('boqSummary');body.replaceChildren();
+  if(!id){summary.textContent='اختر مشروعاً لعرض جدول الكميات.';return;}
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq',{credentials:'same-origin'}),data=await r.json();
+   if(!r.ok)throw new Error(data.message||'تعذر تحميل BOQ.');
+   summary.textContent='عدد البنود: '+data.summary.itemCount+' · الإجمالي التقديري: '+Number(data.summary.total).toFixed(3)+' (عملة المشروع)';
+   for(const item of data.items){
+    const tr=document.createElement('tr');
+    for(const val of [item.item_code||'—',item.description,item.unit,item.quantity,item.rate, item.line_total.toFixed(3)]){
+     const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);
+    }
+    const td=document.createElement('td'),del=document.createElement('button');del.type='button';del.textContent='حذف';del.style.cssText='border:1px solid #e6caca;border-radius:6px;padding:5px 8px;color:#9a4545;background:#fff;cursor:pointer';
+    del.addEventListener('click',async()=>{if(!confirm('حذف بند BOQ؟'))return;const d=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/'+encodeURIComponent(item.id),{method:'DELETE',credentials:'same-origin'});const x=await d.json();if(!d.ok){notify(x.message||'تعذر الحذف');return;}loadProjectBoq(id);});
+    td.appendChild(del);tr.appendChild(td);body.appendChild(tr);
+   }
+   if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='لا توجد بنود بعد. أضف أول بند من النموذج أعلاه.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
+  }catch(e){summary.textContent=e.message;}
+ }
  async function selectProject(id){
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadProjectBoq(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
@@ -144,6 +179,12 @@
    document.getElementById('photoMeta').textContent=(cover.caption||cover.original_name)+(cover.captured_at?' · '+cover.captured_at:'');
   }
  }
+ document.getElementById('boqAdd').addEventListener('click',async()=>{
+  if(!activeProject){notify('اختر مشروعاً أولاً.');return;}
+  const id=activeProject.project_id||activeProject.id;
+  const payload={itemCode:document.getElementById('boqCode').value,description:document.getElementById('boqDescription').value,unit:document.getElementById('boqUnit').value,quantity:document.getElementById('boqQuantity').value,rate:document.getElementById('boqRate').value};
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر إضافة البند.');for(const key of ['boqCode','boqDescription','boqUnit','boqQuantity','boqRate'])document.getElementById(key).value='';await loadProjectBoq(id);notify('تمت إضافة بند BOQ وحساب قيمته.');}catch(e){notify(e.message);}
+ });
  document.getElementById('projectSelect').addEventListener('change',e=>selectProject(e.target.value).catch(err=>notify(err.message)));
  document.getElementById('uploadProjectPhoto').addEventListener('click',()=>document.getElementById('projectPhotoFile').click());
  document.getElementById('projectPhotoFile').addEventListener('change',async e=>{
