@@ -103,7 +103,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(runs.status,200);assert.equal(runs.data.runs.length,1);
  const boqAdd=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/boq',{itemCode:'EW-001',description:'Earthworks excavation',unit:'m3',quantity:125.5,rate:3.25,sourceTakeoffItemId:dxfRun.data.run.items[0].id});
  assert.equal(boqAdd.status,201,JSON.stringify(boqAdd.data));
- assert.equal(boqAdd.data.item.line_total,407.875);
+ assert.equal(boqAdd.data.item.line_total,407.875);assert.equal(boqAdd.data.item.source_takeoff_item_id,dxfRun.data.run.items[0].id);
  const boqViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/boq',{description:'Not allowed',unit:'m3',quantity:1,rate:1});
  assert.equal(boqViewer.status,403);
  const boqList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/boq');
