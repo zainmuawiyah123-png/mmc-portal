@@ -150,7 +150,11 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const ifcModel=await uploadBimModel('ai-owner',projectId,'coordination.ifc',ifcBytes,{modelReference:'IFC-COORD-R01',discipline:'structural'});assert.equal(ifcModel.status,201,JSON.stringify(ifcModel.data));assert.equal(ifcModel.data.model.model_format,'ifc');
  const modelList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/bim/models');assert.equal(modelList.status,200);assert.equal(modelList.data.summary.ifc,1);
  const modelDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/bim/models/'+ifcModel.data.model.id+'/download',{headers:{Cookie:jar['ai-owner']}});assert.equal(modelDownload.status,200);assert.deepEqual(Buffer.from(await modelDownload.arrayBuffer()),ifcBytes);
- const modelOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/bim/models');assert.equal(modelOutsider.status,404);
+ const modelOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/bim/models');assert.equal(modelOutsider.status,404); const glbBytes=Buffer.alloc(12);glbBytes.write('glTF',0,'ascii');glbBytes.writeUInt32LE(2,4);glbBytes.writeUInt32LE(12,8);
+ const glbModel=await uploadBimModel('ai-owner',projectId,'coordination.glb',glbBytes,{modelReference:'GLB-COORD-R01'});assert.equal(glbModel.status,201,JSON.stringify(glbModel.data));assert.equal(glbModel.data.model.model_format,'glb');
+ const modelList2=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/bim/models');assert.equal(modelList2.data.summary.glb,1);
+ const glbPreview=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/bim/models/'+glbModel.data.model.id+'/download?inline=1',{headers:{Cookie:jar['ai-owner']}});assert.equal(glbPreview.status,200);assert.match(glbPreview.headers.get('content-disposition'),/^inline;/);assert.deepEqual(Buffer.from(await glbPreview.arrayBuffer()),glbBytes);
+
  const bimList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/bim/issues');assert.equal(bimList.status,200);assert.equal(bimList.data.summary.high,1);
  const bimViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/bim/issues',{title:'Viewer not permitted',description:'This should be rejected'});assert.equal(bimViewer.status,403);
  const bimUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/bim/issues/'+bimCreate.data.issue.id,{status:'resolved'});assert.equal(bimUpdate.status,200);assert.equal(bimUpdate.data.issue.status,'resolved');
