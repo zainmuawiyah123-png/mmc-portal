@@ -25,6 +25,17 @@ function extractFromContent(src){
  while((m=arrays.exec(src))){const tokens=m[1].match(new RegExp(atom,'g'))||[];out.push(tokens.map(decodePdfString).join(''));}
  return out;
 }
+function inspectContentOperators(src){
+ const masked=src
+  .replace(/%[^\\r\\n]*/g,' ')
+  .replace(/\\((?:\\\\.|[^\\\\)])*\\)/g,' ')
+  .replace(/<(?!<)[0-9a-fA-F\\s]+>/g,' ');
+ const tokens=masked.match(/\\b(?:m|l|c|v|y|h|re|S|s|f|F|B|b|n|Do|BT|ET|Tj|TJ|q|Q|cm|w)\\b|(?:f\\*|B\\*|b\\*)/g)||[];
+ const counts={};for(const token of tokens)counts[token]=(counts[token]||0)+1;
+ const pathOps=['m','l','c','v','y','h','re','S','s','f','F','f*','B','B*','b','b*','n'];
+ const vectorPathOperators=pathOps.reduce((sum,key)=>sum+(counts[key]||0),0);
+ return {vectorPathOperators,moveTo:counts.m||0,lineTo:counts.l||0,curveTo:(counts.c||0)+(counts.v||0)+(counts.y||0),rectangles:counts.re||0,closePath:counts.h||0,paintOperations:['S','s','f','F','f*','B','B*','b','b*'].reduce((sum,key)=>sum+(counts[key]||0),0),imageXObjectCalls:counts.Do||0,textShowingOperations:(counts.Tj||0)+(counts.TJ||0),graphicsStateSaves:counts.q||0,graphicsStateRestores:counts.Q||0,coordinateTransforms:counts.cm||0,lineWidthChanges:counts.w||0};
+}
 function extractPdfText(input){
  const bytes=Buffer.isBuffer(input)?input:Buffer.from(input||'');
  if(bytes.length<5||bytes.subarray(0,5).toString('ascii')!=='%PDF-')throw new Error('Invalid PDF header');
@@ -34,15 +45,15 @@ function extractPdfText(input){
  const pageCount=(source.match(/\/Type\s*\/Page\b/g)||[]).length;
  const chunks=[];
  const streamRe=/<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
- let match,decodedBytes=0,streamCount=0,unsupportedFilters=0;
+ let match,decodedBytes=0,streamCount=0,unsupportedFilters=0;\n const diagnostics={vectorPathOperators:0,moveTo:0,lineTo:0,curveTo:0,rectangles:0,closePath:0,paintOperations:0,imageXObjectCalls:0,textShowingOperations:0,graphicsStateSaves:0,graphicsStateRestores:0,coordinateTransforms:0,lineWidthChanges:0};
  while((match=streamRe.exec(source))){
   const dict=match[1],raw=Buffer.from(match[2],'latin1');let data=raw;
   if(/\/FlateDecode\b/.test(dict)){try{data=zlib.inflateSync(raw,{maxOutputLength:MAX_OUTPUT});}catch{continue;}}
   else if(/\/Filter\b/.test(dict)){unsupportedFilters++;continue;}
   decodedBytes+=data.length;if(decodedBytes>MAX_OUTPUT)throw new Error('PDF decoded content exceeds extraction size limit');
-  streamCount++;const extracted=extractFromContent(data.toString('latin1'));chunks.push(...extracted);
+  streamCount++;const content=data.toString('latin1');\n  const metrics=inspectContentOperators(content);for(const [key,value] of Object.entries(metrics))diagnostics[key]+=value;\n  const extracted=extractFromContent(content);chunks.push(...extracted);
  }
  const clean=chunks.join('\n').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
- return {engine:'mmc-pdf-text-basic-v1',status:clean?'partial_text_extracted':'no_text_found',pageCount:pageCount||null,streamCount,text:clean.slice(0,250000),characterCount:clean.length,limitations:['استخراج أولي لنصوص Tj/TJ من تدفقات PDF فقط.','لا يستخرج OCR من الصور أو أبعاد CAD أو المقاييس أو الكميات.','لا يضمن ترميز الخطوط أو النصوص العربية في جميع ملفات PDF.','لا يدعم حالياً التشفير أو فلاتر الضغط غير FlateDecode أو object streams المعقدة.'],unsupportedFilters};
+ return {engine:'mmc-pdf-text-basic-v1',status:clean?'partial_text_extracted':'no_text_found',pageCount:pageCount||null,streamCount,text:clean.slice(0,250000),characterCount:clean.length,diagnostics,limitations:['استخراج أولي لنصوص Tj/TJ من تدفقات PDF فقط.','لا يستخرج OCR من الصور أو أبعاد CAD أو المقاييس أو الكميات.','لا يضمن ترميز الخطوط أو النصوص العربية في جميع ملفات PDF.','لا يدعم حالياً التشفير أو فلاتر الضغط غير FlateDecode أو object streams المعقدة.'],unsupportedFilters};
 }
 module.exports={extractPdfText};
