@@ -143,3 +143,12 @@ test('reports block arrays as unsupported instead of counting only one instance'
   assert.equal(result.rows.length, 0);
   assert.equal(result.unsupported.INSERT_ARRAY_UNSUPPORTED, 1);
 });
+
+
+test('allows 2D block INSERTs with independent Z scale', () => {
+  const block = ['0','LINE','10','0','20','0','11','2','21','0'].join('\n');
+  const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0','41','2','42','2','43','5'].join('\n');
+  const result = takeoffDxf(dxfWithBlock(block, insert));
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].quantity, 4);
+});
