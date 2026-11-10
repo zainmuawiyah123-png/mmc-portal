@@ -40,6 +40,7 @@
    <div class="project-photo" id="projectPhoto"><img id="projectCover" alt="صورة موقع المشروع قيد التنفيذ"><div class="photo-empty"><div><strong>صورة المشروع قيد التنفيذ</strong><span>ارفع صورة الموقع الفعلية لتظهر هنا كغلاف للمشروع<br>لن نعرض صورة عشوائية على أنها موقعك</span></div></div><span class="photo-label" id="photoLabel">غلاف المشروع</span></div>
    <div class="project-info"><div class="eyebrow">PROJECT SITE / LIVE PROGRESS</div><h2 id="projectTitle">مساحة صور المشاريع</h2><p id="projectDescription">اختر مشروعاً لعرض صورة الموقع ومعرض مراحل التنفيذ. تُحفظ الصور في مساحة خاصة ولا يراها إلا أعضاء المشروع.</p>
     <div class="project-tools"><select id="projectSelect" aria-label="اختر المشروع"><option value="">تحميل المشاريع...</option></select><button class="btn primary" id="uploadProjectPhoto" type="button">＋ رفع صورة الموقع</button><input id="projectPhotoFile" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px"><input id="projectPhotoCaption" maxlength="240" placeholder="وصف الصورة: صب الأساسات، أعمال الحفر..." style="flex:2;min-width:190px;padding:9px;border:1px solid var(--line);border-radius:7px"><input id="projectPhotoDate" type="date" aria-label="تاريخ التقاط الصورة" style="flex:1;min-width:145px;padding:9px;border:1px solid var(--line);border-radius:7px"></div>
     <div class="photo-meta" id="photoMeta">JPG / PNG · حتى 12 MB · صورة الغلاف لا تُعد بديلاً عن بيانات تقدم المشروع</div>
    </div>
   </section>
@@ -312,12 +313,12 @@
  document.getElementById('uploadProjectPhoto').addEventListener('click',()=>document.getElementById('projectPhotoFile').click());
  document.getElementById('projectPhotoFile').addEventListener('change',async e=>{
   const file=e.target.files&&e.target.files[0];if(!file||!activeProject)return;
-  const fd=new FormData();fd.append('file',file);fd.append('isCover','true');
+  const fd=new FormData();fd.append('file',file);fd.append('isCover','true');fd.append('caption',document.getElementById('projectPhotoCaption').value.trim());fd.append('capturedAt',document.getElementById('projectPhotoDate').value);
   try{
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(activeProject.project_id||activeProject.id)+'/images',{method:'POST',body:fd,credentials:'same-origin'});
    const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'تعذر رفع الصورة.');
    await selectProject(activeProject.project_id||activeProject.id);notify('تم حفظ صورة غلاف المشروع بنجاح.');
-  }catch(err){notify(err.message);}finally{e.target.value='';}
+  }catch(err){notify(err.message);}finally{e.target.value='';document.getElementById('projectPhotoCaption').value='';document.getElementById('projectPhotoDate').value='';}
  });
  document.getElementById('newProject').addEventListener('click',async()=>{
   const name=window.prompt('أدخل اسم المشروع الجديد:');if(!name||name.trim().length<3)return;
