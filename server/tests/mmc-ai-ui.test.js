@@ -102,3 +102,11 @@ test('MMC AI dashboard uses the approved dark construction-intelligence visual l
  assert.match(html,/--bg:#071629/);
  assert.match(html,/\.project-photo\.has-image img\{display:block\}/);
 });
+
+test('MMC AI exposes a complete project-scoped data register with metadata-only protection',()=>{
+ assert.match(html,/id="allProjectDataPanel"/);
+ assert.match(html,/data-overview/);
+ assert.match(html,/id="allProjectDataJson"/);
+ assert.match(html,/id="refreshAllProjectData"/);
+ assert.match(html,/loadAllProjectData\(id\)/);
+});
