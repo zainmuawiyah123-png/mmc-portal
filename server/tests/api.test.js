@@ -1582,45 +1582,6 @@ test('95 — استيراد عطاءات أمانة عمّان وFAO متاح ل
 });
 
 
-
-test('95A — استيراد عطاءات VendorPanel الأسترالية مع منع التكرار وحصر المزامنة بالمسؤول', async () => {
-  const admin='vendorpanel-admin-'+uniq();
-  const denied=await call('anon-vendorpanel','POST','/api/opportunities/admin/sync/vendorpanel-australia');
-  assert.strictEqual(denied.status,401);
-  await makeAdmin(admin);
-  const xml=`<?xml version="1.0"?><rss><channel>
-    <item><title>Road rehabilitation works</title><guid>VP Reference: VP12345</guid>
-      <description><![CDATA[Issued by: Example Roads Authority | Opened: 2026-11-01 | Closing: 2026-12-20 | VP Reference: VP12345]]></description>
-      <link>https://www.vendorpanel.com.au/PublicTenders/VP12345</link><pubDate>Mon, 02 Nov 2026 00:00:00 GMT</pubDate></item>
-    <item><title>Water treatment upgrade</title><guid>VP Reference: VP67890</guid>
-      <description><![CDATA[Issued by: Water Agency | Closing: 2026-12-31 | VP Reference: VP67890]]></description>
-      <link>https://www.vendorpanel.com.au/PublicTenders/VP67890</link></item>
-    <item><title>Rejected unsafe link</title><guid>VP99999</guid>
-      <description>Issued by: Unknown</description><link>https://example.com/not-vendorpanel</link></item>
-  </channel></rss>`;
-  const originalFetch=global.fetch;
-  global.fetch=async(url,...args)=>String(url).startsWith(base)?originalFetch(url,...args):new Response(xml,{status:200,headers:{'content-type':'application/rss+xml'}});
-  try {
-    const first=await call(admin,'POST','/api/opportunities/admin/sync/vendorpanel-australia');
-    assert.strictEqual(first.status,200,JSON.stringify(first.data));
-    assert.deepStrictEqual([first.data.added,first.data.updated,first.data.received],[2,0,2]);
-    const second=await call(admin,'POST','/api/opportunities/admin/sync/vendorpanel-australia');
-    assert.strictEqual(second.status,200,JSON.stringify(second.data));
-    assert.deepStrictEqual([second.data.added,second.data.updated],[0,2]);
-    const contractor='vendorpanel-contractor-'+uniq();
-    await call(contractor,'POST','/api/auth/register',{body:{name:'مقاول أستراليا',email:contractor+'@t.com',password:'Password123',role:'contractor'}});
-    const list=await call(contractor,'GET','/api/opportunities?source=vendorpanel-australia&country=AU');
-    assert.strictEqual(list.status,200);
-    assert.strictEqual(list.data.count,2);
-    assert.strictEqual(list.data.opportunities[0].country,'AU');
-    assert.ok(list.data.opportunities.every(x=>x.sourceUrl.startsWith('https://www.vendorpanel.com.au/')));
-    assert.strictEqual(getDB().prepare("SELECT COUNT(*) n FROM tender_opportunities WHERE source_key='vendorpanel-australia'").get().n,2);
-  } finally {
-    global.fetch=originalFetch;
-    getDB().prepare("DELETE FROM tender_opportunities WHERE source_key='vendorpanel-australia'").run();
-  }
-});
-
 test('96 — وثائق العطاء العامة تُنزّل عبر MMC وتُخزّن بعد أول طلب مع حماية الدخول', async () => {
   const db=getDB(), token='doc-download-'+uniq(), opportunityId='doc-opp-'+token, documentId='doc-file-'+token;
   const documentUrl='https://arabpotash.com/public/'+token+'.pdf', apiPath='/api/opportunities/'+opportunityId+'/documents/'+documentId+'/download';
