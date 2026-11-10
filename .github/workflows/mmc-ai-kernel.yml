@@ -8,9 +8,12 @@ on:
       - 'server/src/routes/mmc-ai.js'
       - 'server/src/routes/mmc-ai-documents.js'
       - 'server/src/routes/mmc-ai-images.js'
+      - 'webpages/mmc-ai/**'
+      - 'server/tests/mmc-ai-ui.test.js'
       - 'server/src/migrate.js'
       - 'server/src/index.js'
       - 'server/tests/mmc-ai-*.test.js'
+      - 'webpages/mmc-ai/**'
       - 'server/src/lib/storage/**'
       - 'server/package-lock.json'
       - '.github/workflows/mmc-ai-kernel.yml'
@@ -18,6 +21,7 @@ on:
     paths:
       - 'server/src/lib/mmc-ai/**'
       - 'server/tests/mmc-ai-*.test.js'
+      - 'webpages/mmc-ai/**'
       - 'server/package-lock.json'
       - '.github/workflows/mmc-ai-kernel.yml'
 permissions:
