@@ -135,6 +135,12 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(outsiderSchedule.status,404);
  const dependentDelete=await call('ai-owner','DELETE','/api/mmc-ai/projects/'+projectId+'/schedule/tasks/'+taskA.data.task.id,{});
  assert.equal(dependentDelete.status,409);
+ const bimCreate=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/bim/issues',{title:'HVAC duct clashes with beam',modelReference:'Coordination model v03',discipline:'mechanical',severity:'high',description:'Duct route intersects structural beam at grid B-4.',elementIds:['DUCT-004','BEAM-B4'],proposedResolution:'Review alternative duct elevation with structural engineer.'});
+ assert.equal(bimCreate.status,201,JSON.stringify(bimCreate.data));assert.deepEqual(bimCreate.data.issue.element_ids,['DUCT-004','BEAM-B4']);
+ const bimList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/bim/issues');assert.equal(bimList.status,200);assert.equal(bimList.data.summary.high,1);
+ const bimViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/bim/issues',{title:'Viewer not permitted',description:'This should be rejected'});assert.equal(bimViewer.status,403);
+ const bimUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/bim/issues/'+bimCreate.data.issue.id,{status:'resolved'});assert.equal(bimUpdate.status,200);assert.equal(bimUpdate.data.issue.status,'resolved');
+ const bimOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/bim/issues');assert.equal(bimOutsider.status,404);
  const riskCreate=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/risks',{title:'Unexpected groundwater',category:'technical',description:'Groundwater level higher than the design assumption.',probability:4,impact:5,mitigation:'Conduct pumping trial and submit revised method statement.'});
  assert.equal(riskCreate.status,201,JSON.stringify(riskCreate.data));assert.equal(riskCreate.data.risk.score,20);assert.equal(riskCreate.data.risk.level,'critical');
  const riskList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/risks');assert.equal(riskList.status,200);assert.equal(riskList.data.summary.critical,1);
