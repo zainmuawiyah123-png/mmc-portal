@@ -128,7 +128,16 @@
     location.replace('index.html');
   }).catch(function(){});
 
-  if(new URLSearchParams(location.search).get('role')==='buyer'){document.getElementById('role').value='buyer';}
+  var roleSelect=document.getElementById('role');
+  var intro=document.querySelector('.auth-head p span');
+  function updateRoleIntro(){
+    if(roleSelect.value==='buyer') intro.textContent=T('بوابة المشتريات الأساسية مجانية بالكامل دون اشتراك أو مدة تجريبية.','Core procurement access is permanently free, with no subscription or trial period.');
+    else if(roleSelect.value==='consultant') intro.textContent=T('أنشئ ملف المكتب الاستشاري وابدأ باستخدام الخدمات المتاحة للمكاتب.','Create your consultancy profile and access the services available to consulting offices.');
+    else intro.textContent=T('تبدأ على الباقة المجانية الأساسية. يمكنك تفعيل الأدوات الاحترافية حسب الباقة المتاحة.','Start with the free basic plan. Professional tools are available according to your selected plan.');
+  }
+  roleSelect.addEventListener('change',updateRoleIntro);
+  if(new URLSearchParams(location.search).get('role')==='buyer'){roleSelect.value='buyer';}
+  updateRoleIntro();
   form.addEventListener('submit', function(e){
     e.preventDefault();
     hideAlert(); clearAll();
@@ -154,7 +163,7 @@
 
     API.register({name:name, email:email, password:p1, company:company||undefined, role:role, country:country}).then(function(res){
       showAlert(T('تم إنشاء الحساب. جارٍ التحويل إلى لوحة التحكم…','Account created. Redirecting to your dashboard…'),'ok');
-      var qp=new URLSearchParams(location.search).get('plan')||'';var dest=(res.user&&res.user.role==='buyer')?(/^proc_[a-z]+$/.test(qp)?'billing.html?plan='+qp:'../../procurement/index.html'):'index.html';setTimeout(function(){ location.replace(dest); }, 500);
+      var dest=(res.user&&res.user.role==='buyer')?'../../procurement/index.html':(res.user&&res.user.role==='consultant'?'../../consultant/index.html':'index.html');setTimeout(function(){ location.replace(dest); }, 500);
     }).catch(function(err){
       btn.disabled=false; btn.innerHTML=defaultLabel;
       if(err.code==='CONFLICT'){

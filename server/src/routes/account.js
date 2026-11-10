@@ -47,17 +47,19 @@ router.delete('/requests/:id', auth, wrap(async (req, res) => {
 
 /* ---------------- GET /api/plans ---------------- */
 router.get('/plans', auth, wrap(async (req, res) => {
-  const aud = req.user.role === 'buyer' ? 'buyer' : 'contractor';
-  const rows = getDB().prepare("SELECT * FROM plans WHERE audience = ? OR key = 'free' ORDER BY sort_order").all(aud);
-  res.json({
-    plans: rows.map((p) => ({
-      key: p.key, nameAr: p.name_ar, nameEn: p.name_en,
-      maxTenders: p.max_tenders === -1 ? null : p.max_tenders,
-      maxSubmissions: p.max_submissions === -1 ? null : p.max_submissions,
-      maxBytes: p.max_bytes === -1 ? null : p.max_bytes,
-      priceMonth: p.price_month, priceYear: p.price_year, sortOrder: p.sort_order
-    }))
-  });
+  if (req.user.role === 'buyer') {
+    const free = A.planAndUsage(req.user.id).plan;
+    return res.json({ plans: [{ key: 'free', nameAr: free.nameAr, nameEn: free.nameEn,
+      maxTenders: null, maxSubmissions: null, maxBytes: null, priceMonth: 0, priceYear: 0, sortOrder: 0 }], buyerCoreFree: true });
+  }
+  const rows = getDB().prepare("SELECT * FROM plans WHERE audience = 'contractor' OR key = 'free' ORDER BY sort_order").all();
+  res.json({ plans: rows.map((p) => ({
+    key: p.key, nameAr: p.name_ar, nameEn: p.name_en,
+    maxTenders: p.max_tenders === -1 ? null : p.max_tenders,
+    maxSubmissions: p.max_submissions === -1 ? null : p.max_submissions,
+    maxBytes: p.max_bytes === -1 ? null : p.max_bytes,
+    priceMonth: p.price_month, priceYear: p.price_year, sortOrder: p.sort_order
+  })), buyerCoreFree: false });
 }));
 
 /* ---------------- GET /api/usage ---------------- */
@@ -69,7 +71,9 @@ router.get('/usage', auth, wrap(async (req, res) => {
    في هذه المرحلة: تبديل الباقة يدوياً (لا دفع). مقيّد بعدم تجاوز الحدود.
 ------------------------------------------------------------ */
 router.post('/plan', auth, wrap(async (req, res) => {
+  if (req.user.role === 'buyer') throw E.forbidden('بوابة المشتريات الأساسية مجانية دائماً ولا يمكن تغييرها إلى باقة مدفوعة.');
   const body = parse(planChangeSchema, req.body);
+  if (body.planKey !== 'free') throw E.forbidden('لا يمكن تفعيل باقة مدفوعة يدوياً. أنشئ فاتورة من صفحة الاشتراكات، ويُفعّل الاشتراك بعد اعتماد الدفع.');
   const db = getDB();
 
   const target = db.prepare('SELECT * FROM plans WHERE key = ?').get(body.planKey);
@@ -103,6 +107,7 @@ router.post('/plan', auth, wrap(async (req, res) => {
 
 /* ---------------- طلب تسجيل اهتمام (صفحة ترقية الباقة) ---------------- */
 router.post('/upgrade-interest', auth, wrap(async (req, res) => {
+  if (req.user.role === 'buyer') throw E.forbidden('لا توجد باقات اشتراك لبوابة المشتريات الأساسية.');
   const planKey = String((req.body && req.body.planKey) || '').slice(0, 20);
   // في هذه المرحلة نسجّل الاهتمام فقط، بلا دفع
   console.log('[upgrade-interest]', req.user.email, planKey, new Date().toISOString());

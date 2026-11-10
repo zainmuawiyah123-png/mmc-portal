@@ -67,12 +67,14 @@ function shapePlan(p) {
 /* الباقات المتاحة (عامة) — ?audience=buyer|contractor */
 router.get('/plans', wrap(async (req, res) => {
   const aud = req.query.audience === 'buyer' ? 'buyer' : 'contractor';
-  const rows = getDB().prepare("SELECT * FROM plans WHERE audience = ? AND key != 'free' ORDER BY sort_order").all(aud);
-  res.json({ plans: rows.map(shapePlan) });
+  if (aud === 'buyer') return res.json({ plans: [], buyerCoreFree: true, message: 'بوابة المشتريات الأساسية مجانية بالكامل ولا تتطلب باقة أو تجربة.' });
+  const rows = getDB().prepare("SELECT * FROM plans WHERE audience = 'contractor' AND key != 'free' ORDER BY sort_order").all();
+  res.json({ plans: rows.map(shapePlan), buyerCoreFree: false });
 }));
 
 /* تجربة مجانية لمرة واحدة لكل مستخدم على باقة مشتريات */
 router.post('/trial', auth, wrap(async (req, res) => {
+  if (req.user.role === 'buyer') throw E.forbidden('بوابة المشتريات الأساسية مجانية دائماً ولا تحتاج إلى تجربة أو تفعيل باقة.');
   const db = getDB();
   const plan = db.prepare('SELECT * FROM plans WHERE key = ?').get(String(req.body?.planKey || ''));
   if (!plan || plan.trial_days <= 0) throw E.validation('هذه الباقة لا تدعم التجربة المجانية.');
@@ -93,6 +95,7 @@ router.post('/trial', auth, wrap(async (req, res) => {
 
 /* Contractor: create and view invoices */
 router.post('/invoices', auth, wrap(async (req, res) => {
+  if (req.user.role === 'buyer') throw E.forbidden('لا تُصدر فواتير اشتراك لبوابة المشتريات؛ خدماتها الأساسية مجانية بالكامل.');
   const body = req.body || {};
   const planKey = String(body.planKey || '');
   const billingCycle = body.billingCycle === 'annual' ? 'annual' : 'monthly';
@@ -199,6 +202,8 @@ router.post('/admin/invoices/:id/approve', admin, wrap(async (req, res) => {
   const db = getDB();
   const row = db.prepare('SELECT * FROM invoices WHERE id=?').get(req.params.id);
   if (!row) throw E.notFound('الفاتورة غير موجودة.');
+  const customer = db.prepare('SELECT role FROM users WHERE id=?').get(row.user_id);
+  if (customer?.role === 'buyer') throw E.conflict('لا يجوز تفعيل اشتراك مدفوع لبوابة المشتريات الأساسية.');
   if (row.status === 'paid') throw E.conflict('الفاتورة معتمدة مسبقاً.');
   if (!row.receipt_storage_key) throw E.conflict('لا يمكن الاعتماد قبل رفع إيصال التحويل.');
   const now = Math.floor(Date.now() / 1000);

@@ -639,8 +639,12 @@
       host.querySelectorAll('[data-pick]').forEach(function (b) {
         b.addEventListener('click', function () {
           var key = b.getAttribute('data-pick');
-          if (!confirm(T('تفعيل هذه الباقة الآن؟ (لا يوجد دفع فعلي في هذه المرحلة — يُكتب مباشرة في قاعدة البيانات)',
-                         'Activate this plan now? (No real payment in this phase — it writes straight to the database)'))) return;
+          if (key !== 'free') {
+            location.href = 'billing.html?plan=' + encodeURIComponent(key);
+            return;
+          }
+          if (!confirm(T('الرجوع إلى الباقة المجانية؟ ستُطبَّق حدودها على العطاءات والملفات الحالية.',
+                         'Switch back to the free plan? Its tender and file limits will apply.'))) return;
           b.disabled = true;
           API.changePlan(key).then(function (res) {
             toast(res.message || T('تم تفعيل الباقة', 'Plan activated'), 'ok');
