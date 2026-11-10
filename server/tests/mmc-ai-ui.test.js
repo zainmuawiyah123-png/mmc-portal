@@ -53,3 +53,9 @@ test('MMC AI BIM workspace supports secure IFC and GLB model intake',()=>{
  assert.match(html,/رفع نموذج IFC \/ GLB/);
  assert.match(html,/عرض النموذج ثلاثي الأبعاد وتحليل هندسته/);
 });
+
+test('MMC AI offers interactive GLB model preview with protected inline model URL',()=>{
+ assert.match(html,/<model-viewer id="bimModelCanvas"/);
+ assert.match(html,/download\?inline=1/);
+ assert.match(html,/bimViewerClose/);
+});
