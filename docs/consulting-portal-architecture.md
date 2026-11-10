@@ -64,4 +64,7 @@ The existing `/api/requests` flow is the buyer's project/request-to-procurement 
 - Development branch: `feature/consultant-portal-independent-phase1`
 - Base: `feature/buyer-free-core-phase1`
 - The branch is separate from `main`; no production deployment is authorized.
-- No consultancy portal code or database migration has yet been introduced.
+- Implemented: protected `/consulting/` UI, `/api/consulting/*` onboarding/profile/verification API, additive firm identity tables, and consultant billing audience isolation.
+- Automated CI: existing API suite 89/89; new consulting suite 7/7; finance UI 36/36; opportunity tests 22/22; scheduler 1/1; UK sync 8/8. The S3 test file reports no tests in this workflow.
+- Professional billing remains intentionally unavailable; $20 USD/month is displayed as the approved price only.
+- No production migration, merge, or Render deployment has occurred.
