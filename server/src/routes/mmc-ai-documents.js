@@ -8,6 +8,7 @@ const {getDB,uid}=require('../db');
 const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const storage=require('../lib/storage');
+const {preflightPdf}=require('../lib/mmc-ai/pdf-preflight');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -56,6 +57,22 @@ router.get('/projects/:projectId/documents/:documentId/download',wrap(async(req,
  res.setHeader('Cache-Control','private, no-store');
  if(store.DRIVER==='s3'){const result=await store.stream(doc.storage_key);result.body.pipe(res);}
  else store.stream(doc.storage_key).pipe(res);
+}));
+router.post('/projects/:projectId/documents/:documentId/preflight/pdf',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc) throw E.notFound('المستند غير موجود.');
+ if(doc.file_ext!=='.pdf') throw E.validation('فحص PDF متاح لملفات PDF فقط.');
+ const store=storage.getStorage();
+ if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+ const bytes=await store.get(doc.storage_key);
+ if(!Buffer.isBuffer(bytes)) throw E.validation('تعذر قراءة ملف PDF من التخزين.');
+ const report=preflightPdf(bytes);
+ db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
+ VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_preflight_completed','document',doc.id,JSON.stringify({version:report.version,bytes:report.bytes,pageCount:report.pageCount,status:report.status}));
+ res.setHeader('Cache-Control','no-store');
+ res.json({documentId:doc.id,report,notice:'هذا فحص بنية أولي فقط؛ لا يستخرج النصوص أو الأبعاد أو الكميات.'});
 }));
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();
