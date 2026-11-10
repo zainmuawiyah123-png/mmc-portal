@@ -65,7 +65,7 @@ The existing `/api/requests` flow is the buyer's project/request-to-procurement 
 - Development branch: `feature/consultant-portal-independent-phase1`
 - Base: `feature/buyer-free-core-phase1`
 - The branch is separate from `main`; no production deployment is authorized.
-- Implemented: protected consultant and requester workspaces, isolated firm/requester identities, verification flows, independent service requests, confidential proposals, award/contract creation, additive migrations, and consultant billing audience isolation.
-- Automated CI (latest completed run before the newest requester-page-only test): API 89/89; consulting marketplace suite 8/8; finance UI 36/36; opportunity tests 22/22; scheduler 1/1; UK sync 8/8. The S3 test file reports no tests in this workflow. New requester-page gate test is included in the latest pending run.
+- Implemented: protected consultant and requester workspaces, isolated firm/requester identities, verification flows, independent service requests, confidential proposals, award/contract creation, additive migrations, and role-level consultant billing audience isolation (including existing evaluators).
+- Latest completed CI run on this branch: full `npm run test:all` workflow succeeded after adding the separate requester workspace and tightening the buyer/consultant billing audience. Earlier detailed counts: API 89/89; consulting marketplace suite 8/8; finance UI 36/36; opportunity tests 22/22; scheduler 1/1; UK sync 8/8. The S3 test file reports no tests in this workflow.
 - Professional billing remains intentionally unavailable; $20 USD/month is displayed as the approved price only.
 - No production migration, merge, or Render deployment has occurred.
