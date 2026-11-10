@@ -213,6 +213,11 @@ function createApp() {
 
   // MMC AI is an independent workspace within MMC, not a tender portal role.
   app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res, next) => {
+    // Public preview is strictly visual-only: the page skips all project/API loading
+    // unless an authenticated member opens the normal workspace without preview=1.
+    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
+      return sendFromWeb('mmc-ai/index.html', res, next);
+    }
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
       if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/mmc-ai/');
