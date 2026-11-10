@@ -5,14 +5,16 @@
 <title>بوابة المكاتب الاستشارية | MMC</title>
 <link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
 <style>
-body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.panel{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:22px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}label{display:block;font-weight:600;margin:8px 0}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;margin-top:5px}textarea{min-height:90px}.muted{color:#64748b}.status{padding:10px;border-radius:8px;background:#eff6ff;margin:12px 0}.request{border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:12px 0}.request h3{margin-top:0}.request form{border-top:1px solid #e2e8f0;margin-top:12px;padding-top:12px}button{cursor:pointer}.mine{padding:10px;background:#f8fafc;border-radius:8px;margin:8px 0}
+body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;padding:0 20px}.panel{background:#fff;border:1px solid #dfe6ef;border-radius:13px;padding:22px;margin:16px 0;box-shadow:0 3px 12px rgba(20,40,70,.035)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}label{display:block;font-weight:650;margin:8px 0}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;margin-top:5px}textarea{min-height:90px}.muted{color:#64748b}.status{padding:12px 14px;border-radius:8px;background:#eff6ff;margin:12px 0}.request{border:1px solid #dfe6ef;border-radius:10px;padding:18px;margin:12px 0;background:#fff}.request h3{margin-top:0;color:#17365d}.request form{border-top:1px solid #e2e8f0;margin-top:14px;padding-top:12px}button{cursor:pointer}.mine{padding:10px;background:#f8fafc;border-radius:8px;margin:8px 0}.consult-nav{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #dfe6ef;border-radius:12px;padding:10px;margin:14px 0}.consult-nav a{padding:10px 14px;border-radius:8px;color:#25476d;text-decoration:none;font-weight:700}.consult-nav a:hover{background:#eaf1f8}.statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{background:#fff;border:1px solid #dfe6ef;border-radius:12px;padding:16px}.stat b{display:block;font-size:25px;color:#17365d;margin-top:5px}.eyebrow{color:#9a6a12;font-weight:800}.request h3{font-size:18px}@media(max-width:760px){.statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:0 12px}.panel{padding:16px}}
 </style></head>
 <body>
-<header class="p-top"><div class="brand"><span class="mark">M</span><span><span>MMC / TenderWise</span><small>Consulting Firms Portal</small></span></div><div class="spacer"></div><span id="user"></span></header>
+<header class="p-top"><div class="brand"><span class="mark">M</span><span><span>MMC / TenderWise</span><small>Consulting Office Management Portal</small></span></div><div class="spacer"></div><span id="user"></span><button class="btn ghost" id="logout" type="button">خروج</button></header>
 <main class="wrap">
- <div class="p-head"><div class="eyebrow">بوابة مستقلة للمكاتب الاستشارية</div><h1>ملف المكتب وسوق الخدمات الاستشارية</h1><p class="muted">بوابة مستقلة عن المقاولين والمشتريات ومساحة مقيّمي العطاءات. لا يمكن لأي مكتب الاطلاع على عروض المكاتب المنافسة.</p></div>
+ <div class="p-head"><div class="eyebrow">بوابة مستقلة لإدارة المكاتب الاستشارية</div><h1>لوحة إدارة المكتب الاستشاري</h1><p class="muted">إدارة فرص الخدمات الاستشارية المنشورة عبر المنصة، عروض المكتب، العقود، ومتابعة التنفيذ. هذه البوابة مستقلة عن بوابة المقاولين وبوابة الجهة الطالبة.</p></div>
+ <nav class="consult-nav"><a href="#dashboard">لوحة التحكم</a><a href="#market">العطاءات والفرص الاستشارية</a><a href="#myProposals">عروضي الفنية والمالية</a><a href="#myContracts">العقود ومتابعة التنفيذ</a><a href="#existing">ملف المكتب والاشتراك</a></nav>
+ <section id="dashboard" class="statgrid"><div class="stat">الفرص الاستشارية المتاحة<b id="statOpen">—</b></div><div class="stat">العروض المقدمة<b id="statProposals">—</b></div><div class="stat">العقود المسندة<b id="statContracts">—</b></div><div class="stat">الاشتراك الاحترافي<b>20 USD / شهر</b></div></section>
  <div id="message" class="status">جارٍ تحميل بيانات الحساب…</div>
- <section id="existing" class="panel" hidden><h2 id="firmName"></h2><p id="firmInfo"></p><p id="firmStatus" class="status"></p><p class="muted">الباقة الأساسية مجانية. الباقة الاحترافية: 20 USD شهرياً. تفعيل الاشتراك والدفع غير متاحين في هذه المرحلة.</p></section>
+ <section id="existing" class="panel" hidden><h2>ملف المكتب الاستشاري</h2><h3 id="firmName"></h3><p id="firmInfo"></p><p id="firmStatus" class="status"></p><p class="muted">الباقة الاحترافية: 20 USD شهرياً. أول عطاء مجاني. بوابة الدفع والتفعيل الآلي لم يجرِ تشغيلهما بعد، ولن يتم احتساب رسوم قبل تفعيلهما رسمياً.</p></section>
  <section id="register" class="panel" hidden><h2>تسجيل مكتب استشاري</h2><p class="muted">أدخل بيانات المكتب القانونية. يبقى الملف قيد المراجعة حتى التحقق منه.</p>
  <form id="firmForm"><div class="grid">
  <label>الاسم القانوني للمكتب<input name="legalName" required minlength="3" maxlength="180"></label>
@@ -25,7 +27,9 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
  <label>التخصصات (افصل بينها بفاصلة)<input name="specializations" maxlength="1000" placeholder="تصميم إنشائي، إشراف، طرق، بنية تحتية"></label>
  <label>الخبرات والمشاريع السابقة<textarea name="experienceSummary" maxlength="3000"></textarea></label>
  <button class="btn amber" type="submit">إرسال ملف المكتب للتحقق</button></form></section>
- <section id="market" class="panel" hidden><h2>طلبات الخدمات الاستشارية المتاحة</h2><p class="muted">تظهر هنا الطلبات المنشورة للجهات. يمكنك تقديم عرض واحد لكل طلب، ولا تظهر عروض المنافسين.</p><div id="requests"></div><h2>عروضي المقدمة</h2><div id="myProposals"></div><h2>عقودي ومتابعة التنفيذ</h2><div id="myContracts"></div></section>
+ <section id="market" class="panel" hidden><h2>العطاءات والفرص الاستشارية المنشورة</h2><p class="muted">تظهر هنا طلبات الخدمات الاستشارية المنشورة من الجهات المختلفة على المنصة. يمكن للمكتب تقديم عرض فني ومالي مستقل؛ ولا تظهر له عروض المكاتب المنافسة.</p><div id="requests"></div></section>
+ <section id="myProposals" class="panel" hidden><h2>عروضي الفنية والمالية</h2><p class="muted">متابعة العروض التي قدمها هذا المكتب فقط، مع إتاحة الوثائق الخاصة به.</p><div id="myProposalsList"></div></section>
+ <section id="myContracts" class="panel" hidden><h2>العقود ومتابعة التنفيذ</h2><div id="myContractsList"></div></section>
  <section class="panel"><h3>معلومات الباقة</h3><ul><li>الأساسية: مجانية لملف المكتب.</li><li>الاحترافية: 20 USD شهرياً، ويظل تفعيلها مغلقاً حتى استكمال الفوترة المستقلة.</li><li>التقديم على طلبات السوق متاح للمكاتب التي اكتمل التحقق القانوني منها.</li></ul></section>
 </main>
 <script>
@@ -63,10 +67,10 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
    form.addEventListener('submit',async e=>{e.preventDefault();const data={technicalSummary:summary.value,methodology:method.value,teamSummary:team.value,financialAmount:Number(amount.value),durationDays:Number(days.value),currency:r.currency};try{const out=await api('/consulting/requests/'+r.id+'/proposals',{method:'POST',body:JSON.stringify(data)});msg.textContent=out.message;await loadMarket();}catch(err){showError(err);}});
    card.append(form);list.append(card);
   });
-  const mineBox=$('#myProposals');mineBox.replaceChildren();
+  const mineBox=$('#myProposalsList');mineBox.replaceChildren();$('#statOpen').textContent=feed.requests.length;$('#statProposals').textContent=mine.proposals.length;$('#statContracts').textContent=contracts.contracts.length;
   if(!mine.proposals.length)mineBox.append(node('p','لم تقدم عروضاً بعد.','muted'));
   mine.proposals.forEach(p=>{const card=node('article',undefined,'request');card.append(node('h3',p.request_title+' · '+p.financial_amount+' '+p.currency+' · '+p.status));documentPanel(card,'proposal',p.id,true);mineBox.append(card);});
-  const contractBox=$('#myContracts');contractBox.replaceChildren();
+  const contractBox=$('#myContractsList');contractBox.replaceChildren();
   if(!contracts.contracts.length)contractBox.append(node('p','لا توجد عقود مسندة للمكتب بعد.','muted'));
   contracts.contracts.forEach(contract=>{
    const card=node('article',undefined,'request');card.append(node('h3',contract.contract_reference+' · '+contract.request_title));card.append(node('p','الجهة: '+contract.requester_name+' · '+contract.agreed_amount+' '+contract.currency));
@@ -82,14 +86,14 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
   if(me.user.role!=='consultant')throw new Error('هذه البوابة مخصصة لحسابات المكاتب الاستشارية.');
   const d=await api('/consulting/me');
   if(d.firm){
-   $('#existing').hidden=false;$('#firmName').textContent=d.firm.legalName;$('#firmInfo').textContent=d.firm.country+' · رقم التسجيل: '+d.firm.registrationNumber+' · '+d.firm.contactEmail;
+   $('#existing').hidden=false;$('#myProposals').hidden=false;$('#myContracts').hidden=false;$('#firmName').textContent=d.firm.legalName;$('#firmInfo').textContent=d.firm.country+' · رقم التسجيل: '+d.firm.registrationNumber+' · '+d.firm.contactEmail;
    $('#firmStatus').textContent='حالة التحقق: '+({pending:'قيد المراجعة',verified:'موثّق',rejected:'مرفوض',suspended:'موقوف'}[d.firm.verificationStatus]||d.firm.verificationStatus)+(d.firm.verificationNote?' — '+d.firm.verificationNote:'');
-   if(d.firm.verificationStatus==='verified'&&d.firm.memberStatus==='active'){$('#market').hidden=false;msg.textContent='تم التحقق من المكتب. يمكنك الآن الاطلاع على طلبات الخدمات وتقديم عروضك.';await loadMarket();}
+   if(d.firm.verificationStatus==='verified'&&d.firm.memberStatus==='active'){$('#market').hidden=false;msg.textContent='تم التحقق من المكتب. يمكنك الآن إدارة الفرص الاستشارية وعروضك وعقودك.';await loadMarket();}
    else msg.textContent=d.firm.verificationStatus==='verified'?'عضوية المكتب موقوفة حالياً. راجع مسؤول المنصة.':'ملف المكتب قيد المراجعة. ستفتح وظائف السوق بعد اعتماد التحقق القانوني.';
   }else{$('#register').hidden=false;msg.textContent='لا يوجد ملف مكتب مرتبط بهذا الحساب. يمكنك تسجيل مكتبك الآن.';}
  }
  $('#firmForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),data={};for(const [k,v] of f.entries())data[k]=String(v).trim();data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}catch(err){showError(err);}});
- load().catch(showError);
+ load().catch(showError);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
 })();
 </script>
 </body></html>
