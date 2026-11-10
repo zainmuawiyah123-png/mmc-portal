@@ -137,6 +137,16 @@ function createApp() {
     });
   });
 
+  // Separate requester workspace for the consultancy marketplace; not the procurement portal.
+  app.get(['/consulting/requester', '/consulting/requester/', '/consulting/requester/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/requester/');
+      if (req.user.role !== 'buyer') return res.status(403).type('text').send('هذه المساحة مخصصة للجهات الطالبة للخدمات الاستشارية.');
+      return sendFromWeb('consulting/requester/index.html', res, next);
+    });
+  });
+
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {
