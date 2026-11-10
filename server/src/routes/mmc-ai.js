@@ -60,6 +60,25 @@ router.post('/projects',wrap(async(req,res)=>{
   res.status(201).json({project:membership(id,req.user.id)});
 }));
 
+router.get('/projects/:projectId/data-overview',wrap(async(req,res)=>{
+ const m=requireMember(req),db=getDB(),pid=m.project_id;
+ // Full project-scoped register. Storage keys, file bytes, credentials and private URLs are intentionally excluded.
+ const data={
+  project:{id:pid,name:m.name,description:m.description,country:m.country,currency:m.currency,status:m.status,role:m.role,created_at:m.created_at,updated_at:m.updated_at},
+  boq:db.prepare('SELECT id,item_code,description,unit,quantity,rate,(quantity*rate) AS amount,created_at,updated_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at').all(pid),
+  schedule:db.prepare('SELECT id,task_code,name,duration_days,predecessors_json,percent_complete,status,created_at,updated_at FROM ai_schedule_tasks WHERE project_id=? ORDER BY created_at').all(pid),
+  risks:db.prepare('SELECT id,title,category,probability,impact,mitigation,status,created_at,updated_at FROM ai_project_risks WHERE project_id=? ORDER BY created_at').all(pid),
+  contractEvents:db.prepare('SELECT id,title,fidic_clause,notice_date,event_date,time_impact_days,cost_impact,currency,status,created_at,updated_at FROM ai_contract_events WHERE project_id=? ORDER BY created_at').all(pid),
+  documents:db.prepare('SELECT id,original_name,file_ext,size_bytes,sha256,processing_status,created_at FROM ai_documents WHERE project_id=? ORDER BY created_at').all(pid),
+  bimIssues:db.prepare('SELECT id,title,description,severity,status,created_at,updated_at FROM ai_bim_issues WHERE project_id=? ORDER BY created_at').all(pid),
+  sitePhotos:db.prepare('SELECT id,uploaded_by,original_name,mime_type,size_bytes,sha256,caption,captured_at,is_cover,created_at FROM ai_project_images WHERE project_id=? ORDER BY created_at').all(pid),
+  members:db.prepare('SELECT m.user_id,u.name,m.role,m.joined_at FROM ai_project_members m JOIN users u ON u.id=m.user_id WHERE m.project_id=? ORDER BY m.joined_at').all(pid),
+  auditLog:db.prepare('SELECT id,actor_user_id,action,entity_type,entity_id,detail_json,created_at FROM ai_audit_log WHERE project_id=? ORDER BY created_at DESC LIMIT 500').all(pid)
+ };
+ const counts=Object.fromEntries(Object.entries(data).filter(([,v])=>Array.isArray(v)).map(([k,v])=>[k,v.length]));
+ res.setHeader('Cache-Control','private, no-store');
+ res.json({projectId:pid,generatedAt:new Date().toISOString(),counts,data,limitations:['المستندات والصور تعرض بياناتها الوصفية فقط؛ لا يتم تضمين محتوى الملفات أو مفاتيح التخزين.','سجل التدقيق يعرض آخر 500 حدث.','لا تظهر نماذج BIM نفسها أو ملفاتها الثنائية ضمن هذا العرض.']});
+}));
 router.get('/projects/:projectId/dashboard',wrap(async(req,res)=>{
  const m=requireMember(req),db=getDB(),pid=m.project_id;
  const boq=db.prepare('SELECT COUNT(*) AS count,COALESCE(SUM(quantity*rate),0) AS total FROM ai_boq_items WHERE project_id=?').get(pid);
