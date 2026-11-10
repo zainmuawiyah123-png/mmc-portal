@@ -43,6 +43,7 @@
     <div class="photo-meta" id="photoMeta">JPG / PNG · حتى 12 MB · صورة الغلاف لا تُعد بديلاً عن بيانات تقدم المشروع</div>
    </div>
   </section>
+  <section class="panel" id="takeoffResultPanel" style="margin-bottom:18px"><div class="panelhead"><h2>نتائج الحصر الهندسي</h2><span>DXF TAKEOFF REVIEW</span></div><div id="takeoffResult" style="padding:14px"><p class="note">ارفع ملف DXF نصياً صالحاً، ثم اختر «حصر DXF» بجانبه لعرض نتيجة أولية قابلة للمراجعة.</p></div></section>
   <section class="panel" id="projectGallery" style="margin-bottom:18px"><div class="panelhead"><h2>معرض مراحل تنفيذ المشروع</h2><span>PROJECT SITE PHOTO LOG</span></div><div id="projectGalleryItems" style="display:flex;gap:12px;overflow:auto;padding:14px"><p class="note">اختر مشروعاً لعرض الصور المرفوعة وتحديد صورة الغلاف.</p></div></section>
   <div class="grid">
    <div class="metric"><div class="metrichead"><span>المشاريع النشطة</span><span class="metricicon">▣</span></div><strong>—</strong><small>ستظهر بيانات مشاريعك بعد ربط الحساب</small></div>
@@ -183,7 +184,27 @@
     meta.append(name,sub);
     const btn=document.createElement('button');btn.type='button';btn.textContent='تنزيل';btn.style.cssText='border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
     btn.addEventListener('click',()=>{window.location.href='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/download';});
-    row.append(meta,btn);list.appendChild(row);
+    const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+    actions.appendChild(btn);
+    if(d.file_ext==='.dxf'){
+     const take=document.createElement('button');take.type='button';take.textContent='حصر DXF';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     take.addEventListener('click',async()=>{
+      take.disabled=true;take.textContent='جارٍ الحصر...';
+      try{
+       const run=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/takeoff/dxf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+       const result=await run.json();if(!run.ok)throw new Error(result.message||result.error||'تعذر تنفيذ الحصر.');
+       const summary=result.run.summary||{};
+       const output=document.getElementById('takeoffResult');output.replaceChildren();
+       const heading=document.createElement('strong');heading.textContent='نتيجة أولية — بانتظار المراجعة الهندسية';heading.style.cssText='display:block;color:#a15a0b;margin-bottom:6px';
+       const detail=document.createElement('div');detail.textContent='عناصر مقروءة: '+summary.supportedEntities+' · عناصر غير مدعومة: '+summary.unsupportedEntities+' · مجموع الأطوال: '+Number(summary.totalLength_m||0).toFixed(3)+' م · المساحات المغلقة: '+Number(summary.totalClosedArea_m2||0).toFixed(3)+' م²';
+       detail.style.cssText='font-size:11px;line-height:1.8;color:#29445f';
+       output.append(heading,detail);
+       notify('تم حفظ نتيجة الحصر كمسودة تحتاج مراجعة مهندس.');
+      }catch(err){notify(err.message);}finally{take.disabled=false;take.textContent='حصر DXF';}
+     });
+     actions.appendChild(take);
+    }
+    row.append(meta,actions);list.appendChild(row);
    }
    host.appendChild(list);
   }catch(e){const p=document.createElement('p');p.className='note';p.textContent=e.message;host.appendChild(p);}
