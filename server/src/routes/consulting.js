@@ -29,7 +29,7 @@ router.post('/firms', wrap(async (req,res) => {
   const legalName=clip(req.body?.legalName,180), country=clip(req.body?.country,2).toUpperCase(), registration=clip(req.body?.registrationNumber,80), contactEmail=clip(req.body?.contactEmail,254).toLowerCase(), contactPhone=clip(req.body?.contactPhone,40);
   if(legalName.length<3) throw E.validation('الاسم القانوني للمكتب مطلوب.');
   if(!['JO','SA','AE'].includes(country)) throw E.validation('الدولة غير مدعومة حالياً.');
-  if(registration.length<3 || registration.split('').some(ch => !/[A-Za-z0-9 _.-]/.test(ch))) throw E.validation('رقم التسجيل القانوني غير صالح.');
+  if(registration.length<3 || registration.split('').some(ch => !/[A-Za-z0-9 _./-]/.test(ch))) throw E.validation('رقم التسجيل القانوني غير صالح.');
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) throw E.validation('البريد الرسمي غير صالح.');
   if(contactPhone.replace(/\D/g,'').length<7) throw E.validation('رقم الهاتف الرسمي غير صالح.');
   const key=identity(country,registration);
@@ -64,7 +64,7 @@ router.get('/admin/pending', A.requireRole('admin'), wrap(async(req,res)=>{
 router.patch('/admin/firms/:id/verification', A.requireRole('admin'), wrap(async(req,res)=>{
   const status=clip(req.body?.status,20), note=clip(req.body?.note,1000);
   if(!['verified','rejected','suspended','pending'].includes(status)) throw E.validation('حالة التحقق غير صالحة.');
-  if(status==='rejected'&&!note) throw E.validation('اذكر سبب رفض التوثيق.');
+  if(['verified','rejected'].includes(status)&&!note) throw E.validation('اذكر مرجع التحقق القانوني أو سبب الرفض في سجل المراجعة.');
   const db=getDB(), firm=db.prepare('SELECT id,verification_status FROM consulting_firms WHERE id=?').get(req.params.id);
   if(!firm) throw E.notFound('المكتب غير موجود.');
   const now=Math.floor(Date.now()/1000);
