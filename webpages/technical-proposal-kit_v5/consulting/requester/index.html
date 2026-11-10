@@ -21,7 +21,7 @@
 <label>العملة<select name="currency"><option>USD</option><option>JOD</option><option>SAR</option><option>AED</option></select></label>
 <label>الميزانية الدنيا<input name="budgetMin" type="number" min="0" step="0.01"></label>
 <label>الميزانية العليا<input name="budgetMax" type="number" min="0" step="0.01"></label>
-<label>تاريخ الإغلاق<input name="closingDate" type="date" min="2026-11-10"></label></div>
+<label>تاريخ الإغلاق<input name="closingDate" type="date"></label></div>
 <label>وصف نطاق الخدمة<textarea name="description" required minlength="20" maxlength="5000"></textarea></label>
 <label>المخرجات المطلوبة (كل بند في سطر)<textarea name="scope" placeholder="التصميم والمخططات&#10;التدقيق الفني&#10;الإشراف"></textarea></label>
 <button class="btn amber" type="submit">نشر طلب الخدمة</button></form></section>
@@ -29,7 +29,7 @@
 </section></main>
 <script>
 (function(){
- const $=s=>document.querySelector(s),msg=$('#message');
+ const $=s=>document.querySelector(s),msg=$('#message');const dateInput=$('input[name=closingDate]');if(dateInput){const now=new Date();dateInput.min=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);}
  function fail(e){msg.textContent=e.message||'تعذر إكمال العملية';}
  async function api(path,opts){const r=await fetch('/api'+path,Object.assign({credentials:'same-origin',headers:{'Content-Type':'application/json'}},opts||{}));const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر الاتصال');return d;}
  const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
