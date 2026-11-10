@@ -93,7 +93,7 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
    d.documents.forEach(doc=>box.append(node('p',doc.document_kind+' · '+doc.original_name+' · '+Math.ceil(doc.size/1024)+' KB','mine')));
   }catch(e){box.textContent=e.message;}
  }
- let currentFirmId=null,currentFirmOwner=false;
+ let currentFirmId=null,currentFirmOwner=false,currentFirmManager=false;
  async function loadFirmOperations(){
   const [members,reports]=await Promise.all([api('/consulting/firms/me/members'),api('/consulting/reports/summary')]);
   const box=$('#firmMembersList');box.replaceChildren();$('#firmMemberForm').hidden=!currentFirmOwner;
@@ -122,9 +122,9 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
   if(d.firm){
    $('#existing').hidden=false;$('#myProposals').hidden=false;$('#myContracts').hidden=false;$('#firmName').textContent=d.firm.legalName;$('#firmInfo').textContent=d.firm.country+' · رقم التسجيل: '+d.firm.registrationNumber+' · '+d.firm.contactEmail;
    $('#firmStatus').textContent='حالة التحقق: '+({pending:'قيد المراجعة',verified:'موثّق',rejected:'مرفوض',suspended:'موقوف'}[d.firm.verificationStatus]||d.firm.verificationStatus)+(d.firm.verificationNote?' — '+d.firm.verificationNote:'');
-   currentFirmId=d.firm.id;currentFirmOwner=d.firm.memberRole==='owner';
+   currentFirmId=d.firm.id;currentFirmOwner=d.firm.memberRole==='owner';currentFirmManager=currentFirmOwner||d.firm.memberRole==='manager';
    await loadFirmDocuments();
-   if(d.firm.verificationStatus==='verified'&&d.firm.memberStatus==='active'){$('#market').hidden=false;$('#firmTenderMarket').hidden=false;$('#firmTenders').hidden=false;$('#firmTenderProposalsMine').hidden=false;$('#firmSubcontracts').hidden=false;$('#firmTeam').hidden=false;$('#firmReports').hidden=false;msg.textContent='تم التحقق من المكتب. جميع وظائف السوق والعطاءات الفرعية والفريق والتقارير متاحة.';await Promise.all([loadMarket(),loadFirmTenders(),loadFirmOperations(),loadFirmTenderProposalsMine()]);}
+   if(d.firm.verificationStatus==='verified'&&d.firm.memberStatus==='active'){$('#market').hidden=false;$('#firmTenderMarket').hidden=false;$('#firmTenderProposalsMine').hidden=false;$('#firmSubcontracts').hidden=false;$('#firmTenders').hidden=!currentFirmManager;$('#firmTeam').hidden=!currentFirmManager;$('#firmReports').hidden=!currentFirmManager;msg.textContent='تم التحقق من المكتب. وظائف السوق والعروض والعقود متاحة، وإدارة العطاءات والفريق والتقارير لمالك المكتب ومديره.';const jobs=[loadMarket(),loadFirmTenders(),loadFirmTenderProposalsMine()];if(currentFirmManager)jobs.push(loadFirmOperations());await Promise.all(jobs);}
    else msg.textContent=d.firm.verificationStatus==='verified'?'عضوية المكتب موقوفة حالياً. راجع مسؤول المنصة.':'ملف المكتب قيد المراجعة. ستفتح وظائف السوق بعد اعتماد التحقق القانوني.';
   }else{$('#register').hidden=false;msg.textContent='لا يوجد ملف مكتب مرتبط بهذا الحساب. يمكنك تسجيل مكتبك الآن.';}
  }
