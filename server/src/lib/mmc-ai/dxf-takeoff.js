@@ -273,8 +273,9 @@ function takeoffDxf(text, options = {}) {
       quantity = row.length_m; unit = 'm';
     } else if (e.type === 'CIRCLE') {
       requireCodes(e, [10, 20, 40], 'CIRCLE entity ' + index);
+      const center = [first(e, 10), first(e, 20)];
       const radius = first(e, 40);
-      assertFinite([radius], 'CIRCLE entity ' + index);
+      assertFinite([...center, radius], 'CIRCLE entity ' + index);
       if (radius < 0) throw new Error('Invalid negative circle radius at entity ' + index);
       row.radius_m = radius * metresPerUnit;
       row.circumference_m = 2 * Math.PI * row.radius_m;
