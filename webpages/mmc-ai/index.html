@@ -112,7 +112,7 @@ td{background:#10243d!important;color:#dce8f3!important;border-color:#29435d!imp
    </div></section>
   </div>
   <section class="panel" id="executiveDashboard" style="margin:18px 0"><div class="panelhead"><h2>ملخص المشروع التنفيذي</h2><span>LIVE PROJECT INTELLIGENCE</span></div><div id="executiveSummary" style="padding:14px"><p class="note">اختر مشروعاً لعرض المؤشرات التنفيذية المجمعة.</p></div></section>
-  <section class="panel" id="allProjectDataPanel" style="margin:18px 0"><div class="panelhead"><h2>جميع بيانات المشروع</h2><span>FULL PROJECT DATA REGISTER</span><button type="button" class="btn" id="refreshAllProjectData">تحديث البيانات</button></div><div style="padding:14px"><p class="note">عرض تفصيلي لسجلات المشروع المسموح لك بالاطلاع عليها، بما فيها BOQ والبرنامج والمخاطر والمطالبات والوثائق وBIM والصور والأعضاء وسجل التدقيق. البيانات الوصفية فقط للملفات؛ لا يعرض هذا القسم مفاتيح التخزين أو محتوى الملفات الثنائي.</p><div id="allProjectDataCounts" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div><pre id="allProjectDataJson" dir="ltr" style="white-space:pre-wrap;overflow:auto;max-height:620px;background:#081a2d;color:#d9e8f5;border:1px solid #29435d;border-radius:9px;padding:14px;font:11px/1.7 ui-monospace,monospace">اختر مشروعاً لعرض جميع بياناته.</pre></div></section>
+  <section class="panel" id="allProjectDataPanel" style="margin:18px 0"><div class="panelhead"><h2>جميع بيانات المشروع</h2><span>FULL PROJECT DATA REGISTER</span><button type="button" class="btn" id="refreshAllProjectData">تحديث البيانات</button></div><div style="padding:14px"><p class="note">عرض تفصيلي لسجلات المشروع المسموح لك بالاطلاع عليها، بما فيها BOQ والبرنامج والمخاطر والمطالبات والوثائق وBIM والصور والأعضاء وسجل التدقيق. البيانات الوصفية فقط للملفات؛ لا يعرض هذا القسم مفاتيح التخزين أو محتوى الملفات الثنائي.</p><div id="allProjectDataCounts" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><input id="allProjectDataSearch" type="search" placeholder="ابحث داخل بيانات المشروع..." style="flex:1;min-width:220px;padding:9px;border:1px solid var(--line);border-radius:7px"><button id="exportAllProjectData" type="button" class="btn">تنزيل جميع البيانات JSON</button></div><div id="allProjectDataSections" style="display:grid;gap:9px"><p class="note">اختر مشروعاً لعرض جميع بياناته.</p></div><pre id="allProjectDataJson" class="hidden" dir="ltr"></pre></div></section>
   <section class="panel" id="boqPanel" style="margin:18px 0"><div class="panelhead"><h2>جدول الكميات والتكلفة التقديرية</h2><span>PROJECT BOQ & ESTIMATE</span></div>
    <div style="padding:14px">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -315,16 +315,36 @@ td{background:#10243d!important;color:#dce8f3!important;border-color:#29435d!imp
   }catch(e){summary.textContent=e.message;}
  }
  async function loadAllProjectData(id){
-  const output=document.getElementById('allProjectDataJson'),counts=document.getElementById('allProjectDataCounts');
-  output.textContent='جارٍ تحميل جميع بيانات المشروع...';counts.replaceChildren();
-  if(!id){output.textContent='اختر مشروعاً لعرض جميع بياناته.';return;}
+  const counts=document.getElementById('allProjectDataCounts'),sections=document.getElementById('allProjectDataSections'),raw=document.getElementById('allProjectDataJson');
+  counts.replaceChildren();sections.replaceChildren();raw.textContent='';
+  if(!id){sections.textContent='اختر مشروعاً لعرض جميع بياناته.';return;}
+  sections.textContent='جارٍ تحميل جميع بيانات المشروع...';
   try{
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/data-overview',{credentials:'same-origin',cache:'no-store'}),d=await r.json();
    if(!r.ok)throw new Error(d.message||'تعذر تحميل بيانات المشروع.');
+   const payload={generatedAt:d.generatedAt,counts:d.counts,data:d.data,limitations:d.limitations};
+   raw.textContent=JSON.stringify(payload,null,2);
    for(const [key,value] of Object.entries(d.counts||{})){const chip=document.createElement('span');chip.textContent=key+': '+value;chip.style.cssText='background:#183653;border:1px solid #34516e;color:#dce8f3;padding:7px 10px;border-radius:7px;font-size:10px';counts.appendChild(chip);}
-   output.textContent=JSON.stringify({generatedAt:d.generatedAt,counts:d.counts,data:d.data,limitations:d.limitations},null,2);
-  }catch(e){output.textContent=e.message;}
+   const labels={project:'بيانات المشروع الأساسية',boq:'جدول الكميات والأسعار',schedule:'البرنامج الزمني والأنشطة',risks:'سجل المخاطر',contractEvents:'الأحداث التعاقدية والمطالبات',documents:'المستندات والملفات',bimIssues:'ملاحظات تنسيق BIM',sitePhotos:'صور الموقع',members:'أعضاء المشروع والصلاحيات',auditLog:'سجل العمليات والتدقيق'};
+   for(const [key,value] of Object.entries(d.data||{})){
+    const details=document.createElement('details');details.open=key==='project';details.dataset.search=key+' '+(labels[key]||key)+' '+JSON.stringify(value).toLowerCase();
+    details.style.cssText='background:#10243d;border:1px solid #29435d;border-radius:9px;padding:10px 12px;min-width:0';
+    const summary=document.createElement('summary');summary.style.cssText='cursor:pointer;color:#e6eef7;font-size:12px;font-weight:700';
+    summary.textContent=(labels[key]||key)+' · '+(Array.isArray(value)?value.length:'تفاصيل');details.appendChild(summary);
+    const pre=document.createElement('pre');pre.dir='ltr';pre.style.cssText='white-space:pre-wrap;overflow:auto;max-height:420px;background:#081a2d;color:#d9e8f5;border:1px solid #29435d;border-radius:7px;padding:12px;margin:10px 0 2px;font:11px/1.7 ui-monospace,monospace';pre.textContent=JSON.stringify(value,null,2);details.appendChild(pre);sections.appendChild(details);
+   }
+   const note=document.createElement('p');note.className='note';note.textContent='وقت إنشاء العرض: '+d.generatedAt+' · القيود: '+(d.limitations||[]).join(' ');sections.appendChild(note);
+   document.getElementById('exportAllProjectData').disabled=false;
+  }catch(e){sections.textContent=e.message;}
  }
+ document.getElementById('allProjectDataSearch').addEventListener('input',e=>{
+  const q=e.target.value.trim().toLowerCase();
+  for(const item of document.querySelectorAll('#allProjectDataSections details'))item.style.display=!q||item.dataset.search.includes(q)?'':'none';
+ });
+ document.getElementById('exportAllProjectData').addEventListener('click',()=>{
+  const raw=document.getElementById('allProjectDataJson').textContent;if(!raw){notify('لا توجد بيانات جاهزة للتصدير.');return;}
+  const blob=new Blob([raw],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mmc-ai-project-data.json';a.click();URL.revokeObjectURL(url);
+ });
  document.getElementById('refreshAllProjectData').addEventListener('click',()=>loadAllProjectData(activeProject?.project_id||activeProject?.id));
  async function selectProject(id){
   if(!id){activeProject=null;showProject(null);return;}
