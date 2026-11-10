@@ -25,17 +25,15 @@ router.get('/me', wrap(async (req,res) => {
       firm.contact_email === 'admin.demo@mmc-test.example' &&
       firm.verification_status === 'pending') {
     const db=getDB();
-    const admin=db.prepare("SELECT id FROM users WHERE role='admin' ORDER BY created_at LIMIT 1").get();
-    if (admin) {
-      const note='اعتماد تجريبي تلقائي لملف MMC demo admin على خدمة المعاينة المستقلة فقط؛ ليس اعتماداً قانونياً فعلياً.';
-      const now=Math.floor(Date.now()/1000);
-      db.transaction(()=>{
-        db.prepare("UPDATE consulting_firms SET verification_status='verified',verification_note=?,verified_by=?,verified_at=?,updated_at=unixepoch() WHERE id=? AND verification_status='pending'").run(note,admin.id,now,firm.id);
-        db.prepare("INSERT INTO consulting_firm_verification_events (id,firm_id,actor_user_id,action,note) VALUES (?,?,?,'verified',?)").run(uid('cfe_'),firm.id,admin.id,note);
-      })();
-      audit({action:'consulting_firm_verification',entity:'consulting_firm',entityId:firm.id,userId:admin.id,ip:req.ip,detail:{from:'pending',to:'verified',previewOnly:true}});
-      firm=firmFor(req.user.id);
-    }
+    const actorId=req.user.id;
+    const note='اعتماد تجريبي ذاتي لملف MMC demo admin على خدمة المعاينة المستقلة فقط؛ تم تفعيل هذا المسار حصراً لاختبار الواجهة، ولا يمثل اعتماداً قانونياً أو تحققاً رسمياً.';
+    const now=Math.floor(Date.now()/1000);
+    db.transaction(()=>{
+      db.prepare("UPDATE consulting_firms SET verification_status='verified',verification_note=?,verified_by=?,verified_at=?,updated_at=unixepoch() WHERE id=? AND verification_status='pending'").run(note,actorId,now,firm.id);
+      db.prepare("INSERT INTO consulting_firm_verification_events (id,firm_id,actor_user_id,action,note) VALUES (?,?,?,'verified',?)").run(uid('cfe_'),firm.id,actorId,note);
+    })();
+    audit({action:'consulting_firm_verification',entity:'consulting_firm',entityId:firm.id,userId:actorId,ip:req.ip,detail:{from:'pending',to:'verified',previewOnly:true}});
+    firm=firmFor(req.user.id);
   }
   res.setHeader('Cache-Control','no-store');
   res.json({ firm: firm ? { id:firm.id, legalName:firm.legal_name, country:firm.country, registrationNumber:firm.registration_number, contactEmail:firm.contact_email, contactPhone:firm.contact_phone, specializations:JSON.parse(firm.specializations_json||'[]'), experienceSummary:firm.experience_summary, website:firm.website, verificationStatus:firm.verification_status, verificationNote:firm.verification_note, memberRole:firm.member_role, memberStatus:firm.member_status } : null, subscription: { plan:'free', professionalAvailable:false, professionalPrice:20, currency:'USD', billingCycle:'monthly' } });
