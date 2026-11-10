@@ -199,6 +199,18 @@
        const detail=document.createElement('div');detail.textContent='عناصر مقروءة: '+summary.supportedEntities+' · عناصر غير مدعومة: '+summary.unsupportedEntities+' · مجموع الأطوال: '+Number(summary.totalLength_m||0).toFixed(3)+' م · المساحات المغلقة: '+Number(summary.totalClosedArea_m2||0).toFixed(3)+' م²';
        detail.style.cssText='font-size:11px;line-height:1.8;color:#29445f';
        output.append(heading,detail);
+       const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;margin-top:12px;font-size:10px;color:#29445f';
+       const thead=document.createElement('thead'),trh=document.createElement('tr');
+       for(const label of ['العنصر','الطبقة','الكمية','الوحدة','الحالة']){const th=document.createElement('th');th.textContent=label;th.style.cssText='text-align:right;padding:8px;border-bottom:1px solid var(--line)';trh.appendChild(th);}thead.appendChild(trh);table.appendChild(thead);
+       const tbody=document.createElement('tbody');
+       for(const item of (result.run.items||[])){const tr=document.createElement('tr');for(const val of [item.entity,item.layer,item.quantity,item.unit,'بانتظار المراجعة']){const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}tbody.appendChild(tr);}table.appendChild(tbody);output.appendChild(table);
+       const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px';
+       for(const choice of [{status:'approved',label:'اعتماد بعد المراجعة'},{status:'rejected',label:'رفض النتيجة'}]){
+        const action=document.createElement('button');action.type='button';action.textContent=choice.label;action.style.cssText='border:1px solid var(--line);border-radius:7px;padding:8px 11px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
+        action.addEventListener('click',async()=>{try{const review=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/review',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:choice.status})});const reviewData=await review.json();if(!review.ok)throw new Error(reviewData.message||'لا تملك صلاحية المراجعة أو تعذر الحفظ.');heading.textContent=choice.status==='approved'?'تم اعتماد النتيجة بواسطة المراجع':'تم رفض نتيجة الحصر';controls.remove();notify('تم تحديث حالة مراجعة الحصر.');}catch(err){notify(err.message);}});
+        controls.appendChild(action);
+       }
+       output.appendChild(controls);
        notify('تم حفظ نتيجة الحصر كمسودة تحتاج مراجعة مهندس.');
       }catch(err){notify(err.message);}finally{take.disabled=false;take.textContent='حصر DXF';}
      });
