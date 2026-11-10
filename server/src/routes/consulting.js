@@ -144,8 +144,8 @@ function canReadDoc(user,doc) {
     const e=requesterFor(user.id);
     if(!e||e.id!==doc.requester_entity_id)return false;
     if(doc.visibility==='selected_only' && doc.owner_type==='proposal') {
-      const award=getDB().prepare("SELECT 1 FROM consulting_contracts WHERE proposal_id=? AND requester_entity_id=?").get(doc.owner_id,e.id);
-      return !!award;
+      const own=getDB().prepare("SELECT 1 FROM consulting_proposals p JOIN consulting_service_requests r ON r.id=p.request_id WHERE p.id=? AND r.requester_entity_id=?").get(doc.owner_id,e.id);
+      return !!own;
     }
     return true;
   }
@@ -167,13 +167,13 @@ function docOwner(req,ownerType,ownerId) {
     const row=db.prepare('SELECT id,requester_entity_id FROM consulting_service_requests WHERE id=?').get(ownerId);
     if(!row)throw E.notFound('طلب الخدمة غير موجود.');
     if(req.user.role==='buyer'){const e=requireRequester(req);if(e.id!==row.requester_entity_id)throw E.notFound('طلب الخدمة غير موجود.');return {requestId:row.id,firmId:null,requesterId:e.id,visibility:'market'};}
-    if(req.user.role==='consultant'){const f=requireVerifiedFirm(req);const open=db.prepare("SELECT id FROM consulting_service_requests WHERE id=? AND status='open'").get(row.id);const awarded=db.prepare("SELECT 1 FROM consulting_contracts WHERE request_id=? AND firm_id=?").get(row.id,f.id);if(!open&&!awarded)throw E.notFound('طلب الخدمة غير متاح.');return {requestId:row.id,firmId:f.id,requesterId:row.requester_entity_id,visibility:'market',uploadAllowed:!!open};}
+    if(req.user.role==='consultant'){const f=requireVerifiedFirm(req);const open=db.prepare("SELECT id FROM consulting_service_requests WHERE id=? AND status='open'").get(row.id);const awarded=db.prepare("SELECT 1 FROM consulting_contracts WHERE request_id=? AND firm_id=?").get(row.id,f.id);if(!open&&!awarded)throw E.notFound('طلب الخدمة غير متاح.');return {requestId:row.id,firmId:f.id,requesterId:row.requester_entity_id,visibility:'market',uploadAllowed:false};}
   }
   if(ownerType==='proposal') {
     const p=db.prepare('SELECT p.id,p.request_id,p.firm_id,p.status,r.requester_entity_id FROM consulting_proposals p JOIN consulting_service_requests r ON r.id=p.request_id WHERE p.id=?').get(ownerId);
     if(!p)throw E.notFound('العرض غير موجود.');
     if(req.user.role==='consultant'){const f=requireVerifiedFirm(req);if(f.id!==p.firm_id)throw E.notFound('العرض غير موجود.');return {requestId:p.request_id,firmId:f.id,requesterId:p.requester_entity_id,visibility:'selected_only'};}
-    if(req.user.role==='buyer'){const e=requireRequester(req);if(e.id!==p.requester_entity_id||p.status!=='selected')throw E.notFound('العرض غير موجود.');return {requestId:p.request_id,firmId:p.firm_id,requesterId:e.id,visibility:'selected_only'};}
+    if(req.user.role==='buyer'){const e=requireRequester(req);if(e.id!==p.requester_entity_id)throw E.notFound('العرض غير موجود.');return {requestId:p.request_id,firmId:p.firm_id,requesterId:e.id,visibility:'selected_only',uploadAllowed:p.status==='selected'};}
   }
   if(ownerType==='contract') {
     const k=db.prepare('SELECT id,request_id,firm_id,requester_entity_id FROM consulting_contracts WHERE id=?').get(ownerId);
