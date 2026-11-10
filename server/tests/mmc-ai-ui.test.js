@@ -31,7 +31,7 @@ test('MMC AI includes live project executive dashboard and linked workspaces',()
 test('MMC AI exposes BIM coordination issue workspace without claiming 3D clash engine is live',()=>{
  assert.match(html,/id="bimPanel"/);
  assert.match(html,/\/bim\/issues/);
- assert.match(html,/اكتشاف التعارضات الهندسي الآلي يتطلب محرك النماذج ثلاثية الأبعاد/);
+ assert.match(html,/عرض النموذج ثلاثي الأبعاد وتحليل هندسته واكتشاف التعارضات الآلي لم يُفعّل بعد/);
 });
 
 test('MMC AI site photo upload captures caption and construction date',()=>{
