@@ -605,6 +605,12 @@ test('56 — لا يستطيع حساب المشتريات بدء تجربة أ�
   assert.strictEqual((await call('buy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } })).status, 403);
   assert.strictEqual((await call('buy', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_pro' } })).status, 403);
   assert.strictEqual((await call('buy', 'GET', '/api/billing/invoices')).data.count, 0);
+  const legacyPlans = await call('buy', 'GET', '/api/plans');
+  assert.strictEqual(legacyPlans.status, 200);
+  assert.deepStrictEqual(legacyPlans.data.plans.map((p) => p.key), ['free']);
+  assert.strictEqual(legacyPlans.data.buyerCoreFree, true);
+  assert.strictEqual((await call('buy', 'POST', '/api/plan', { body: { planKey: 'pro' } })).status, 403);
+  assert.strictEqual((await call('buy', 'POST', '/api/upgrade-interest', { body: { planKey: 'pro' } })).status, 403);
 });
 
 test('57 — تبقى عمليات المشتريات الأساسية متاحة دون حد عطاءات أو اشتراك', async () => {
