@@ -96,3 +96,9 @@ test('MMC AI PDF preflight copy distinguishes file validation from the separate 
  assert.match(html,/extract\/text/);
  assert.doesNotMatch(html,/محرك تحليل PDF الهندسي لم يُفعّل بعد/);
 });
+
+test('MMC AI dashboard uses the approved dark construction-intelligence visual language',()=>{
+ assert.match(html,/id="mmc-ai-dark-dashboard"/);
+ assert.match(html,/--bg:#071629/);
+ assert.match(html,/\.project-photo\.has-image img\{display:block\}/);
+});
