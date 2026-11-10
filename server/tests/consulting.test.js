@@ -90,8 +90,8 @@ test('consulting firm and requester page inline scripts parse',()=>{
  const root=path.resolve(__dirname,'../../webpages/technical-proposal-kit_v5');
  for(const file of ['consulting/index.html','consulting/requester/index.html']){
   const html=fs.readFileSync(path.join(root,file),'utf8');
-  const scripts=[...html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)];
+  const scripts=html.split('<script>').slice(1).map(part=>part.split('</script>')[0]);
   assert.ok(scripts.length>0,file+' should contain application logic');
-  scripts.forEach((match,index)=>new vm.Script(match[1],{filename:file+'#script-'+index}));
+  scripts.forEach((source,index)=>new vm.Script(source,{filename:file+'#script-'+index}));
  }
 });
