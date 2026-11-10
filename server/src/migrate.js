@@ -911,6 +911,26 @@ function upgradeConsultingMarketplace(db) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+    CREATE TABLE IF NOT EXISTS consulting_documents (
+      id TEXT PRIMARY KEY,
+      owner_type TEXT NOT NULL CHECK(owner_type IN ('request','proposal','contract')),
+      owner_id TEXT NOT NULL,
+      request_id TEXT NOT NULL REFERENCES consulting_service_requests(id) ON DELETE CASCADE,
+      firm_id TEXT REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      requester_entity_id TEXT REFERENCES consulting_requester_entities(id) ON DELETE CASCADE,
+      visibility TEXT NOT NULL DEFAULT 'market' CHECK(visibility IN ('market','selected_only')),
+      storage_key TEXT NOT NULL UNIQUE,
+      storage_driver TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime TEXT,
+      size INTEGER NOT NULL,
+      checksum TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL REFERENCES users(id),
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_docs_request ON consulting_documents(request_id,owner_type,owner_id,uploaded_at);
+    CREATE INDEX IF NOT EXISTS idx_consulting_docs_firm ON consulting_documents(firm_id,uploaded_at);
+    CREATE INDEX IF NOT EXISTS idx_consulting_docs_requester ON consulting_documents(requester_entity_id,uploaded_at);
     CREATE TABLE IF NOT EXISTS consulting_market_events (
       id TEXT PRIMARY KEY,
       actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
