@@ -110,3 +110,27 @@ test('does not extract text-looking operators from PDF comments',()=>{
  const r=extractPdfText(pdf('% (fake comment text) Tj\nBT (real text) Tj ET'));
  assert.equal(r.text,'real text');
 });
+
+test('analyses a synthetic architectural ground-floor plan PDF fixture',()=>{
+ const drawing=[
+  'q 1 w',
+  '0 0 m 600 0 l 600 400 l 0 400 l h S',
+  '100 100 400 200 re S',
+  '100 100 m 500 100 l S',
+  '100 300 m 500 300 l S',
+  'Q',
+  'BT (GROUND FLOOR PLAN) Tj (Scale 1:100) Tj (Overall dimension 6000 mm x 4000 mm) Tj ET'
+ ].join(' ');
+ const r=extractPdfText(pdf(drawing));
+ assert.equal(r.pageCount,1);
+ assert.match(r.text,/GROUND FLOOR PLAN/);
+ assert.match(r.text,/Scale 1:100/);
+ assert.match(r.text,/6000 mm x 4000 mm/);
+ assert.equal(r.diagnostics.moveTo,3);
+ assert.equal(r.diagnostics.lineTo,5);
+ assert.equal(r.diagnostics.rectangles,1);
+ assert.equal(r.diagnostics.paintOperations,4);
+ assert.deepEqual(r.diagnostics.rawCoordinateBounds,{minX:0,minY:0,maxX:600,maxY:400});
+ assert.equal(r.diagnostics.coordinatePointCount,10);
+ assert.ok(r.limitations.some(x=>x.includes('لا يستخرج OCR')));
+});
