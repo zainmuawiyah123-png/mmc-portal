@@ -64,3 +64,11 @@ test('does not treat PDF graphics-state and text operands as drawing coordinates
  assert.equal(r.diagnostics.rawCoordinateBounds.minX,0);
  assert.equal(r.diagnostics.rawCoordinateBounds.maxX,80);
 });
+
+test('parses signed and decimal path coordinates after tokenizer correction',()=>{
+ const r=extractPdfText(pdf('q -12.5 4.25 m 0.5 -8.75 l S Q'));
+ assert.equal(r.diagnostics.moveTo,1);
+ assert.equal(r.diagnostics.lineTo,1);
+ assert.deepEqual(r.diagnostics.rawCoordinateBounds,{minX:-12.5,minY:-8.75,maxX:0.5,maxY:4.25});
+ assert.equal(r.diagnostics.coordinatePointCount,2);
+});
