@@ -833,6 +833,35 @@ function upgradeConsultingPortal(db) {
 
 
 /** Independent consultancy marketplace: requester entities, requests, proposals and contracts. */
+function upgradeConsultingOfficeOperations(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS consulting_firm_subcontract_updates (
+      id TEXT PRIMARY KEY,
+      subcontract_id TEXT NOT NULL REFERENCES consulting_firm_subcontracts(id) ON DELETE CASCADE,
+      actor_user_id TEXT NOT NULL REFERENCES users(id),
+      update_type TEXT NOT NULL CHECK(update_type IN ('progress','milestone','issue','status')),
+      progress_percent INTEGER CHECK(progress_percent IS NULL OR (progress_percent BETWEEN 0 AND 100)),
+      note TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS consulting_firm_subcontract_documents (
+      id TEXT PRIMARY KEY,
+      subcontract_id TEXT NOT NULL REFERENCES consulting_firm_subcontracts(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id),
+      document_kind TEXT NOT NULL CHECK(document_kind IN ('contract','technical','financial','deliverable','report','other')),
+      storage_key TEXT NOT NULL UNIQUE,
+      storage_driver TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      checksum TEXT NOT NULL,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_subcontract_updates ON consulting_firm_subcontract_updates(subcontract_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_subcontract_documents ON consulting_firm_subcontract_documents(subcontract_id,uploaded_at DESC);
+  `);
+}
+
 function upgradeConsultingOfficeTendering(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS consulting_firm_tenders (
@@ -1084,6 +1113,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingPortal(db);
   upgradeConsultingFirmDocuments(db);
   upgradeConsultingOfficeTendering(db);
+  upgradeConsultingOfficeOperations(db);
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
 
