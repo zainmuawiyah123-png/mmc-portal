@@ -56,4 +56,4 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
       - run: npm ci
-      - run: node --test tests/mmc-ai-dxf-takeoff.test.js tests/mmc-ai-projects.test.js tests/mmc-ai-ui.test.js tests/mmc-ai-schedule-engine.test.js
+      - run: node --test tests/mmc-ai-dxf-takeoff.test.js tests/mmc-ai-projects.test.js tests/mmc-ai-ui.test.js tests/mmc-ai-schedule-engine.test.js tests/mmc-ai-ifc-inspector.test.js
