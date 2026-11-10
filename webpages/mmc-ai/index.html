@@ -70,10 +70,11 @@
     <div class="planfoot"><div class="legend"><span><i class="dot"></i>محاور إنشائية</span><span><i class="dot orange"></i>مسار توضيحي</span></div><span>المعايرة والقياس الآلي: قيد التطوير</span></div>
    </section>
    <section class="panel"><div class="panelhead"><h2>مساعد MMC الذكي</h2><span>AI PROJECT ASSISTANT</span></div><div class="ai-panel">
-    <div class="aihero"><small>YOUR ENGINEERING COPILOT</small><h3>ذكاء هندسي يدعم قراراتك</h3><p>اسأل عن المخططات أو الكميات أو العقود أو البرنامج الزمني. ستُربط الإجابات لاحقاً بمستندات المشروع ومراجعها.</p></div>
+    <div class="aihero"><small>YOUR ENGINEERING COPILOT</small><h3>ذكاء هندسي يدعم قراراتك</h3><p>اسأل عن مشروعك الحالي. يستند المساعد إلى سجلات BOQ والبرنامج والمخاطر والأحداث التعاقدية والوثائق المسجلة.</p></div>
     <div class="aiinput"><input id="question" placeholder="اكتب سؤالك الهندسي هنا..." aria-label="سؤالك الهندسي"><button id="ask">إرسال</button></div>
+    <div id="assistantResponse" style="display:none;margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:9px;background:#f8fafc;font-size:11px;line-height:1.9"></div>
     <div class="prompts"><button class="prompt">كيف يتم حساب كميات الخرسانة من المخطط؟</button><button class="prompt">ما المستندات المطلوبة لتحليل مطالبة تمديد مدة؟</button><button class="prompt">كيف نحدد المسار الحرج في البرنامج الزمني؟</button></div>
-    <p class="note" id="answerNote">المساعد الظاهر هنا تصميم واجهة فقط؛ لم يتم توصيل نموذج AI أو بيانات مشروع بعد.</p>
+    <p class="note" id="answerNote">مساعد بيانات المشروع: يعرض إجابات مستندة إلى السجلات الحالية، وليس نموذجاً لغوياً توليدياً بعد.</p>
    </div></section>
   </div>
   <section class="panel" id="executiveDashboard" style="margin:18px 0"><div class="panelhead"><h2>ملخص المشروع التنفيذي</h2><span>LIVE PROJECT INTELLIGENCE</span></div><div id="executiveSummary" style="padding:14px"><p class="note">اختر مشروعاً لعرض المؤشرات التنفيذية المجمعة.</p></div></section>
@@ -349,7 +350,7 @@
  });
  loadProjects();
 
- document.getElementById('ask').addEventListener('click',()=>{const q=document.getElementById('question').value.trim();if(!q){notify('اكتب السؤال أولاً.');return}notify('المساعد الذكي غير متصل بمحرك AI بعد؛ لم يتم إرسال السؤال أو تخزينه.');});
+ document.getElementById('ask').addEventListener('click',async()=>{const q=document.getElementById('question').value.trim(),host=document.getElementById('assistantResponse'),btn=document.getElementById('ask');if(!q){notify('اكتب السؤال أولاً.');return}if(!activeProject){notify('اختر مشروعاً أولاً حتى تكون الإجابة مرتبطة ببياناته.');return}const id=activeProject.project_id||activeProject.id;btn.disabled=true;btn.textContent='جارٍ التحليل...';host.style.display='block';host.textContent='أراجع سجلات المشروع...';try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/assistant',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر إعداد الإجابة.');host.replaceChildren();const answer=document.createElement('p');answer.textContent=d.assistant.answer;answer.style.cssText='margin:0 0 8px;color:#233e58';host.appendChild(answer);const sources=document.createElement('small');sources.textContent='مصدر الإجابة: '+d.assistant.sources.map(x=>x.type+' ('+(x.count??'—')+')').join(' · ');sources.style.color='#6f8193';host.appendChild(sources);const limit=document.createElement('p');limit.textContent=d.assistant.limitations;limit.style.cssText='margin:8px 0 0;color:#9a6a27;font-size:10px';host.appendChild(limit);}catch(e){host.textContent=e.message;}finally{btn.disabled=false;btn.textContent='إرسال';}});
  document.querySelectorAll('.prompt').forEach(b=>b.addEventListener('click',()=>{document.getElementById('question').value=b.textContent;document.getElementById('question').focus()}));
  async function loadProjectDocuments(id){
   const host=document.getElementById('projectDocuments');host.replaceChildren();
