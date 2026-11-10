@@ -68,6 +68,12 @@ router.post('/projects/:projectId/documents/:documentId/preflight/pdf',wrap(asyn
  if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
  const bytes=await store.get(doc.storage_key);
  if(!Buffer.isBuffer(bytes)) throw E.validation('تعذر قراءة ملف PDF من التخزين.');
+ if(bytes.length!==Number(doc.size_bytes)) throw E.validation('فشل التحقق من سلامة المستند: الحجم المخزن لا يطابق سجل الرفع.');
+ const actualHash=crypto.createHash('sha256').update(bytes).digest();
+ const expectedHash=Buffer.from(String(doc.sha256||''),'hex');
+ if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)){
+  throw E.validation('فشل التحقق من سلامة المستند: بصمة SHA-256 لا تطابق سجل الرفع.');
+ }
  const report=preflightPdf(bytes);
  db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
  VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_preflight_completed','document',doc.id,JSON.stringify({version:report.version,bytes:report.bytes,pageCount:report.pageCount,status:report.status}));
