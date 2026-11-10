@@ -124,9 +124,16 @@
   }
   function clearAll(){ ['nameErr','companyErr','emailErr','passErr','pass2Err'].forEach(function(i){ fieldErr(i,''); }); }
 
-  API.me().then(function(){
-    location.replace('index.html');
-  }).catch(function(){});
+  var params = new URLSearchParams(location.search);
+  if (params.get('switch') === '1') {
+    // A user already signed in to another portal must explicitly switch account
+    // before creating a separate consulting-firm identity.
+    API.logout().catch(function(){}).finally(function(){});
+  } else {
+    API.me().then(function(){
+      location.replace('index.html');
+    }).catch(function(){});
+  }
 
   var roleSelect=document.getElementById('role');
   var intro=document.querySelector('.auth-head p span');
@@ -136,7 +143,7 @@
     else intro.textContent=T('تبدأ على الباقة المجانية الأساسية. يمكنك تفعيل الأدوات الاحترافية حسب الباقة المتاحة.','Start with the free basic plan. Professional tools are available according to your selected plan.');
   }
   roleSelect.addEventListener('change',updateRoleIntro);
-  if(new URLSearchParams(location.search).get('role')==='buyer'){roleSelect.value='buyer';}
+  if(params.get('role')==='buyer'){roleSelect.value='buyer';} else if(params.get('role')==='consultant'){roleSelect.value='consultant';}
   updateRoleIntro();
   form.addEventListener('submit', function(e){
     e.preventDefault();
