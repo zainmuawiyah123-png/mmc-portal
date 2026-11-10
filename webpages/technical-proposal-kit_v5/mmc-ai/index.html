@@ -87,6 +87,28 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
 @media(max-width:1050px){.cockpit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.cockpit{padding:16px}.cockpit-heading{display:block}.cockpit-tag{display:inline-block;margin-top:12px;white-space:normal}.cockpit-grid{grid-template-columns:1fr 1fr;gap:8px}.cockpit-card{min-height:138px;padding:12px}.cockpit-heading h2{font-size:18px}}
 </style>
+<style id="mmc-ai-bilingual-visual">
+/* Bilingual interface and visual module tiles */
+.lang-toggle{border:1px solid #42617e;background:#173653;color:#f1f7fc;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer}
+.lang-toggle:hover{background:#245276}
+.nav .ico{flex:0 0 30px;width:30px;height:30px;border-radius:8px;background:linear-gradient(145deg,#244d70,#183652);border:1px solid #365d7c;display:grid;place-items:center;color:#8fe0f0;font-size:15px;box-shadow:0 3px 8px #0002}
+.nav a{gap:10px;min-height:48px}
+.cockpit-icon{width:46px;height:42px;border-radius:10px;background:linear-gradient(145deg,#245579,#173754);border:1px solid #47718f;display:grid;place-items:center;color:#8de3f2;font-size:21px;box-shadow:0 5px 12px #0002}
+.construction-visual{margin:22px 0 0;border:1px solid #2b4965;border-radius:16px;overflow:hidden;background:#0d1d30;box-shadow:0 16px 38px #0004}
+.construction-visual img{display:block;width:100%;height:330px;object-fit:cover;object-position:center 48%}
+.construction-visual .visual-caption{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 18px;color:#c5d7e8;background:linear-gradient(100deg,#10243d,#173653);font-size:11px}
+.construction-visual .visual-caption strong{color:#f5f9ff;font-size:13px}
+.construction-visual .visual-caption small{color:#93adc3}
+html[dir="rtl"] body{font-family:Tahoma,Arial,sans-serif}
+html[dir="rtl"] .app{direction:rtl}
+html[dir="rtl"] .sidebar{border-right:0;border-left:1px solid #203a54}
+html[dir="rtl"] .nav a{flex-direction:row}
+html[dir="rtl"] .topbar,html[dir="rtl"] .welcome,html[dir="rtl"] .cockpit-heading{direction:rtl}
+html[dir="rtl"] .project-showcase,html[dir="rtl"] .panels,html[dir="rtl"] .lower{direction:rtl}
+html[dir="rtl"] .construction-visual .visual-caption{direction:rtl}
+html[dir="rtl"] .crumb{text-align:right}
+@media(max-width:700px){.construction-visual img{height:220px}.construction-visual .visual-caption{display:block;line-height:1.8}.lang-toggle{padding:7px 9px}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -110,7 +132,7 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
  <div class="sidebottom">MMC / TenderWise<br>Independent portal within MMC ecosystem<br>© MMC Construction Intelligence</div>
 </aside>
 <main class="main">
- <header class="topbar"><div class="crumb">MMC / <b>Construction Intelligence</b> / Dashboard</div><div class="topright"><span class="status">● Preview Environment</span><div class="avatar">MM</div></div></header>
+ <header class="topbar"><div class="crumb">MMC / <b>Construction Intelligence</b> / Dashboard</div><div class="topright"><button type="button" class="lang-toggle" id="languageToggle" aria-label="Switch language">العربية</button><span class="status">● Preview Environment</span><div class="avatar">MM</div></div></header>
  <section class="content" id="overview">
   <div class="welcome"><div><div class="eyebrow">CONSTRUCTION INTELLIGENCE</div><h1>Welcome to MMC AI</h1><p>AI-powered workspace for projects, drawings, quantities and engineering decisions.</p></div><div class="actions"><button class="btn primary" id="newProject">＋ New Project</button></div></div><section class="cockpit" aria-label="Project control center">
   <div class="cockpit-heading"><div><span class="eyebrow">MMC AI WORKSPACE</span><h2>Project Control Center</h2><p>One place to monitor engineering, delivery, cost and project risk.</p></div><span class="cockpit-tag">LIVE PROJECT DATA · SIGN-IN REQUIRED</span></div>
@@ -245,7 +267,11 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
    <section class="panel" id="takeoff"><div class="panelhead"><h2>Quantity Takeoff Register</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Unit</th><th>Quantity</th><th>Status</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">No verified quantities yet. Results will appear here when the measurement engine and engineering verification are enabled.</td></tr></tbody></table></div></section>
    <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
   </div>
-  <div class="footer">MMC AI Construction Intelligence · Independent portal within MMC / TenderWise · Preview build 0.1</div>
+  <section class="construction-visual" aria-label="Illustrative reinforced concrete construction photo">
+ <img src="https://images.pexels.com/photos/36162728/pexels-photo-36162728/free-photo-of-concrete-structure-under-construction-with-rebar.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="Illustrative reinforced concrete structure under construction with exposed steel reinforcement bars" loading="lazy">
+ <div class="visual-caption"><div><strong>Engineering in Progress</strong><br><small>Reinforced concrete · exposed steel reinforcement · construction site</small></div><small>Illustrative photo · Peter Dyllong / Pexels</small></div>
+</section>
+<div class="footer">MMC AI Construction Intelligence · Independent portal within MMC / TenderWise · Preview build 0.1</div>
  </section>
 </main>
 </div>
@@ -580,4 +606,42 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
 }));
 })();
 </script>
+
+<script id="mmc-ai-language-switch">
+(()=>{
+ const button=document.getElementById('languageToggle');
+ if(!button)return;
+ let current='en';
+ const ar={
+  'Dashboard':'لوحة التحكم','Engineering Drawings':'المخططات الهندسية','Quantity Takeoff':'حصر الكميات',
+  'BOQ & Cost Estimate':'جدول الكميات والتكلفة','BIM Models':'نماذج BIM','Project Schedule':'البرنامج الزمني',
+  'Contracts & Claims':'العقود والمطالبات','Risks & Reports':'المخاطر والتقارير','WORKSPACE':'مساحة العمل',
+  'MANAGEMENT':'الإدارة','Projects':'المشاريع','Team & Permissions':'الفريق والصلاحيات','Settings':'الإعدادات',
+  'Construction Intelligence':'ذكاء إدارة الإنشاءات','Welcome to MMC AI':'مرحباً بك في MMC AI',
+  'AI-powered workspace for projects, drawings, quantities and engineering decisions.':'مساحة عمل مدعومة بالذكاء الاصطناعي للمشاريع والمخططات والكميات والقرارات الهندسية.',
+  '＋ New Project':'＋ مشروع جديد','Project Control Center':'مركز التحكم بالمشروع',
+  'One place to monitor engineering, delivery, cost and project risk.':'منصة واحدة لمتابعة الهندسة والتنفيذ والتكلفة ومخاطر المشروع.',
+  'Project overview':'نظرة عامة على المشروع','Progress, milestones and site records':'التقدم والمراحل وسجلات الموقع',
+  'Drawings & quantities':'المخططات والكميات','PDF review · DXF takeoff · BOQ':'مراجعة PDF · حصر DXF · جدول الكميات',
+  'Schedule & progress':'البرنامج الزمني والتقدم','CPM logic · critical activities':'منهجية CPM · الأنشطة الحرجة',
+  'Contracts & risk':'العقود والمخاطر','Events · claims · risk register':'الأحداث · المطالبات · سجل المخاطر',
+  'PROJECT DELIVERY':'تنفيذ المشروع','ENGINEERING':'الهندسة','PLANNING':'التخطيط','COMMERCIAL':'التجاري',
+  'Awaiting project':'بانتظار اختيار مشروع','Ready to review':'جاهز للمراجعة',
+  'No sample KPIs or invented project figures are displayed. Project indicators load from your secured workspace.':'لا نعرض مؤشرات تجريبية أو أرقاماً غير حقيقية. تُحمّل مؤشرات المشروع من مساحة العمل الآمنة.',
+  'Preview Environment':'بيئة معاينة','Project Showcase':'معرض المشروع','Project Under Construction':'مشروع قيد الإنشاء',
+  'Engineering in Progress':'الهندسة قيد التنفيذ','Reinforced concrete · exposed steel reinforcement · construction site':'خرسانة مسلحة · حديد تسليح ظاهر · موقع إنشاء',
+  'Illustrative photo · Peter Dyllong / Pexels':'صورة توضيحية · Peter Dyllong / Pexels'
+ };
+ const en={};Object.keys(ar).forEach(k=>en[ar[k]]=k);
+ function apply(lang){
+  current=lang;document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  let node;while((node=walker.nextNode())){const raw=node.nodeValue,trim=raw.trim();if(!trim)continue;const translated=lang==='ar'?ar[trim]:en[trim];if(translated)node.nodeValue=raw.replace(trim,translated);}
+  button.textContent=lang==='ar'?'English':'العربية';
+  button.setAttribute('aria-label',lang==='ar'?'Switch to English':'التبديل إلى العربية');
+ }
+ button.addEventListener('click',()=>apply(current==='en'?'ar':'en'));
+})();
+</script>
+
 </body></html>
