@@ -21,7 +21,7 @@ const UNIT_TO_METRE = {
 
 function parsePairs(text) {
   if (typeof text !== 'string' || !text.trim()) throw new Error('DXF content is empty.');
-  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+  const lines = text.replace(/^\uFEFF/, '').trimEnd().split(/\r?\n/);
   if (lines.length % 2 !== 0) throw new Error('Malformed DXF: incomplete group-code pair.');
   const pairs = [];
   for (let i = 0; i < lines.length; i += 2) {
