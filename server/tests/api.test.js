@@ -618,6 +618,30 @@ test('57 — تبقى عمليات المشتريات الأساسية متاح�
   assert.strictEqual(me.data.plan.plan.maxTenders, null);
   assert.strictEqual(me.data.plan.plan.maxBytes, null);
   assert.strictEqual(me.data.plan.usage.tenders, 15);
+
+  // A legacy paid plan key must not reintroduce buyer subscription limits.
+  const buyer = getDB().prepare('SELECT id FROM users WHERE email=?').get('f' + ''); 
+  const freeEmail = getDB().prepare("SELECT email FROM users WHERE name='جهة مجانية' ORDER BY created_at DESC LIMIT 1").get();
+  const buyerRow = freeEmail && getDB().prepare('SELECT id FROM users WHERE email=?').get(freeEmail.email);
+  assert.ok(buyerRow);
+  getDB().prepare("UPDATE users SET plan_key='proc_basic' WHERE id=?").run(buyerRow.id);
+  const forcedPaidKey = await call('free', 'GET', '/api/auth/me');
+  assert.strictEqual(forcedPaidKey.data.user.planKey, 'free');
+  assert.strictEqual(forcedPaidKey.data.plan.plan.key, 'free');
+
+  // Buyer storage bypasses plan quotas, while multer file-size/count/type limits remain active.
+  const originalMax = getDB().prepare("SELECT max_bytes FROM plans WHERE key='free'").get().max_bytes;
+  getDB().prepare("UPDATE plans SET max_bytes=1 WHERE key='free'").run();
+  try {
+    const legacyTender = await call('free', 'POST', '/api/tenders', { body: { name: 'ملف جهة مشتريات' } });
+    assert.strictEqual(legacyTender.status, 201);
+    const uploaded = await call('free', 'POST', '/api/tenders/' + legacyTender.data.tender.id + '/files', {
+      form: makeForm([{ name: 'buyer-document.pdf', content: 'buyer file exceeds plan quota', type: 'application/pdf' }])
+    });
+    assert.strictEqual(uploaded.status, 201, JSON.stringify(uploaded.data));
+  } finally {
+    getDB().prepare("UPDATE plans SET max_bytes=? WHERE key='free'").run(originalMax);
+  }
 });
 
 test('58 — المقاول لا يستطيع استخدام باقات المشتريات أو تجربتها', async () => {
