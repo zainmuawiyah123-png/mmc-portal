@@ -30,3 +30,20 @@ test('rejects invalid and encrypted PDF input',()=>{
  assert.throws(()=>extractPdfText(Buffer.from('not pdf')),/Invalid PDF/);
  assert.throws(()=>extractPdfText(Buffer.from('%PDF-1.7\n/Encrypt 4 0 R')),/Encrypted/);
 });
+
+test('reports PDF vector drawing diagnostics without claiming dimensions or quantities',()=>{
+ const r=extractPdfText(pdf('q 1 0 0 1 10 20 cm 2 w 0 0 m 100 0 l 100 50 l h S 0 0 100 50 re f Q'));
+ assert.ok(r.diagnostics.vectorPathOperators>=5);
+ assert.equal(r.diagnostics.moveTo,1);
+ assert.equal(r.diagnostics.lineTo,2);
+ assert.equal(r.diagnostics.rectangles,1);
+ assert.equal(r.diagnostics.paintOperations,2);
+ assert.ok(r.limitations.some(x=>x.includes('لا يستخرج OCR')));
+});
+test('does not count operator-like words inside PDF strings as graphics',()=>{
+ const r=extractPdfText(pdf('BT (line m l re f) Tj ET'));
+ assert.equal(r.diagnostics.moveTo,0);
+ assert.equal(r.diagnostics.lineTo,0);
+ assert.equal(r.diagnostics.rectangles,0);
+ assert.equal(r.diagnostics.paintOperations,0);
+});
