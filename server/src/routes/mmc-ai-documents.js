@@ -37,6 +37,24 @@ router.get('/projects/:projectId/documents',wrap(async(req,res)=>{
  FROM ai_documents WHERE project_id=? ORDER BY created_at DESC`).all(req.params.projectId);
  res.setHeader('Cache-Control','no-store');res.json({documents:rows});
 }));
+
+router.get('/projects/:projectId/documents/:documentId/download',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ const doc=getDB().prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc) throw E.notFound('المستند غير موجود.');
+ const store=storage.getStorage();
+ if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+ getDB().prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
+ VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'document_downloaded','document',doc.id,JSON.stringify({sha256:doc.sha256}));
+ res.setHeader('Content-Type','application/octet-stream');
+ res.setHeader('Content-Disposition','attachment; filename="'+encodeURIComponent(doc.original_name)+'"');
+ res.setHeader('Content-Length',String(doc.size_bytes));
+ res.setHeader('X-Content-Type-Options','nosniff');
+ res.setHeader('Cache-Control','private, no-store');
+ if(store.DRIVER==='s3'){const result=await store.stream(doc.storage_key);result.body.pipe(res);}
+ else store.stream(doc.storage_key).pipe(res);
+}));
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();
  const m=member(projectId,req.user.id);
