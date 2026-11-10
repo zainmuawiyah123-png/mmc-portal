@@ -18,3 +18,12 @@ test('MMC AI UI does not claim drawing analysis is already available',()=>{
  assert.match(html,/لم يبدأ التحليل الهندسي بعد/);
  assert.match(html,/المعايرة والقياس الآلي: قيد التطوير/);
 });
+
+test('MMC AI includes live project executive dashboard and linked workspaces',()=>{
+ assert.match(html,/id="executiveDashboard"/);
+ assert.match(html,/\/api\/mmc-ai\/projects\/\x27\+encodeURIComponent\(id\)\+\x27\/dashboard/);
+ assert.match(html,/id="riskPanel"/);
+ assert.match(html,/\/risks/);
+ assert.match(html,/id="claimsPanel"/);
+ assert.match(html,/\/contract-events/);
+});
