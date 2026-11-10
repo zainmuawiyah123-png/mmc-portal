@@ -79,7 +79,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
   stats:{open:openN(), closingSoon:openN('closing_at IS NOT NULL AND closing_at<=?',ymd(7)), newThisWeek:openN('imported_at>=?',Math.floor(Date.now()/1000)-7*86400),
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
-  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','findatender','contractsfinder','pcs','sell2wales'],
+  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof'],
 	 lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 

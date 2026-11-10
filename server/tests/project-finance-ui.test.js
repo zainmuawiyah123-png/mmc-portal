@@ -297,7 +297,7 @@ test('OPP-27 — سوق العطاءات يعرض المصادر المتصلة 
   assert.ok(market.includes("jprc:['مصفاة البترول الأردنية','Jordan Petroleum Refinery']"));
   assert.ok(market.includes("jpmc:['مناجم الفوسفات الأردنية','Jordan Phosphate Mines']"));
   assert.ok(market.includes("nepco:['الكهرباء الوطنية','National Electric Power Company']"));
-  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','findatender','contractsfinder','pcs','sell2wales']"));
+  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof']"));
   assert.ok(market.includes('https://www.jopetrol.com.jo/ar/modules/tenders'));
   assert.ok(market.includes('https://www.jpmc.com.jo/en/tender'));
   assert.ok(market.includes('https://www.nepco.com.jo/en/Tenders.aspx'));

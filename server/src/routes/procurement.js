@@ -140,7 +140,7 @@ function createTender(user, b, opts = {}) {
   const orgRow = O.getVerification(user.id);
   const tenderCountry = orgRow && O.COUNTRIES[orgRow.country] ? orgRow.country : 'JO';
   const member = user.role === 'buyer' ? O.ensureOrg(user) : null;
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'buyer') {
     const { plan } = A.planAndUsage(O.billingUserId(user));
     if (plan.maxTenders !== null) {
       const since = Math.floor(Date.now() / 1000) - 365 * 86400;
