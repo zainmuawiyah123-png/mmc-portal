@@ -3,16 +3,40 @@ const zlib=require('node:zlib');
 const MAX_INPUT=25*1024*1024;
 const MAX_OUTPUT=20*1024*1024;
 function decodePdfString(raw){
+ let bytes;
  if(raw.startsWith('<')&&!raw.startsWith('<<')){
   let hex=raw.slice(1,-1).replace(/\s/g,'');
   if(hex.length%2)hex+='0';
-  const b=Buffer.from(hex,'hex');
-  if(b.length>=2&&b[0]===0xfe&&b[1]===0xff){let s='';for(let i=2;i+1<b.length;i+=2)s+=String.fromCharCode(b.readUInt16BE(i));return s;}
-  return b.toString('latin1');
+  bytes=Buffer.from(hex,'hex');
+ }else{
+  const body=raw.slice(1,-1),out=[];
+  for(let i=0;i<body.length;i++){
+   const ch=body[i];
+   if(ch!=='\\'){out.push(body.charCodeAt(i)&255);continue;}
+   if(i+1>=body.length)continue;
+   const next=body[++i];
+   const simple={n:10,r:13,t:9,b:8,f:12,'(':40,')':41,'\\':92};
+   if(Object.prototype.hasOwnProperty.call(simple,next)){out.push(simple[next]);continue;}
+   if(/[0-7]/.test(next)){
+    let oct=next;
+    while(oct.length<3&&i+1<body.length&&/[0-7]/.test(body[i+1]))oct+=body[++i];
+    out.push(parseInt(oct,8)&255);continue;
+   }
+   if(next==='\r'||next==='\n'){
+    if(next==='\r'&&body[i+1]==='\n')i++;
+    continue;
+   }
+   out.push(next.charCodeAt(0)&255);
+  }
+  bytes=Buffer.from(out);
  }
- let s=raw.slice(1,-1).replace(/\\([nrtbf()\\])/g,(_,c)=>({n:'\n',r:'\r',t:'\t',b:'\b',f:'\f','(':'(',')':')','\\':'\\'}[c]));
- s=s.replace(/\\([0-7]{1,3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\\r?\n/g,'');
- return s;
+ if(bytes.length>=2&&bytes[0]===0xfe&&bytes[1]===0xff){
+  let s='';for(let i=2;i+1<bytes.length;i+=2)s+=String.fromCharCode(bytes.readUInt16BE(i));return s;
+ }
+ if(bytes.length>=2&&bytes[0]===0xff&&bytes[1]===0xfe){
+  let s='';for(let i=2;i+1<bytes.length;i+=2)s+=String.fromCharCode(bytes.readUInt16LE(i));return s;
+ }
+ return bytes.toString('latin1');
 }
 function extractFromContent(src){
  const out=[];
@@ -24,7 +48,7 @@ function extractFromContent(src){
  tokens.sort((a,b)=>a.at-b.at);
  for(const token of tokens){
   const tail=src.slice(token.at+token.value.length);
-  if(/^\s*Tj\b/.test(tail))out.push(decodePdfString(token.value));
+  if(/^\s*Tj\b/.test(tail)||/^\s*['"]/.test(tail))out.push(decodePdfString(token.value));
   else if(/^\s*(?:[-+]?\d+(?:\.\d+)?\s*)*TJ\b/.test(tail)){
    const arr=src.slice(Math.max(0,src.lastIndexOf('[',token.at)),src.indexOf(']',token.at)+1);
    if(arr.includes(token.value))continue;
@@ -48,7 +72,7 @@ function tokenizeContentStream(src){
 }
 function inspectContentOperators(src){
  const tokens=tokenizeContentStream(src),counts={},numbers=[],points=[];
- const operators=new Set(['m','l','c','v','y','h','re','S','s','f','F','f*','B','B*','b','b*','n','Do','BT','ET','Tj','TJ','q','Q','cm','w','Tc','Tw','Tz','TL','Tf','Tr','Ts','Td','TD','Tm','T*','W','W*','J','j','M','d','ri','i','gs','sh','CS','cs','SC','SCN','sc','scn','G','g','RG','rg','K','k']);
+ const operators=new Set(['m','l','c','v','y','h','re','S','s','f','F','f*','B','B*','b','b*','n','Do','BT','ET','Tj','TJ',"'",'"','q','Q','cm','w','Tc','Tw','Tz','TL','Tf','Tr','Ts','Td','TD','Tm','T*','W','W*','J','j','M','d','ri','i','gs','sh','CS','cs','SC','SCN','sc','scn','G','g','RG','rg','K','k']);
  const add=(x,y)=>{if(Number.isFinite(x)&&Number.isFinite(y))points.push([x,y]);};
  for(const token of tokens){
   if(/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(token)){numbers.push(Number(token));continue;}
@@ -64,7 +88,7 @@ function inspectContentOperators(src){
  const pathOps=['m','l','c','v','y','h','re','S','s','f','F','f*','B','B*','b','b*','n'];
  const vectorPathOperators=pathOps.reduce((sum,key)=>sum+(counts[key]||0),0);
  const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
- return {vectorPathOperators,moveTo:counts.m||0,lineTo:counts.l||0,curveTo:(counts.c||0)+(counts.v||0)+(counts.y||0),rectangles:counts.re||0,closePath:counts.h||0,paintOperations:['S','s','f','F','f*','B','B*','b','b*'].reduce((sum,key)=>sum+(counts[key]||0),0),imageXObjectCalls:counts.Do||0,textShowingOperations:(counts.Tj||0)+(counts.TJ||0),graphicsStateSaves:counts.q||0,graphicsStateRestores:counts.Q||0,coordinateTransforms:counts.cm||0,lineWidthChanges:counts.w||0,rawCoordinateBounds:points.length?{minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)}:null,coordinatePointCount:points.length};
+ return {vectorPathOperators,moveTo:counts.m||0,lineTo:counts.l||0,curveTo:(counts.c||0)+(counts.v||0)+(counts.y||0),rectangles:counts.re||0,closePath:counts.h||0,paintOperations:['S','s','f','F','f*','B','B*','b','b*'].reduce((sum,key)=>sum+(counts[key]||0),0),imageXObjectCalls:counts.Do||0,textShowingOperations:(counts.Tj||0)+(counts.TJ||0)+(counts["'"]||0)+(counts['"']||0),graphicsStateSaves:counts.q||0,graphicsStateRestores:counts.Q||0,coordinateTransforms:counts.cm||0,lineWidthChanges:counts.w||0,rawCoordinateBounds:points.length?{minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)}:null,coordinatePointCount:points.length};
 }
 function extractPdfText(input){
  const bytes=Buffer.isBuffer(input)?input:Buffer.from(input||'');
@@ -94,6 +118,6 @@ function extractPdfText(input){
   chunks.push(...extractFromContent(content));
  }
  const clean=chunks.join('\n').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
- return {engine:'mmc-pdf-text-basic-v1',status:clean?'partial_text_extracted':'no_text_found',pageCount:pageCount||null,streamCount,text:clean.slice(0,250000),characterCount:clean.length,diagnostics,limitations:['استخراج أولي لنصوص Tj/TJ من تدفقات PDF فقط.','الإحداثيات خام ضمن فضاء محتوى PDF؛ لا تُطبق عليها جميع مصفوفات التحويل أو CropBox/Rotate.','لا يستخرج OCR من الصور أو أبعاد CAD أو المقاييس أو الكميات.','لا يضمن ترميز الخطوط أو النصوص العربية في جميع ملفات PDF.','لا يدعم حالياً التشفير أو فلاتر الضغط غير FlateDecode أو object streams المعقدة.'],unsupportedFilters};
+ return {engine:'mmc-pdf-text-basic-v1',status:clean?'partial_text_extracted':'no_text_found',pageCount:pageCount||null,streamCount,text:clean.slice(0,250000),characterCount:clean.length,diagnostics,limitations:['استخراج أولي لنصوص Tj/TJ من تدفقات PDF فقط.','الإحداثيات خام ضمن فضاء محتوى PDF؛ لا تُطبق عليها جميع مصفوفات التحويل أو CropBox/Rotate.','لا يستخرج OCR من الصور أو أبعاد CAD أو المقاييس أو الكميات.','يدعم BOM للنصوص UTF-16BE/LE فقط؛ لا يطبق PDFDocEncoding أو خرائط ToUnicode/CMap الخاصة بالخطوط، وقد تظهر العربية المشكّلة أو بعض الخطوط بترميز غير صحيح.','لا يدعم حالياً التشفير أو فلاتر الضغط غير FlateDecode أو object streams المعقدة.'],unsupportedFilters};
 }
 module.exports={extractPdfText};
