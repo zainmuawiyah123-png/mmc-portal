@@ -33,3 +33,10 @@ test('MMC AI exposes BIM coordination issue workspace without claiming 3D clash 
  assert.match(html,/\/bim\/issues/);
  assert.match(html,/اكتشاف التعارضات الهندسي الآلي يتطلب محرك النماذج ثلاثية الأبعاد/);
 });
+
+test('MMC AI site photo upload captures caption and construction date',()=>{
+ assert.match(html,/id="projectPhotoCaption"/);
+ assert.match(html,/id="projectPhotoDate"/);
+ assert.match(html,/fd\.append\('caption'/);
+ assert.match(html,/fd\.append\('capturedAt'/);
+});
