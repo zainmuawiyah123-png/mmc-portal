@@ -68,6 +68,7 @@ router.get('/projects/:projectId/dashboard',wrap(async(req,res)=>{
  const docs=db.prepare('SELECT COUNT(*) AS total FROM ai_documents WHERE project_id=?').get(pid);
  const bim=db.prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN severity='critical' THEN 1 ELSE 0 END) AS critical,SUM(CASE WHEN status IN ('open','assigned','in_review') THEN 1 ELSE 0 END) AS open FROM ai_bim_issues WHERE project_id=?").get(pid);
  const photos=db.prepare('SELECT COUNT(*) AS total FROM ai_project_images WHERE project_id=?').get(pid);
+ const bimModels=db.prepare('SELECT COUNT(*) AS total FROM ai_bim_models WHERE project_id=?').get(pid);
  const takeoff=db.prepare("SELECT COUNT(*) AS runs,MAX(created_at) AS last_run FROM ai_takeoff_runs WHERE project_id=?").get(pid);
  const tasks=db.prepare('SELECT * FROM ai_schedule_tasks WHERE project_id=?').all(pid);
  let cpm={projectDuration:0,criticalTaskCount:0};
@@ -76,7 +77,7 @@ router.get('/projects/:projectId/dashboard',wrap(async(req,res)=>{
  const progress=totalDuration?Number((tasks.reduce((s,t)=>s+Number(t.duration_days||0)*Number(t.percent_complete||0),0)/totalDuration).toFixed(1)):0;
  const completedTasks=tasks.filter(t=>t.status==='completed').length,blockedTasks=tasks.filter(t=>t.status==='blocked').length,inProgressTasks=tasks.filter(t=>t.status==='in_progress').length;
  res.setHeader('Cache-Control','no-store');
- res.json({project:{id:pid,name:m.name,country:m.country,currency:m.currency,status:m.status},summary:{boqItems:boq.count,estimatedCost:Number(boq.total||0),scheduleTasks:tasks.length,completedTasks,blockedTasks,inProgressTasks,projectDurationWorkingDays:cpm.projectDuration,criticalTasks:cpm.criticalTaskCount,averageTaskProgress:progress,risks:risks.total||0,criticalRisks:risks.critical||0,activeRisks:risks.active||0,contractEvents:events.total||0,recordedTimeImpactDays:events.time_days||0,recordedCostImpact:Number(events.cost_total||0),documents:docs.total||0,bimIssues:bim.total||0,openBimIssues:bim.open||0,criticalBimIssues:bim.critical||0,sitePhotos:photos.total||0,takeoffRuns:takeoff.runs||0,lastTakeoffAt:takeoff.last_run||null}});
+ res.json({project:{id:pid,name:m.name,country:m.country,currency:m.currency,status:m.status},summary:{boqItems:boq.count,estimatedCost:Number(boq.total||0),scheduleTasks:tasks.length,completedTasks,blockedTasks,inProgressTasks,projectDurationWorkingDays:cpm.projectDuration,criticalTasks:cpm.criticalTaskCount,averageTaskProgress:progress,risks:risks.total||0,criticalRisks:risks.critical||0,activeRisks:risks.active||0,contractEvents:events.total||0,recordedTimeImpactDays:events.time_days||0,recordedCostImpact:Number(events.cost_total||0),documents:docs.total||0,bimModels:bimModels.total||0,bimIssues:bim.total||0,openBimIssues:bim.open||0,criticalBimIssues:bim.critical||0,sitePhotos:photos.total||0,takeoffRuns:takeoff.runs||0,lastTakeoffAt:takeoff.last_run||null}});
 }));
 router.get('/projects/:projectId',wrap(async(req,res)=>{
   const m=requireMember(req);
