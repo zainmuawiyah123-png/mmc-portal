@@ -34,6 +34,13 @@ async function upload(user,projectId,name,bytes){
  const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();
  return {status:r.status,data};
 }
+async function uploadImage(user,projectId,name,bytes,fields={}){
+ const form=new FormData();form.append('file',new Blob([bytes]),name);
+ for(const [k,v] of Object.entries(fields))form.append(k,String(v));
+ const r=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/images',{method:'POST',headers:{...(jar[user]?{Cookie:jar[user]}:{})},body:form});
+ const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();
+ return {status:r.status,data};
+}
 async function register(key){const r=await call(key,'POST','/api/auth/register',{name:key,email:key+uniq()+'@test.local',password:'Password123',company:key});assert.equal(r.status,201,JSON.stringify(r.data));return r.data.user.id;}
 test.before(async()=>{
  migrate(process.env.DB_PATH);
@@ -87,6 +94,23 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.match(await ownerDownload.text(),/^%PDF-1\.4/);
  const viewerDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents/'+docId+'/download',{headers:{Cookie:jar['ai-viewer']}});
  assert.equal(viewerDownload.status,200);
+
+ const png=Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
+ const viewerImage=await uploadImage('ai-viewer',projectId,'site.png',png,{isCover:true});
+ assert.equal(viewerImage.status,403);
+ const ownerImage=await uploadImage('ai-owner',projectId,'site-progress.png',png,{isCover:true,caption:'واجهة المشروع أثناء التنفيذ',capturedAt:'2026-11-10'});
+ assert.equal(ownerImage.status,201,JSON.stringify(ownerImage.data));
+ assert.equal(ownerImage.data.image.is_cover,1);
+ const images=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/images');
+ assert.equal(images.status,200);assert.equal(images.data.images.length,1);
+ assert.equal(images.data.images[0].caption,'واجهة المشروع أثناء التنفيذ');
+ const imageDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/images/'+ownerImage.data.image.id+'/download',{headers:{Cookie:jar['ai-owner']}});
+ assert.equal(imageDownload.status,200);assert.equal(imageDownload.headers.get('content-type'),'image/png');
+ assert.deepEqual(Buffer.from(await imageDownload.arrayBuffer()),png);
+ const outsiderImages=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/images');
+ assert.equal(outsiderImages.status,404);
+ const outsiderImage=await uploadImage('ai-outsider',projectId,'site.png',png,{isCover:true});
+ assert.equal(outsiderImage.status,404);
 
  const outsiderDocs=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/documents');
  assert.equal(outsiderDocs.status,404);
