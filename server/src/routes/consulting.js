@@ -477,6 +477,17 @@ router.get('/firm-tenders/:id/documents',wrap(async(req,res)=>{
  const rows=getDB().prepare('SELECT id,document_kind,original_name,mime,size,uploaded_at FROM consulting_firm_tender_documents WHERE tender_id=? ORDER BY uploaded_at DESC').all(t.id);
  res.json({documents:rows});
 }));
+router.get('/firm-tenders/:id/documents/:docId/download',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req),t=getDB().prepare('SELECT * FROM consulting_firm_tenders WHERE id=?').get(req.params.id);
+ if(!t)throw E.notFound('العطاء غير موجود.');
+ if(t.status!=='open'&&t.firm_id!==firm.id&&!getDB().prepare('SELECT 1 FROM consulting_firm_tender_proposals WHERE tender_id=? AND firm_id=?').get(t.id,firm.id))throw E.notFound('العطاء غير موجود.');
+ const d=getDB().prepare('SELECT * FROM consulting_firm_tender_documents WHERE id=? AND tender_id=?').get(req.params.docId,t.id);
+ if(!d)throw E.notFound('وثيقة العطاء غير موجودة.');
+ const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+ if(!(await store.exists(d.storage_key)))throw E.notFound('ملف الوثيقة غير موجود في التخزين.');
+ res.setHeader('Content-Type',d.mime||'application/octet-stream');res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));res.setHeader('Cache-Control','private, no-store');
+ const stream=store.stream(d.storage_key);if(d.storage_driver==='s3'){const obj=await stream;obj.body.pipe(res);}else stream.pipe(res);
+}));
 function officeBidDocAccess(req,proposalId){
  const firm=requireVerifiedFirm(req),p=getDB().prepare(`SELECT p.*,t.firm_id owner_firm_id,t.status tender_status FROM consulting_firm_tender_proposals p JOIN consulting_firm_tenders t ON t.id=p.tender_id WHERE p.id=?`).get(proposalId);
  if(!p)throw E.notFound('العرض غير موجود.');
