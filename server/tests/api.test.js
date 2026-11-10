@@ -608,7 +608,8 @@ test('56 — لا يستطيع حساب المشتريات بدء تجربة أ�
 });
 
 test('57 — تبقى عمليات المشتريات الأساسية متاحة دون حد عطاءات أو اشتراك', async () => {
-  await call('free', 'POST', '/api/auth/register', { body: { name: 'جهة مجانية', email: 'f' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  const buyerEmail = 'f' + uniq() + '@t.com';
+  await call('free', 'POST', '/api/auth/register', { body: { name: 'جهة مجانية', email: buyerEmail, password: 'Password123', role: 'buyer' } });
   for (let i = 0; i < 15; i++) {
     const created = await mkTender('free', i + 1);
     assert.strictEqual(created.status, 201, JSON.stringify(created.data));
@@ -620,9 +621,7 @@ test('57 — تبقى عمليات المشتريات الأساسية متاح�
   assert.strictEqual(me.data.plan.usage.tenders, 15);
 
   // A legacy paid plan key must not reintroduce buyer subscription limits.
-  const buyer = getDB().prepare('SELECT id FROM users WHERE email=?').get('f' + ''); 
-  const freeEmail = getDB().prepare("SELECT email FROM users WHERE name='جهة مجانية' ORDER BY created_at DESC LIMIT 1").get();
-  const buyerRow = freeEmail && getDB().prepare('SELECT id FROM users WHERE email=?').get(freeEmail.email);
+  const buyerRow = getDB().prepare('SELECT id FROM users WHERE email=?').get(buyerEmail);
   assert.ok(buyerRow);
   getDB().prepare("UPDATE users SET plan_key='proc_basic' WHERE id=?").run(buyerRow.id);
   const forcedPaidKey = await call('free', 'GET', '/api/auth/me');
