@@ -74,6 +74,7 @@
     <p class="note" id="answerNote">المساعد الظاهر هنا تصميم واجهة فقط؛ لم يتم توصيل نموذج AI أو بيانات مشروع بعد.</p>
    </div></section>
   </div>
+  <section class="panel" id="executiveDashboard" style="margin:18px 0"><div class="panelhead"><h2>ملخص المشروع التنفيذي</h2><span>LIVE PROJECT INTELLIGENCE</span></div><div id="executiveSummary" style="padding:14px"><p class="note">اختر مشروعاً لعرض المؤشرات التنفيذية المجمعة.</p></div></section>
   <section class="panel" id="boqPanel" style="margin:18px 0"><div class="panelhead"><h2>جدول الكميات والتكلفة التقديرية</h2><span>PROJECT BOQ & ESTIMATE</span></div>
    <div style="padding:14px">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -184,6 +185,15 @@
    host.appendChild(card);
   }
  }
+ async function loadExecutiveDashboard(id){
+  const root=document.getElementById('executiveSummary');root.replaceChildren();if(!id){root.textContent='اختر مشروعاً لعرض المؤشرات التنفيذية.';return;}
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/dashboard',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل الملخص التنفيذي.');
+   const s=d.summary,items=[['بنود BOQ',s.boqItems],['التكلفة التقديرية',Number(s.estimatedCost).toFixed(2)+' '+(d.project.currency||'')],['مدة CPM',s.projectDurationWorkingDays+' يوم عمل'],['الأنشطة الحرجة',s.criticalTasks],['متوسط الإنجاز',s.averageTaskProgress+'%'],['المخاطر الحرجة',s.criticalRisks],['الأحداث التعاقدية',s.contractEvents],['الوثائق',s.documents],['صور الموقع',s.sitePhotos],['عمليات الحصر',s.takeoffRuns]];
+   const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:9px';
+   for(const [label,value] of items){const card=document.createElement('div');card.style.cssText='border:1px solid #e7edf3;border-radius:9px;padding:12px;background:#fbfcfe';const l=document.createElement('div');l.textContent=label;l.style.cssText='font-size:10px;color:#718096';const v=document.createElement('strong');v.textContent=String(value);v.style.cssText='display:block;font-size:18px;color:#18334f;margin-top:7px';card.append(l,v);grid.appendChild(card);}
+   root.appendChild(grid);const note=document.createElement('p');note.className='note';note.style.marginTop='10px';note.textContent='الأثر الزمني المسجل للمطالبات: '+s.recordedTimeImpactDays+' يوم · الأثر المالي المسجل: '+Number(s.recordedCostImpact).toFixed(2)+' · المخاطر المفتوحة/قيد المعالجة: '+s.activeRisks;root.appendChild(note);
+  }catch(e){root.textContent=e.message;}
+ }
  async function loadProjectBoq(id){
   const body=document.getElementById('boqRows'),summary=document.getElementById('boqSummary');body.replaceChildren();
   if(!id){summary.textContent='اختر مشروعاً لعرض جدول الكميات.';return;}
@@ -236,7 +246,7 @@
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectRisks(id);await loadProjectClaims(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectRisks(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
