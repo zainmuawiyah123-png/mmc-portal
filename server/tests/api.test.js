@@ -84,6 +84,8 @@ test.after(async () => {
   fs.rmSync(TMP, { recursive: true, force: true });
 });
 
+let userAId = null;
+
 /* ==========================================================
    1) الصحة والتسجيل
    ========================================================== */
@@ -109,6 +111,7 @@ test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوك
     body: { name: 'مستخدم أ', email: 'a' + uniq() + '@test.com', password: 'Password123', company: 'شركة أ' }
   });
   assert.strictEqual(r.status, 201, JSON.stringify(r.data));
+  userAId = r.data.user.id;
   assert.ok(r.data.user.id.startsWith('usr_'));
   assert.strictEqual(r.data.user.planKey, 'free');
   assert.ok(cookies.userA, 'يجب أن يُضبط كوكي الجلسة');
@@ -447,8 +450,8 @@ test('40 — لا يمكن تفعيل باقة مقاول مدفوعة دون ا
 });
 
 test('41 — الرجوع لباقة أصغر من الاستهلاك يُرفض 409', async () => {
-  const user = getDB().prepare("SELECT id FROM users WHERE email LIKE 'a%@test.com' ORDER BY created_at LIMIT 1").get();
-  assert.ok(user);
+  const user = { id: userAId };
+  assert.ok(user.id, 'يجب أن يكون حساب الاختبار 02 هو الحساب الذي تُعدّل باقته');
   getDB().prepare("UPDATE subscriptions SET status='cancelled' WHERE user_id=? AND status='active'").run(user.id);
   getDB().prepare("UPDATE users SET plan_key='starter' WHERE id=?").run(user.id);
   getDB().prepare("INSERT INTO subscriptions (id,user_id,plan_key,status,source) VALUES (?,?,?,'active','manual')").run('sub_downgrade_' + uniq(), user.id, 'starter');
