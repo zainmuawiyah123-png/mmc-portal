@@ -93,7 +93,7 @@ test('consultant, requester and admin page inline scripts parse',()=>{
  const root=path.resolve(__dirname,'../../webpages/technical-proposal-kit_v5');
  for(const file of ['consulting/index.html','consulting/requester/index.html','admin/index.html']){
   const html=fs.readFileSync(path.join(root,file),'utf8');
-  const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)].map(match=>match[1]).filter(source=>source.trim());
+  const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(match=>match[1]).filter(source=>source.trim());
   assert.ok(scripts.length>0,file+' should contain application logic');
   scripts.forEach((source,index)=>new vm.Script(source,{filename:file+'#script-'+index}));
  }
