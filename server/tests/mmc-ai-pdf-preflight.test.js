@@ -14,7 +14,6 @@ test('accepts a structurally plausible PDF and reports conservative page count',
   assert.equal(result.pageCount, 2);
   assert.equal(result.status, 'preflight_passed');
   assert.equal(result.extractionReady, false);
-  assert.equal(result.analysisStatus, 'password_required');
   assert.equal(result.analysisStatus, 'parser_not_configured');
   assert.ok(result.limitations.some(item => item.includes('does not mean')));
 });
@@ -28,6 +27,7 @@ test('marks encrypted documents for password handling, not extraction', () => {
   const result = preflightPdf(pdf('1 0 obj << /Type /Pages /Count 1 >> endobj\n/Encrypt 8 0 R\n'));
   assert.equal(result.status, 'password_required');
   assert.equal(result.extractionReady, false);
+  assert.equal(result.analysisStatus, 'password_required');
 });
 
 test('rejects a missing header', () => {
