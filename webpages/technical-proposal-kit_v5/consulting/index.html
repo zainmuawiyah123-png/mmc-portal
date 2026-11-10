@@ -25,7 +25,7 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
  <label>التخصصات (افصل بينها بفاصلة)<input name="specializations" maxlength="1000" placeholder="تصميم إنشائي، إشراف، طرق، بنية تحتية"></label>
  <label>الخبرات والمشاريع السابقة<textarea name="experienceSummary" maxlength="3000"></textarea></label>
  <button class="btn amber" type="submit">إرسال ملف المكتب للتحقق</button></form></section>
- <section id="market" class="panel" hidden><h2>طلبات الخدمات الاستشارية المتاحة</h2><p class="muted">تظهر هنا الطلبات المنشورة للجهات. يمكنك تقديم عرض واحد لكل طلب، ولا تظهر عروض المنافسين.</p><div id="requests"></div><h2>عروضي المقدمة</h2><div id="myProposals"></div></section>
+ <section id="market" class="panel" hidden><h2>طلبات الخدمات الاستشارية المتاحة</h2><p class="muted">تظهر هنا الطلبات المنشورة للجهات. يمكنك تقديم عرض واحد لكل طلب، ولا تظهر عروض المنافسين.</p><div id="requests"></div><h2>عروضي المقدمة</h2><div id="myProposals"></div><h2>عقودي ومتابعة التنفيذ</h2><div id="myContracts"></div></section>
  <section class="panel"><h3>معلومات الباقة</h3><ul><li>الأساسية: مجانية لملف المكتب.</li><li>الاحترافية: 20 USD شهرياً، ويظل تفعيلها مغلقاً حتى استكمال الفوترة المستقلة.</li><li>التقديم على طلبات السوق متاح للمكاتب التي اكتمل التحقق القانوني منها.</li></ul></section>
 </main>
 <script>
@@ -35,7 +35,7 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
  async function api(path,options){const r=await fetch('/api'+path,Object.assign({credentials:'same-origin',headers:{'Content-Type':'application/json'}},options||{}));const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر الاتصال بالخادم');return d;}
  function node(tag,txt,cls){const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n;}
  async function loadMarket(){
-  const [feed,mine]=await Promise.all([api('/consulting/requests/open'),api('/consulting/proposals/mine')]);
+  const [feed,mine,contracts]=await Promise.all([api('/consulting/requests/open'),api('/consulting/proposals/mine'),api('/consulting/contracts')]);
   const list=$('#requests');list.replaceChildren();
   if(!feed.requests.length)list.append(node('p','لا توجد طلبات مفتوحة حالياً.','muted'));
   feed.requests.forEach(r=>{
@@ -57,6 +57,15 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
   const mineBox=$('#myProposals');mineBox.replaceChildren();
   if(!mine.proposals.length)mineBox.append(node('p','لم تقدم عروضاً بعد.','muted'));
   mine.proposals.forEach(p=>mineBox.append(node('div',p.request_title+' · '+p.financial_amount+' '+p.currency+' · '+p.status,'mine')));
+  const contractBox=$('#myContracts');contractBox.replaceChildren();
+  if(!contracts.contracts.length)contractBox.append(node('p','لا توجد عقود مسندة للمكتب بعد.','muted'));
+  contracts.contracts.forEach(contract=>{
+   const card=node('article',undefined,'request');card.append(node('h3',contract.contract_reference+' · '+contract.request_title));card.append(node('p','الجهة: '+contract.requester_name+' · '+contract.agreed_amount+' '+contract.currency));
+   card.append(node('p','الحالة: '+({awarded:'تمت الترسية',active:'قيد التنفيذ',completed:'مكتمل',terminated:'منتهٍ'}[contract.status]||contract.status)));
+   if(contract.status==='awarded'){const start=node('button','تأكيد بدء التنفيذ','btn sm amber');start.type='button';start.onclick=async()=>{try{await api('/consulting/contracts/'+contract.id+'/status',{method:'PATCH',body:JSON.stringify({status:'active',note:'بدأ المكتب تنفيذ الخدمة الاستشارية المتفق عليها.'})});await loadMarket();}catch(e){showError(e);}};card.append(start);}
+   if(['awarded','active'].includes(contract.status)){const form=node('form');const type=node('select');[['progress','تقدم العمل'],['milestone','إنجاز مرحلة'],['issue','ملاحظة أو عائق']].forEach(([v,l])=>{const o=node('option',l);o.value=v;type.append(o);});const pct=node('input');pct.type='number';pct.min='0';pct.max='100';pct.placeholder='نسبة الإنجاز % (اختياري)';const note=node('textarea');note.required=true;note.minLength=5;note.placeholder='اكتب تحديث التنفيذ أو الإنجاز';const submit=node('button','إضافة تحديث','btn sm light');submit.type='submit';form.append(type,pct,note,submit);form.onsubmit=async e=>{e.preventDefault();try{await api('/consulting/contracts/'+contract.id+'/updates',{method:'POST',body:JSON.stringify({type:type.value,progressPercent:pct.value===''?null:Number(pct.value),note:note.value})});await loadMarket();}catch(err){showError(err);}};card.append(form);}
+   const history=node('button','سجل التحديثات','btn sm light');history.type='button';const historyBox=node('div');history.onclick=async()=>{try{const h=await api('/consulting/contracts/'+contract.id+'/updates');historyBox.replaceChildren();if(!h.updates.length)historyBox.append(node('p','لا توجد تحديثات.','muted'));h.updates.forEach(u=>historyBox.append(node('p',(u.actor_name||'')+' · '+u.note+(u.progress_percent==null?'':' · '+u.progress_percent+'%'),'mine')));}catch(e){showError(e);}};card.append(history,historyBox);contractBox.append(card);
+  });
  }
  async function load(){
   const me=await api('/auth/me');$('#user').textContent=me.user.name||me.user.email;
