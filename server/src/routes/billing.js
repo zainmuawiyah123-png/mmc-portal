@@ -66,7 +66,9 @@ function shapePlan(p) {
 
 /* الباقات المتاحة (عامة) — ?audience=buyer|contractor */
 router.get('/plans', wrap(async (req, res) => {
-  const aud = ['buyer','consultant'].includes(req.query.audience) ? req.query.audience : 'contractor';
+  let aud = ['buyer','consultant'].includes(req.query.audience) ? req.query.audience : 'contractor';
+  const token = A.extractToken(req);
+  if (token) { try { const payload = A.verifyToken(token); const account = A.loadUser(payload.sub); if (account && account.role === 'consultant') aud = 'consultant'; } catch (_) {} }
   if (aud === 'buyer') return res.json({ plans: [], buyerCoreFree: true, message: 'بوابة المشتريات الأساسية مجانية بالكامل ولا تتطلب باقة أو تجربة.' });
   if (aud === 'consultant') return res.json({ plans: [], consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false }, message: 'الباقة الأساسية للمكتب مجانية. الباقة الاحترافية بسعر 20 دولاراً شهرياً، وسيُفتح تفعيلها بعد اكتمال بوابة الفوترة المستقلة.' });
   const rows = getDB().prepare("SELECT * FROM plans WHERE audience = 'contractor' AND key != 'free' ORDER BY sort_order").all();
