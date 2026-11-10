@@ -43,6 +43,7 @@
     <div class="photo-meta" id="photoMeta">JPG / PNG · حتى 12 MB · صورة الغلاف لا تُعد بديلاً عن بيانات تقدم المشروع</div>
    </div>
   </section>
+  <section class="panel" id="projectGallery" style="margin-bottom:18px"><div class="panelhead"><h2>معرض مراحل تنفيذ المشروع</h2><span>PROJECT SITE PHOTO LOG</span></div><div id="projectGalleryItems" style="display:flex;gap:12px;overflow:auto;padding:14px"><p class="note">اختر مشروعاً لعرض الصور المرفوعة وتحديد صورة الغلاف.</p></div></section>
   <div class="grid">
    <div class="metric"><div class="metrichead"><span>المشاريع النشطة</span><span class="metricicon">▣</span></div><strong>—</strong><small>ستظهر بيانات مشاريعك بعد ربط الحساب</small></div>
    <div class="metric"><div class="metrichead"><span>المخططات المحللة</span><span class="metricicon">▧</span></div><strong>—</strong><small>لا توجد بيانات تشغيلية في هذه المعاينة</small></div>
@@ -107,6 +108,23 @@
   document.getElementById('uploadProjectPhoto').disabled=!p;
   document.getElementById('photoMeta').textContent=p?'لم تُرفع صورة غلاف لهذا المشروع بعد.':'تُحفظ الصور ضمن المشروع وبصلاحيات أعضائه فقط.';
  }
+ async function loadProjectGallery(id,images){
+  const host=document.getElementById('projectGalleryItems');host.replaceChildren();
+  if(!images.length){const p=document.createElement('p');p.className='note';p.textContent='لم تُرفع صور لهذا المشروع بعد.';host.appendChild(p);return;}
+  for(const item of images){
+   const card=document.createElement('div');card.style.cssText='min-width:190px;max-width:190px;border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff';
+   const img=document.createElement('img');img.alt=item.caption||item.original_name;img.loading='lazy';img.style.cssText='width:100%;height:112px;object-fit:cover;border-radius:7px;background:#eaf1f6';
+   img.src='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images/'+encodeURIComponent(item.id)+'/download';
+   const title=document.createElement('div');title.textContent=item.caption||item.original_name;title.style.cssText='font-size:11px;font-weight:600;margin:8px 0 4px;color:#29445f';
+   const date=document.createElement('div');date.textContent=item.captured_at||'تاريخ الالتقاط غير محدد';date.style.cssText='font-size:10px;color:#8292a2;margin-bottom:8px';
+   card.append(img,title,date);
+   if(item.is_cover){const badge=document.createElement('span');badge.textContent='صورة الغلاف الحالية';badge.style.cssText='font-size:10px;color:#16734b';card.appendChild(badge);}
+   else{const btn=document.createElement('button');btn.type='button';btn.textContent='تعيين كصورة غلاف';btn.style.cssText='font-size:10px;border:1px solid var(--line);border-radius:6px;padding:6px;background:#f5f8fb;color:#29445f;cursor:pointer';btn.addEventListener('click',async()=>{
+    try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images/'+encodeURIComponent(item.id)+'/cover',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});const d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تغيير صورة الغلاف.');await selectProject(id);notify('تم تغيير صورة غلاف المشروع.');}catch(e){notify(e.message);}
+   });card.appendChild(btn);}
+   host.appendChild(card);
+  }
+ }
  async function selectProject(id){
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
@@ -115,6 +133,7 @@
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
+  await loadProjectGallery(id,images);
   const cover=images.find(x=>x.is_cover)||images[0];
   if(cover){
    const img=document.getElementById('projectCover');
