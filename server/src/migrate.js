@@ -831,6 +831,106 @@ function upgradeConsultingPortal(db) {
   `);
 }
 
+
+/** Independent consultancy marketplace: requester entities, requests, proposals and contracts. */
+function upgradeConsultingMarketplace(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS consulting_requester_entities (
+      id TEXT PRIMARY KEY,
+      legal_name TEXT NOT NULL,
+      country TEXT NOT NULL CHECK(country IN ('JO','SA','AE')),
+      registration_number TEXT NOT NULL,
+      identity_key TEXT NOT NULL UNIQUE,
+      contact_email TEXT NOT NULL,
+      contact_phone TEXT NOT NULL,
+      verification_status TEXT NOT NULL DEFAULT 'pending' CHECK(verification_status IN ('pending','verified','rejected','suspended')),
+      verification_note TEXT,
+      verified_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      verified_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS consulting_requester_members (
+      id TEXT PRIMARY KEY,
+      entity_id TEXT NOT NULL REFERENCES consulting_requester_entities(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      member_role TEXT NOT NULL DEFAULT 'owner' CHECK(member_role IN ('owner','requester')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','suspended')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(entity_id,user_id)
+    );
+    CREATE TABLE IF NOT EXISTS consulting_service_requests (
+      id TEXT PRIMARY KEY,
+      reference TEXT NOT NULL UNIQUE,
+      requester_entity_id TEXT NOT NULL REFERENCES consulting_requester_entities(id),
+      created_by TEXT NOT NULL REFERENCES users(id),
+      title TEXT NOT NULL,
+      discipline TEXT NOT NULL,
+      country TEXT NOT NULL CHECK(country IN ('JO','SA','AE')),
+      location TEXT,
+      description TEXT NOT NULL,
+      scope_json TEXT NOT NULL DEFAULT '[]',
+      currency TEXT NOT NULL CHECK(currency IN ('USD','JOD','SAR','AED')),
+      budget_min REAL,
+      budget_max REAL,
+      closing_at INTEGER,
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed','awarded','cancelled')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS consulting_proposals (
+      id TEXT PRIMARY KEY,
+      request_id TEXT NOT NULL REFERENCES consulting_service_requests(id) ON DELETE CASCADE,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id),
+      submitted_by TEXT NOT NULL REFERENCES users(id),
+      technical_summary TEXT NOT NULL,
+      methodology TEXT,
+      team_summary TEXT,
+      financial_amount REAL NOT NULL CHECK(financial_amount > 0),
+      currency TEXT NOT NULL CHECK(currency IN ('USD','JOD','SAR','AED')),
+      duration_days INTEGER NOT NULL CHECK(duration_days > 0),
+      validity_until TEXT,
+      status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted','withdrawn','selected','rejected')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(request_id,firm_id)
+    );
+    CREATE TABLE IF NOT EXISTS consulting_contracts (
+      id TEXT PRIMARY KEY,
+      request_id TEXT NOT NULL UNIQUE REFERENCES consulting_service_requests(id),
+      proposal_id TEXT NOT NULL UNIQUE REFERENCES consulting_proposals(id),
+      requester_entity_id TEXT NOT NULL REFERENCES consulting_requester_entities(id),
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id),
+      contract_reference TEXT NOT NULL UNIQUE,
+      agreed_amount REAL NOT NULL CHECK(agreed_amount > 0),
+      currency TEXT NOT NULL CHECK(currency IN ('USD','JOD','SAR','AED')),
+      start_date TEXT,
+      end_date TEXT,
+      status TEXT NOT NULL DEFAULT 'awarded' CHECK(status IN ('awarded','active','completed','terminated')),
+      created_by TEXT NOT NULL REFERENCES users(id),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS consulting_market_events (
+      id TEXT PRIMARY KEY,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      detail_json TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_requester_status ON consulting_requester_entities(verification_status,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_requests_open ON consulting_service_requests(status,country,closing_at);
+    CREATE INDEX IF NOT EXISTS idx_consulting_requests_owner ON consulting_service_requests(requester_entity_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_proposals_firm ON consulting_proposals(firm_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_proposals_request ON consulting_proposals(request_id,status,created_at);
+    CREATE INDEX IF NOT EXISTS idx_consulting_contracts_firm ON consulting_contracts(firm_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_contracts_requester ON consulting_contracts(requester_entity_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_market_events_entity ON consulting_market_events(entity_type,entity_id,created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -865,6 +965,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeEInvoice(db);
   upgradeOpportunityWatch(db);
   upgradeConsultingPortal(db);
+  upgradeConsultingMarketplace(db);
 
   return db;
 }
