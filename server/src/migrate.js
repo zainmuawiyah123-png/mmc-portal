@@ -1114,6 +1114,53 @@ function upgradeConsultingContractTracking(db) {
   `);
 }
 
+
+/**
+ * MMC AI project workspace — separate from tender and procurement records.
+ * Idempotent: creates only additive tables and indexes; never rewrites legacy rows.
+ */
+function upgradeMmcAiProjects(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_projects (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      country TEXT,
+      currency TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      org_id TEXT REFERENCES organizations(id) ON DELETE SET NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','archived')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_projects_creator ON ai_projects(created_by,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_projects_org ON ai_projects(org_id,created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS ai_project_members (
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK(role IN ('owner','project_manager','engineer','quantity_surveyor','reviewer','viewer')),
+      invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      joined_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY(project_id,user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_project_members_user ON ai_project_members(user_id,project_id);
+
+    CREATE TABLE IF NOT EXISTS ai_audit_log (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL,
+      entity_type TEXT,
+      entity_id TEXT,
+      detail_json TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_audit_project ON ai_audit_log(project_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_audit_actor ON ai_audit_log(actor_user_id,created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1154,6 +1201,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingOfficeTenderDocuments(db);
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
+  upgradeMmcAiProjects(db);
 
   return db;
 }
