@@ -45,7 +45,8 @@ function extractPdfText(input){
  const pageCount=(source.match(/\/Type\s*\/Page\b/g)||[]).length;
  const chunks=[];
  const streamRe=/<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
- let match,decodedBytes=0,streamCount=0,unsupportedFilters=0;\n const diagnostics={vectorPathOperators:0,moveTo:0,lineTo:0,curveTo:0,rectangles:0,closePath:0,paintOperations:0,imageXObjectCalls:0,textShowingOperations:0,graphicsStateSaves:0,graphicsStateRestores:0,coordinateTransforms:0,lineWidthChanges:0};
+ let match,decodedBytes=0,streamCount=0,unsupportedFilters=0;
+ const diagnostics={vectorPathOperators:0,moveTo:0,lineTo:0,curveTo:0,rectangles:0,closePath:0,paintOperations:0,imageXObjectCalls:0,textShowingOperations:0,graphicsStateSaves:0,graphicsStateRestores:0,coordinateTransforms:0,lineWidthChanges:0};
  while((match=streamRe.exec(source))){
   const dict=match[1],raw=Buffer.from(match[2],'latin1');let data=raw;
   if(/\/FlateDecode\b/.test(dict)){try{data=zlib.inflateSync(raw,{maxOutputLength:MAX_OUTPUT});}catch{continue;}}
