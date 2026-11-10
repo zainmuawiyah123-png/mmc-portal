@@ -14,6 +14,7 @@ function firmFor(userId) {
 }
 function requireConsultant(req) { if (req.user.role !== 'consultant') throw E.forbidden('هذه الخدمة مخصصة لحسابات المكاتب الاستشارية.'); }
 function requireOwner(req, firm) { if (!firm || firm.member_status !== 'active' || firm.member_role !== 'owner') throw E.notFound('ملف المكتب غير موجود.'); }
+function requireFirmManager(req) { const firm=requireVerifiedFirm(req); if(!['owner','manager'].includes(firm.member_role)) throw E.forbidden('تتطلب هذه العملية صلاحية مالك المكتب أو مديره.'); return firm; }
 
 router.get('/me', wrap(async (req,res) => {
   requireConsultant(req);
@@ -263,7 +264,7 @@ router.get('/documents/:ownerType/:ownerId',wrap(async(req,res)=>{
 // Independent tender desk for consulting offices: subcontracted consulting disciplines only.
 const consultingDisciplines=['engineering_design','site_supervision','project_management','quantity_surveying','geotechnical','environmental','transportation','water_wastewater','architecture','other'];
 function firmTenderOwner(req,id){
- const firm=requireVerifiedFirm(req);
+ const firm=requireFirmManager(req);
  const tender=getDB().prepare('SELECT * FROM consulting_firm_tenders WHERE id=? AND firm_id=?').get(id,firm.id);
  if(!tender)throw E.notFound('العطاء الاستشاري غير موجود.');
  return {firm,tender};
@@ -279,7 +280,7 @@ router.get('/firm-tenders/mine',wrap(async(req,res)=>{
  res.json({tenders:rows});
 }));
 router.post('/firm-tenders',wrap(async(req,res)=>{
- const firm=requireVerifiedFirm(req),db=getDB();
+ const firm=requireFirmManager(req),db=getDB();
  const title=clip(req.body?.title,180),discipline=clip(req.body?.discipline,40),country=clip(req.body?.country,2).toUpperCase(),location=clip(req.body?.location,160),description=clip(req.body?.description,5000),currency=clip(req.body?.currency,3).toUpperCase();
  const min=req.body?.budgetMin==null||req.body?.budgetMin===''?null:Number(req.body.budgetMin),max=req.body?.budgetMax==null||req.body?.budgetMax===''?null:Number(req.body.budgetMax);
  const closing=clip(req.body?.closingDate,10),threshold=Number(req.body?.technicalThreshold??50);
@@ -310,7 +311,7 @@ router.get('/firm-tenders/:id/proposals',wrap(async(req,res)=>{
 router.patch('/firm-tender-proposals/:id/evaluation',wrap(async(req,res)=>{
  const db=getDB(),p=db.prepare(`SELECT p.*,t.firm_id owner_firm_id,t.technical_threshold,t.status tender_status FROM consulting_firm_tender_proposals p JOIN consulting_firm_tenders t ON t.id=p.tender_id WHERE p.id=?`).get(req.params.id);
  if(!p)throw E.notFound('العرض غير موجود.');
- const firm=requireVerifiedFirm(req);if(firm.id!==p.owner_firm_id)throw E.notFound('العرض غير موجود.');
+ const firm=requireFirmManager(req);if(firm.id!==p.owner_firm_id)throw E.notFound('العرض غير موجود.');
  if(p.tender_status!=='open')throw E.conflict('التقييم متاح للعطاء المفتوح فقط.');
  const score=Number(req.body?.technicalScore);
  if(!Number.isFinite(score)||score<0||score>100)throw E.validation('الدرجة الفنية يجب أن تكون من صفر إلى 100.');
@@ -370,7 +371,7 @@ router.patch('/firms/me/members/:id',wrap(async(req,res)=>{
  res.json({ok:true,role,status,message:'تم تحديث صلاحيات العضو.'});
 }));
 router.get('/reports/summary',wrap(async(req,res)=>{
- const firm=requireVerifiedFirm(req),db=getDB();
+ const firm=requireFirmManager(req),db=getDB();
  const count=(sql,...args)=>db.prepare(sql).get(...args).n;
  res.json({summary:{
   openMarketRequests:count("SELECT COUNT(*) n FROM consulting_service_requests WHERE status='open' AND (closing_at IS NULL OR closing_at>?)",Math.floor(Date.now()/1000)),
@@ -405,6 +406,7 @@ router.post('/firm-subcontracts/:id/updates',wrap(async(req,res)=>{
 }));
 router.patch('/firm-subcontracts/:id/status',wrap(async(req,res)=>{
  const {firm,contract}=subcontractForFirmUser(req,req.params.id),next=clip(req.body?.status,20),note=clip(req.body?.note,1000);
+ if(!['owner','manager'].includes(firm.member_role))throw E.forbidden('تغيير حالة التعاقد متاح لمالك المكتب أو مديره فقط.');
  if(note.length<5)throw E.validation('اكتب ملاحظة توضح تغيير حالة التعاقد.');
  const allowed=(firm.id===contract.selected_firm_id&&contract.status==='awarded'&&next==='active')||(firm.id===contract.owner_firm_id&&contract.status==='active'&&['completed','terminated'].includes(next));
  if(!allowed)throw E.conflict('انتقال الحالة غير مسموح لهذا الطرف أو من الحالة الحالية.');
