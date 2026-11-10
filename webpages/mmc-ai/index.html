@@ -75,7 +75,7 @@
   </div>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>سجل حصر الكميات</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>البند</th><th>الوحدة</th><th>الكمية</th><th>الحالة</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">لا توجد كميات فعلية بعد. ستظهر النتائج هنا بعد تفعيل محرك القياس والتحقق الهندسي.</td></tr></tbody></table></div></section>
-   <section class="panel"><div class="panelhead"><h2>إضافة مخطط للاختبار</h2><span>LOCAL FILE PREVIEW</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>اختر ملف مخطط من جهازك</strong><small>PDF · DWG · DXF · PNG · JPG<br>هذه المعاينة لا ترفع الملفات إلى الخادم</small><input id="drawingFile" type="file" accept=".pdf,.dwg,.dxf,.png,.jpg,.jpeg" hidden></label><div class="filemsg" id="filemsg"></div><p class="note">اختيار الملف هنا محلي على جهازك فقط. لم يتم إنشاء رفع آمن أو تحليل آلي في هذه المرحلة. سيُفعّل ذلك بعد اعتماد التخزين ومحرك المعالجة والاختبارات.</p></div></section>
+   <section class="panel"><div class="panelhead"><h2>مستندات ومخططات المشروع</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>ارفع مخططاً أو مستنداً إلى المشروع الحالي</strong><small>PDF · DXF · PNG · JPG<br>حتى 25 MB · تخزين خاص بالمشروع</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">اختر مشروعاً لعرض مستنداته.</p></div><p class="note">الرفع والحفظ الآمن متاحان. حالة المستند بعد الرفع «تم الاستلام»؛ لا ندّعي تحليله آلياً حتى اكتمال محرك PDF/DXF ومعايرة القياس.</p></div></section>
   </div>
   <div class="footer">MMC AI Construction Intelligence · بوابة مستقلة ضمن MMC / TenderWise · Preview build 0.1</div>
  </section>
@@ -129,7 +129,7 @@
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
@@ -166,7 +166,43 @@
 
  document.getElementById('ask').addEventListener('click',()=>{const q=document.getElementById('question').value.trim();if(!q){notify('اكتب السؤال أولاً.');return}notify('المساعد الذكي غير متصل بمحرك AI بعد؛ لم يتم إرسال السؤال أو تخزينه.');});
  document.querySelectorAll('.prompt').forEach(b=>b.addEventListener('click',()=>{document.getElementById('question').value=b.textContent;document.getElementById('question').focus()}));
- document.getElementById('drawingFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const box=document.getElementById('filemsg');box.style.display='block';box.textContent='تم اختيار الملف محلياً: '+f.name+' ('+(f.size/1024/1024).toFixed(2)+' MB). لم يُرفع إلى الخادم ولم يُحلّل.';});
+ async function loadProjectDocuments(id){
+  const host=document.getElementById('projectDocuments');host.replaceChildren();
+  if(!id){const p=document.createElement('p');p.className='note';p.textContent='أنشئ أو اختر مشروعاً أولاً.';host.appendChild(p);return;}
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin'});
+   if(!r.ok)throw new Error('تعذر تحميل مستندات المشروع.');
+   const docs=(await r.json()).documents||[];
+   if(!docs.length){const p=document.createElement('p');p.className='note';p.textContent='لا توجد مستندات مرفوعة لهذا المشروع.';host.appendChild(p);return;}
+   const list=document.createElement('div');list.style.cssText='display:grid;gap:8px';
+   for(const d of docs){
+    const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff';
+    const meta=document.createElement('div');meta.style.cssText='min-width:0';
+    const name=document.createElement('div');name.textContent=d.original_name;name.style.cssText='font-size:11px;font-weight:600;color:#29445f;overflow-wrap:anywhere';
+    const sub=document.createElement('div');sub.textContent=d.file_ext.toUpperCase()+' · '+(d.size_bytes/1048576).toFixed(2)+' MB · تم الاستلام ولم يبدأ التحليل';sub.style.cssText='font-size:10px;color:#8996a4;margin-top:4px';
+    meta.append(name,sub);
+    const btn=document.createElement('button');btn.type='button';btn.textContent='تنزيل';btn.style.cssText='border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
+    btn.addEventListener('click',()=>{window.location.href='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/download';});
+    row.append(meta,btn);list.appendChild(row);
+   }
+   host.appendChild(list);
+  }catch(e){const p=document.createElement('p');p.className='note';p.textContent=e.message;host.appendChild(p);}
+ }
+ const originalSelectProject=selectProject;
+ document.getElementById('drawingFile').addEventListener('change',async e=>{
+  const file=e.target.files&&e.target.files[0];if(!file)return;
+  const box=document.getElementById('filemsg');box.style.display='block';
+  if(!activeProject){box.textContent='اختر مشروعاً أولاً قبل رفع المستند.';e.target.value='';return;}
+  if(file.size>25*1024*1024){box.textContent='حجم الملف يتجاوز الحد الأقصى 25 MB.';e.target.value='';return;}
+  const id=activeProject.project_id||activeProject.id,fd=new FormData();fd.append('file',file);
+  box.textContent='جارٍ رفع '+file.name+' إلى مساحة المشروع الآمنة...';
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
+   const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'فشل رفع المستند.');
+   box.textContent='تم حفظ المستند بنجاح. لم يبدأ التحليل الهندسي بعد.';
+   await loadProjectDocuments(id);
+  }catch(err){box.textContent=err.message;}finally{e.target.value='';}
+ });
  document.getElementById('langBtn').addEventListener('click',()=>notify('سيتم تفعيل الواجهة الإنجليزية الكاملة ضمن مرحلة التعريب.'));
  document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();notify('قسم '+a.textContent.trim()+' ضمن خارطة التطوير، ولم تُفعّل وظيفته بعد.');}));
 })();
