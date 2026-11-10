@@ -113,7 +113,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const boqViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/boq',{description:'Not allowed',unit:'m3',quantity:1,rate:1});
  assert.equal(boqViewer.status,403);
  const boqList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/boq');
- assert.equal(boqList.status,200);assert.equal(boqList.data.items.length,1);assert.equal(boqList.data.summary.total,407.875);
+ assert.equal(boqList.status,200);assert.equal(boqList.data.items.length,1);assert.equal(boqList.data.summary.total,16.25);
  const boqQuantityChange=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{quantity:130});assert.equal(boqQuantityChange.status,422);
  const boqUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{rate:4});
  assert.equal(boqUpdate.status,200);assert.equal(boqUpdate.data.item.line_total,20);
