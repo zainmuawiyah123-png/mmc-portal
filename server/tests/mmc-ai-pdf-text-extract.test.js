@@ -72,3 +72,17 @@ test('parses signed and decimal path coordinates after tokenizer correction',()=
  assert.deepEqual(r.diagnostics.rawCoordinateBounds,{minX:-12.5,minY:-8.75,maxX:0.5,maxY:4.25});
  assert.equal(r.diagnostics.coordinatePointCount,2);
 });
+
+test('decodes UTF-16BE literal and hexadecimal PDF strings when BOM is present',()=>{
+ const encoded=Buffer.concat([Buffer.from([0xfe,0xff]),Buffer.from('MMC AI','utf16le')]);
+ for(let i=2;i<encoded.length;i+=2){const a=encoded[i];encoded[i]=encoded[i+1];encoded[i+1]=a;}
+ const literal='('+encoded.toString('latin1')+') Tj';
+ const hex='<'+encoded.toString('hex')+'> Tj';
+ assert.match(extractPdfText(pdf('BT '+literal+' ET')).text,/MMC AI/);
+ assert.match(extractPdfText(pdf('BT '+hex+' ET')).text,/MMC AI/);
+});
+test('extracts strings shown with PDF single-quote and double-quote text operators',()=>{
+ const r=extractPdfText(pdf('BT (First line) \' 0 0 (Second line) 0 0 " ET'));
+ assert.match(r.text,/First line/);
+ assert.match(r.text,/Second line/);
+});
