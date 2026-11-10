@@ -154,15 +154,15 @@ test('allows 2D block INSERTs with independent Z scale', () => {
 });
 
 test('rejects non-numeric circle center coordinates', () => {
-  const ent = ['0','CIRCLE','10','bad','20','0','40','2'].join('\\n');
+  const ent = ['0','CIRCLE','10','bad','20','0','40','2'].join('\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /non-numeric geometry/i);
 });
 test('rejects non-numeric arc center coordinates', () => {
-  const ent = ['0','ARC','10','0','20','bad','40','2','50','0','51','90'].join('\\n');
+  const ent = ['0','ARC','10','0','20','bad','40','2','50','0','51','90'].join('\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /non-numeric geometry/i);
 });
 test('rejects non-numeric block circle center coordinates', () => {
-  const block = ['0','CIRCLE','10','bad','20','0','40','2'].join('\\n');
-  const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0'].join('\\n');
+  const block = ['0','CIRCLE','10','bad','20','0','40','2'].join('\n');
+  const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0'].join('\n');
   assert.throws(() => takeoffDxf(dxfWithBlock(block, insert)), /non-numeric geometry/i);
 });
