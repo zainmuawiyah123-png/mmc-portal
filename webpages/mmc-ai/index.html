@@ -371,6 +371,20 @@ html{scroll-behavior:smooth;scroll-padding-top:82px}section[id],.panel[id]{scrol
     btn.addEventListener('click',()=>{window.location.href='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/download';});
     const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
     actions.appendChild(btn);
+    if(d.file_ext==='.pdf'){
+     const check=document.createElement('button');check.type='button';check.textContent='فحص PDF';check.style.cssText='border:1px solid #c8d7e8;border-radius:7px;padding:7px 10px;background:#f0f5fb;color:#31536f;font-size:10px;cursor:pointer';
+     check.addEventListener('click',async()=>{check.disabled=true;check.textContent='جارٍ الفحص...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/preflight/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'تعذر فحص PDF.');
+      const report=data.report,output=document.getElementById('takeoffResult');output.replaceChildren();
+      const title=document.createElement('strong');title.textContent='نتيجة فحص PDF الأولي — ليس تحليلاً هندسياً';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const detail=document.createElement('p');detail.textContent='الإصدار: '+report.version+' · الحجم: '+(report.bytes/1048576).toFixed(2)+' MB · الصفحات المقدرة: '+(report.pageCount??'غير محدد')+' · الحالة: '+report.status;
+      const limitation=document.createElement('p');limitation.textContent='لم يتم استخراج النصوص أو المسارات أو الأبعاد أو الكميات. محرك تحليل PDF الهندسي لم يُفعّل بعد.';
+      limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      output.append(title,detail,limitation);notify('اكتمل فحص سلامة PDF الأولي فقط.');
+     }catch(err){notify(err.message);}finally{check.disabled=false;check.textContent='فحص PDF';}});
+     actions.appendChild(check);
+    }
     if(d.file_ext==='.dxf'){
      const take=document.createElement('button');take.type='button';take.textContent='حصر DXF';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
      take.addEventListener('click',async()=>{
