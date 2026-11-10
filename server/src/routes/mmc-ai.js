@@ -117,4 +117,37 @@ router.post('/projects/:projectId/members',wrap(async(req,res)=>{
   res.status(201).json({ok:true,userId,role});
 }));
 
+router.post('/projects/:projectId/assistant',wrap(async(req,res)=>{
+ const m=requireMember(req),db=getDB(),q=clip(req.body?.question,1000);
+ if(q.length<3)throw E.validation('اكتب سؤالاً واضحاً عن المشروع.');
+ const text=q.toLowerCase(),sources=[];let answer='';
+ const has=(...words)=>words.some(w=>text.includes(w));
+ if(has('risk','مخاطر','خطر','مخاطرة')){
+  const rows=db.prepare("SELECT title,category,probability,impact,mitigation,status FROM ai_project_risks WHERE project_id=? ORDER BY probability*impact DESC,created_at DESC LIMIT 8").all(m.project_id);
+  const active=rows.filter(x=>['open','mitigating'].includes(x.status));answer=rows.length?'سجل المخاطر يعرض '+rows.length+' مخاطر ضمن أحدث النتائج، منها '+active.length+' مفتوحة أو قيد المعالجة. أعلى خطر: '+rows[0].title+' بدرجة '+(rows[0].probability*rows[0].impact)+'/25. '+(rows[0].mitigation?'الإجراء المسجل: '+rows[0].mitigation:'لا يوجد إجراء تخفيف مسجل لهذا الخطر.'):'لا توجد مخاطر مسجلة لهذا المشروع حتى الآن.';
+  sources.push({type:'risk_register',count:rows.length,items:rows.slice(0,5)});
+ }else if(has('schedule','programme','program','critical path','delay','تأخير','جدول','زمني','مسار حرج','إنجاز')){
+  const tasks=db.prepare('SELECT task_code,name,duration_days,predecessors_json,percent_complete,status FROM ai_schedule_tasks WHERE project_id=? ORDER BY created_at').all(m.project_id);
+  if(!tasks.length)answer='لا توجد أنشطة مسجلة في البرنامج الزمني بعد. أضف الأنشطة ومددها وعلاقاتها حتى يمكن حساب المسار الحرج وتقييم التأخير.';
+  else{const {calculateCriticalPath}=require('../lib/mmc-ai/schedule-engine');const cpm=calculateCriticalPath(tasks.map((t,i)=>({...t,id:t.task_code||String(i+1),predecessors:JSON.parse(t.predecessors_json||'[]')})));const progress=tasks.reduce((s,t)=>s+Number(t.duration_days||0)*Number(t.percent_complete||0),0)/Math.max(1,tasks.reduce((s,t)=>s+Number(t.duration_days||0),0));answer='البرنامج يحتوي '+tasks.length+' أنشطة، والمدة المحسوبة للمسار الحرج '+cpm.projectDuration+' يوم عمل، وعدد الأنشطة الحرجة '+cpm.criticalTaskCount+'. نسبة الإنجاز المرجحة بالمدة '+progress.toFixed(1)+'%. هذه قراءة للبيانات المسجلة وليست مقارنة مع خط أساس معتمد ما لم تُدخل تواريخ المخطط والفعلي.';sources.push({type:'schedule',count:tasks.length,criticalTasks:cpm.criticalTaskCount,projectDurationWorkingDays:cpm.projectDuration,weightedProgress:Number(progress.toFixed(1)),tasks:tasks.slice(0,8)});}
+ }else if(has('cost','boq','budget','estimate','كلفة','تكلفة','ميزانية','كميات','سعر')){
+  const rows=db.prepare('SELECT item_code,description,unit,quantity,rate,(quantity*rate) AS amount FROM ai_boq_items WHERE project_id=? ORDER BY created_at DESC LIMIT 30').all(m.project_id),sum=db.prepare('SELECT COUNT(*) AS count,COALESCE(SUM(quantity*rate),0) AS total FROM ai_boq_items WHERE project_id=?').get(m.project_id);
+  answer=sum.count?'سجل BOQ يحتوي '+sum.count+' بنداً بإجمالي تقديري '+Number(sum.total).toFixed(2)+' '+(m.currency||'عملة المشروع')+'. هذه القيمة مبنية على الكميات والأسعار المدخلة حالياً ولا تمثل عرض سعر معتمداً.':'لا توجد بنود BOQ مسجلة بعد؛ أضف البنود والكميات والأسعار للحصول على تقدير أولي.';
+  sources.push({type:'boq',count:sum.count,total:Number(sum.total),currency:m.currency||null,items:rows.slice(0,8)});
+ }else if(has('claim','fidic','contract','notice','مطالبة','فيديك','عقد','إشعار','تمديد')){
+  const rows=db.prepare('SELECT title,fidic_clause,notice_date,event_date,time_impact_days,cost_impact,currency,status FROM ai_contract_events WHERE project_id=? ORDER BY created_at DESC LIMIT 10').all(m.project_id),sum=db.prepare('SELECT COUNT(*) AS count,COALESCE(SUM(time_impact_days),0) AS days,COALESCE(SUM(cost_impact),0) AS cost FROM ai_contract_events WHERE project_id=?').get(m.project_id);
+  answer=sum.count?'سجل الأحداث التعاقدية يحتوي '+sum.count+' أحداث، بإجمالي أثر زمني مسجل '+sum.days+' يوماً وأثر مالي '+Number(sum.cost).toFixed(2)+'. راجع تواريخ الإشعار والمراسلات والسجلات المعاصرة؛ لا يعني التسجيل وحده ثبوت الاستحقاق وفق FIDIC.':'لا توجد أحداث تعاقدية مسجلة. وثّق الحدث وتاريخه والإشعار والبند التعاقدي والأثر الزمني والمالي قبل تقييم الاستحقاق.';
+  sources.push({type:'contract_events',count:sum.count,timeImpactDays:sum.days,costImpact:Number(sum.cost),items:rows});
+ }else if(has('document','drawing','pdf','dxf','مخطط','مستند','وثيقة','ملف')){
+  const docs=db.prepare('SELECT original_name,file_ext,size_bytes,processing_status,created_at FROM ai_documents WHERE project_id=? ORDER BY created_at DESC LIMIT 12').all(m.project_id);
+  answer=docs.length?'يوجد '+docs.length+' مستندات ضمن أحدث الملفات. حالة التحليل المسجلة لكل ملف: '+docs.map(x=>x.original_name+' ('+x.processing_status+')').join('، ')+'. رفع الملف لا يعني أن محتواه قد تم تحليله هندسياً.' :'لا توجد مستندات مرفوعة لهذا المشروع بعد.';
+  sources.push({type:'project_documents',count:docs.length,items:docs});
+ }else{
+  const risks=db.prepare('SELECT COUNT(*) AS total,SUM(CASE WHEN probability*impact>=15 THEN 1 ELSE 0 END) AS critical FROM ai_project_risks WHERE project_id=?').get(m.project_id),events=db.prepare('SELECT COUNT(*) AS total FROM ai_contract_events WHERE project_id=?').get(m.project_id),boq=db.prepare('SELECT COUNT(*) AS total,COALESCE(SUM(quantity*rate),0) AS cost FROM ai_boq_items WHERE project_id=?').get(m.project_id),docs=db.prepare('SELECT COUNT(*) AS total FROM ai_documents WHERE project_id=?').get(m.project_id);
+  answer='ملخص المشروع «'+m.name+'»: '+boq.total+' بنود BOQ بتكلفة تقديرية '+Number(boq.cost).toFixed(2)+'، و'+risks.total+' مخاطر منها '+(risks.critical||0)+' حرجة، و'+events.total+' أحداث تعاقدية، و'+docs.total+' مستندات. اسأل عن المخاطر أو البرنامج الزمني أو الكميات والتكلفة أو المطالبات أو المستندات للحصول على تفصيل.';
+  sources.push({type:'project_summary',boqItems:boq.total,estimatedCost:Number(boq.cost),risks:risks.total||0,criticalRisks:risks.critical||0,contractEvents:events.total,documents:docs.total});
+ }
+ db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)').run(uid('aial_'),m.project_id,req.user.id,'project_assistant_query','assistant',null,JSON.stringify({question:q.slice(0,300),sourceTypes:sources.map(x=>x.type)}));
+ res.setHeader('Cache-Control','no-store');res.json({assistant:{mode:'project_data_assistant',answer,sources,limitations:'الإجابة مستخرجة من سجلات المشروع الحالية وقواعد تحليل محددة؛ ليست نموذجاً لغوياً توليدياً ولا بديلاً عن مراجعة المهندس أو مدير العقود.'}});
+}));
 module.exports=router;
