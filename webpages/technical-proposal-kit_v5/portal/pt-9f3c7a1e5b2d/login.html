@@ -108,9 +108,15 @@
   var defaultLabel='<span data-ar="دخول" data-en="Sign in">دخول</span>';
 
   // إن كانت هناك جلسة قائمة، تجاوز صفحة الدخول
-  API.me().then(function(){
-    var next=new URLSearchParams(location.search).get('next') || 'index.html';
-    location.replace(safeNext(next));
+  API.me().then(function(session){
+    // حافظ على الوجهة المطلوبة عند وجود جلسة سابقة؛ وإلا وجّه كل دور إلى بوابته.
+    var requested=new URLSearchParams(location.search).get('next');
+    var role=session && session.user && session.user.role;
+    var home=role==='admin' ? '../../admin/index.html'
+      : role==='buyer' ? '/consulting/requester/'
+      : role==='consultant' ? '/consulting/'
+      : 'index.html';
+    location.replace(safeNext(requested || home));
   }).catch(function(){ /* لا جلسة — ابقَ هنا */ });
 
   function safeNext(n){
