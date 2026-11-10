@@ -393,9 +393,10 @@ html{scroll-behavior:smooth;scroll-padding-top:82px}section[id],.panel[id]{scrol
       const summary=document.createElement('p');summary.textContent='الحالة: '+result.status+' · الصفحات: '+(result.pageCount??'غير محدد')+' · الأحرف: '+result.characterCount;
       const diag=result.diagnostics||{};const graphics=document.createElement('p');graphics.textContent='مؤشرات الرسم: مسارات '+(diag.vectorPathOperators||0)+' · خطوط '+(diag.lineTo||0)+' · منحنيات '+(diag.curveTo||0)+' · مستطيلات '+(diag.rectangles||0)+' · استدعاءات صور '+(diag.imageXObjectCalls||0);graphics.style.cssText='font-size:11px;color:#52677d;line-height:1.8';
       const body=document.createElement('pre');body.textContent=result.text||'لم يُعثر على نص قابل للاستخراج. قد يكون المخطط ممسوحاً ضوئياً ويحتاج OCR.';body.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto;background:#f7f9fb;padding:10px;border-radius:7px;font-size:11px;line-height:1.8';
-      const limitation=document.createElement('p');limitation.textContent='تنبيه: هذه قراءة نصية أولية فقط، وليست OCR أو تحليلاً للأبعاد أو حصر كميات.';
+      const bounds=result.diagnostics?.rawCoordinateBounds;const boundsText=document.createElement('p');boundsText.textContent=bounds?'نطاق الإحداثيات الخام داخل PDF: X '+bounds.minX+' إلى '+bounds.maxX+' · Y '+bounds.minY+' إلى '+bounds.maxY+' · نقاط '+(result.diagnostics.coordinatePointCount||0):'لم يتم التعرف على نطاق إحداثيات مسارات في تدفقات PDF المدعومة.';boundsText.style.cssText='font-size:11px;color:#52677d;line-height:1.8';
+      const limitation=document.createElement('p');limitation.textContent='تنبيه: هذه قراءة نصية ومؤشرات مسارات أولية فقط. الإحداثيات ليست أطوالاً أو مساحات فعلية؛ يلزم تطبيق تحويلات الصفحة ومعايرة المقياس قبل أي قياس هندسي.';
       limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
-      output.append(title,summary,graphics,body,limitation);notify('اكتمل استخراج النص الأولي من PDF.');
+      output.append(title,summary,graphics,boundsText,body,limitation);notify('اكتمل استخراج النص الأولي من PDF.');
      }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='استخراج النص';}});
      actions.appendChild(extract);
     }
