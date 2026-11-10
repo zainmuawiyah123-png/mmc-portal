@@ -15,7 +15,7 @@
 <section class="panel"><h2 id="entityName"></h2><p id="entityStatus" class="status"></p></section>
 <section id="requestFormPanel" class="panel" hidden><h2>نشر طلب خدمة استشارية</h2><form id="requestForm"><div class="grid">
 <label>عنوان الخدمة<input name="title" required minlength="4" maxlength="180"></label>
-<label>التخصص المطلوب<input name="discipline" required maxlength="100" placeholder="هندسة مدنية، تصميم، إشراف…"></label>
+<label>التخصص الاستشاري المطلوب<select name="discipline" required><option value="هندسة مدنية">هندسة مدنية</option><option value="هندسة إنشائية">هندسة إنشائية</option><option value="تصميم معماري">تصميم معماري</option><option value="هندسة ميكانيكية">هندسة ميكانيكية</option><option value="هندسة كهربائية">هندسة كهربائية</option><option value="الإشراف الهندسي">الإشراف الهندسي</option><option value="إدارة المشاريع">إدارة المشاريع</option><option value="حصر الكميات">حصر الكميات</option><option value="الجيوتقنية">الجيوتقنية</option><option value="الدراسات البيئية">الدراسات البيئية</option><option value="الطرق والنقل">الطرق والنقل</option><option value="المياه والصرف الصحي">المياه والصرف الصحي</option><option value="التخطيط الحضري">التخطيط الحضري</option><option value="مسح الأراضي">مسح الأراضي</option><option value="خدمات استشارية أخرى">خدمات استشارية أخرى</option></select></label>
 <label>الدولة<select name="country"><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option></select></label>
 <label>الموقع<input name="location" maxlength="180"></label>
 <label>العملة<select name="currency"><option>USD</option><option>JOD</option><option>SAR</option><option>AED</option></select></label>
