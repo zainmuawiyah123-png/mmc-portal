@@ -54,8 +54,8 @@ The existing `/api/requests` flow is the buyer's project/request-to-procurement 
 1. Preserve the evaluator page and inspect all references to `/consultant/`, `role === 'consultant'`, `audienceFor`, plan lookup, invoice creation/approval, and static serving.
 2. Add the new UI namespace and a server-side gate that requires a verified consulting-firm membership. Do not rely on client-side hiding.
 3. Add additive, idempotent migrations for consulting-only tables and indexes. No DROP, rename, destructive backfill, or production migration.
-4. Add `/api/consulting/*` endpoints with firm-scoped authorization and document ownership checks.
-5. Add independent request/proposal/selection/contract lifecycle and strict competitor confidentiality.
+4. Implement `/api/consulting/*` endpoints with independent firm/requester authorization, document upload/download/delete, storage checksums, file type/size limits, and selected-party access.
+5. Implement independent request/proposal/selection/contract lifecycle, audited progress updates, and strict competitor confidentiality. Requesters can review every proposal for their own request; competing firms cannot access one another's proposals or attachments.
 6. Add isolated USD-only $20/month billing and explicit renewal consent; no trial and no annual price.
 7. Add tests for route isolation, tenant isolation, firm membership, duplicate legal identity, proposal confidentiality, document access, billing amount/currency, contractor billing unchanged, evaluator routes unchanged, procurement routes unchanged, and no subscription currency conversion.
 8. Run all existing test suites plus new tests on the development branch. Inspect the diff and workflow results.
@@ -65,7 +65,7 @@ The existing `/api/requests` flow is the buyer's project/request-to-procurement 
 - Development branch: `feature/consultant-portal-independent-phase1`
 - Base: `feature/buyer-free-core-phase1`
 - The branch is separate from `main`; no production deployment is authorized.
-- Implemented: protected consultant and requester workspaces, isolated firm/requester identities, verification flows, independent service requests, confidential proposals, award/contract creation, additive migrations, and role-level consultant billing audience isolation (including existing evaluators).
-- Latest completed CI run on this branch: full `npm run test:all` workflow succeeded after adding the separate requester workspace and tightening the buyer/consultant billing audience. Earlier detailed counts: API 89/89; consulting marketplace suite 8/8; finance UI 36/36; opportunity tests 22/22; scheduler 1/1; UK sync 8/8. The S3 test file reports no tests in this workflow.
-- Professional billing remains intentionally unavailable; $20 USD/month is displayed as the approved price only.
+- Implemented on development branch: protected consultant and requester workspaces; isolated firm/requester identities and verification; independent service requests; confidential proposals; award and contract records; contract progress/status updates; additive consulting document metadata; secure file upload/download/delete endpoints; UI attachment controls; request/selected-party document visibility; and billing audience isolation for verified consulting-firm members while preserving existing evaluator classification.
+- The last completed full CI run before the document workflow additions succeeded (`npm run test:all`; earlier counts: API 89/89, consulting 8/8, finance UI 36/36, opportunity tests 22/22, scheduler 1/1, UK sync 8/8). New document upload/download, request-owner proposal review, awarded-firm document visibility, and document UI tests have since been added. A fresh CI run for the current head has not yet been reported; do not treat these newest changes as verified until it completes.
+- Professional billing remains intentionally unavailable; $20 USD/month is displayed as the approved price only. No automatic renewal or charge is active.
 - No production migration, merge, or Render deployment has occurred.
