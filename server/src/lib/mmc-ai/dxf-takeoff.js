@@ -135,10 +135,13 @@ function takeoffDxf(text, options = {}) {
     const row = { entity: e.type, entityIndex: index, layer };
     let quantity = null, unit = null;
     if (e.type === 'LINE') {
+      requireCodes(e, [10, 20, 11, 21], 'LINE entity ' + index);
       const a = { x: first(e, 10), y: first(e, 20) }, b = { x: first(e, 11), y: first(e, 21) };
+      assertFinite([a.x, a.y, b.x, b.y], 'LINE entity ' + index);
       quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
     } else if (e.type === 'LWPOLYLINE') {
       requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);\n      const vertices = polylineVertices(e), closed = (first(e, 70) & 1) === 1;
+      assertFinite(vertices.flatMap(v => [v.x, v.y, v.bulge ?? 0]), 'LWPOLYLINE entity ' + index);
       if (vertices.length < 2) { unsupported[e.type] = (unsupported[e.type] || 0) + 1; continue; }
       const m = polylineMetrics(vertices, closed);
       row.closed = closed;
@@ -146,14 +149,19 @@ function takeoffDxf(text, options = {}) {
       if (closed) row.area_m2 = m.area * metresPerUnit * metresPerUnit;
       quantity = row.length_m; unit = 'm';
     } else if (e.type === 'CIRCLE') {
+      requireCodes(e, [10, 20, 40], 'CIRCLE entity ' + index);
       const radius = first(e, 40);
+      assertFinite([radius], 'CIRCLE entity ' + index);
       if (radius < 0) throw new Error('Invalid negative circle radius at entity ' + index);
       row.radius_m = radius * metresPerUnit;
       row.circumference_m = 2 * Math.PI * row.radius_m;
       row.area_m2 = Math.PI * row.radius_m * row.radius_m;
       quantity = row.circumference_m; unit = 'm';
     } else if (e.type === 'ARC') {
+      requireCodes(e, [10, 20, 40, 50, 51], 'ARC entity ' + index);
       const radius = first(e, 40), start = first(e, 50), end = first(e, 51);
+      assertFinite([radius, start, end], 'ARC entity ' + index);
+      if (radius < 0) throw new Error('Invalid negative arc radius at entity ' + index);
       let sweep = (end - start) % 360;
       if (sweep < 0) sweep += 360;
       row.radius_m = radius * metresPerUnit;
