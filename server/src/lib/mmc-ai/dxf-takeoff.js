@@ -187,7 +187,9 @@ function transformBlockEntity(entity, block, insert, scale, rotation) {
     set(10,a.x); set(20,a.y); set(11,b.x); set(21,b.y);
   } else if (entity.type === 'CIRCLE' || entity.type === 'ARC') {
     requireCodes(entity, entity.type === 'ARC' ? [10,20,40,50,51] : [10,20,40], 'block ' + entity.type);
-    const c = transform(first(entity,10), first(entity,20));
+    const sourceCenter = [first(entity,10), first(entity,20)];
+    assertFinite(sourceCenter, 'block ' + entity.type + ' center');
+    const c = transform(sourceCenter[0], sourceCenter[1]);
     set(10,c.x); set(20,c.y); set(40,first(entity,40)*scale);
     if (entity.type === 'ARC') {
       set(50,first(entity,50)+rotation); set(51,first(entity,51)+rotation);
@@ -280,8 +282,9 @@ function takeoffDxf(text, options = {}) {
       quantity = row.circumference_m; unit = 'm';
     } else if (e.type === 'ARC') {
       requireCodes(e, [10, 20, 40, 50, 51], 'ARC entity ' + index);
+      const center = [first(e, 10), first(e, 20)];
       const radius = first(e, 40), start = first(e, 50), end = first(e, 51);
-      assertFinite([radius, start, end], 'ARC entity ' + index);
+      assertFinite([...center, radius, start, end], 'ARC entity ' + index);
       if (radius < 0) throw new Error('Invalid negative arc radius at entity ' + index);
       let sweep = (end - start) % 360;
       if (sweep < 0) sweep += 360;
@@ -310,7 +313,7 @@ function takeoffDxf(text, options = {}) {
       totalClosedArea_m2: rows.reduce((s, r) => s + (r.area_m2 || 0), 0)
     },
     byLayer, unsupported, rows,
-    limitations: ['No block or xref expansion', 'No hatch or spline area extraction', 'No automatic drawing-scale inference', 'No BOQ classification', 'Requires engineer review before contractual use']
+    limitations: ['Nested blocks, xrefs and block arrays are not expanded', 'No hatch or spline area extraction', 'No automatic drawing-scale inference', 'No BOQ classification', 'Requires engineer review before contractual use']
   };
 }
 
