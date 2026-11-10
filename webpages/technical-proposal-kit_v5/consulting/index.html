@@ -14,7 +14,7 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
  <nav class="consult-nav"><a href="#dashboard">لوحة التحكم</a><a href="#market">العطاءات والفرص الاستشارية</a><a href="#myProposals">عروضي الفنية والمالية</a><a href="#myContracts">العقود ومتابعة التنفيذ</a><a href="#existing">ملف المكتب والاشتراك</a></nav>
  <section id="dashboard" class="statgrid"><div class="stat">الفرص الاستشارية المتاحة<b id="statOpen">—</b></div><div class="stat">العروض المقدمة<b id="statProposals">—</b></div><div class="stat">العقود المسندة<b id="statContracts">—</b></div><div class="stat">الاشتراك الاحترافي<b>20 USD / شهر</b></div></section>
  <div id="message" class="status">جارٍ تحميل بيانات الحساب…</div>
- <section id="existing" class="panel" hidden><h2>ملف المكتب الاستشاري</h2><h3 id="firmName"></h3><p id="firmInfo"></p><p id="firmStatus" class="status"></p><p class="muted">الباقة الاحترافية: 20 USD شهرياً. أول عطاء مجاني. بوابة الدفع والتفعيل الآلي لم يجرِ تشغيلهما بعد، ولن يتم احتساب رسوم قبل تفعيلهما رسمياً.</p></section>
+ <section id="existing" class="panel" hidden><h2>ملف المكتب الاستشاري</h2><h3 id="firmName"></h3><p id="firmInfo"></p><p id="firmStatus" class="status"></p><p class="muted">الباقة الاحترافية: 20 USD شهرياً. أول عطاء مجاني. بوابة الدفع والتفعيل الآلي لم يجرِ تشغيلهما بعد، ولن يتم احتساب رسوم قبل تفعيلهما رسمياً.</p><h3>الوثائق القانونية والمهنية للمكتب</h3><p class="muted">ارفع شهادة التسجيل والرخص المهنية والضريبية والتأمين وسابقة الأعمال. تظهر هذه الوثائق لمدير الإدارة ضمن ملف المراجعة فقط.</p><form id="firmDocumentsForm"><div class="grid"><label>تصنيف الوثيقة<select name="kind"><option value="registration">شهادة التسجيل</option><option value="professional_license">رخصة مهنية</option><option value="tax_certificate">شهادة ضريبية</option><option value="insurance">التأمين المهني</option><option value="portfolio">سابقة الأعمال</option><option value="authorization">تفويض/وكالة</option><option value="other">أخرى</option></select></label><label>الملفات<input name="files" type="file" multiple required></label></div><button class="btn amber" type="submit">رفع الوثائق إلى ملف المراجعة</button></form><div id="firmDocumentsList" class="mine"></div></section>
  <section id="register" class="panel" hidden><h2>تسجيل مكتب استشاري</h2><p class="muted">أدخل بيانات المكتب القانونية. يبقى الملف قيد المراجعة حتى التحقق منه.</p>
  <form id="firmForm"><div class="grid">
  <label>الاسم القانوني للمكتب<input name="legalName" required minlength="3" maxlength="180"></label>
@@ -81,6 +81,13 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
    const history=node('button','سجل التحديثات','btn sm light');history.type='button';const historyBox=node('div');history.onclick=async()=>{try{const h=await api('/consulting/contracts/'+contract.id+'/updates');historyBox.replaceChildren();if(!h.updates.length)historyBox.append(node('p','لا توجد تحديثات.','muted'));h.updates.forEach(u=>historyBox.append(node('p',(u.actor_name||'')+' · '+u.note+(u.progress_percent==null?'':' · '+u.progress_percent+'%'),'mine')));}catch(e){showError(e);}};card.append(history,historyBox);contractBox.append(card);
   });
  }
+ async function loadFirmDocuments(){
+  const box=$('#firmDocumentsList');if(!box)return;
+  try{const d=await api('/consulting/firms/me/documents');box.replaceChildren();
+   if(!d.documents.length){box.append(node('p','لم تُرفع وثائق بعد.','muted'));return;}
+   d.documents.forEach(doc=>box.append(node('p',doc.document_kind+' · '+doc.original_name+' · '+Math.ceil(doc.size/1024)+' KB','mine')));
+  }catch(e){box.textContent=e.message;}
+ }
  async function load(){
   const me=await api('/auth/me');$('#user').textContent=me.user.name||me.user.email;
   if(me.user.role!=='consultant')throw new Error('هذه البوابة مخصصة لحسابات المكاتب الاستشارية.');
@@ -88,10 +95,17 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
   if(d.firm){
    $('#existing').hidden=false;$('#myProposals').hidden=false;$('#myContracts').hidden=false;$('#firmName').textContent=d.firm.legalName;$('#firmInfo').textContent=d.firm.country+' · رقم التسجيل: '+d.firm.registrationNumber+' · '+d.firm.contactEmail;
    $('#firmStatus').textContent='حالة التحقق: '+({pending:'قيد المراجعة',verified:'موثّق',rejected:'مرفوض',suspended:'موقوف'}[d.firm.verificationStatus]||d.firm.verificationStatus)+(d.firm.verificationNote?' — '+d.firm.verificationNote:'');
+   await loadFirmDocuments();
    if(d.firm.verificationStatus==='verified'&&d.firm.memberStatus==='active'){$('#market').hidden=false;msg.textContent='تم التحقق من المكتب. يمكنك الآن إدارة الفرص الاستشارية وعروضك وعقودك.';await loadMarket();}
    else msg.textContent=d.firm.verificationStatus==='verified'?'عضوية المكتب موقوفة حالياً. راجع مسؤول المنصة.':'ملف المكتب قيد المراجعة. ستفتح وظائف السوق بعد اعتماد التحقق القانوني.';
   }else{$('#register').hidden=false;msg.textContent='لا يوجد ملف مكتب مرتبط بهذا الحساب. يمكنك تسجيل مكتبك الآن.';}
  }
+ $('#firmDocumentsForm').addEventListener('submit',async e=>{
+  e.preventDefault();const form=e.currentTarget,kind=form.elements.kind.value,files=form.elements.files.files;
+  if(!files.length)return;
+  const data=new FormData();data.append('kind',kind);Array.from(files).forEach(file=>data.append('files',file));
+  try{const r=await fetch('/api/consulting/firms/me/documents',{method:'POST',credentials:'same-origin',body:data});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر رفع الوثائق');msg.textContent=d.message||'تم رفع الوثائق.';form.reset();await loadFirmDocuments();}catch(err){showError(err);}
+ });
  $('#firmForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),data={};for(const [k,v] of f.entries())data[k]=String(v).trim();data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}catch(err){showError(err);}});
  load().catch(showError);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
 })();
