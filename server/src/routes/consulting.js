@@ -275,4 +275,84 @@ router.get('/documents/:ownerType/:ownerId',wrap(async(req,res)=>{
  res.json({documents:rows.filter(d=>canReadDoc(req.user,d)).map(shapeDoc)});
 }));
 
+
+// Independent tender desk for consulting offices: subcontracted consulting disciplines only.
+const consultingDisciplines=['engineering_design','site_supervision','project_management','quantity_surveying','geotechnical','environmental','transportation','water_wastewater','architecture','other'];
+function firmTenderOwner(req,id){
+ const firm=requireVerifiedFirm(req);
+ const tender=getDB().prepare('SELECT * FROM consulting_firm_tenders WHERE id=? AND firm_id=?').get(id,firm.id);
+ if(!tender)throw E.notFound('العطاء الاستشاري غير موجود.');
+ return {firm,tender};
+}
+router.get('/firm-tenders/market',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req),now=Math.floor(Date.now()/1000);
+ const rows=getDB().prepare(`SELECT t.id,t.reference,t.title,t.discipline,t.country,t.location,t.description,t.scope_json,t.currency,t.budget_min,t.budget_max,t.closing_at,t.technical_threshold,t.created_at,f.legal_name publisher_name FROM consulting_firm_tenders t JOIN consulting_firms f ON f.id=t.firm_id WHERE t.status='open' AND t.firm_id<>? AND (t.closing_at IS NULL OR t.closing_at>?) ORDER BY t.created_at DESC LIMIT 200`).all(firm.id,now);
+ res.json({tenders:rows.map(x=>({...x,scope:JSON.parse(x.scope_json||'[]'),scope_json:undefined}))});
+}));
+router.get('/firm-tenders/mine',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req);
+ const rows=getDB().prepare(`SELECT t.id,t.reference,t.title,t.discipline,t.country,t.location,t.description,t.currency,t.budget_min,t.budget_max,t.closing_at,t.technical_threshold,t.status,t.created_at,(SELECT COUNT(*) FROM consulting_firm_tender_proposals p WHERE p.tender_id=t.id) proposal_count FROM consulting_firm_tenders t WHERE t.firm_id=? ORDER BY t.created_at DESC`).all(firm.id);
+ res.json({tenders:rows});
+}));
+router.post('/firm-tenders',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req),db=getDB();
+ const title=clip(req.body?.title,180),discipline=clip(req.body?.discipline,40),country=clip(req.body?.country,2).toUpperCase(),location=clip(req.body?.location,160),description=clip(req.body?.description,5000),currency=clip(req.body?.currency,3).toUpperCase();
+ const min=req.body?.budgetMin==null||req.body?.budgetMin===''?null:Number(req.body.budgetMin),max=req.body?.budgetMax==null||req.body?.budgetMax===''?null:Number(req.body.budgetMax);
+ const closing=clip(req.body?.closingDate,10),threshold=Number(req.body?.technicalThreshold??50);
+ const scope=Array.isArray(req.body?.scope)?req.body.scope.map(x=>clip(x,300)).filter(Boolean).slice(0,40):[];
+ if(title.length<5||!consultingDisciplines.includes(discipline)||!['JO','SA','AE'].includes(country)||description.length<30||!marketCurrency.includes(currency)||(min!==null&&(!Number.isFinite(min)||min<0))||(max!==null&&(!Number.isFinite(max)||max<0))||(min!==null&&max!==null&&max<min)||!Number.isInteger(threshold)||threshold<1||threshold>100)throw E.validation('أكمل عنوان العطاء والتخصص الاستشاري والدولة والوصف والميزانية والحد الفني بصورة صحيحة.');
+ let closingAt=null;if(closing){if(!/^\d{4}-\d{2}-\d{2}$/.test(closing))throw E.validation('تاريخ الإغلاق غير صحيح.');closingAt=Math.floor(new Date(closing+'T23:59:59Z').getTime()/1000);if(closingAt<=Math.floor(Date.now()/1000))throw E.validation('يجب أن يكون موعد الإغلاق في المستقبل.');}
+ const id=uid('cft_'),reference='CFT-'+id.slice(-10).toUpperCase();
+ db.prepare(`INSERT INTO consulting_firm_tenders (id,reference,firm_id,created_by,title,discipline,country,location,description,scope_json,currency,budget_min,budget_max,closing_at,technical_threshold) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,reference,firm.id,req.user.id,title,discipline,country,location||null,description,JSON.stringify(scope),currency,min,max,closingAt,threshold);
+ marketEvent(req.user.id,'firm_tender',id,'published',{firmId:firm.id,discipline,country});
+ res.status(201).json({tender:{id,reference,title,status:'open'},message:'تم نشر العطاء الاستشاري الفرعي في سوق المكاتب الاستشارية فقط.'});
+}));
+router.post('/firm-tenders/:id/proposals',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req),db=getDB(),t=db.prepare('SELECT * FROM consulting_firm_tenders WHERE id=? AND status=\'open\'').get(req.params.id);
+ if(!t||t.firm_id===firm.id||(t.closing_at&&t.closing_at<=Math.floor(Date.now()/1000)))throw E.notFound('العطاء غير متاح للتقديم.');
+ if(db.prepare('SELECT 1 FROM consulting_firm_tender_proposals WHERE tender_id=? AND firm_id=?').get(t.id,firm.id))throw E.conflict('سبق لهذا المكتب تقديم عرض على هذا العطاء.');
+ const summary=clip(req.body?.technicalSummary,5000),method=clip(req.body?.methodology,5000),team=clip(req.body?.teamSummary,3000),amount=Number(req.body?.financialAmount),currency=clip(req.body?.currency,3).toUpperCase(),days=Number(req.body?.durationDays);
+ if(summary.length<20||!Number.isFinite(amount)||amount<=0||currency!==t.currency||!Number.isInteger(days)||days<1||days>3650)throw E.validation('بيانات العرض الفني والمالي أو العملة أو المدة غير مكتملة.');
+ const id=uid('cftp_');
+ db.prepare(`INSERT INTO consulting_firm_tender_proposals (id,tender_id,firm_id,submitted_by,technical_summary,methodology,team_summary,financial_amount,currency,duration_days) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id,t.id,firm.id,req.user.id,summary,method||null,team||null,amount,currency,days);
+ marketEvent(req.user.id,'firm_tender_proposal',id,'submitted',{tenderId:t.id,firmId:firm.id});
+ res.status(201).json({proposal:{id,tenderId:t.id,status:'submitted'},message:'تم إرسال العرض الفني والمالي. يبقى العرض المالي محجوباً عن المكتب الطارح حتى اجتياز التقييم الفني.'});
+}));
+router.get('/firm-tenders/:id/proposals',wrap(async(req,res)=>{
+ const {tender}=firmTenderOwner(req,req.params.id);
+ const rows=getDB().prepare(`SELECT p.id,p.firm_id,f.legal_name firm_name,f.country firm_country,p.technical_summary,p.methodology,p.team_summary,p.technical_score,p.status,p.created_at,p.financial_amount,p.currency,p.duration_days FROM consulting_firm_tender_proposals p JOIN consulting_firms f ON f.id=p.firm_id WHERE p.tender_id=? ORDER BY p.created_at`).all(tender.id);
+ res.json({tender:{id:tender.id,reference:tender.reference,technicalThreshold:tender.technical_threshold},proposals:rows.map(p=>{const qualified=p.technical_score!==null&&p.technical_score>=tender.technical_threshold;return {...p,financial_amount:qualified?p.financial_amount:undefined,currency:qualified?p.currency:undefined,duration_days:qualified?p.duration_days:undefined,financialOpened:qualified};})});
+}));
+router.patch('/firm-tender-proposals/:id/evaluation',wrap(async(req,res)=>{
+ const db=getDB(),p=db.prepare(`SELECT p.*,t.firm_id owner_firm_id,t.technical_threshold,t.status tender_status FROM consulting_firm_tender_proposals p JOIN consulting_firm_tenders t ON t.id=p.tender_id WHERE p.id=?`).get(req.params.id);
+ if(!p)throw E.notFound('العرض غير موجود.');
+ const firm=requireVerifiedFirm(req);if(firm.id!==p.owner_firm_id)throw E.notFound('العرض غير موجود.');
+ if(p.tender_status!=='open')throw E.conflict('التقييم متاح للعطاء المفتوح فقط.');
+ const score=Number(req.body?.technicalScore);
+ if(!Number.isFinite(score)||score<0||score>100)throw E.validation('الدرجة الفنية يجب أن تكون من صفر إلى 100.');
+ const status=score>=p.technical_threshold?'qualified':'rejected';
+ db.prepare('UPDATE consulting_firm_tender_proposals SET technical_score=?,status=?,updated_at=unixepoch() WHERE id=?').run(score,status,p.id);
+ marketEvent(req.user.id,'firm_tender_proposal',p.id,'technical_evaluated',{score,status});
+ res.json({ok:true,status,financialOpened:status==='qualified',message:status==='qualified'?'اجتاز العرض الفني، وتم فتح بياناته المالية للمكتب الطارح.':'لم يجتز العرض الحد الفني، وبقي العرض المالي محجوباً.'});
+}));
+router.post('/firm-tenders/:id/award',wrap(async(req,res)=>{
+ const {firm,tender}=firmTenderOwner(req,req.params.id),db=getDB();
+ if(tender.status!=='open')throw E.conflict('العطاء مغلق أو تمت ترسيته مسبقاً.');
+ const p=db.prepare(`SELECT * FROM consulting_firm_tender_proposals WHERE id=? AND tender_id=? AND status='qualified' AND technical_score>=?`).get(clip(req.body?.proposalId,100),tender.id,tender.technical_threshold);
+ if(!p)throw E.notFound('يجب اختيار عرض اجتاز التقييم الفني أولاً.');
+ const id=uid('csub_'),ref=clip(req.body?.contractReference,80)||('SUB-'+id.slice(-10).toUpperCase());
+ db.transaction(()=>{
+  db.prepare(`UPDATE consulting_firm_tender_proposals SET status=CASE WHEN id=? THEN 'selected' ELSE CASE WHEN status='qualified' THEN 'rejected' ELSE status END END,updated_at=unixepoch() WHERE tender_id=?`).run(p.id,tender.id);
+  db.prepare(`UPDATE consulting_firm_tenders SET status='awarded',updated_at=unixepoch() WHERE id=?`).run(tender.id);
+  db.prepare(`INSERT INTO consulting_firm_subcontracts (id,tender_id,proposal_id,owner_firm_id,selected_firm_id,contract_reference,agreed_amount,currency,created_by) VALUES (?,?,?,?,?,?,?,?,?)`).run(id,tender.id,p.id,firm.id,p.firm_id,ref,p.financial_amount,p.currency,req.user.id);
+ });
+ marketEvent(req.user.id,'firm_subcontract',id,'awarded',{tenderId:tender.id,selectedFirmId:p.firm_id});
+ res.status(201).json({contract:{id,reference:ref,amount:p.financial_amount,currency:p.currency,status:'awarded'},message:'تمت ترسية الخدمة الاستشارية الفرعية وإنشاء سجل التعاقد.'});
+}));
+router.get('/firm-subcontracts',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req);
+ const rows=getDB().prepare(`SELECT c.id,c.contract_reference,c.agreed_amount,c.currency,c.status,c.created_at,t.reference,t.title tender_title,owner.legal_name owner_firm_name,selected.legal_name selected_firm_name FROM consulting_firm_subcontracts c JOIN consulting_firm_tenders t ON t.id=c.tender_id JOIN consulting_firms owner ON owner.id=c.owner_firm_id JOIN consulting_firms selected ON selected.id=c.selected_firm_id WHERE c.owner_firm_id=? OR c.selected_firm_id=? ORDER BY c.created_at DESC`).all(firm.id,firm.id);
+ res.json({contracts:rows});
+}));
+
 module.exports=router;
