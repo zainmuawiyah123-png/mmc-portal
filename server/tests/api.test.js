@@ -1599,7 +1599,7 @@ test('95A — استيراد عطاءات VendorPanel الأسترالية مع 
       <description>Issued by: Unknown</description><link>https://example.com/not-vendorpanel</link></item>
   </channel></rss>`;
   const originalFetch=global.fetch;
-  global.fetch=async(url)=>new Response(xml,{status:200,headers:{'content-type':'application/rss+xml'}});
+  global.fetch=async(url,...args)=>String(url).startsWith(base)?originalFetch(url,...args):new Response(xml,{status:200,headers:{'content-type':'application/rss+xml'}});
   try {
     const first=await call(admin,'POST','/api/opportunities/admin/sync/vendorpanel-australia');
     assert.strictEqual(first.status,200,JSON.stringify(first.data));
