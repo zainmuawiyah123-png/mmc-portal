@@ -78,6 +78,7 @@ router.get('/plans', wrap(async (req, res) => {
 
 /* تجربة مجانية لمرة واحدة لكل مستخدم على باقة مشتريات */
 router.post('/trial', auth, wrap(async (req, res) => {
+  if (String(req.body?.planKey || '').startsWith('proc_')) throw E.forbidden('باقات المشتريات ملغاة؛ خدمات المشتريات الأساسية مجانية بالكامل.');
   if (req.user.role === 'buyer') throw E.forbidden('بوابة المشتريات الأساسية مجانية دائماً ولا تحتاج إلى تجربة أو تفعيل باقة.');
   if (isConsultingFirmMember(req.user)) throw E.forbidden('لا توجد تجربة احترافية مجانية للمكاتب الاستشارية. الباقة الأساسية مجانية، والاحترافية بسعر 20 USD شهرياً عند إتاحة الفوترة المستقلة.');
   const db = getDB();
@@ -104,6 +105,7 @@ router.post('/invoices', auth, wrap(async (req, res) => {
   if (isConsultingFirmMember(req.user)) throw E.forbidden('فوترة المكاتب الاستشارية المستقلة لم تُفعّل بعد. لا يمكن استخدام باقات أو فواتير المقاولين.');
   const body = req.body || {};
   const planKey = String(body.planKey || '');
+  if (planKey.startsWith('proc_')) throw E.forbidden('باقات المشتريات ملغاة؛ خدمات المشتريات الأساسية مجانية بالكامل.');
   const billingCycle = body.billingCycle === 'annual' ? 'annual' : 'monthly';
   const currency = String(body.currency || 'USD').toUpperCase();
   const paymentMethod = ['bank_transfer', 'cliq'].includes(body.paymentMethod) ? body.paymentMethod : 'bank_transfer';
