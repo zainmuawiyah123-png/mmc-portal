@@ -69,3 +69,27 @@ test('computes semicircular bulge length and area on a closed polyline', () => {
   assert.ok(Math.abs(result.rows[0].length_m - (Math.PI + 2)) < 1e-10);
   assert.ok(Math.abs(result.rows[0].area_m2 - (Math.PI / 2)) < 1e-10);
 });
+
+test('computes an ARC crossing zero degrees using the positive sweep', () => {
+  const ent = ['0','ARC','10','0','20','0','40','2','50','350','51','10'].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.rows[0].sweep_degrees, 20);
+  assert.ok(Math.abs(result.rows[0].quantity - (2 * 20 * Math.PI / 180)) < 1e-10);
+});
+test('handles negative bulge direction without producing negative area', () => {
+  const ent = ['0','LWPOLYLINE','70','1','10','0','20','0','42','-1','10','2','20','0'].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.ok(Math.abs(result.rows[0].length_m - (Math.PI + 2)) < 1e-10);
+  assert.ok(Math.abs(result.rows[0].area_m2 - (Math.PI / 2)) < 1e-10);
+});
+test('groups measured geometry by CAD layer', () => {
+  const ent = [
+    '0','LINE','8','EARTHWORK','10','0','20','0','11','3','21','4',
+    '0','CIRCLE','8','POND','10','0','20','0','40','1'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.byLayer.EARTHWORK.entities, 1);
+  assert.equal(result.byLayer.EARTHWORK.length_m, 5);
+  assert.equal(result.byLayer.POND.entities, 1);
+  assert.ok(Math.abs(result.byLayer.POND.area_m2 - Math.PI) < 1e-10);
+});
