@@ -11,6 +11,10 @@ const A = require('../lib/auth');
 const router = express.Router();
 // نفس السبب كما في files.js: حماية لكل مسار بدل router.use
 const auth = A.requireAuth;
+function isConsultingFirmMember(user) {
+  return !!(user && user.role === 'consultant' &&
+    getDB().prepare('SELECT 1 FROM consulting_firm_members WHERE user_id=?').get(user.id));
+}
 
 const shapeReq = (r) => ({
   id: r.id, tenderId: r.tender_id, kind: r.kind, text: r.text,
@@ -47,6 +51,7 @@ router.delete('/requests/:id', auth, wrap(async (req, res) => {
 
 /* ---------------- GET /api/plans ---------------- */
 router.get('/plans', auth, wrap(async (req, res) => {
+  if (isConsultingFirmMember(req.user)) return res.json({ plans: [{ key: 'free', nameAr: 'الباقة الأساسية', nameEn: 'Basic', priceMonth: 0, priceYear: 0 }], consultantBaseFree: true, consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false } });
   const aud = req.user.role === 'buyer' ? 'buyer' : 'contractor';
   const rows = getDB().prepare("SELECT * FROM plans WHERE audience = ? OR key = 'free' ORDER BY sort_order").all(aud);
   res.json({
@@ -69,6 +74,7 @@ router.get('/usage', auth, wrap(async (req, res) => {
    في هذه المرحلة: تبديل الباقة يدوياً (لا دفع). مقيّد بعدم تجاوز الحدود.
 ------------------------------------------------------------ */
 router.post('/plan', auth, wrap(async (req, res) => {
+  if (isConsultingFirmMember(req.user)) throw E.forbidden('تُدار باقات المكاتب الاستشارية في بوابتها المستقلة.');
   const body = parse(planChangeSchema, req.body);
   const db = getDB();
 
@@ -103,6 +109,7 @@ router.post('/plan', auth, wrap(async (req, res) => {
 
 /* ---------------- طلب تسجيل اهتمام (صفحة ترقية الباقة) ---------------- */
 router.post('/upgrade-interest', auth, wrap(async (req, res) => {
+  if (isConsultingFirmMember(req.user)) throw E.forbidden('تُدار خدمات المكتب الاستشاري من بوابته المستقلة.');
   const planKey = String((req.body && req.body.planKey) || '').slice(0, 20);
   // في هذه المرحلة نسجّل الاهتمام فقط، بلا دفع
   console.log('[upgrade-interest]', req.user.email, planKey, new Date().toISOString());

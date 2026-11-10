@@ -24,6 +24,7 @@ const orgRoutes = require('./routes/org');
 const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
 const opportunitiesRoutes = require('./routes/opportunities');
+const consultingRoutes = require('./routes/consulting');
 
 function createApp() {
   const app = express();
@@ -96,6 +97,7 @@ function createApp() {
   app.use('/api/project-finance', projectFinanceRoutes);
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
+  app.use('/api/consulting', consultingRoutes);
   app.use('/api/committee', require('./routes/committee'));
 
   app.use('/api', (req, res) => {
@@ -120,6 +122,28 @@ function createApp() {
         return res.status(403).type('text').send('ليس لديك صلاحية الوصول إلى هذه الصفحة.');
       }
       return sendFromWeb('project-finance/index.html', res, next);
+    });
+  });
+
+  // The independent consulting-firm portal is server-gated; it is not the evaluator workspace at /consultant/.
+  app.get(['/consulting', '/consulting/', '/consulting/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/');
+      if (req.user.role !== 'consultant') {
+        return res.status(403).type('text').send('هذه البوابة مخصصة لحسابات المكاتب الاستشارية.');
+      }
+      return sendFromWeb('consulting/index.html', res, next);
+    });
+  });
+
+  // Separate requester workspace for the consultancy marketplace; not the procurement portal.
+  app.get(['/consulting/requester', '/consulting/requester/', '/consulting/requester/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/requester/');
+      if (req.user.role !== 'buyer') return res.status(403).type('text').send('هذه المساحة مخصصة للجهات الطالبة للخدمات الاستشارية.');
+      return sendFromWeb('consulting/requester/index.html', res, next);
     });
   });
 

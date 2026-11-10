@@ -66,7 +66,7 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
               VALUES (?, ?, ?, ?, ?, ?, ?, 'free')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
 
   db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
-              VALUES (?, ?, 'free', 'active', 'trial')`).run(uid('sub_'), id);
+              VALUES (?, ?, 'free', 'active', ?)`).run(uid('sub_'), id, body.role === 'consultant' ? 'system' : 'trial');
 
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
   A.setSessionCookie(res, A.signToken(user));
@@ -74,7 +74,7 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
   res.status(201).json({
     user: publicUser(user),
     plan: A.planAndUsage(id),
-    message: 'تم إنشاء الحساب. أنت الآن على الباقة التجريبية المجانية.'
+    message: body.role === 'consultant' ? 'تم إنشاء حساب الاستشاري الأساسي دون تجربة مدفوعة تلقائية.' : 'تم إنشاء الحساب. أنت الآن على الباقة التجريبية المجانية.'
   });
 }));
 
