@@ -73,6 +73,7 @@ router.get('/usage', auth, wrap(async (req, res) => {
 router.post('/plan', auth, wrap(async (req, res) => {
   if (req.user.role === 'buyer') throw E.forbidden('بوابة المشتريات الأساسية مجانية دائماً ولا يمكن تغييرها إلى باقة مدفوعة.');
   const body = parse(planChangeSchema, req.body);
+  if (body.planKey !== 'free') throw E.forbidden('لا يمكن تفعيل باقة مدفوعة يدوياً. أنشئ فاتورة من صفحة الاشتراكات، ويُفعّل الاشتراك بعد اعتماد الدفع.');
   const db = getDB();
 
   const target = db.prepare('SELECT * FROM plans WHERE key = ?').get(body.planKey);
