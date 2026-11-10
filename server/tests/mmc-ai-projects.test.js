@@ -178,6 +178,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const png=Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
  const viewerImage=await uploadImage('ai-viewer',projectId,'site.png',png,{isCover:true});
  assert.equal(viewerImage.status,403);
+ const invalidDateImage=await uploadImage('ai-owner',projectId,'invalid-date.png',png,{caption:'تاريخ غير صالح',capturedAt:'2026-02-31'});assert.equal(invalidDateImage.status,422);
  const ownerImage=await uploadImage('ai-owner',projectId,'site-progress.png',png,{isCover:true,caption:'واجهة المشروع أثناء التنفيذ',capturedAt:'2026-11-10'});
  assert.equal(ownerImage.status,201,JSON.stringify(ownerImage.data));
  assert.equal(ownerImage.data.image.is_cover,1);
