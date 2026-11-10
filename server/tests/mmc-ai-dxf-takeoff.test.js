@@ -129,3 +129,17 @@ test('reports nested block inserts explicitly instead of silently dropping their
   assert.equal(result.rows.length, 0);
   assert.equal(result.unsupported.INSERT_NESTED_BLOCK, 1);
 });
+
+
+test('rejects INSERT entities with missing insertion coordinates', () => {
+  const block = ['0','LINE','10','0','20','0','11','2','21','0'].join('\n');
+  const insert = ['0','INSERT','2','TEST_BLOCK','10','0'].join('\n');
+  assert.throws(() => takeoffDxf(dxfWithBlock(block, insert)), /missing required DXF group code 20/i);
+});
+test('reports block arrays as unsupported instead of counting only one instance', () => {
+  const block = ['0','LINE','10','0','20','0','11','2','21','0'].join('\n');
+  const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0','70','2','71','1','44','5'].join('\n');
+  const result = takeoffDxf(dxfWithBlock(block, insert));
+  assert.equal(result.rows.length, 0);
+  assert.equal(result.unsupported.INSERT_ARRAY_UNSUPPORTED, 1);
+});
