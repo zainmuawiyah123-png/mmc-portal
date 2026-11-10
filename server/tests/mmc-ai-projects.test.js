@@ -104,8 +104,8 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const pdfTakeoff=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/takeoff/dxf',{});
  assert.equal(pdfTakeoff.status,422);
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
- assert.equal(docs.status,200);assert.equal(docs.data.documents.length,1);
- const docId=docs.data.documents[0].id;
+ assert.equal(docs.status,200);assert.equal(docs.data.documents.length,2);
+ const docId=goodPdf.data.document.id;
  const ownerDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents/'+docId+'/download',{headers:{Cookie:jar['ai-owner']}});
  assert.equal(ownerDownload.status,200);
  assert.equal(ownerDownload.headers.get('content-length'),String(goodPdf.data.document.size_bytes));
