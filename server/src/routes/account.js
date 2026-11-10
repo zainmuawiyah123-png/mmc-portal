@@ -11,6 +11,10 @@ const A = require('../lib/auth');
 const router = express.Router();
 // نفس السبب كما في files.js: حماية لكل مسار بدل router.use
 const auth = A.requireAuth;
+function isConsultingFirmMember(user) {
+  return !!(user && user.role === 'consultant' &&
+    getDB().prepare('SELECT 1 FROM consulting_firm_members WHERE user_id=?').get(user.id));
+}
 
 const shapeReq = (r) => ({
   id: r.id, tenderId: r.tender_id, kind: r.kind, text: r.text,
