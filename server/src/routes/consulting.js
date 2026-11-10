@@ -355,4 +355,105 @@ router.get('/firm-subcontracts',wrap(async(req,res)=>{
  res.json({contracts:rows});
 }));
 
+
+// Firm team, reporting and subcontract lifecycle. All records are scoped to the authenticated legal firm.
+router.get('/firms/me/members',wrap(async(req,res)=>{
+ const firm=requireFirmMember(req);
+ const rows=getDB().prepare(`SELECT m.id,m.user_id,m.member_role,m.status,m.created_at,u.name,u.email FROM consulting_firm_members m JOIN users u ON u.id=m.user_id WHERE m.firm_id=? ORDER BY CASE m.member_role WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END,m.created_at`).all(firm.id);
+ res.json({members:rows});
+}));
+router.post('/firms/me/members',wrap(async(req,res)=>{
+ const firm=firmFor(req.user.id);requireOwner(req,firm);
+ const email=clip(req.body?.email,254).toLowerCase(),role=clip(req.body?.role,20);
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!['manager','staff'].includes(role))throw E.validation('أدخل بريداً صحيحاً واختر مديراً أو موظفاً.');
+ const user=getDB().prepare("SELECT id,name,email,role FROM users WHERE email=?").get(email);
+ if(!user||user.role!=='consultant')throw E.notFound('يجب أن يكون للمستخدم حساب استشاري مسجل قبل إضافته إلى المكتب.');
+ if(user.id===req.user.id)throw E.conflict('أنت مالك المكتب بالفعل.');
+ if(getDB().prepare('SELECT id FROM consulting_firm_members WHERE user_id=?').get(user.id))throw E.conflict('هذا المستخدم مرتبط بعضوية مكتب أخرى بالفعل.');
+ const id=uid('cfm_');
+ getDB().prepare("INSERT INTO consulting_firm_members (id,firm_id,user_id,member_role,status) VALUES (?,?,?,?,'active')").run(id,firm.id,user.id,role);
+ marketEvent(req.user.id,'firm_member',id,'added',{firmId:firm.id,role,email:user.email});
+ res.status(201).json({member:{id,userId:user.id,email:user.email,name:user.name,role,status:'active'},message:'تمت إضافة العضو إلى المكتب.'});
+}));
+router.patch('/firms/me/members/:id',wrap(async(req,res)=>{
+ const firm=firmFor(req.user.id);requireOwner(req,firm);
+ const member=getDB().prepare('SELECT id,user_id,member_role,status FROM consulting_firm_members WHERE id=? AND firm_id=?').get(req.params.id,firm.id);
+ if(!member||member.member_role==='owner')throw E.notFound('عضو المكتب غير موجود أو لا يمكن تعديل مالكه.');
+ const role=req.body?.role===undefined?member.member_role:clip(req.body.role,20),status=req.body?.status===undefined?member.status:clip(req.body.status,20);
+ if(!['manager','staff'].includes(role)||!['active','suspended'].includes(status))throw E.validation('الدور أو الحالة غير صحيحة.');
+ getDB().prepare('UPDATE consulting_firm_members SET member_role=?,status=? WHERE id=? AND firm_id=?').run(role,status,member.id,firm.id);
+ marketEvent(req.user.id,'firm_member',member.id,'updated',{role,status});
+ res.json({ok:true,role,status,message:'تم تحديث صلاحيات العضو.'});
+}));
+router.get('/reports/summary',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req),db=getDB();
+ const count=(sql,...args)=>db.prepare(sql).get(...args).n;
+ res.json({summary:{
+  openMarketRequests:count("SELECT COUNT(*) n FROM consulting_service_requests WHERE status='open' AND (closing_at IS NULL OR closing_at>?)",Math.floor(Date.now()/1000)),
+  proposalsSubmitted:count('SELECT COUNT(*) n FROM consulting_proposals WHERE firm_id=?',firm.id),
+  awardedClientContracts:count('SELECT COUNT(*) n FROM consulting_contracts WHERE firm_id=?',firm.id),
+  ownSubconsultantTenders:count('SELECT COUNT(*) n FROM consulting_firm_tenders WHERE firm_id=?',firm.id),
+  receivedSubconsultantProposals:count('SELECT COUNT(*) n FROM consulting_firm_tender_proposals p JOIN consulting_firm_tenders t ON t.id=p.tender_id WHERE t.firm_id=?',firm.id),
+  subcontractAwardsMade:count('SELECT COUNT(*) n FROM consulting_firm_subcontracts WHERE owner_firm_id=?',firm.id),
+  subcontractAwardsReceived:count('SELECT COUNT(*) n FROM consulting_firm_subcontracts WHERE selected_firm_id=?',firm.id)
+ }});
+}));
+function subcontractForFirmUser(req,id){
+ const firm=requireVerifiedFirm(req);
+ const row=getDB().prepare('SELECT * FROM consulting_firm_subcontracts WHERE id=? AND (owner_firm_id=? OR selected_firm_id=?)').get(id,firm.id,firm.id);
+ if(!row)throw E.notFound('التعاقد الفرعي غير موجود.');
+ return {firm,contract:row};
+}
+router.get('/firm-subcontracts/:id/updates',wrap(async(req,res)=>{
+ const {contract}=subcontractForFirmUser(req,req.params.id);
+ const rows=getDB().prepare(`SELECT u.id,u.update_type,u.progress_percent,u.note,u.created_at,a.name actor_name FROM consulting_firm_subcontract_updates u JOIN users a ON a.id=u.actor_user_id WHERE u.subcontract_id=? ORDER BY u.created_at,u.id`).all(contract.id);
+ res.json({updates:rows});
+}));
+router.post('/firm-subcontracts/:id/updates',wrap(async(req,res)=>{
+ const {contract}=subcontractForFirmUser(req,req.params.id);
+ if(!['awarded','active'].includes(contract.status))throw E.conflict('لا يمكن تحديث تعاقد مغلق.');
+ const type=clip(req.body?.type,20)||'progress',note=clip(req.body?.note,3000),pct=req.body?.progressPercent==null||req.body?.progressPercent===''?null:Number(req.body.progressPercent);
+ if(!['progress','milestone','issue'].includes(type)||note.length<5||(pct!==null&&(!Number.isInteger(pct)||pct<0||pct>100)))throw E.validation('نوع التحديث أو نصه أو نسبة الإنجاز غير صحيحة.');
+ const id=uid('csu_');
+ getDB().prepare('INSERT INTO consulting_firm_subcontract_updates (id,subcontract_id,actor_user_id,update_type,progress_percent,note) VALUES (?,?,?,?,?,?)').run(id,contract.id,req.user.id,type,pct,note);
+ marketEvent(req.user.id,'firm_subcontract',contract.id,'update',{updateId:id,type,progressPercent:pct});
+ res.status(201).json({update:{id,type,progressPercent:pct,note},message:'تم تسجيل تحديث التعاقد الفرعي.'});
+}));
+router.patch('/firm-subcontracts/:id/status',wrap(async(req,res)=>{
+ const {firm,contract}=subcontractForFirmUser(req,req.params.id),next=clip(req.body?.status,20),note=clip(req.body?.note,1000);
+ if(note.length<5)throw E.validation('اكتب ملاحظة توضح تغيير حالة التعاقد.');
+ const allowed=(firm.id===contract.selected_firm_id&&contract.status==='awarded'&&next==='active')||(firm.id===contract.owner_firm_id&&contract.status==='active'&&['completed','terminated'].includes(next));
+ if(!allowed)throw E.conflict('انتقال الحالة غير مسموح لهذا الطرف أو من الحالة الحالية.');
+ getDB().prepare('UPDATE consulting_firm_subcontracts SET status=?,updated_at=unixepoch() WHERE id=?').run(next,contract.id);
+ getDB().prepare("INSERT INTO consulting_firm_subcontract_updates (id,subcontract_id,actor_user_id,update_type,note) VALUES (?,?,?,'status',?)").run(uid('csu_'),contract.id,req.user.id,note+' ['+next+']');
+ marketEvent(req.user.id,'firm_subcontract',contract.id,'status',{from:contract.status,to:next,note});
+ res.json({ok:true,status:next,message:'تم تحديث حالة التعاقد الفرعي.'});
+}));
+const subcontractDocKinds=['contract','technical','financial','deliverable','report','other'];
+router.post('/firm-subcontracts/:id/documents',upload.array('files',5),wrap(async(req,res)=>{
+ const {firm,contract}=subcontractForFirmUser(req,req.params.id),kind=clip(req.body?.kind,20);
+ if(!subcontractDocKinds.includes(kind))throw E.validation('نوع الوثيقة غير صحيح.');
+ const files=req.files||[];if(!files.length)throw E.validation('أرفق ملفاً واحداً على الأقل.');
+ const store=S.getStorage(),db=getDB(),created=[];
+ for(const file of files){S.assertAllowed(file.originalname,file.size);const id=uid('csdoc_'),key=['consulting-subcontracts',contract.id,firm.id,S.makeStoredName(file.originalname)].join('/');const put=await store.put(key,file.buffer,{mime:file.mimetype||'application/octet-stream',originalName:S.displayName(file.originalname)});db.prepare('INSERT INTO consulting_firm_subcontract_documents (id,subcontract_id,uploaded_by,document_kind,storage_key,storage_driver,original_name,mime,size,checksum) VALUES (?,?,?,?,?,?,?,?,?,?)').run(id,contract.id,req.user.id,kind,key,store.DRIVER,S.displayName(file.originalname),file.mimetype||'application/octet-stream',file.size,put.checksum);created.push({id,name:S.displayName(file.originalname),kind,size:file.size});}
+ marketEvent(req.user.id,'firm_subcontract',contract.id,'documents_uploaded',{count:created.length});
+ res.status(201).json({documents:created,message:'تم رفع وثائق التعاقد الفرعي.'});
+}));
+router.get('/firm-subcontracts/:id/documents',wrap(async(req,res)=>{
+ const {contract}=subcontractForFirmUser(req,req.params.id);
+ const rows=getDB().prepare('SELECT id,document_kind,original_name,mime,size,uploaded_at FROM consulting_firm_subcontract_documents WHERE subcontract_id=? ORDER BY uploaded_at DESC').all(contract.id);
+ res.json({documents:rows});
+}));
+router.get('/firm-subcontracts/:id/documents/:docId/download',wrap(async(req,res)=>{
+ const {contract}=subcontractForFirmUser(req,req.params.id);
+ const d=getDB().prepare('SELECT * FROM consulting_firm_subcontract_documents WHERE id=? AND subcontract_id=?').get(req.params.docId,contract.id);
+ if(!d)throw E.notFound('وثيقة التعاقد غير موجودة.');
+ const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+ if(!(await store.exists(d.storage_key)))throw E.notFound('ملف الوثيقة غير موجود في التخزين.');
+ res.setHeader('Content-Type',d.mime||'application/octet-stream');
+ res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));
+ res.setHeader('Cache-Control','private, no-store');
+ const stream=store.stream(d.storage_key);if(d.storage_driver==='s3'){const obj=await stream;obj.body.pipe(res);}else stream.pipe(res);
+}));
+
 module.exports=router;
