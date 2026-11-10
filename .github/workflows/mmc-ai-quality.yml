@@ -1,0 +1,39 @@
+name: MMC AI focused quality checks
+
+on:
+  push:
+    branches:
+      - feature/mmc-ai-construction-intelligence
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'server/src/lib/mmc-ai/**'
+      - 'server/src/routes/mmc-ai.js'
+      - 'server/tests/mmc-ai-*.test.js'
+      - 'server/package.json'
+      - 'webpages/mmc-ai/**'
+      - '.github/workflows/mmc-ai-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  mmc-ai-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run MMC AI regression suite
+        run: npm run test:mmc-ai
