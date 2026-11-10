@@ -26,6 +26,7 @@ const projectFinanceRoutes = require('./routes/project-finance');
 const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
 const mmcAiRoutes = require('./routes/mmc-ai');
+const mmcAiDocumentRoutes = require('./routes/mmc-ai-documents');
 
 function createApp() {
   const app = express();
@@ -101,6 +102,7 @@ function createApp() {
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
   app.use('/api/mmc-ai', mmcAiRoutes);
+  app.use('/api/mmc-ai', mmcAiDocumentRoutes);
   app.use('/api/committee', require('./routes/committee'));
 
   app.use('/api', (req, res) => {
@@ -189,6 +191,15 @@ function createApp() {
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
+
+  // MMC AI is an independent workspace within MMC, not a tender portal role.
+  app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/mmc-ai/');
+      return sendFromWeb('mmc-ai/index.html', res, next);
+    });
+  });
 
 
   app.get(/^\/portal(\/.*)?$/, (req, res, next) => {
