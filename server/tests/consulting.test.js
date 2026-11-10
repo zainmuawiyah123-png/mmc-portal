@@ -144,6 +144,7 @@ test('consultant office team, reporting and subcontract documents/progress are t
  const list=await call('officeTenderOwner','GET','/api/consulting/firms/me/members');assert.equal(list.status,200);assert.ok(list.data.members.some(x=>x.user_id===team.data.user.id&&x.member_role==='staff'));
  const staffTenders=await call('officeTeamMember','GET','/api/consulting/firm-tenders/mine');assert.equal(staffTenders.status,200);
  const staffCannotAdd=await call('officeTeamMember','POST','/api/consulting/firms/me/members',{body:{email:'someone@example.test',role:'staff'}});assert.equal(staffCannotAdd.status,404);
+ const staffCannotViewMemberList=await call('officeTeamMember','GET','/api/consulting/firms/me/members');assert.equal(staffCannotViewMemberList.status,403);
  const roleUpdate=await call('officeTenderOwner','PATCH','/api/consulting/firms/me/members/'+added.data.member.id,{body:{role:'manager'}});assert.equal(roleUpdate.status,200);assert.equal(roleUpdate.data.role,'manager');
  const report=await call('officeTenderOwner','GET','/api/consulting/reports/summary');assert.equal(report.status,200);assert.ok(report.data.summary.ownSubconsultantTenders>=1);assert.ok(report.data.summary.receivedSubconsultantProposals>=1);
  const ownerList=await call('officeTenderOwner','GET','/api/consulting/firm-subcontracts');assert.equal(ownerList.status,200);assert.equal(ownerList.data.contracts.length,1);const contractId=ownerList.data.contracts[0].id;
