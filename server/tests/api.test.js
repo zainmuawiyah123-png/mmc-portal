@@ -855,7 +855,7 @@ async function newBuyer(name, plan, country) {
   const r = await call(name + teamSeq, 'POST', '/api/auth/register', { body: { name: 'عضو ' + name, email, password: 'Password123', role: 'buyer', ...(country ? { country } : {}) } });
   assert.strictEqual(r.status, 201, JSON.stringify(r.data));
   const who = name + teamSeq;
-  if (plan) await call(who, 'POST', '/api/billing/trial', { body: { planKey: plan } });
+  // Buyer plans are permanently free; the legacy plan argument is retained only for fixture compatibility.
   return who;
 }
 async function joinTeam(mgr, role, label) {
@@ -882,16 +882,17 @@ test('70 — جهة جديدة: تحفظ دولة الحساب على الجهة
   const userId = (await call(free, 'GET', '/api/auth/me')).data.user.id;
   const orgId = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(userId).org_id;
   assert.strictEqual(getDB().prepare('SELECT country FROM organizations WHERE id=?').get(orgId).country, 'AE');
-  assert.strictEqual(org.data.seats.max, 1);
-  const denied = await call(free, 'POST', '/api/org/invites', { body: { role: 'requester' } });
-  assert.strictEqual(denied.status, 403);
-  assert.ok(/حد المستخدمين/.test(denied.data.error.message));
-  const pro = await newBuyer('pro', 'proc_basic');    // 3 مستخدمين
-  assert.strictEqual((await call(pro, 'GET', '/api/org')).data.seats.max, 3);
+  assert.strictEqual(org.data.seats.max, null, 'عدد أعضاء الجهة غير محدود ضمن بوابة المشتريات المجانية');
+  const first = await joinTeam(free, 'requester', 'first-free-member');
+  assert.strictEqual(first.who !== free, true);
+  const afterJoin = await call(free, 'GET', '/api/org');
+  assert.strictEqual(afterJoin.data.members.length, 2);
+  const pro = await newBuyer('pro', 'proc_basic');
+  assert.strictEqual((await call(pro, 'GET', '/api/org')).data.seats.max, null);
   await joinTeam(pro, 'requester', 'r');
   await joinTeam(pro, 'projects', 'p');
-  const third = await call(pro, 'POST', '/api/org/invites', { body: { role: 'procurement' } });
-  assert.strictEqual(third.status, 403, 'المقاعد الثلاثة اكتملت');
+  const fourth = await call(pro, 'POST', '/api/org/invites', { body: { role: 'procurement' } });
+  assert.strictEqual(fourth.status, 201, 'لا يوجد حد مقاعد مرتبط بباقة مدفوعة للمشتريات');
 });
 
 test('71 — الانضمام برمز: صحيح مرة واحدة، والأدوار تُدار من المدير فقط', async () => {
@@ -910,7 +911,7 @@ test('71 — الانضمام برمز: صحيح مرة واحدة، والأد�
   assert.ok(view.data.members.every((m) => m.email === undefined), 'العضو العادي لا يرى البريد');
   assert.strictEqual((await call(a, 'POST', '/api/org/invites', { body: { role: 'requester' } })).status, 403);
   const me = await call(a, 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'proc_pro', 'العضو يرى باقة الجهة');
+  assert.strictEqual(me.data.plan.plan.key, 'free', 'كل أعضاء الجهة يستخدمون الخدمات الأساسية المجانية');
   const memberId = org.data.members.find((m) => m.role === 'projects').id;
   const owner = org.data.members.find((m) => m.isOwner).id;
   assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + owner, { body: { role: 'projects' } })).status, 409, 'صاحب الاشتراك يبقى مديراً');
