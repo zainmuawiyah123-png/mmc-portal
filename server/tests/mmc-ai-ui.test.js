@@ -84,6 +84,7 @@ test('MMC AI PDF preflight action is available and explicitly disclaims engineer
  assert.ok(html.includes('/preflight/pdf'));
  assert.ok(html.includes('/extract/text'));
  assert.ok(html.includes('استخراج النص'));
+ assert.ok(html.includes('مؤشرات الرسم'));
  assert.match(html,/فحص PDF/);
  assert.match(html,/لم يتم استخراج النصوص أو المسارات أو الأبعاد أو الكميات/);
 });
