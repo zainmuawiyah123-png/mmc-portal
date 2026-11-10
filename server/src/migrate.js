@@ -1250,6 +1250,42 @@ function upgradeMmcAiProjects(db) {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_ai_schedule_project ON ai_schedule_tasks(project_id,created_at);
+    CREATE TABLE IF NOT EXISTS ai_project_risks (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      risk_code TEXT,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      description TEXT NOT NULL,
+      probability INTEGER NOT NULL CHECK(probability BETWEEN 1 AND 5),
+      impact INTEGER NOT NULL CHECK(impact BETWEEN 1 AND 5),
+      mitigation TEXT NOT NULL DEFAULT '',
+      owner_name TEXT,
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','mitigating','accepted','closed')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_risks_project ON ai_project_risks(project_id,status);
+    CREATE TABLE IF NOT EXISTS ai_contract_events (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      event_code TEXT,
+      title TEXT NOT NULL,
+      event_type TEXT NOT NULL DEFAULT 'general',
+      fidic_clause TEXT,
+      notice_date TEXT,
+      event_date TEXT,
+      particulars TEXT NOT NULL,
+      time_impact_days INTEGER NOT NULL DEFAULT 0 CHECK(time_impact_days >= 0),
+      cost_impact REAL NOT NULL DEFAULT 0 CHECK(cost_impact >= 0),
+      currency TEXT NOT NULL DEFAULT 'JOD',
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','notice_sent','submitted','under_review','agreed','rejected','closed')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_contract_events_project ON ai_contract_events(project_id,status);
   `);
 }
 
