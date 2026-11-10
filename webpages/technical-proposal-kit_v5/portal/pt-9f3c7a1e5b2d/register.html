@@ -128,7 +128,6 @@
   if (params.get('switch') === '1') {
     // A user already signed in to another portal must explicitly switch account
     // before creating a separate consulting-firm identity.
-    API.logout().catch(function(){}).finally(function(){});
   } else {
     API.me().then(function(){
       location.replace('index.html');
