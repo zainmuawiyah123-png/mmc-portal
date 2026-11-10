@@ -27,6 +27,7 @@ function validContent(file,ext){
  if(ext==='.png') return b.length>=8&&b.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
  if(ext==='.jpg'||ext==='.jpeg') return b.length>=3&&b[0]===0xff&&b[1]===0xd8&&b[2]===0xff;
  if(ext==='.dxf'){const head=b.subarray(0,Math.min(b.length,4096)).toString('utf8').replace(/^\uFEFF/,'');return /(?:^|\r?\n)\s*0\s*\r?\nSECTION\s*\r?\n2\s*\r?\n(?:HEADER|TABLES|BLOCKS|ENTITIES)/i.test(head);}
+ if(ext==='.glb')return b.length>=20&&b.subarray(0,4).toString('ascii')==='glTF'&&b.readUInt32LE(4)===2&&b.readUInt32LE(8)===b.length;
  return false;
 }
 router.use(A.requireAuth);
