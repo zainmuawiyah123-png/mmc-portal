@@ -28,7 +28,7 @@ test('marks encrypted documents for password handling, not extraction', () => {
 });
 
 test('rejects a missing header', () => {
-  assert.throws(() => preflightPdf(Buffer.from('not a pdf %%EOF')), { code: 'PDF_HEADER_INVALID' });
+  assert.throws(() => preflightPdf(Buffer.from('this is definitely not a PDF file %%EOF')), { code: 'PDF_HEADER_INVALID' });
 });
 
 test('rejects a missing EOF marker', () => {
