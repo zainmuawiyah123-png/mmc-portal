@@ -85,4 +85,5 @@ test('extracts strings shown with PDF single-quote and double-quote text operato
  const r=extractPdfText(pdf('BT (First line) \' 0 0 0 0 (Second line) " ET'));
  assert.match(r.text,/First line/);
  assert.match(r.text,/Second line/);
+ assert.equal(r.diagnostics.textShowingOperations,2);
 });
