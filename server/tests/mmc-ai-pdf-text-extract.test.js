@@ -82,7 +82,7 @@ test('decodes UTF-16BE literal and hexadecimal PDF strings when BOM is present',
  assert.match(extractPdfText(pdf('BT '+hex+' ET')).text,/MMC AI/);
 });
 test('extracts strings shown with PDF single-quote and double-quote text operators',()=>{
- const r=extractPdfText(pdf('BT (First line) \' 0 0 (Second line) 0 0 " ET'));
+ const r=extractPdfText(pdf('BT (First line) \' 0 0 0 0 (Second line) " ET'));
  assert.match(r.text,/First line/);
  assert.match(r.text,/Second line/);
 });
