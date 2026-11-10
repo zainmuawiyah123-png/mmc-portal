@@ -29,7 +29,7 @@ router.post('/firms', wrap(async (req,res) => {
   const legalName=clip(req.body?.legalName,180), country=clip(req.body?.country,2).toUpperCase(), registration=clip(req.body?.registrationNumber,80), contactEmail=clip(req.body?.contactEmail,254).toLowerCase(), contactPhone=clip(req.body?.contactPhone,40);
   if(legalName.length<3) throw E.validation('الاسم القانوني للمكتب مطلوب.');
   if(!['JO','SA','AE'].includes(country)) throw E.validation('الدولة غير مدعومة حالياً.');
-  if(registration.length<3 || !/^[A-Za-z0-9\-/ ]+$/.test(registration)) throw E.validation('رقم التسجيل القانوني غير صالح.');
+  if(registration.length<3 || registration.split('').some(ch => !/[A-Za-z0-9 _.-]/.test(ch))) throw E.validation('رقم التسجيل القانوني غير صالح.');
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) throw E.validation('البريد الرسمي غير صالح.');
   if(contactPhone.replace(/\D/g,'').length<7) throw E.validation('رقم الهاتف الرسمي غير صالح.');
   const key=identity(country,registration);
