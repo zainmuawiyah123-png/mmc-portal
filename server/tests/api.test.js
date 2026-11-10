@@ -84,6 +84,8 @@ test.after(async () => {
   fs.rmSync(TMP, { recursive: true, force: true });
 });
 
+let userAId = null;
+
 /* ==========================================================
    1) الصحة والتسجيل
    ========================================================== */
@@ -109,6 +111,7 @@ test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوك
     body: { name: 'مستخدم أ', email: 'a' + uniq() + '@test.com', password: 'Password123', company: 'شركة أ' }
   });
   assert.strictEqual(r.status, 201, JSON.stringify(r.data));
+  userAId = r.data.user.id;
   assert.ok(r.data.user.id.startsWith('usr_'));
   assert.strictEqual(r.data.user.planKey, 'free');
   assert.ok(cookies.userA, 'يجب أن يُضبط كوكي الجلسة');
@@ -437,16 +440,23 @@ test('39 — العطاء الثاني على الباقة المجانية يُ
   assert.strictEqual(r.data.error.details.limit, 1);
 });
 
-test('40 — الترقية إلى starter تسمح بعطاء ثانٍ', async () => {
+test('40 — لا يمكن تفعيل باقة مقاول مدفوعة دون اعتماد فاتورة', async () => {
   const up = await call('userA', 'POST', '/api/plan', { body: { planKey: 'starter' } });
-  assert.strictEqual(up.status, 200, JSON.stringify(up.data));
-  assert.strictEqual(up.data.plan.key, 'starter');
-
+  assert.strictEqual(up.status, 403, JSON.stringify(up.data));
+  const me = await call('userA', 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.plan.plan.key, 'free');
   const r = await call('userA', 'POST', '/api/tenders', { body: { name: 'عطاء ثانٍ' } });
-  assert.strictEqual(r.status, 201);
+  assert.strictEqual(r.status, 402);
 });
 
 test('41 — الرجوع لباقة أصغر من الاستهلاك يُرفض 409', async () => {
+  const user = { id: userAId };
+  assert.ok(user.id, 'يجب أن يكون حساب الاختبار 02 هو الحساب الذي تُعدّل باقته');
+  getDB().prepare("UPDATE subscriptions SET status='cancelled' WHERE user_id=? AND status='active'").run(user.id);
+  getDB().prepare("UPDATE users SET plan_key='starter' WHERE id=?").run(user.id);
+  getDB().prepare("INSERT INTO subscriptions (id,user_id,plan_key,status,source) VALUES (?,?,?,'active','manual')").run('sub_downgrade_' + uniq(), user.id, 'starter');
+  const extra = await call('userA', 'POST', '/api/tenders', { body: { name: 'عطاء إضافي على باقة Starter' } });
+  assert.strictEqual(extra.status, 201);
   const r = await call('userA', 'POST', '/api/plan', { body: { planKey: 'free' } });
   assert.strictEqual(r.status, 409);
   assert.strictEqual(r.data.error.code, 'CONFLICT');
@@ -585,93 +595,74 @@ test('54 — سلسلة كاملة كما تفعل الواجهة: إنشاء ث
 });
 
 /* ==========================================================
-   باقات المشتريات: تجربة 14 يوماً ثم الدفع والتفعيل
+   بوابة المشتريات: مجانية دائمة دون اشتراك أو تجربة
    ========================================================== */
 const reqs4 = () => [{ title: 'الخبرة', weight: 50, mandatory: true }, { title: 'المنهجية', weight: 50, mandatory: false }];
 const mkTender = (who, n) => call(who, 'POST', '/api/procurement/tenders', { body: { name: 'عطاء ' + n, reference: 'R-' + uniq(), requirements: reqs4() } });
 
-test('55 — باقات المشتريات الثلاث وأسعارها', async () => {
+test('55 — لا تعرض المنصة باقات مدفوعة لبوابة المشتريات', async () => {
   const r = await call('anon', 'GET', '/api/billing/plans?audience=buyer');
   assert.strictEqual(r.status, 200);
-  assert.deepStrictEqual(r.data.plans.map((p) => p.key), ['proc_basic', 'proc_pro', 'proc_ent']);
-  assert.deepStrictEqual(r.data.plans.map((p) => p.priceMonth), [49, 149, 399]);
-  assert.deepStrictEqual(r.data.plans.map((p) => p.maxUsers), [3, 10, null]);
-  assert.strictEqual(r.data.plans[0].maxTenders, 10);
-  assert.strictEqual(r.data.plans[1].maxTenders, null);
-  assert.ok(r.data.plans.every((p) => p.trialDays === 14));
+  assert.deepStrictEqual(r.data.plans, []);
+  assert.strictEqual(r.data.buyerCoreFree, true);
 });
 
-test('56 — مقاول لا يستطيع بدء تجربة أو فاتورة باقة مشتريات', async () => {
+test('56 — لا يستطيع حساب المشتريات بدء تجربة أو إصدار فاتورة اشتراك', async () => {
+  await call('buy', 'POST', '/api/auth/register', { body: { name: 'مشتريات', email: 'b' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  const me = await call('buy', 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.user.planKey, 'free');
+  assert.strictEqual(me.data.plan.plan.key, 'free');
+  assert.strictEqual((await call('buy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } })).status, 403);
+  assert.strictEqual((await call('buy', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_pro' } })).status, 403);
+  assert.strictEqual((await call('buy', 'GET', '/api/billing/invoices')).data.count, 0);
+  const legacyPlans = await call('buy', 'GET', '/api/plans');
+  assert.strictEqual(legacyPlans.status, 200);
+  assert.deepStrictEqual(legacyPlans.data.plans.map((p) => p.key), ['free']);
+  assert.strictEqual(legacyPlans.data.buyerCoreFree, true);
+  assert.strictEqual((await call('buy', 'POST', '/api/plan', { body: { planKey: 'pro' } })).status, 403);
+  assert.strictEqual((await call('buy', 'POST', '/api/upgrade-interest', { body: { planKey: 'pro' } })).status, 403);
+});
+
+test('57 — تبقى عمليات المشتريات الأساسية متاحة دون حد عطاءات أو اشتراك', async () => {
+  const buyerEmail = 'f' + uniq() + '@t.com';
+  await call('free', 'POST', '/api/auth/register', { body: { name: 'جهة مجانية', email: buyerEmail, password: 'Password123', role: 'buyer' } });
+  for (let i = 0; i < 15; i++) {
+    const created = await mkTender('free', i + 1);
+    assert.strictEqual(created.status, 201, JSON.stringify(created.data));
+  }
+  const me = await call('free', 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.plan.plan.key, 'free');
+  assert.strictEqual(me.data.plan.plan.maxTenders, null);
+  assert.strictEqual(me.data.plan.plan.maxBytes, null);
+  assert.strictEqual(me.data.plan.usage.tenders, 15);
+
+  // A legacy paid plan key must not reintroduce buyer subscription limits.
+  const buyerRow = getDB().prepare('SELECT id FROM users WHERE email=?').get(buyerEmail);
+  assert.ok(buyerRow);
+  getDB().prepare("UPDATE users SET plan_key='proc_basic' WHERE id=?").run(buyerRow.id);
+  const forcedPaidKey = await call('free', 'GET', '/api/auth/me');
+  assert.strictEqual(forcedPaidKey.data.user.planKey, 'free');
+  assert.strictEqual(forcedPaidKey.data.plan.plan.key, 'free');
+
+  // Buyer storage bypasses plan quotas, while multer file-size/count/type limits remain active.
+  const originalMax = getDB().prepare("SELECT max_bytes FROM plans WHERE key='free'").get().max_bytes;
+  getDB().prepare("UPDATE plans SET max_bytes=1 WHERE key='free'").run();
+  try {
+    const legacyTender = await call('free', 'POST', '/api/tenders', { body: { name: 'ملف جهة مشتريات' } });
+    assert.strictEqual(legacyTender.status, 201);
+    const uploaded = await call('free', 'POST', '/api/tenders/' + legacyTender.data.tender.id + '/files', {
+      form: makeForm([{ name: 'buyer-document.pdf', content: 'buyer file exceeds plan quota', type: 'application/pdf' }])
+    });
+    assert.strictEqual(uploaded.status, 201, JSON.stringify(uploaded.data));
+  } finally {
+    getDB().prepare("UPDATE plans SET max_bytes=? WHERE key='free'").run(originalMax);
+  }
+});
+
+test('58 — المقاول لا يستطيع استخدام باقات المشتريات أو تجربتها', async () => {
   await call('con', 'POST', '/api/auth/register', { body: { name: 'مقاول', email: 'c' + uniq() + '@t.com', password: 'Password123' } });
   assert.strictEqual((await call('con', 'POST', '/api/billing/trial', { body: { planKey: 'proc_basic' } })).status, 403);
   assert.strictEqual((await call('con', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_pro' } })).status, 403);
-});
-
-test('57 — تجربة 14 يوماً تفتح الباقة مرة واحدة فقط', async () => {
-  await call('buy', 'POST', '/api/auth/register', { body: { name: 'مشتريات', email: 'b' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  const t = await call('buy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
-  assert.strictEqual(t.status, 201, JSON.stringify(t.data));
-  const me = await call('buy', 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'proc_pro');
-  const days = Math.round((me.data.plan.subscription.endsAt - Date.now() / 1000) / 86400);
-  assert.strictEqual(days, 14);
-  assert.strictEqual(me.data.plan.subscription.source, 'trial');
-  assert.strictEqual((await call('buy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_basic' } })).status, 409);
-});
-
-test('58 — الباقة المجانية تحدّ المشتريات بعطاء واحد، وBasic بعشرة', async () => {
-  await call('free', 'POST', '/api/auth/register', { body: { name: 'مجاني', email: 'f' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  assert.strictEqual((await mkTender('free', 1)).status, 201);
-  assert.strictEqual((await mkTender('free', 2)).status, 403, 'العطاء الثاني يتجاوز الحد');
-  await call('free', 'POST', '/api/billing/trial', { body: { planKey: 'proc_basic' } });
-  // عطاء واحد منشور سابقاً + 9 جديدة = 10 (حد Basic)
-  for (let i = 0; i < 9; i++) assert.strictEqual((await mkTender('free', 10 + i)).status, 201);
-  assert.strictEqual((await mkTender('free', 99)).status, 403);
-});
-
-test('59 — انتهاء التجربة يعيد المستخدم للمجانية فوراً', async () => {
-  const email = 'x' + uniq() + '@t.com';
-  await call('exp', 'POST', '/api/auth/register', { body: { name: 'منتهي', email, password: 'Password123', role: 'buyer' } });
-  await call('exp', 'POST', '/api/billing/trial', { body: { planKey: 'proc_ent' } });
-  getDB().prepare("UPDATE subscriptions SET ends_at = unixepoch() - 10 WHERE source='trial' AND plan_key='proc_ent' AND user_id=(SELECT id FROM users WHERE email=?)").run(email);
-  const me = await call('exp', 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'free');
-});
-
-test('60 — الدفع: فاتورة + إيصال + سعر خاص + اعتماد المدير يفتح الباقة', async () => {
-  const email = 'p' + uniq() + '@t.com';
-  await call('pay', 'POST', '/api/auth/register', { body: { name: 'دافع', email, password: 'Password123', role: 'buyer' } });
-  const inv = await call('pay', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_ent', billingCycle: 'monthly', currency: 'USD' } });
-  assert.strictEqual(inv.status, 201, JSON.stringify(inv.data));
-  assert.strictEqual(inv.data.invoice.amount, 399);
-  const id = inv.data.invoice.id;
-  // لا اعتماد قبل رفع الإيصال، والباقة ما زالت مغلقة
-  const adminEmail = 'a' + uniq() + '@t.com';
-  await call('adm', 'POST', '/api/auth/register', { body: { name: 'مدير', email: adminEmail, password: 'Password123' } });
-  getDB().prepare("UPDATE users SET role='admin' WHERE email=?").run(adminEmail);
-  await call('adm', 'POST', '/api/auth/login', { body: { email: adminEmail, password: 'Password123' } });
-  assert.strictEqual((await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/approve', { body: {} })).status, 409);
-  assert.strictEqual((await call('pay', 'GET', '/api/auth/me')).data.plan.plan.key, 'free');
-  // غير المدير لا يعدّل السعر
-  assert.strictEqual((await call('pay', 'POST', '/api/billing/admin/invoices/' + id + '/amount', { body: { amount: 1 } })).status, 403);
-  // سعر خاص ثم إيصال ثم اعتماد
-  assert.strictEqual((await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/amount', { body: { amount: 520 } })).status, 200);
-  const fd = new FormData();
-  fd.append('receipt', new Blob(['%PDF-1.4 receipt'], { type: 'application/pdf' }), 'receipt.pdf');
-  assert.strictEqual((await call('pay', 'POST', '/api/billing/invoices/' + id + '/receipt', { form: fd })).status, 422);
-  fd.append('transferReference', 'CLQ-123456');
-  fd.append('transferDate', '2026-11-05');
-  assert.strictEqual((await call('pay', 'POST', '/api/billing/invoices/' + id + '/receipt', { form: fd })).status, 201);
-  const ok = await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/approve', { body: {} });
-  assert.strictEqual(ok.status, 200, JSON.stringify(ok.data));
-  const me = await call('pay', 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'proc_ent');
-  assert.strictEqual(me.data.plan.subscription.source, 'manual');
-  const days = Math.round((me.data.plan.subscription.endsAt - Date.now() / 1000) / 86400);
-  assert.strictEqual(days, 30);
-  assert.strictEqual((await mkTender('pay', 1)).status, 201);
-  // لا تعديل للسعر بعد الدفع
-  assert.strictEqual((await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/amount', { body: { amount: 5 } })).status, 409);
 });
 
 test('61 — بيانات الدفع تُقرأ من الإعدادات وتُعرض عبر /api/payment-info', async () => {
@@ -716,7 +707,6 @@ const bidBody = (t, amount = 1000, currency = 'JOD') => { const fd = new FormDat
 test('63 — لا تقديم بعد موعد الإغلاق، ويُقبل في يوم الإغلاق نفسه وبدون موعد', async () => {
   const ymd = (d) => new Date(d).toISOString().slice(0, 10);
   await call('qbuy', 'POST', '/api/auth/register', { body: { name: 'جهة', email: 'qb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  await call('qbuy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
   const qcEmail = 'qc' + uniq() + '@t.com';
   await call('qcon', 'POST', '/api/auth/register', { body: { name: 'مقاول', email: qcEmail, password: 'Password123' } });
   grantPlan(qcEmail, 'ent');
@@ -777,7 +767,6 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
   cfg.REQUIRE_ORG_VERIFICATION = true;
   try {
     await call('vb', 'POST', '/api/auth/register', { body: { name: 'جهة', email: 'vb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-    await call('vb', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
     const blocked = await mkTender('vb', 1);
     assert.strictEqual(blocked.status, 403);
     assert.strictEqual(blocked.data.error.code, 'ORG_NOT_VERIFIED');
@@ -829,15 +818,15 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
 });
 
 test('67 — دول الخليج: فواتير بالعملات المربوطة، والدينار الكويتي بالدولار فقط', async () => {
-  await call('gcc', 'POST', '/api/auth/register', { body: { name: 'خليجي', email: 'g' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  const amt = async (cur) => (await call('gcc', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', billingCycle: 'monthly', currency: cur } }));
-  assert.strictEqual((await amt('USD')).data.invoice.amount, 49);
-  assert.strictEqual((await amt('SAR')).data.invoice.amount, 183.75);
-  assert.strictEqual((await amt('AED')).data.invoice.amount, 179.95);
-  assert.strictEqual((await amt('QAR')).data.invoice.amount, 178.36);
-  assert.strictEqual((await amt('BHD')).data.invoice.amount, 18.424);
-  assert.strictEqual((await amt('OMR')).data.invoice.amount, 18.841);
-  assert.strictEqual((await amt('JOD')).data.invoice.amount, 34.74);
+  await call('gcc', 'POST', '/api/auth/register', { body: { name: 'مقاول خليجي', email: 'g' + uniq() + '@t.com', password: 'Password123', role: 'contractor' } });
+  const amt = async (cur) => (await call('gcc', 'POST', '/api/billing/invoices', { body: { planKey: 'starter', billingCycle: 'monthly', currency: cur } }));
+  assert.strictEqual((await amt('USD')).data.invoice.amount, 39);
+  assert.strictEqual((await amt('SAR')).data.invoice.amount, 146.25);
+  assert.strictEqual((await amt('AED')).data.invoice.amount, 143.23);
+  assert.strictEqual((await amt('QAR')).data.invoice.amount, 141.96);
+  assert.strictEqual((await amt('BHD')).data.invoice.amount, 14.664);
+  assert.strictEqual((await amt('OMR')).data.invoice.amount, 14.996);
+  assert.strictEqual((await amt('JOD')).data.invoice.amount, 27.65);
   assert.strictEqual((await amt('KWD')).status, 422);
 });
 
@@ -852,7 +841,6 @@ test('68 — توقيت إغلاق العطاء حسب دولة الجهة (ال
 
 test('69 — نص العطاء بالعربية والإنجليزية: الاسم والملاحظات وعناوين المتطلبات', async () => {
   await call('bl', 'POST', '/api/auth/register', { body: { name: 'جهة ثنائية', email: 'bl' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  await call('bl', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
   const mk = await call('bl', 'POST', '/api/procurement/tenders', { body: {
     name: 'إنشاء مبنى الإدارة', nameEn: 'Administration building construction', notes: 'ملاحظات', notesEn: 'Site visit is mandatory', reference: 'BL-' + uniq(),
     requirements: [{ title: 'الخبرة السابقة', titleEn: 'Previous experience', description: 'وصف', descriptionEn: 'Describe similar projects', weight: 60, mandatory: true }, { title: 'المنهجية', weight: 40 }] } });
@@ -883,7 +871,7 @@ async function newBuyer(name, plan, country) {
   const r = await call(name + teamSeq, 'POST', '/api/auth/register', { body: { name: 'عضو ' + name, email, password: 'Password123', role: 'buyer', ...(country ? { country } : {}) } });
   assert.strictEqual(r.status, 201, JSON.stringify(r.data));
   const who = name + teamSeq;
-  if (plan) await call(who, 'POST', '/api/billing/trial', { body: { planKey: plan } });
+  // Buyer plans are permanently free; the legacy plan argument is retained only for fixture compatibility.
   return who;
 }
 async function joinTeam(mgr, role, label) {
@@ -910,16 +898,17 @@ test('70 — جهة جديدة: تحفظ دولة الحساب على الجهة
   const userId = (await call(free, 'GET', '/api/auth/me')).data.user.id;
   const orgId = getDB().prepare('SELECT org_id FROM org_members WHERE user_id=?').get(userId).org_id;
   assert.strictEqual(getDB().prepare('SELECT country FROM organizations WHERE id=?').get(orgId).country, 'AE');
-  assert.strictEqual(org.data.seats.max, 1);
-  const denied = await call(free, 'POST', '/api/org/invites', { body: { role: 'requester' } });
-  assert.strictEqual(denied.status, 403);
-  assert.ok(/حد المستخدمين/.test(denied.data.error.message));
-  const pro = await newBuyer('pro', 'proc_basic');    // 3 مستخدمين
-  assert.strictEqual((await call(pro, 'GET', '/api/org')).data.seats.max, 3);
+  assert.strictEqual(org.data.seats.max, null, 'عدد أعضاء الجهة غير محدود ضمن بوابة المشتريات المجانية');
+  const first = await joinTeam(free, 'requester', 'first-free-member');
+  assert.strictEqual(first.who !== free, true);
+  const afterJoin = await call(free, 'GET', '/api/org');
+  assert.strictEqual(afterJoin.data.members.length, 2);
+  const pro = await newBuyer('pro', 'proc_basic');
+  assert.strictEqual((await call(pro, 'GET', '/api/org')).data.seats.max, null);
   await joinTeam(pro, 'requester', 'r');
   await joinTeam(pro, 'projects', 'p');
-  const third = await call(pro, 'POST', '/api/org/invites', { body: { role: 'procurement' } });
-  assert.strictEqual(third.status, 403, 'المقاعد الثلاثة اكتملت');
+  const fourth = await call(pro, 'POST', '/api/org/invites', { body: { role: 'procurement' } });
+  assert.strictEqual(fourth.status, 201, 'لا يوجد حد مقاعد مرتبط بباقة مدفوعة للمشتريات');
 });
 
 test('71 — الانضمام برمز: صحيح مرة واحدة، والأدوار تُدار من المدير فقط', async () => {
@@ -938,7 +927,7 @@ test('71 — الانضمام برمز: صحيح مرة واحدة، والأد�
   assert.ok(view.data.members.every((m) => m.email === undefined), 'العضو العادي لا يرى البريد');
   assert.strictEqual((await call(a, 'POST', '/api/org/invites', { body: { role: 'requester' } })).status, 403);
   const me = await call(a, 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'proc_pro', 'العضو يرى باقة الجهة');
+  assert.strictEqual(me.data.plan.plan.key, 'free', 'كل أعضاء الجهة يستخدمون الخدمات الأساسية المجانية');
   const memberId = org.data.members.find((m) => m.role === 'projects').id;
   const owner = org.data.members.find((m) => m.isOwner).id;
   assert.strictEqual((await call(mgr, 'PATCH', '/api/org/members/' + owner, { body: { role: 'projects' } })).status, 409, 'صاحب الاشتراك يبقى مديراً');
@@ -1441,8 +1430,8 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
     await makeAdmin('eadm');
     const mkInvoice = async (who, company, tin) => {
       const email = who + uniq() + '@t.com';
-      await call(who, 'POST', '/api/auth/register', { body: { name: who, email, password: 'Password123', role: 'buyer', company } });
-      const inv = await call(who, 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', billingCycle: 'monthly', currency: 'USD', buyerTaxNumber: tin } });
+      await call(who, 'POST', '/api/auth/register', { body: { name: who, email, password: 'Password123', role: 'contractor', company } });
+      const inv = await call(who, 'POST', '/api/billing/invoices', { body: { planKey: 'starter', billingCycle: 'monthly', currency: 'USD', buyerTaxNumber: tin } });
       assert.strictEqual(inv.status, 201, JSON.stringify(inv.data));
       const fd = new FormData();
       fd.append('receipt', new Blob(['%PDF-1.4 r'], { type: 'application/pdf' }), 'r.pdf'); fd.append('transferReference', 'REF-' + uniq()); fd.append('transferDate', '2026-11-05');
@@ -1452,8 +1441,8 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
     const waitFor = async (id, status) => { for (let i = 0; i < 40; i++) { const r = getDB().prepare('SELECT * FROM einvoice_submissions WHERE invoice_id=?').get(id); if (r && r.status === status) return r; await new Promise((x) => setTimeout(x, 50)); } return getDB().prepare('SELECT * FROM einvoice_submissions WHERE invoice_id=?').get(id); };
 
     // رقم ضريبي غير صالح يُرفض عند إنشاء الفاتورة
-    await call('ebad', 'POST', '/api/auth/register', { body: { name: 'مشتري تجريبي', email: 'eb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-    assert.strictEqual((await call('ebad', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', currency: 'USD', buyerTaxNumber: '12' } })).status, 422);
+    await call('ebad', 'POST', '/api/auth/register', { body: { name: 'مقاول تجريبي', email: 'eb' + uniq() + '@t.com', password: 'Password123', role: 'contractor' } });
+    assert.strictEqual((await call('ebad', 'POST', '/api/billing/invoices', { body: { planKey: 'starter', currency: 'USD', buyerTaxNumber: '12' } })).status, 422);
 
     // 1) اعتماد → إرسال ناجح
     const i1 = await mkInvoice('einv1', 'شركة أ & ب <م>', '987654321');
