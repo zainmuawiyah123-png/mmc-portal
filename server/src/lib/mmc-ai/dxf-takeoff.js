@@ -90,12 +90,20 @@ function polylineVertices(e) {
   let current = null;
   for (const p of e.pairs) {
     if (p.code === 10) {
-      if (current) out.push(current);
-      current = { x: Number(p.value), y: 0 };
-    } else if (p.code === 20 && current) current.y = Number(p.value);
-    else if (p.code === 42 && current) current.bulge = Number(p.value);
+      if (current) {
+        if (!current.hasY) throw new Error('Missing Y coordinate in LWPOLYLINE vertex.');
+        out.push({ x: current.x, y: current.y, bulge: current.bulge });
+      }
+      current = { x: Number(p.value), y: null, hasY: false, bulge: 0 };
+    } else if (p.code === 20 && current) {
+      if (current.hasY) throw new Error('Duplicate Y coordinate in LWPOLYLINE vertex.');
+      current.y = Number(p.value); current.hasY = true;
+    } else if (p.code === 42 && current) current.bulge = Number(p.value);
   }
-  if (current) out.push(current);
+  if (current) {
+    if (!current.hasY) throw new Error('Missing Y coordinate in LWPOLYLINE vertex.');
+    out.push({ x: current.x, y: current.y, bulge: current.bulge });
+  }
   return out;
 }
 
