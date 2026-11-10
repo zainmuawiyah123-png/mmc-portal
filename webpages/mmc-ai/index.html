@@ -90,6 +90,17 @@
     <div class="tablewrap"><table style="width:100%"><thead><tr><th>رقم</th><th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>إجراء</th></tr></thead><tbody id="boqRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد بنود بعد.</td></tr></tbody></table></div>
     <p class="note">هذا جدول كميات وتقدير تكلفة للمشروع، مستقل عن أسعار العطاءات في بوابة المشتريات. الأسعار والقياسات تحتاج مراجعة واعتماداً من الفريق المختص.</p>
    </div></section>
+  <section class="panel" id="schedulePanel" style="margin:18px 0"><div class="panelhead"><h2>البرنامج الزمني والمسار الحرج</h2><span>SCHEDULE INTELLIGENCE · CPM</span></div><div style="padding:14px">
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <input id="scheduleTaskName" placeholder="اسم النشاط" style="flex:3;min-width:180px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <input id="scheduleDuration" type="number" min="0" step="1" placeholder="المدة بأيام العمل" style="flex:1;min-width:130px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <select id="schedulePredecessor" style="flex:2;min-width:160px;padding:9px;border:1px solid var(--line);border-radius:7px"><option value="">لا يوجد نشاط سابق</option></select>
+    <button id="scheduleAdd" type="button" class="btn primary">＋ إضافة نشاط</button>
+   </div>
+   <div id="scheduleSummary" class="note">اختر مشروعاً لعرض البرنامج الزمني.</div>
+   <div class="tablewrap"><table style="width:100%"><thead><tr><th>النشاط</th><th>المدة</th><th>الأنشطة السابقة</th><th>البداية المبكرة</th><th>النهاية المبكرة</th><th>السماح</th><th>المسار الحرج</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد أنشطة بعد.</td></tr></tbody></table></div>
+   <p class="note">تحليل CPM الحالي يحسب أيام العمل ومدد الاعتماد فقط؛ لا يطبق العطل الرسمية أو تقاويم الورديات أو قيود الموارد.</p>
+  </div></section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>سجل حصر الكميات</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>البند</th><th>الوحدة</th><th>الكمية</th><th>الحالة</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">لا توجد كميات فعلية بعد. ستظهر النتائج هنا بعد تفعيل محرك القياس والتحقق الهندسي.</td></tr></tbody></table></div></section>
    <section class="panel"><div class="panelhead"><h2>مستندات ومخططات المشروع</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>ارفع مخططاً أو مستنداً إلى المشروع الحالي</strong><small>PDF · DXF · PNG · JPG<br>حتى 25 MB · تخزين خاص بالمشروع</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">اختر مشروعاً لعرض مستنداته.</p></div><p class="note">الرفع والحفظ الآمن متاحان. حالة المستند بعد الرفع «تم الاستلام»؛ لا ندّعي تحليله آلياً حتى اكتمال محرك PDF/DXF ومعايرة القياس.</p></div></section>
@@ -161,11 +172,24 @@
    if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='لا توجد بنود بعد. أضف أول بند من النموذج أعلاه.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
+ async function loadProjectSchedule(id){
+  const body=document.getElementById('scheduleRows'),summary=document.getElementById('scheduleSummary'),pred=document.getElementById('schedulePredecessor');body.replaceChildren();pred.innerHTML='<option value="">لا يوجد نشاط سابق</option>';
+  if(!id){summary.textContent='اختر مشروعاً لعرض البرنامج الزمني.';return;}
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/schedule',{credentials:'same-origin'}),data=await r.json();if(!r.ok)throw new Error(data.message||'تعذر تحميل البرنامج الزمني.');
+   summary.textContent='مدة المشروع حسب CPM: '+data.analysis.projectDurationWorkingDays+' يوم عمل · الأنشطة الحرجة: '+data.analysis.criticalTaskCount;
+   for(const task of data.tasks){const opt=document.createElement('option');opt.value=task.id;opt.textContent=task.name;pred.appendChild(opt);}
+   for(const task of data.tasks){const tr=document.createElement('tr'),prev=task.predecessors.map(pid=>data.tasks.find(x=>x.id===pid)?.name||pid).join('، ')||'—',v=task.cpm||{};
+    for(const value of [task.name,task.duration_days,prev,v.es??'—',v.ef??'—',v.totalFloat??'—',v.critical?'حرج':'غير حرج']){const td=document.createElement('td');td.textContent=String(value);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';if(v.critical&&value==='حرج')td.style.color='#b45309';tr.appendChild(td);}body.appendChild(tr);
+   }
+   if(!data.tasks.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='أضف أول نشاط للبدء ببناء البرنامج الزمني.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
+  }catch(e){summary.textContent=e.message;}
+ }
  async function selectProject(id){
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadProjectBoq(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadProjectBoq(id);await loadProjectSchedule(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
@@ -179,6 +203,12 @@
    document.getElementById('photoMeta').textContent=(cover.caption||cover.original_name)+(cover.captured_at?' · '+cover.captured_at:'');
   }
  }
+ document.getElementById('scheduleAdd').addEventListener('click',async()=>{
+  if(!activeProject){notify('اختر مشروعاً أولاً.');return;}
+  const id=activeProject.project_id||activeProject.id,pred=document.getElementById('schedulePredecessor').value;
+  const payload={name:document.getElementById('scheduleTaskName').value,durationDays:document.getElementById('scheduleDuration').value,predecessors:pred?[pred]:[]};
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/schedule/tasks',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر إضافة النشاط.');document.getElementById('scheduleTaskName').value='';document.getElementById('scheduleDuration').value='';await loadProjectSchedule(id);notify('تمت إضافة النشاط وإعادة حساب المسار الحرج.');}catch(e){notify(e.message);}
+ });
  document.getElementById('boqAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('اختر مشروعاً أولاً.');return;}
   const id=activeProject.project_id||activeProject.id;
