@@ -136,6 +136,9 @@ function createApp() {
   // صفحة دورة المشروع تحتوي بيانات مالية؛ لا تُقدَّم كملف ثابت قبل التحقق من الجلسة.
   // يسمح للمقاول والجهة المشترية فقط، بينما تبقى صلاحيات كل عملية مفروضة في API.
   app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
+    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
+      return sendFromWeb('mmc-ai/index.html', res, next);
+    }
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
       if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
