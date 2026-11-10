@@ -24,7 +24,7 @@ test('computes closed rectangular polyline perimeter and area', () => {
   assert.equal(result.rows[0].area_m2, 12);
 });
 test('computes circle circumference and area', () => {
-  const result = takeoffDxf(dxf(['0','CIRCLE','40','2'].join('\n')));
+  const result = takeoffDxf(dxf(['0','CIRCLE','10','0','20','0','40','2'].join('\n')));
   assert.ok(Math.abs(result.rows[0].area_m2 - 4*Math.PI) < 1e-10);
 });
 test('refuses drawings with unknown units instead of guessing scale', () => {
@@ -50,7 +50,7 @@ test('rejects non-numeric LINE coordinates instead of emitting NaN', () => {
   assert.throws(() => takeoffDxf(dxf(ent)), /non-numeric geometry/i);
 });
 test('rejects negative ARC radius', () => {
-  const ent = ['0','ARC','40','-2','50','0','51','90'].join('\n');
+  const ent = ['0','ARC','10','0','20','0','40','-2','50','0','51','90'].join('\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /negative arc radius/i);
 });
 
