@@ -89,11 +89,11 @@ test('consulting marketplace isolates requester, proposals, award and contract b
  const finalProposals=await call('requesterBuyer','GET','/api/consulting/requests/'+requestId+'/proposals');assert.equal(finalProposals.data.proposals.find(x=>x.id===proposalA.data.proposal.id).status,'selected');assert.equal(finalProposals.data.proposals.find(x=>x.id===proposalB.data.proposal.id).status,'rejected');
 });
 
-test('consulting firm and requester page inline scripts parse',()=>{
+test('consultant, requester and admin page inline scripts parse',()=>{
  const root=path.resolve(__dirname,'../../webpages/technical-proposal-kit_v5');
- for(const file of ['consulting/index.html','consulting/requester/index.html']){
+ for(const file of ['consulting/index.html','consulting/requester/index.html','admin/index.html']){
   const html=fs.readFileSync(path.join(root,file),'utf8');
-  const scripts=html.split('<script>').slice(1).map(part=>part.split('</script>')[0]);
+  const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)].map(match=>match[1]).filter(source=>source.trim());
   assert.ok(scripts.length>0,file+' should contain application logic');
   scripts.forEach((source,index)=>new vm.Script(source,{filename:file+'#script-'+index}));
  }
