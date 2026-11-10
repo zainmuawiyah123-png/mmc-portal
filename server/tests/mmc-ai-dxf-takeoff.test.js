@@ -93,3 +93,39 @@ test('groups measured geometry by CAD layer', () => {
   assert.equal(result.byLayer.POND.entities, 1);
   assert.ok(Math.abs(result.byLayer.POND.area_m2 - Math.PI) < 1e-10);
 });
+
+
+function dxfWithBlock(blockBody, insertBody, units = 6) {
+  return [
+    '0','SECTION','2','HEADER','9','$INSUNITS','70',String(units),'0','ENDSEC',
+    '0','SECTION','2','BLOCKS',
+    '0','BLOCK','2','TEST_BLOCK','10','0','20','0',blockBody,'0','ENDBLK',
+    '0','ENDSEC',
+    '0','SECTION','2','ENTITIES',insertBody,'0','ENDSEC','0','EOF'
+  ].join('\n');
+}
+test('expands a translated, rotated and uniformly scaled block INSERT', () => {
+  const block = ['0','LINE','8','0','10','0','20','0','11','2','21','0'].join('\n');
+  const insert = ['0','INSERT','2','TEST_BLOCK','8','EARTHWORK','10','10','20','20','41','2','42','2','43','2','50','90'].join('\n');
+  const result = takeoffDxf(dxfWithBlock(block, insert));
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].entity, 'LINE');
+  assert.equal(result.rows[0].quantity, 4);
+  assert.equal(result.rows[0].layer, 'EARTHWORK');
+  assert.equal(result.rows[0].sourceBlock, 'TEST_BLOCK');
+  assert.equal(result.summary.unsupportedEntities, 0);
+});
+test('reports non-uniform block scaling as unsupported instead of measuring it', () => {
+  const block = ['0','LINE','10','0','20','0','11','2','21','0'].join('\n');
+  const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0','41','2','42','1','43','1'].join('\n');
+  const result = takeoffDxf(dxfWithBlock(block, insert));
+  assert.equal(result.rows.length, 0);
+  assert.equal(result.unsupported.INSERT_UNSUPPORTED_SCALE, 1);
+});
+test('reports nested block inserts explicitly instead of silently dropping their geometry', () => {
+  const nestedBlock = ['0','INSERT','2','INNER','10','0','20','0'].join('\n');
+  const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0'].join('\n');
+  const result = takeoffDxf(dxfWithBlock(nestedBlock, insert));
+  assert.equal(result.rows.length, 0);
+  assert.equal(result.unsupported.INSERT_NESTED_BLOCK, 1);
+});
