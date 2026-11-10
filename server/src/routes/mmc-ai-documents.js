@@ -9,6 +9,7 @@ const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const {preflightPdf}=require('../lib/mmc-ai/pdf-preflight');
+const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -79,6 +80,24 @@ router.post('/projects/:projectId/documents/:documentId/preflight/pdf',wrap(asyn
  VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_preflight_completed','document',doc.id,JSON.stringify({version:report.version,bytes:report.bytes,pageCount:report.pageCount,status:report.status}));
  res.setHeader('Cache-Control','no-store');
  res.json({documentId:doc.id,report,notice:'هذا فحص بنية أولي فقط؛ لا يستخرج النصوص أو الأبعاد أو الكميات.'});
+}));
+router.post('/projects/:projectId/documents/:documentId/extract/text',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc) throw E.notFound('المستند غير موجود.');
+ if(doc.file_ext!=='.pdf') throw E.validation('استخراج النص متاح لملفات PDF فقط.');
+ const store=storage.getStorage();
+ if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+ const bytes=await store.get(doc.storage_key);
+ if(!Buffer.isBuffer(bytes)||bytes.length!==Number(doc.size_bytes)) throw E.validation('فشل التحقق من حجم المستند المخزن.');
+ const actualHash=crypto.createHash('sha256').update(bytes).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
+ if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
+ let result;try{result=extractPdfText(bytes);}catch(err){throw E.validation(err.message||'تعذر استخراج النص من PDF.');}
+ db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
+ VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_text_extraction_completed','document',doc.id,JSON.stringify({engine:result.engine,status:result.status,characterCount:result.characterCount,pageCount:result.pageCount}));
+ res.setHeader('Cache-Control','no-store');
+ res.json({documentId:doc.id,result,notice:'استخراج نصي أولي فقط؛ لا يمثل OCR أو تحليلاً هندسياً أو حصر كميات.'});
 }));
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();
