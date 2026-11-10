@@ -10,10 +10,10 @@ const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
-const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg'};
+const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:0},fileFilter(req,file,cb){
  const ext=path.extname(file.originalname||'').toLowerCase();
- if(!EXT_MIME[ext]) return cb(E.validation('يدعم الرفع الأولي PDF وDXF وPNG وJPG فقط.'));
+ if(!EXT_MIME[ext]) return cb(E.validation('يدعم الرفع PDF وDXF وPNG وJPG وGLB ثلاثي الأبعاد.'));
  cb(null,true);
 }});
 function member(projectId,userId){
@@ -47,8 +47,7 @@ router.get('/projects/:projectId/documents/:documentId/download',wrap(async(req,
  if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
  getDB().prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
  VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'document_downloaded','document',doc.id,JSON.stringify({sha256:doc.sha256}));
- res.setHeader('Content-Type','application/octet-stream');
- res.setHeader('Content-Disposition','attachment; filename="'+encodeURIComponent(doc.original_name)+'"');
+ const inline=req.query.inline==='1'&&doc.file_ext==='.glb';\n res.setHeader('Content-Type',inline?'model/gltf-binary':'application/octet-stream');\n res.setHeader('Content-Disposition',(inline?'inline':'attachment')+'; filename="'+encodeURIComponent(doc.original_name)+'"');
  res.setHeader('Content-Length',String(doc.size_bytes));
  res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('Cache-Control','private, no-store');
