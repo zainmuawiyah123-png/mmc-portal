@@ -81,7 +81,7 @@ test('MMC AI assistant sends project-scoped questions and renders sourced answer
 });
 
 test('MMC AI PDF preflight action is available and explicitly disclaims engineering extraction',()=>{
- assert.match(html,/preflight\\/pdf/);
+ assert.ok(html.includes('/preflight/pdf'));
  assert.match(html,/فحص PDF/);
  assert.match(html,/لم يتم استخراج النصوص أو المسارات أو الأبعاد أو الكميات/);
 });
