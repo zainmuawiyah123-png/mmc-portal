@@ -351,7 +351,7 @@ router.post('/firm-tenders/:id/award',wrap(async(req,res)=>{
 }));
 router.get('/firm-subcontracts',wrap(async(req,res)=>{
  const firm=requireVerifiedFirm(req);
- const rows=getDB().prepare(`SELECT c.id,c.contract_reference,c.agreed_amount,c.currency,c.status,c.created_at,t.reference,t.title tender_title,owner.legal_name owner_firm_name,selected.legal_name selected_firm_name FROM consulting_firm_subcontracts c JOIN consulting_firm_tenders t ON t.id=c.tender_id JOIN consulting_firms owner ON owner.id=c.owner_firm_id JOIN consulting_firms selected ON selected.id=c.selected_firm_id WHERE c.owner_firm_id=? OR c.selected_firm_id=? ORDER BY c.created_at DESC`).all(firm.id,firm.id);
+ const rows=getDB().prepare(`SELECT c.id,c.owner_firm_id,c.selected_firm_id,c.contract_reference,c.agreed_amount,c.currency,c.status,c.created_at,t.reference,t.title tender_title,owner.legal_name owner_firm_name,selected.legal_name selected_firm_name FROM consulting_firm_subcontracts c JOIN consulting_firm_tenders t ON t.id=c.tender_id JOIN consulting_firms owner ON owner.id=c.owner_firm_id JOIN consulting_firms selected ON selected.id=c.selected_firm_id WHERE c.owner_firm_id=? OR c.selected_firm_id=? ORDER BY c.created_at DESC`).all(firm.id,firm.id);
  res.json({contracts:rows});
 }));
 
