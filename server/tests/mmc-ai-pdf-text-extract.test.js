@@ -49,3 +49,18 @@ test('does not count operator-like words inside PDF strings as graphics',()=>{
  assert.equal(r.diagnostics.rectangles,0);
  assert.equal(r.diagnostics.paintOperations,0);
 });
+
+test('ignores operator-looking tokens inside names, strings, hex strings and comments',()=>{
+ const r=extractPdfText(pdf('% l 999 m ignored\n/line /re /f 123\nBT (line m l re f) Tj <6c206d206c> Tj ET'));
+ assert.equal(r.diagnostics.moveTo,0);
+ assert.equal(r.diagnostics.lineTo,0);
+ assert.equal(r.diagnostics.rectangles,0);
+ assert.equal(r.diagnostics.paintOperations,0);
+});
+test('does not treat PDF graphics-state and text operands as drawing coordinates',()=>{
+ const r=extractPdfText(pdf('q 1 0 0 1 25 35 cm 0.5 w BT /F1 12 Tf 10 20 Td (Text) Tj ET 0 0 m 80 0 l S Q'));
+ assert.equal(r.diagnostics.moveTo,1);
+ assert.equal(r.diagnostics.lineTo,1);
+ assert.equal(r.diagnostics.rawCoordinateBounds.minX,0);
+ assert.equal(r.diagnostics.rawCoordinateBounds.maxX,80);
+});
