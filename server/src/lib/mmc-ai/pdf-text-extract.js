@@ -36,7 +36,7 @@ function extractFromContent(src){
 }
 function tokenizeContentStream(src){
  const tokens=[];
- const re=/%[^\r\n]*|\\((?:\\\\.|[^\\\\)])*\\)|<(?!<)[0-9a-fA-F\\s]*>|\\/[^\\s<>()\\[\\]{}%]+|[-+]?(?:\\d+\\.?\\d*|\\.\\d+)|[A-Za-z][A-Za-z0-9*']*/g;
+ const re=/%[^\r\n]*|\((?:\\.|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]*>|\/[^\s<>()\[\]{}%]+|[-+]?(?:\d+\.?\d*|\.\d+)|[A-Za-z][A-Za-z0-9*']*/g;
  let match;
  while((match=re.exec(src))){
   const value=match[0];
@@ -51,7 +51,7 @@ function inspectContentOperators(src){
  const operators=new Set(['m','l','c','v','y','h','re','S','s','f','F','f*','B','B*','b','b*','n','Do','BT','ET','Tj','TJ','q','Q','cm','w','Tc','Tw','Tz','TL','Tf','Tr','Ts','Td','TD','Tm','T*','W','W*','J','j','M','d','ri','i','gs','sh','CS','cs','SC','SCN','sc','scn','G','g','RG','rg','K','k']);
  const add=(x,y)=>{if(Number.isFinite(x)&&Number.isFinite(y))points.push([x,y]);};
  for(const token of tokens){
-  if(/^[-+]?(?:\\d+\\.?\\d*|\\.\\d+)$/.test(token)){numbers.push(Number(token));continue;}
+  if(/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(token)){numbers.push(Number(token));continue;}
   if(!operators.has(token))continue;
   counts[token]=(counts[token]||0)+1;
   const take=n=>numbers.splice(Math.max(0,numbers.length-n),n);
