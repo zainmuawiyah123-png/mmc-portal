@@ -34,6 +34,7 @@ The existing `/api/requests` flow is the buyer's project/request-to-procurement 
 - `consulting_service_requests`: requesting entity, scope, discipline, country/location, procurement timetable, visibility and lifecycle status.
 - `consulting_proposals`: firm-scoped technical and financial proposal records; one proposal per firm per request. Competitor proposal data is returned only to the requesting entity, never to another firm.
 - `consulting_contracts`: selected firm, accepted proposal, contract references, award/acceptance state, delivery tracking.
+- `consulting_documents`: private document metadata linked to request/proposal/contract, stored through the existing storage abstraction. Request briefs are visible to verified firms while the request is open; proposal files are visible only to their submitting firm and the requesting entity; contract files are visible only to the two contract parties.
 - Add event/audit records for verification, proposal submission/revision, selection and contract lifecycle.
 - Store uploaded documents through the existing storage abstraction, with separate ownership keys and access checks; never serve private proposal documents as static files.
 
