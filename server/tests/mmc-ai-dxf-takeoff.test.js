@@ -46,15 +46,15 @@ test('accepts standard DXF files with trailing CRLF newline', () => {
 });
 
 test('rejects non-numeric LINE coordinates instead of emitting NaN', () => {
-  const ent = ['0','LINE','10','not-a-number','20','0','11','6','21','8'].join('\\n');
+  const ent = ['0','LINE','10','not-a-number','20','0','11','6','21','8'].join('\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /non-numeric geometry/i);
 });
 test('rejects negative ARC radius', () => {
-  const ent = ['0','ARC','40','-2','50','0','51','90'].join('\\n');
+  const ent = ['0','ARC','40','-2','50','0','51','90'].join('\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /negative arc radius/i);
 });
 
 test('rejects incomplete LINE entities instead of defaulting missing coordinates to zero', () => {
-  const ent = ['0','LINE','10','0','20','0','11','6'].join('\\n');
+  const ent = ['0','LINE','10','0','20','0','11','6'].join('\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /missing required DXF group code 21/i);
 });
