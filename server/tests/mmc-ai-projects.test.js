@@ -147,6 +147,10 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const eventViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/contract-events',{title:'Not allowed',particulars:'Viewer cannot submit contractual events'});assert.equal(eventViewer.status,403);
  const eventUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/contract-events/'+eventCreate.data.event.id,{status:'notice_sent'});assert.equal(eventUpdate.status,200);assert.equal(eventUpdate.data.event.status,'notice_sent');
  const eventOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/contract-events');assert.equal(eventOutsider.status,404);
+ const executive=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/dashboard');
+ assert.equal(executive.status,200);assert.equal(executive.data.summary.boqItems,0);assert.equal(executive.data.summary.scheduleTasks,4);assert.equal(executive.data.summary.criticalRisks,0);assert.equal(executive.data.summary.contractEvents,1);assert.equal(executive.data.summary.documents,2);assert.equal(executive.data.summary.sitePhotos,2);
+ const executiveOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/dashboard');assert.equal(executiveOutsider.status,404);
+
  const pdfTakeoff=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/takeoff/dxf',{});
  assert.equal(pdfTakeoff.status,422);
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
