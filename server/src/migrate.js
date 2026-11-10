@@ -931,6 +931,23 @@ function upgradeConsultingMarketplace(db) {
   `);
 }
 
+
+function upgradeConsultingContractTracking(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS consulting_contract_updates (
+      id TEXT PRIMARY KEY,
+      contract_id TEXT NOT NULL REFERENCES consulting_contracts(id) ON DELETE CASCADE,
+      actor_user_id TEXT NOT NULL REFERENCES users(id),
+      update_type TEXT NOT NULL CHECK(update_type IN ('progress','milestone','issue','status')),
+      progress_percent INTEGER CHECK(progress_percent IS NULL OR (progress_percent BETWEEN 0 AND 100)),
+      note TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_contract_updates_contract
+      ON consulting_contract_updates(contract_id,created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -966,6 +983,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeOpportunityWatch(db);
   upgradeConsultingPortal(db);
   upgradeConsultingMarketplace(db);
+  upgradeConsultingContractTracking(db);
 
   return db;
 }
