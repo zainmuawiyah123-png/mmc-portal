@@ -40,7 +40,7 @@ test('rejects malformed group-code pairs', () => {
 });
 
 test('accepts standard DXF files with trailing CRLF newline', () => {
-  const content = dxf(['0','LINE','10','0','20','0','11','6','21','8'].join('\\n')) + '\\r\\n';
+  const content = dxf(['0','LINE','10','0','20','0','11','6','21','8'].join('\n')) + '\r\n';
   const result = takeoffDxf(content);
   assert.equal(result.rows[0].quantity, 10);
 });
