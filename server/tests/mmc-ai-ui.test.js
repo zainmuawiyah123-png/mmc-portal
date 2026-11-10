@@ -89,3 +89,10 @@ test('MMC AI PDF preflight action is available and explicitly disclaims engineer
  assert.match(html,/فحص PDF/);
  assert.match(html,/لم يتم استخراج النصوص أو المسارات أو الأبعاد أو الكميات/);
 });
+
+test('MMC AI PDF preflight copy distinguishes file validation from the separate text extractor',()=>{
+ assert.match(html,/هذا الفحص يختبر سلامة الملف فقط/);
+ assert.match(html,/استخدم «استخراج النص» للقراءة الأولية المنفصلة/);
+ assert.match(html,/extract\/text/);
+ assert.doesNotMatch(html,/محرك تحليل PDF الهندسي لم يُفعّل بعد/);
+});
