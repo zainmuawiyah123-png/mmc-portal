@@ -919,6 +919,7 @@ function upgradeConsultingMarketplace(db) {
       firm_id TEXT REFERENCES consulting_firms(id) ON DELETE CASCADE,
       requester_entity_id TEXT REFERENCES consulting_requester_entities(id) ON DELETE CASCADE,
       visibility TEXT NOT NULL DEFAULT 'market' CHECK(visibility IN ('market','selected_only')),
+      document_kind TEXT NOT NULL DEFAULT 'other' CHECK(document_kind IN ('brief','scope','reference','technical','financial','contract','deliverable','report','other')),
       storage_key TEXT NOT NULL UNIQUE,
       storage_driver TEXT NOT NULL,
       original_name TEXT NOT NULL,
