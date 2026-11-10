@@ -129,4 +129,77 @@ router.post('/contracts/:id/updates',wrap(async(req,res)=>{const contract=contra
 
 router.patch('/contracts/:id/status',wrap(async(req,res)=>{const contract=contractForUser(req,req.params.id),next=clip(req.body?.status,20),note=clip(req.body?.note,1000);if(note.length<5)throw E.validation('اكتب ملاحظة توضح تغيير حالة العقد.');let allowed=false;if(req.user.role==='consultant')allowed=contract.status==='awarded'&&next==='active';else if(req.user.role==='buyer')allowed=(contract.status==='awarded'&&next==='active')||(contract.status==='active'&&['completed','terminated'].includes(next));if(!allowed)throw E.conflict('انتقال حالة العقد غير مسموح من الحالة الحالية.');getDB().prepare('UPDATE consulting_contracts SET status=?,updated_at=unixepoch() WHERE id=?').run(next,contract.id);getDB().prepare(`INSERT INTO consulting_contract_updates (id,contract_id,actor_user_id,update_type,note) VALUES (?,?,?,'status',?)`).run(uid('ccu_'),contract.id,req.user.id,note+' ['+next+']');marketEvent(req.user.id,'contract',contract.id,'status',{from:contract.status,to:next,note});res.json({ok:true,status:next,message:'تم تحديث حالة العقد.'});}));
 
+const multer = require('multer');
+const config = require('../config');
+const S = require('../lib/storage');
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: config.MAX_FILE_BYTES, files: 5 },
+  fileFilter: (req,file,cb) => { try { S.assertAllowed(file.originalname,0); cb(null,true); } catch(err) { cb(err); } }
+});
+const docKinds = ['brief','scope','reference','technical','financial','contract','deliverable','report'];
+function canReadDoc(user,doc) {
+  if (user.role==='admin') return false;
+  if (user.role==='buyer') {
+    const e=requesterFor(user.id);
+    if(!e||e.id!==doc.requester_entity_id)return false;
+    if(doc.visibility==='selected_only' && doc.owner_type==='proposal') {
+      const award=getDB().prepare("SELECT 1 FROM consulting_contracts WHERE proposal_id=? AND requester_entity_id=?").get(doc.owner_id,e.id);
+      return !!award;
+    }
+    return true;
+  }
+  if(user.role==='consultant') {
+    const f=firmFor(user.id);
+    if(!f||f.verification_status!=='verified'||f.member_status!=='active')return false;
+    if(doc.visibility==='market' && doc.owner_type==='request')return true;
+    if(doc.firm_id===f.id)return true;
+    if(doc.owner_type==='proposal' && doc.visibility==='selected_only') {
+      const award=getDB().prepare("SELECT 1 FROM consulting_contracts WHERE proposal_id=? AND firm_id=?").get(doc.owner_id,f.id);
+      return !!award;
+    }
+  }
+  return false;
+}
+function docOwner(req,ownerType,ownerId) {
+  const db=getDB();
+  if(ownerType==='request') {
+    const row=db.prepare('SELECT id,requester_entity_id FROM consulting_service_requests WHERE id=?').get(ownerId);
+    if(!row)throw E.notFound('طلب الخدمة غير موجود.');
+    if(req.user.role==='buyer'){const e=requireRequester(req);if(e.id!==row.requester_entity_id)throw E.notFound('طلب الخدمة غير موجود.');return {requestId:row.id,firmId:null,requesterId:e.id,visibility:'market'};}
+    if(req.user.role==='consultant'){requireVerifiedFirm(req);const open=db.prepare("SELECT id FROM consulting_service_requests WHERE id=? AND status='open'").get(row.id);if(!open)throw E.notFound('طلب الخدمة غير متاح.');return {requestId:row.id,firmId:null,requesterId:row.requester_entity_id,visibility:'market'};}
+  }
+  if(ownerType==='proposal') {
+    const p=db.prepare('SELECT p.id,p.request_id,p.firm_id,p.status,r.requester_entity_id FROM consulting_proposals p JOIN consulting_service_requests r ON r.id=p.request_id WHERE p.id=?').get(ownerId);
+    if(!p)throw E.notFound('العرض غير موجود.');
+    if(req.user.role==='consultant'){const f=requireVerifiedFirm(req);if(f.id!==p.firm_id)throw E.notFound('العرض غير موجود.');return {requestId:p.request_id,firmId:f.id,requesterId:p.requester_entity_id,visibility:'selected_only'};}
+    if(req.user.role==='buyer'){const e=requireRequester(req);if(e.id!==p.requester_entity_id||p.status!=='selected')throw E.notFound('العرض غير موجود.');return {requestId:p.request_id,firmId:p.firm_id,requesterId:e.id,visibility:'selected_only'};}
+  }
+  if(ownerType==='contract') {
+    const k=db.prepare('SELECT id,request_id,firm_id,requester_entity_id FROM consulting_contracts WHERE id=?').get(ownerId);
+    if(!k)throw E.notFound('العقد غير موجود.');
+    if(req.user.role==='consultant'){const f=requireVerifiedFirm(req);if(f.id!==k.firm_id)throw E.notFound('العقد غير موجود.');return {requestId:k.request_id,firmId:f.id,requesterId:k.requester_entity_id,visibility:'selected_only'};}
+    if(req.user.role==='buyer'){const e=requireRequester(req);if(e.id!==k.requester_entity_id)throw E.notFound('العقد غير موجود.');return {requestId:k.request_id,firmId:k.firm_id,requesterId:e.id,visibility:'selected_only'};}
+  }
+  throw E.forbidden('لا تملك صلاحية إدارة وثائق هذا السجل.');
+}
+function shapeDoc(d){return {id:d.id,ownerType:d.owner_type,ownerId:d.owner_id,name:d.original_name,mime:d.mime,size:d.size,visibility:d.visibility,uploadedAt:d.uploaded_at};}
+router.post('/documents/:ownerType/:ownerId',upload.array('files',5),wrap(async(req,res)=>{
+ const ownerType=clip(req.params.ownerType,20);if(!['request','proposal','contract'].includes(ownerType))throw E.validation('نوع السجل غير مدعوم.');
+ const owner=docOwner(req,ownerType,req.params.ownerId);const files=req.files||[];if(!files.length)throw E.validation('أرفق ملفاً واحداً على الأقل.');
+ const kind=clip(req.body?.kind,20);if(!docKinds.includes(kind))throw E.validation('تصنيف الوثيقة غير صحيح.');
+ const visibility=ownerType==='request'?'market':'selected_only';const store=S.getStorage(),db=getDB(),created=[];
+ for(const f of files){S.assertAllowed(f.originalname,f.size);const id=uid('cdoc_');const key=['consulting',owner.requestId,ownerType,owner.requestId===owner.requesterId?'entity':(owner.firmId||'shared'),S.makeStoredName(f.originalname)].join('/');const put=await store.put(key,f.buffer,{mime:f.mimetype||'application/octet-stream',originalName:S.displayName(f.originalname)});db.prepare(`INSERT INTO consulting_documents (id,owner_type,owner_id,request_id,firm_id,requester_entity_id,visibility,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,ownerType,req.params.ownerId,owner.requestId,owner.firmId,owner.requesterId,visibility,key,store.DRIVER,S.displayName(f.originalname),f.mimetype||'application/octet-stream',f.size,put.checksum,req.user.id);marketEvent(req.user.id,'document',id,'uploaded',{ownerType,kind,size:f.size});created.push({id,name:S.displayName(f.originalname),size:f.size});}
+ res.status(201).json({documents:created});
+}));
+router.get('/documents/:ownerType/:ownerId',wrap(async(req,res)=>{
+ const ownerType=clip(req.params.ownerType,20);const owner=docOwner(req,ownerType,req.params.ownerId);const rows=getDB().prepare('SELECT * FROM consulting_documents WHERE owner_type=? AND owner_id=? ORDER BY uploaded_at').all(ownerType,req.params.ownerId);res.setHeader('Cache-Control','private, no-store');res.json({documents:rows.filter(d=>canReadDoc(req.user,d)).map(shapeDoc)});
+}));
+router.get('/documents/:id/download',wrap(async(req,res)=>{
+ const d=getDB().prepare('SELECT * FROM consulting_documents WHERE id=?').get(req.params.id);if(!d||!canReadDoc(req.user,d))throw E.notFound('الوثيقة غير موجودة.');const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');if(!(await store.exists(d.storage_key)))throw E.notFound('ملف الوثيقة غير موجود في التخزين.');const body=await store.get(d.storage_key);res.setHeader('Content-Type',d.mime||'application/octet-stream');res.setHeader('Content-Length',body.length);res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));res.setHeader('Cache-Control','private, no-store');res.end(body);
+}));
+router.delete('/documents/:id',wrap(async(req,res)=>{
+ const d=getDB().prepare('SELECT * FROM consulting_documents WHERE id=?').get(req.params.id);if(!d||!canReadDoc(req.user,d))throw E.notFound('الوثيقة غير موجودة.');if(d.uploaded_by!==req.user.id&&req.user.role!=='admin')throw E.forbidden('حذف الوثيقة متاح لمن رفعها فقط.');getDB().prepare('DELETE FROM consulting_documents WHERE id=?').run(d.id);try{await S.getStorage().delete(d.storage_key);}catch(_){}marketEvent(req.user.id,'document',d.id,'deleted');res.json({ok:true});
+}));
+
 module.exports=router;
