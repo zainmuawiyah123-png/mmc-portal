@@ -102,6 +102,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(viewerReview.status,403);
  const storedRun=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/takeoff/runs/'+dxfRun.data.run.id);
  assert.equal(storedRun.status,200);assert.equal(storedRun.data.items.length,1);
+ const prematureBoq=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/boq',{description:'Unapproved excavation',unit:'m3',quantity:5,rate:3,sourceTakeoffItemId:dxfRun.data.run.items[0].id});assert.equal(prematureBoq.status,409);
  const approved=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/takeoff/runs/'+dxfRun.data.run.id+'/review',{status:'approved'});
  assert.equal(approved.status,200);assert.equal(approved.data.status,'approved');
  const runs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/takeoff/runs');
