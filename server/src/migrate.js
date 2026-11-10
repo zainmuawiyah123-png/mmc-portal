@@ -1192,6 +1192,32 @@ function upgradeMmcAiProjects(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_ai_project_images_project ON ai_project_images(project_id,created_at DESC);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_project_single_cover ON ai_project_images(project_id) WHERE is_cover=1;
+
+    CREATE TABLE IF NOT EXISTS ai_takeoff_runs (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      document_id TEXT NOT NULL REFERENCES ai_documents(id) ON DELETE CASCADE,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      engine TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'needs_review' CHECK(status IN ('needs_review','approved','rejected')),
+      units_json TEXT NOT NULL,
+      summary_json TEXT NOT NULL,
+      unsupported_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_takeoff_runs_project ON ai_takeoff_runs(project_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_takeoff_items (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL REFERENCES ai_takeoff_runs(id) ON DELETE CASCADE,
+      entity_index INTEGER NOT NULL,
+      entity_type TEXT NOT NULL,
+      layer_name TEXT NOT NULL,
+      quantity REAL NOT NULL,
+      unit TEXT NOT NULL,
+      detail_json TEXT NOT NULL,
+      review_status TEXT NOT NULL DEFAULT 'needs_review' CHECK(review_status IN ('needs_review','approved','rejected'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_takeoff_items_run ON ai_takeoff_items(run_id,entity_index);
   `);
 }
 
