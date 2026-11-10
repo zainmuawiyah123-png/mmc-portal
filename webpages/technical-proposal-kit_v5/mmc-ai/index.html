@@ -128,6 +128,16 @@ html[dir="rtl"] .crumb{text-align:right}
 @media(max-width:1150px){.activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.activity-art{height:230px}}
 @media(max-width:600px){.activity-illustrations{padding:14px}.activity-intro h2{font-size:18px}.activity-grid{grid-template-columns:1fr;gap:12px}.activity-card{padding:9px}.activity-art{height:205px}.activity-card strong{font-size:13px}.activity-card>span{font-size:10px;min-height:0}}
 </style>
+
+<style id="mmc-ai-subscription-plans">
+#plans{margin:24px 0;padding:24px;border:1px solid #294b68;border-radius:18px;background:linear-gradient(145deg,#10243d,#0a1a2c);box-shadow:0 18px 42px #0004}
+.plan-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}.plan-heading h2{margin:4px 0 7px;color:#f5f9ff;font-size:23px}.plan-heading p{margin:0;color:#a8bdd0;font-size:12px;line-height:1.7}.plan-role{min-width:220px;display:grid;gap:7px;color:#a9bfd3;font-size:11px}.plan-role select{width:100%;padding:11px;border:1px solid #345674;border-radius:9px;background:#0b1d30;color:#eef6fc}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}.plan-card{position:relative;min-width:0;padding:21px;border:1px solid #34536f;border-radius:15px;background:linear-gradient(150deg,#173653,#10243d);box-shadow:0 10px 24px #0002}.plan-card.pro{border-color:#3c9bd0;background:linear-gradient(145deg,#173e5c,#102b45)}.plan-card h3{margin:0 0 7px;color:#f5f9ff;font-size:17px}.plan-card .plan-sub{color:#a7bbce;font-size:11px;line-height:1.7;margin:0 0 14px}.plan-price{display:flex;align-items:baseline;gap:7px;margin:10px 0 16px}.plan-price strong{font-size:34px;color:#fff;letter-spacing:-1px}.plan-price span{font-size:11px;color:#a9bfd3}.plan-pill{display:inline-block;border:1px solid #3d6888;border-radius:30px;padding:5px 9px;color:#9edcf0;font-size:9px;letter-spacing:.5px}.plan-activity-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.plan-activity{display:flex;align-items:flex-start;gap:8px;padding:9px;border:1px solid #34536f;border-radius:8px;background:#0d2238;color:#dce9f5;font-size:10px;line-height:1.5}.plan-activity input{accent-color:#39a9dc;margin:2px 0 0!important;flex:0 0 auto}.plan-activity small{display:block;color:#819db6;font-size:9px}.plan-count{display:flex;justify-content:space-between;gap:10px;color:#9bb4c9;font-size:10px;margin:8px 0 13px}.plan-features{display:grid;gap:8px;padding:0;margin:14px 0 18px;list-style:none;color:#d2e1ed;font-size:11px}.plan-features li:before{content:"✓";color:#69d5b5;font-weight:800;margin-right:8px}.plan-action{width:100%;border:0;border-radius:9px;padding:12px 14px;background:#287dcc;color:white;font-size:12px;font-weight:700;cursor:pointer}.plan-action.secondary{background:#1b3d5c;border:1px solid #47718f;color:#e8f4fc}.plan-action:disabled{opacity:.45;cursor:not-allowed}.plan-recommended{position:absolute;top:14px;right:14px;background:#1e7397;color:#eafaff;border-radius:30px;padding:5px 9px;font-size:9px}.plan-feedback{margin-top:14px;padding:11px 13px;border:1px solid #31516d;border-radius:9px;background:#0b1d30;color:#a9c4d8;font-size:10px;line-height:1.7}.plan-role-note{min-height:34px;color:#8faec6;font-size:10px;line-height:1.6}
+html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir="rtl"] .plan-recommended{right:auto;left:14px}html[dir="rtl"] .plan-features li:before{margin-right:0;margin-left:8px}
+@media(max-width:850px){.plan-heading{display:grid}.plan-role{min-width:0}.plan-cards{grid-template-columns:1fr}}
+@media(max-width:520px){#plans{padding:15px}.plan-card{padding:16px}.plan-activity-list{grid-template-columns:1fr}.plan-price strong{font-size:30px}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -146,6 +156,7 @@ html[dir="rtl"] .crumb{text-align:right}
  <div><div class="navlabel">MANAGEMENT</div><nav class="nav">
   <a href="#projects"><span class="ico"><img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%238de3f2%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%207h18v13H3z%22%2F%3E%3Cpath%20d%3D%22M8%207V4h8v3M3%2011h18M10%2011v3h4v-3%22%2F%3E%3C%2Fsvg%3E" alt="" aria-hidden="true"></span>Projects</a>
   <a href="#team"><span class="ico"><img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%238de3f2%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%229%22%20cy%3D%228%22%20r%3D%223%22%2F%3E%3Cpath%20d%3D%22M3%2020v-2a6%206%200%200%201%2012%200v2z%22%2F%3E%3Cpath%20d%3D%22M16%205a3%203%200%200%201%200%206M18%2014a5%205%200%200%201%203%204v2%22%2F%3E%3C%2Fsvg%3E" alt="" aria-hidden="true"></span>Team & Permissions</a>
+  <a href="#plans"><span class="ico">✦</span>Plans & Pricing</a>
   <a href="#settings"><span class="ico"><img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%238de3f2%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%223%22%2F%3E%3Cpath%20d%3D%22m19%2013%202%201-2%204-2-1-2%201v2h-5v-2l-2-1-2%201-2-4%202-1v-2l-2-1%202-4%202%201%202-1V4h5v2l2%201%202-1%202%204-2%201z%22%2F%3E%3C%2Fsvg%3E" alt="" aria-hidden="true"></span>Settings</a>
  </nav></div>
  <div class="sidebottom">MMC / TenderWise<br>Independent portal within MMC ecosystem<br>© MMC Construction Intelligence</div>
@@ -299,6 +310,44 @@ html[dir="rtl"] .crumb{text-align:right}
    <section class="panel" id="takeoff"><div class="panelhead"><h2>Quantity Takeoff Register</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Unit</th><th>Quantity</th><th>Status</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">No verified quantities yet. Results will appear here when the measurement engine and engineering verification are enabled.</td></tr></tbody></table></div></section>
    <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
   </div>
+
+<section id="plans" aria-labelledby="plansTitle">
+ <div class="plan-heading">
+  <div><div class="eyebrow">SIMPLE & TRANSPARENT SUBSCRIPTIONS</div><h2 id="plansTitle">Choose Your MMC AI Plan</h2><p>Start with two selected activities for free, or unlock the complete construction-intelligence workspace.</p></div>
+  <label class="plan-role">ACCOUNT TYPE
+   <select id="planRole"><option value="contractor">Contractor</option><option value="consultant">Consultant / Engineering Office</option></select>
+   <span id="planRoleNote" class="plan-role-note">For contractors: estimating, planning, delivery and commercial control.</span>
+  </label>
+ </div>
+ <div class="plan-cards">
+  <article class="plan-card">
+   <span class="plan-pill">START FREE</span><h3>Free Plan</h3><p class="plan-sub">Choose any two activities from the eight available tools. Keep using those two activities without a monthly fee.</p>
+   <div class="plan-price"><strong>$0</strong><span>/ month</span></div>
+   <div class="plan-count"><span>Choose exactly two activities</span><strong id="planActivityCount">0 / 2 selected</strong></div>
+   <div class="plan-activity-list" id="planActivityList">
+    <label class="plan-activity"><input type="checkbox" value="drawings"><span>Engineering Drawings<small>Drawing review workspace</small></span></label>
+    <label class="plan-activity"><input type="checkbox" value="takeoff"><span>Quantity Takeoff<small>Quantity measurement tools</small></span></label>
+    <label class="plan-activity"><input type="checkbox" value="boq"><span>BOQ & Cost Estimation<small>Bill of quantities and pricing</small></span></label>
+    <label class="plan-activity"><input type="checkbox" value="bim"><span>BIM 3D Models<small>Model coordination workspace</small></span></label>
+    <label class="plan-activity"><input type="checkbox" value="schedule"><span>Project Schedule / CPM<small>Planning and programme control</small></span></label>
+    <label class="plan-activity"><input type="checkbox" value="risk"><span>Risk Management<small>Project risk register</small></span></label>
+    <label class="plan-activity"><input type="checkbox" value="claims"><span>Contracts & Claims<small>Contract events and claims</small></span></label>
+    <label class="plan-activity"><input type="checkbox" value="progress"><span>Site Progress & Reports<small>Progress and site reporting</small></span></label>
+   </div>
+   <button type="button" class="plan-action secondary" id="selectFreePlan" disabled>Select Free Plan</button>
+  </article>
+  <article class="plan-card pro">
+   <span class="plan-recommended">FULL ACCESS</span><span class="plan-pill">PROFESSIONAL</span><h3>Professional Plan</h3><p class="plan-sub">Complete access for contractors, consultants and engineering offices that need the full toolset.</p>
+   <div class="plan-price"><strong>$30</strong><span>/ month</span></div>
+   <ul class="plan-features">
+    <li>All eight engineering and project activities</li><li>Projects and workspaces for your selected account type</li><li>Drawing, quantity, cost and planning workspaces</li><li>BIM, risk, contracts, claims and site reporting</li><li>Professional reports and supported exports</li>
+   </ul>
+   <button type="button" class="plan-action" id="selectProPlan">Choose Professional</button>
+  </article>
+ </div>
+ <div class="plan-feedback" id="planFeedback" role="status" aria-live="polite">Subscription selection preview. Payment collection, account entitlement enforcement and automatic activation are not connected yet; no payment will be taken from this page.</div>
+</section>
+
   <section class="construction-visual" aria-label="Illustrative reinforced concrete construction photo">
  <img src="https://images.pexels.com/photos/36162728/pexels-photo-36162728/free-photo-of-concrete-structure-under-construction-with-rebar.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="Illustrative reinforced concrete structure under construction with exposed steel reinforcement bars" loading="lazy">
  <div class="visual-caption"><div><strong>Engineering in Progress</strong><br><small>Reinforced concrete · exposed steel reinforcement · construction site</small></div><small>Illustrative photo · Peter Dyllong / Pexels</small></div>
@@ -662,7 +711,31 @@ html[dir="rtl"] .crumb{text-align:right}
   'No sample KPIs or invented project figures are displayed. Project indicators load from your secured workspace.':'لا نعرض مؤشرات تجريبية أو أرقاماً غير حقيقية. تُحمّل مؤشرات المشروع من مساحة العمل الآمنة.',
   'Preview Environment':'بيئة معاينة','Project Showcase':'معرض المشروع','Project Under Construction':'مشروع قيد الإنشاء',
   'Engineering in Progress':'الهندسة قيد التنفيذ','Reinforced concrete · exposed steel reinforcement · construction site':'خرسانة مسلحة · حديد تسليح ظاهر · موقع إنشاء',
-  'Illustrative photo · Peter Dyllong / Pexels':'صورة توضيحية · Peter Dyllong / Pexels'
+  'Illustrative photo · Peter Dyllong / Pexels':'صورة توضيحية · Peter Dyllong / Pexels',
+  'Plans & Pricing':'الباقات والأسعار','SIMPLE & TRANSPARENT SUBSCRIPTIONS':'اشتراكات واضحة وبسيطة',
+  'Choose Your MMC AI Plan':'اختر باقة MMC AI','Start with two selected activities for free, or unlock the complete construction-intelligence workspace.':'ابدأ مجاناً بخدمتين من اختيارك، أو افتح جميع أدوات ذكاء إدارة الإنشاءات.',
+  'ACCOUNT TYPE':'نوع الحساب','Contractor':'مقاول','Consultant / Engineering Office':'استشاري / مكتب هندسي',
+  'For contractors: estimating, planning, delivery and commercial control.':'للمقاولين: التسعير والتخطيط والتنفيذ والإدارة التجارية.',
+  'For consultants: drawing review, quantity checks, BIM coordination and technical oversight.':'للاستشاريين: مراجعة المخططات والكميات وتنسيق BIM والإشراف الفني.',
+  'START FREE':'ابدأ مجاناً','Free Plan':'الباقة المجانية','Choose any two activities from the eight available tools. Keep using those two activities without a monthly fee.':'اختر خدمتين من أصل ثماني خدمات، واستخدمهما دون رسوم شهرية.',
+  '/ month':'/ شهرياً','Choose exactly two activities':'اختر خدمتين فقط','0 / 2 selected':'0 / 2 مختارة',
+  'Engineering Drawings':'المخططات الهندسية','Drawing review workspace':'مساحة مراجعة المخططات',
+  'Quantity Takeoff':'حصر الكميات','Quantity measurement tools':'أدوات قياس الكميات',
+  'BOQ & Cost Estimation':'جدول الكميات وتقدير التكلفة','Bill of quantities and pricing':'جدول الكميات والتسعير',
+  'BIM 3D Models':'نماذج BIM ثلاثية الأبعاد','Model coordination workspace':'مساحة تنسيق النماذج',
+  'Project Schedule / CPM':'البرنامج الزمني للمشروع / CPM','Planning and programme control':'التخطيط والتحكم بالبرنامج',
+  'Risk Management':'إدارة المخاطر','Project risk register':'سجل مخاطر المشروع',
+  'Contracts & Claims':'العقود والمطالبات','Contract events and claims':'أحداث العقود والمطالبات',
+  'Site Progress & Reports':'تقدم الموقع والتقارير','Progress and site reporting':'تقارير التقدم والموقع',
+  'Select Free Plan':'اختيار الباقة المجانية','PROFESSIONAL':'احترافية','Professional Plan':'الباقة الاحترافية',
+  'Complete access for contractors, consultants and engineering offices that need the full toolset.':'وصول كامل للمقاولين والاستشاريين والمكاتب الهندسية إلى جميع الأدوات.',
+  'FULL ACCESS':'وصول كامل','All eight engineering and project activities':'جميع الأنشطة الهندسية وإدارة المشاريع الثمانية',
+  'Projects and workspaces for your selected account type':'مشاريع ومساحات عمل حسب نوع الحساب',
+  'Drawing, quantity, cost and planning workspaces':'مساحات المخططات والكميات والتكلفة والتخطيط',
+  'BIM, risk, contracts, claims and site reporting':'BIM والمخاطر والعقود والمطالبات وتقارير الموقع',
+  'Professional reports and supported exports':'تقارير احترافية وصيغ التصدير المدعومة',
+  'Choose Professional':'اختيار الباقة الاحترافية',
+  'Subscription selection preview. Payment collection, account entitlement enforcement and automatic activation are not connected yet; no payment will be taken from this page.':'هذه معاينة لاختيار الاشتراك. لم يتم بعد ربط الدفع أو صلاحيات الحساب أو التفعيل التلقائي، ولن يتم تحصيل أي مبلغ من هذه الصفحة.'
  };
  const en={};Object.keys(ar).forEach(k=>en[ar[k]]=k);
  function apply(lang){
@@ -673,6 +746,42 @@ html[dir="rtl"] .crumb{text-align:right}
   button.setAttribute('aria-label',lang==='ar'?'Switch to English':'التبديل إلى العربية');
  }
  button.addEventListener('click',()=>apply(current==='en'?'ar':'en'));
+})();
+</script>
+
+
+<script id="mmc-ai-plan-selection">
+(()=>{
+ const role=document.getElementById('planRole'),note=document.getElementById('planRoleNote');
+ const checks=[...document.querySelectorAll('#planActivityList input[type="checkbox"]')];
+ const count=document.getElementById('planActivityCount'),freeBtn=document.getElementById('selectFreePlan');
+ const feedback=document.getElementById('planFeedback');
+ const roleCopy={
+  contractor:'For contractors: estimating, planning, delivery and commercial control.',
+  consultant:'For consultants: drawing review, quantity checks, BIM coordination and technical oversight.'
+ };
+ function selected(){return checks.filter(x=>x.checked)}
+ function refresh(){
+  const n=selected().length;count.textContent=n+' / 2 selected';freeBtn.disabled=n!==2;
+ }
+ checks.forEach(box=>box.addEventListener('change',()=>{
+  if(selected().length>2){box.checked=false;feedback.textContent=document.documentElement.lang==='ar'?'يمكنك اختيار خدمتين فقط في الباقة المجانية.':'The Free Plan allows exactly two activities. Choose only two.';}
+  refresh();
+ }));
+ role.addEventListener('change',()=>{note.textContent=roleCopy[role.value];});
+ freeBtn.addEventListener('click',()=>{
+  const chosen=selected();if(chosen.length!==2)return;
+  const names=chosen.map(x=>x.parentElement.querySelector('span').childNodes[0].textContent.trim());
+  feedback.textContent=document.documentElement.lang==='ar'
+   ?'تم اختيار الباقة المجانية لحساب '+(role.value==='consultant'?'استشاري':'مقاول')+' والخدمتين: '+names.join('، ')+'. هذا اختيار مبدئي داخل الصفحة فقط، ولم يتم تفعيل الصلاحيات على الحساب.'
+   :'Free Plan selected for '+role.value+' account: '+names.join(', ')+'. This is a page-level selection only; account permissions have not been activated.';
+ });
+ document.getElementById('selectProPlan').addEventListener('click',()=>{
+  feedback.textContent=document.documentElement.lang==='ar'
+   ?'تم اختيار الباقة الاحترافية بسعر 30 دولاراً شهرياً لحساب '+(role.value==='consultant'?'استشاري':'مقاول')+'. ربط الدفع وتفعيل الصلاحيات سيتم في مرحلة الربط التالية.'
+   :'Professional Plan selected at $30/month for the '+role.value+' account. Payment integration and account activation are a separate next step.';
+ });
+ refresh();
 })();
 </script>
 
