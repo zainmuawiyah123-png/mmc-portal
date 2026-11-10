@@ -9,7 +9,7 @@ function decodeXml(v){
   .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 }
 function tag(xml,name){
- const re=new RegExp('<'+name+'[^>]*>([\s\S]*?)</'+name+'>','i');
+ const re=new RegExp('<'+name+'[^>]*>([\\s\\S]*?)</'+name+'>','i');
  const m=String(xml||'').match(re);
  return m?decodeXml(m[1]).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim():'';
 }
