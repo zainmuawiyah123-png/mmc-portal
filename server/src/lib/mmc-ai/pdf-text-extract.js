@@ -60,7 +60,7 @@ function extractFromContent(src){
 }
 function tokenizeContentStream(src){
  const tokens=[];
- const re=/%[^\r\n]*|\((?:\\.|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]*>|\/[^\s<>()\[\]{}%]+|[-+]?(?:\d+\.?\d*|\.\d+)|[A-Za-z][A-Za-z0-9*']*/g;
+ const re=/%[^\r\n]*|\((?:\\.|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]*>|\/[^\s<>()\[\]{}%]+|[-+]?(?:\d+\.?\d*|\.\d+)|['"]|[A-Za-z][A-Za-z0-9*']*/g;
  let match;
  while((match=re.exec(src))){
   const value=match[0];
