@@ -140,7 +140,8 @@ function takeoffDxf(text, options = {}) {
       assertFinite([a.x, a.y, b.x, b.y], 'LINE entity ' + index);
       quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
     } else if (e.type === 'LWPOLYLINE') {
-      requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);\n      const vertices = polylineVertices(e), closed = (first(e, 70) & 1) === 1;
+      requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);
+      const vertices = polylineVertices(e), closed = (first(e, 70) & 1) === 1;
       assertFinite(vertices.flatMap(v => [v.x, v.y, v.bulge ?? 0]), 'LWPOLYLINE entity ' + index);
       if (vertices.length < 2) { unsupported[e.type] = (unsupported[e.type] || 0) + 1; continue; }
       const m = polylineMetrics(vertices, closed);
