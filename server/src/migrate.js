@@ -1286,6 +1286,26 @@ function upgradeMmcAiProjects(db) {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_ai_contract_events_project ON ai_contract_events(project_id,status);
+    CREATE TABLE IF NOT EXISTS ai_bim_issues (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      issue_code TEXT,
+      model_reference TEXT,
+      discipline TEXT NOT NULL DEFAULT 'general',
+      issue_type TEXT NOT NULL DEFAULT 'coordination',
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      location_reference TEXT,
+      element_ids_json TEXT NOT NULL DEFAULT '[]',
+      severity TEXT NOT NULL DEFAULT 'medium' CHECK(severity IN ('low','medium','high','critical')),
+      proposed_resolution TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','assigned','in_review','resolved','closed')),
+      assigned_to TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_bim_issues_project ON ai_bim_issues(project_id,status,severity);
   `);
 }
 
