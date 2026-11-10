@@ -163,7 +163,7 @@
 
     API.register({name:name, email:email, password:p1, company:company||undefined, role:role, country:country}).then(function(res){
       showAlert(T('تم إنشاء الحساب. جارٍ التحويل إلى لوحة التحكم…','Account created. Redirecting to your dashboard…'),'ok');
-      var dest=(res.user&&res.user.role==='buyer')?'../../procurement/index.html':(res.user&&res.user.role==='consultant'?'../../consultant/index.html':'index.html');setTimeout(function(){ location.replace(dest); }, 500);
+      var dest=(res.user&&res.user.role==='buyer')?'/consulting/requester/':(res.user&&res.user.role==='consultant'?'/consulting/':'index.html');setTimeout(function(){ location.replace(dest); }, 500);
     }).catch(function(err){
       btn.disabled=false; btn.innerHTML=defaultLabel;
       if(err.code==='CONFLICT'){
