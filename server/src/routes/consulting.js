@@ -192,14 +192,15 @@ router.post('/documents/:ownerType/:ownerId',upload.array('files',5),wrap(async(
  for(const f of files){S.assertAllowed(f.originalname,f.size);const id=uid('cdoc_');const key=['consulting',owner.requestId,ownerType,(owner.firmId||owner.requesterId||'shared'),S.makeStoredName(f.originalname)].join('/');const put=await store.put(key,f.buffer,{mime:f.mimetype||'application/octet-stream',originalName:S.displayName(f.originalname)});db.prepare(`INSERT INTO consulting_documents (id,owner_type,owner_id,request_id,firm_id,requester_entity_id,visibility,document_kind,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,ownerType,req.params.ownerId,owner.requestId,owner.firmId,owner.requesterId,visibility,kind,key,store.DRIVER,S.displayName(f.originalname),f.mimetype||'application/octet-stream',f.size,put.checksum,req.user.id);marketEvent(req.user.id,'document',id,'uploaded',{ownerType,kind,size:f.size});created.push({id,name:S.displayName(f.originalname),size:f.size});}
  res.status(201).json({documents:created});
 }));
-router.get('/documents/:id/download',wrap(async(req,res)=>{
+
+router.delete('/documents/:id',wrap(async(req,res)=>{
+ const d=getDB().prepare('SELECT * FROM consulting_documents WHERE id=?').get(req.params.id);if(!d||!canReadDoc(req.user,d))throw E.notFound('الوثيقة غير موجودة.');if(d.uploaded_by!==req.user.id&&req.user.role!=='admin')throw E.forbidden('حذف الوثيقة متاح لمن رفعها فقط.');getDB().prepare('DELETE FROM consulting_documents WHERE id=?').run(d.id);try{await S.getStorage().delete(d.storage_key);}catch(_){}marketEvent(req.user.id,'document',d.id,'deleted');res.json({ok:true});
+}));
+
+module.exports=routerrouter.get('/documents/:id/download',wrap(async(req,res)=>{
  const d=getDB().prepare('SELECT * FROM consulting_documents WHERE id=?').get(req.params.id);if(!d||!canReadDoc(req.user,d))throw E.notFound('الوثيقة غير موجودة.');const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');if(!(await store.exists(d.storage_key)))throw E.notFound('ملف الوثيقة غير موجود في التخزين.');res.setHeader('Content-Type',d.mime||'application/octet-stream');res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));res.setHeader('Cache-Control','private, no-store');const stream=store.stream(d.storage_key);if(d.storage_driver==='s3'){const obj=await stream;obj.body.pipe(res);}else stream.pipe(res);
 }));
 router.get('/documents/:ownerType/:ownerId',wrap(async(req,res)=>{
  const ownerType=clip(req.params.ownerType,20);const owner=docOwner(req,ownerType,req.params.ownerId);const rows=getDB().prepare('SELECT * FROM consulting_documents WHERE owner_type=? AND owner_id=? ORDER BY uploaded_at').all(ownerType,req.params.ownerId);res.setHeader('Cache-Control','private, no-store');res.json({documents:rows.filter(d=>canReadDoc(req.user,d)).map(shapeDoc)});
 }));
-router.delete('/documents/:id',wrap(async(req,res)=>{
- const d=getDB().prepare('SELECT * FROM consulting_documents WHERE id=?').get(req.params.id);if(!d||!canReadDoc(req.user,d))throw E.notFound('الوثيقة غير موجودة.');if(d.uploaded_by!==req.user.id&&req.user.role!=='admin')throw E.forbidden('حذف الوثيقة متاح لمن رفعها فقط.');getDB().prepare('DELETE FROM consulting_documents WHERE id=?').run(d.id);try{await S.getStorage().delete(d.storage_key);}catch(_){}marketEvent(req.user.id,'document',d.id,'deleted');res.json({ok:true});
-}));
-
-module.exports=router;
+;
