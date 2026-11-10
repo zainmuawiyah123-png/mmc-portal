@@ -1233,6 +1233,23 @@ function upgradeMmcAiProjects(db) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_ai_boq_project ON ai_boq_items(project_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_schedule_tasks (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      task_code TEXT,
+      name TEXT NOT NULL,
+      duration_days INTEGER NOT NULL CHECK(duration_days >= 0),
+      predecessors_json TEXT NOT NULL DEFAULT '[]',
+      planned_start TEXT,
+      actual_start TEXT,
+      actual_finish TEXT,
+      percent_complete INTEGER NOT NULL DEFAULT 0 CHECK(percent_complete BETWEEN 0 AND 100),
+      status TEXT NOT NULL DEFAULT 'planned' CHECK(status IN ('planned','in_progress','completed','blocked')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_schedule_project ON ai_schedule_tasks(project_id,created_at);
   `);
 }
 
