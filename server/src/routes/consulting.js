@@ -456,4 +456,64 @@ router.get('/firm-subcontracts/:id/documents/:docId/download',wrap(async(req,res
  const stream=store.stream(d.storage_key);if(d.storage_driver==='s3'){const obj=await stream;obj.body.pipe(res);}else stream.pipe(res);
 }));
 
+
+// Tender and bid attachments for the consultant-to-consultant subcontract market.
+const officeTenderDocKinds=['brief','scope','reference','other'];
+const officeBidDocKinds=['technical','financial','reference','other'];
+router.post('/firm-tenders/:id/documents',upload.array('files',5),wrap(async(req,res)=>{
+ const {firm,tender}=firmTenderOwner(req,req.params.id);
+ if(tender.status!=='open')throw E.conflict('لا يمكن إضافة وثائق بعد إغلاق العطاء.');
+ const kind=clip(req.body?.kind,20);if(!officeTenderDocKinds.includes(kind))throw E.validation('تصنيف وثيقة العطاء غير صحيح.');
+ const files=req.files||[];if(!files.length)throw E.validation('أرفق ملفاً واحداً على الأقل.');
+ const store=S.getStorage(),db=getDB(),created=[];
+ for(const file of files){S.assertAllowed(file.originalname,file.size);const id=uid('cftdoc_'),key=['consulting-firm-tenders',tender.id,'owner',S.makeStoredName(file.originalname)].join('/');const put=await store.put(key,file.buffer,{mime:file.mimetype||'application/octet-stream',originalName:S.displayName(file.originalname)});db.prepare('INSERT INTO consulting_firm_tender_documents (id,tender_id,firm_id,uploaded_by,document_kind,storage_key,storage_driver,original_name,mime,size,checksum) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(id,tender.id,firm.id,req.user.id,kind,key,store.DRIVER,S.displayName(file.originalname),file.mimetype||'application/octet-stream',file.size,put.checksum);created.push({id,name:S.displayName(file.originalname),kind,size:file.size});}
+ marketEvent(req.user.id,'firm_tender',tender.id,'documents_uploaded',{count:created.length});
+ res.status(201).json({documents:created,message:'تم إرفاق وثائق العطاء.'});
+}));
+router.get('/firm-tenders/:id/documents',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req),t=getDB().prepare('SELECT * FROM consulting_firm_tenders WHERE id=?').get(req.params.id);
+ if(!t)throw E.notFound('العطاء غير موجود.');
+ if(t.status!=='open'&&t.firm_id!==firm.id&&!getDB().prepare('SELECT 1 FROM consulting_firm_tender_proposals WHERE tender_id=? AND firm_id=?').get(t.id,firm.id))throw E.notFound('العطاء غير موجود.');
+ const rows=getDB().prepare('SELECT id,document_kind,original_name,mime,size,uploaded_at FROM consulting_firm_tender_documents WHERE tender_id=? ORDER BY uploaded_at DESC').all(t.id);
+ res.json({documents:rows});
+}));
+function officeBidDocAccess(req,proposalId){
+ const firm=requireVerifiedFirm(req),p=getDB().prepare(`SELECT p.*,t.firm_id owner_firm_id,t.status tender_status FROM consulting_firm_tender_proposals p JOIN consulting_firm_tenders t ON t.id=p.tender_id WHERE p.id=?`).get(proposalId);
+ if(!p)throw E.notFound('العرض غير موجود.');
+ const isBidder=firm.id===p.firm_id,isOwner=firm.id===p.owner_firm_id;
+ if(!isBidder&&!isOwner)throw E.notFound('العرض غير موجود.');
+ return {firm,proposal:p,isBidder,isOwner,financialOpened:['qualified','selected'].includes(p.status)};
+}
+router.post('/firm-tender-proposals/:id/documents',upload.array('files',5),wrap(async(req,res)=>{
+ const access=officeBidDocAccess(req,req.params.id),{firm,proposal}=access;
+ if(!access.isBidder)throw E.forbidden('يرفع المكتب مقدم العرض وثائقه فقط.');
+ if(proposal.tender_status!=='open')throw E.conflict('لا يمكن تعديل وثائق العرض بعد إغلاق العطاء.');
+ const kind=clip(req.body?.kind,20);if(!officeBidDocKinds.includes(kind))throw E.validation('تصنيف وثيقة العرض غير صحيح.');
+ const files=req.files||[];if(!files.length)throw E.validation('أرفق ملفاً واحداً على الأقل.');
+ const store=S.getStorage(),db=getDB(),created=[];
+ for(const file of files){S.assertAllowed(file.originalname,file.size);const id=uid('cftpdoc_'),key=['consulting-firm-bids',proposal.id,firm.id,kind,S.makeStoredName(file.originalname)].join('/');const put=await store.put(key,file.buffer,{mime:file.mimetype||'application/octet-stream',originalName:S.displayName(file.originalname)});db.prepare('INSERT INTO consulting_firm_tender_proposal_documents (id,tender_id,proposal_id,firm_id,uploaded_by,document_kind,storage_key,storage_driver,original_name,mime,size,checksum) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').run(id,proposal.tender_id,proposal.id,firm.id,req.user.id,kind,key,store.DRIVER,S.displayName(file.originalname),file.mimetype||'application/octet-stream',file.size,put.checksum);created.push({id,name:S.displayName(file.originalname),kind,size:file.size});}
+ marketEvent(req.user.id,'firm_tender_proposal',proposal.id,'documents_uploaded',{count:created.length});
+ res.status(201).json({documents:created,message:'تم رفع وثائق العرض.'});
+}));
+router.get('/firm-tender-proposals/:id/documents',wrap(async(req,res)=>{
+ const access=officeBidDocAccess(req,req.params.id);
+ const rows=getDB().prepare('SELECT id,document_kind,original_name,mime,size,uploaded_at FROM consulting_firm_tender_proposal_documents WHERE proposal_id=? ORDER BY uploaded_at DESC').all(access.proposal.id);
+ const visible=rows.filter(d=>access.isBidder||d.document_kind!=='financial'||access.financialOpened);
+ res.json({documents:visible,financialOpened:access.financialOpened});
+}));
+router.get('/firm-tender-proposals/:id/documents/:docId/download',wrap(async(req,res)=>{
+ const access=officeBidDocAccess(req,req.params.id);
+ const d=getDB().prepare('SELECT * FROM consulting_firm_tender_proposal_documents WHERE id=? AND proposal_id=?').get(req.params.docId,access.proposal.id);
+ if(!d||(!access.isBidder&&d.document_kind==='financial'&&!access.financialOpened))throw E.notFound('وثيقة العرض غير موجودة.');
+ const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+ if(!(await store.exists(d.storage_key)))throw E.notFound('ملف الوثيقة غير موجود في التخزين.');
+ res.setHeader('Content-Type',d.mime||'application/octet-stream');res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));res.setHeader('Cache-Control','private, no-store');
+ const stream=store.stream(d.storage_key);if(d.storage_driver==='s3'){const obj=await stream;obj.body.pipe(res);}else stream.pipe(res);
+}));
+router.get('/firm-tender-proposals/mine',wrap(async(req,res)=>{
+ const firm=requireVerifiedFirm(req);
+ const rows=getDB().prepare(`SELECT p.id,p.tender_id,p.technical_summary,p.technical_score,p.status,p.created_at,t.reference,t.title tender_title,t.status tender_status,t.technical_threshold,owner.legal_name owner_firm_name FROM consulting_firm_tender_proposals p JOIN consulting_firm_tenders t ON t.id=p.tender_id JOIN consulting_firms owner ON owner.id=t.firm_id WHERE p.firm_id=? ORDER BY p.created_at DESC`).all(firm.id);
+ res.json({proposals:rows});
+}));
+
 module.exports=router;
