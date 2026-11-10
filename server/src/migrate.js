@@ -1218,6 +1218,21 @@ function upgradeMmcAiProjects(db) {
       review_status TEXT NOT NULL DEFAULT 'needs_review' CHECK(review_status IN ('needs_review','approved','rejected'))
     );
     CREATE INDEX IF NOT EXISTS idx_ai_takeoff_items_run ON ai_takeoff_items(run_id,entity_index);
+
+    CREATE TABLE IF NOT EXISTS ai_boq_items (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      item_code TEXT,
+      description TEXT NOT NULL,
+      unit TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK(quantity >= 0),
+      rate REAL NOT NULL CHECK(rate >= 0),
+      source_takeoff_item_id TEXT REFERENCES ai_takeoff_items(id) ON DELETE SET NULL,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_boq_project ON ai_boq_items(project_id,created_at DESC);
   `);
 }
 
