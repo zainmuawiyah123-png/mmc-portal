@@ -65,3 +65,10 @@ test('MMC AI IFC model pre-inspection is available with clear scope disclosure',
  assert.ok(html.includes('/inspect'));
  assert.match(html,/ملفات IFC تحفظ وتتاح للتنزيل، وتحويلها إلى نموذج قابل للعرض والتحليل ما زال ضمن تطوير محرك BIM/);
 });
+
+test('MMC AI contract events capture event dates and allow status workflow updates',()=>{
+ assert.match(html,/id="claimEventDate"/);
+ assert.match(html,/eventDate:document\.getElementById\('claimEventDate'\)\.value/);
+ assert.match(html,/await loadProjectClaims\(id\)/);
+ assert.match(html,/تاريخ الحدث/);
+});
