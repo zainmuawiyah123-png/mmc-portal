@@ -85,7 +85,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const goodPdf=await upload('ai-owner',projectId,'structural-plan.pdf',Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF'));
  assert.equal(goodPdf.status,201,JSON.stringify(goodPdf.data));
  assert.equal(goodPdf.data.document.file_ext,'.pdf');
- const dxfText=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','0','ENDSEC','0','SECTION','2','ENTITIES','0','LINE','8','EARTHWORK','10','0','20','0','11','3','21','4','0','ENDSEC','0','EOF'].join('\\n');
+ const dxfText=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','0','ENDSEC','0','SECTION','2','ENTITIES','0','LINE','8','EARTHWORK','10','0','20','0','11','3','21','4','0','ENDSEC','0','EOF'].join('\n');
  const dxfUpload=await upload('ai-owner',projectId,'site-plan.dxf',Buffer.from(dxfText));
  assert.equal(dxfUpload.status,201,JSON.stringify(dxfUpload.data));
  const dxfRun=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+dxfUpload.data.document.id+'/takeoff/dxf',{});
