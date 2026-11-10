@@ -152,7 +152,7 @@ function canReadDoc(user,doc) {
   if(user.role==='consultant') {
     const f=firmFor(user.id);
     if(!f||f.verification_status!=='verified'||f.member_status!=='active')return false;
-    if(doc.visibility==='market' && doc.owner_type==='request')return true;
+    if(doc.visibility==='market' && doc.owner_type==='request'){const request=getDB().prepare('SELECT status FROM consulting_service_requests WHERE id=?').get(doc.request_id);if(request?.status==='open')return true;if(request?.status==='awarded')return !!getDB().prepare('SELECT 1 FROM consulting_contracts WHERE request_id=? AND firm_id=?').get(doc.request_id,f.id);return false;}
     if(doc.firm_id===f.id)return true;
     if(doc.owner_type==='proposal' && doc.visibility==='selected_only') {
       const award=getDB().prepare("SELECT 1 FROM consulting_contracts WHERE proposal_id=? AND firm_id=?").get(doc.owner_id,f.id);
@@ -167,7 +167,7 @@ function docOwner(req,ownerType,ownerId) {
     const row=db.prepare('SELECT id,requester_entity_id FROM consulting_service_requests WHERE id=?').get(ownerId);
     if(!row)throw E.notFound('طلب الخدمة غير موجود.');
     if(req.user.role==='buyer'){const e=requireRequester(req);if(e.id!==row.requester_entity_id)throw E.notFound('طلب الخدمة غير موجود.');return {requestId:row.id,firmId:null,requesterId:e.id,visibility:'market'};}
-    if(req.user.role==='consultant'){requireVerifiedFirm(req);const open=db.prepare("SELECT id FROM consulting_service_requests WHERE id=? AND status='open'").get(row.id);if(!open)throw E.notFound('طلب الخدمة غير متاح.');return {requestId:row.id,firmId:null,requesterId:row.requester_entity_id,visibility:'market'};}
+    if(req.user.role==='consultant'){const f=requireVerifiedFirm(req);const open=db.prepare("SELECT id FROM consulting_service_requests WHERE id=? AND status='open'").get(row.id);const awarded=db.prepare("SELECT 1 FROM consulting_contracts WHERE request_id=? AND firm_id=?").get(row.id,f.id);if(!open&&!awarded)throw E.notFound('طلب الخدمة غير متاح.');return {requestId:row.id,firmId:f.id,requesterId:row.requester_entity_id,visibility:'market',uploadAllowed:!!open};}
   }
   if(ownerType==='proposal') {
     const p=db.prepare('SELECT p.id,p.request_id,p.firm_id,p.status,r.requester_entity_id FROM consulting_proposals p JOIN consulting_service_requests r ON r.id=p.request_id WHERE p.id=?').get(ownerId);
@@ -186,10 +186,10 @@ function docOwner(req,ownerType,ownerId) {
 function shapeDoc(d){return {id:d.id,ownerType:d.owner_type,ownerId:d.owner_id,kind:d.document_kind,name:d.original_name,mime:d.mime,size:d.size,visibility:d.visibility,uploadedAt:d.uploaded_at};}
 router.post('/documents/:ownerType/:ownerId',upload.array('files',5),wrap(async(req,res)=>{
  const ownerType=clip(req.params.ownerType,20);if(!['request','proposal','contract'].includes(ownerType))throw E.validation('نوع السجل غير مدعوم.');
- const owner=docOwner(req,ownerType,req.params.ownerId);const files=req.files||[];if(!files.length)throw E.validation('أرفق ملفاً واحداً على الأقل.');
+ const owner=docOwner(req,ownerType,req.params.ownerId);if(ownerType==='request'&&req.user.role==='consultant'&&!owner.uploadAllowed)throw E.forbidden('لا يمكن إضافة وثائق جديدة بعد إغلاق طلب الخدمة.');const files=req.files||[];if(!files.length)throw E.validation('أرفق ملفاً واحداً على الأقل.');
  const kind=clip(req.body?.kind,20);if(!docKinds.includes(kind))throw E.validation('تصنيف الوثيقة غير صحيح.');
  const visibility=ownerType==='request'?'market':'selected_only';const store=S.getStorage(),db=getDB(),created=[];
- for(const f of files){S.assertAllowed(f.originalname,f.size);const id=uid('cdoc_');const key=['consulting',owner.requestId,ownerType,owner.requestId===owner.requesterId?'entity':(owner.firmId||'shared'),S.makeStoredName(f.originalname)].join('/');const put=await store.put(key,f.buffer,{mime:f.mimetype||'application/octet-stream',originalName:S.displayName(f.originalname)});db.prepare(`INSERT INTO consulting_documents (id,owner_type,owner_id,request_id,firm_id,requester_entity_id,visibility,document_kind,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,ownerType,req.params.ownerId,owner.requestId,owner.firmId,owner.requesterId,visibility,kind,key,store.DRIVER,S.displayName(f.originalname),f.mimetype||'application/octet-stream',f.size,put.checksum,req.user.id);marketEvent(req.user.id,'document',id,'uploaded',{ownerType,kind,size:f.size});created.push({id,name:S.displayName(f.originalname),size:f.size});}
+ for(const f of files){S.assertAllowed(f.originalname,f.size);const id=uid('cdoc_');const key=['consulting',owner.requestId,ownerType,(owner.firmId||owner.requesterId||'shared'),S.makeStoredName(f.originalname)].join('/');const put=await store.put(key,f.buffer,{mime:f.mimetype||'application/octet-stream',originalName:S.displayName(f.originalname)});db.prepare(`INSERT INTO consulting_documents (id,owner_type,owner_id,request_id,firm_id,requester_entity_id,visibility,document_kind,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,ownerType,req.params.ownerId,owner.requestId,owner.firmId,owner.requesterId,visibility,kind,key,store.DRIVER,S.displayName(f.originalname),f.mimetype||'application/octet-stream',f.size,put.checksum,req.user.id);marketEvent(req.user.id,'document',id,'uploaded',{ownerType,kind,size:f.size});created.push({id,name:S.displayName(f.originalname),size:f.size});}
  res.status(201).json({documents:created});
 }));
 router.get('/documents/:ownerType/:ownerId',wrap(async(req,res)=>{
