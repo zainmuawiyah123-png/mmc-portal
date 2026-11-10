@@ -437,16 +437,23 @@ test('39 — العطاء الثاني على الباقة المجانية يُ
   assert.strictEqual(r.data.error.details.limit, 1);
 });
 
-test('40 — الترقية إلى starter تسمح بعطاء ثانٍ', async () => {
+test('40 — لا يمكن تفعيل باقة مقاول مدفوعة دون اعتماد فاتورة', async () => {
   const up = await call('userA', 'POST', '/api/plan', { body: { planKey: 'starter' } });
-  assert.strictEqual(up.status, 200, JSON.stringify(up.data));
-  assert.strictEqual(up.data.plan.key, 'starter');
-
+  assert.strictEqual(up.status, 403, JSON.stringify(up.data));
+  const me = await call('userA', 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.plan.plan.key, 'free');
   const r = await call('userA', 'POST', '/api/tenders', { body: { name: 'عطاء ثانٍ' } });
-  assert.strictEqual(r.status, 201);
+  assert.strictEqual(r.status, 402);
 });
 
 test('41 — الرجوع لباقة أصغر من الاستهلاك يُرفض 409', async () => {
+  const user = getDB().prepare("SELECT id FROM users WHERE email LIKE 'a%@test.com' ORDER BY created_at LIMIT 1").get();
+  assert.ok(user);
+  getDB().prepare("UPDATE subscriptions SET status='cancelled' WHERE user_id=? AND status='active'").run(user.id);
+  getDB().prepare("UPDATE users SET plan_key='starter' WHERE id=?").run(user.id);
+  getDB().prepare("INSERT INTO subscriptions (id,user_id,plan_key,status,source) VALUES (?,?,?,'active','manual')").run('sub_downgrade_' + uniq(), user.id, 'starter');
+  const extra = await call('userA', 'POST', '/api/tenders', { body: { name: 'عطاء إضافي على باقة Starter' } });
+  assert.strictEqual(extra.status, 201);
   const r = await call('userA', 'POST', '/api/plan', { body: { planKey: 'free' } });
   assert.strictEqual(r.status, 409);
   assert.strictEqual(r.data.error.code, 'CONFLICT');
