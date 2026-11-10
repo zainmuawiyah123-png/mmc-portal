@@ -35,9 +35,13 @@ function parseVendorPanelFeed(xml){
   const body=clean(decodeXml(description).replace(/<[^>]+>/g,' ').replace(/\s+/g,' '),3000);
   const refMatch=body.match(/\bVP\s*Reference\s*:\s*(VP\d+)/i)||guid.match(/\bVP\d+\b/i);
   const ref=refMatch?(refMatch[1]||refMatch[0]):clean(guid,160);
-  const publisher=(body.match(/\bIssued\s+by\s*:\s*([^|]+?)(?=\s+VP\s*Reference\s*:|\s+Opened\s*:|\s+Closing\s*:|$)/i)||[])[1];
-  const closing=(body.match(/\bClosing\s*:\s*([^|]+?)(?=\s+Opened\s*:|\s+VP\s*Reference\s*:|$)/i)||[])[1];
-  const opened=(body.match(/\bOpened\s*:\s*([^|]+?)(?=\s+Closing\s*:|\s+VP\s*Reference\s*:|$)/i)||[])[1];
+  const field=(label)=>{
+   const part=body.split(/\s*\|\s*/).map(x=>x.trim()).find(x=>x.toLowerCase().startsWith(label.toLowerCase()+':'));
+   return part?part.slice(part.indexOf(':')+1).trim():null;
+  };
+  const publisher=field('Issued by');
+  const closing=field('Closing');
+  const opened=field('Opened');
   const published=tag(entry,'pubDate')||tag(entry,'published')||tag(entry,'updated');
   if(!title||!link||!ref)return null;
   return {externalId:ref,title,authority:clean(publisher,200)||'VendorPanel Public Tenders',
