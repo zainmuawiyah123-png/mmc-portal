@@ -60,7 +60,12 @@ async function loadTenders(){
  try{const r=await fetch('/api/public-tenders?'+params.toString());const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحميل الفهرس');all=d.tenders||[];total=Number(d.total)||0;render();document.getElementById('loadMore').hidden=all.length>=total;total=Number(d.total)||0;document.getElementById('updated').textContent='إجمالي السجلات المنشورة: '+total+' — المعروض: '+all.length;document.getElementById('loadMore').hidden=all.length>=total;}
  catch(e){status.className='notice error';status.textContent=e.message;}
 }
-async function refreshWorldBank(){\n status.className='notice';status.textContent='جارٍ تحديث إشعارات البنك الدولي...';\n try{const r=await fetch('/api/public-tenders/world-bank?refresh=1');const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحديث البنك الدولي');document.getElementById('updated').textContent='تم جلب '+d.count+' إشعاراً من البنك الدولي';await loadTenders();}\n catch(e){status.className='notice error';status.textContent='تعذر تحديث البنك الدولي الآن: '+e.message+' — بقية الفهرس المحفوظ يبقى متاحاً.';await loadTenders();}\n}\nasync function refreshVendorPanel(){
+async function refreshWorldBank(){
+ status.className='notice';status.textContent='جارٍ تحديث إشعارات البنك الدولي...';
+ try{const r=await fetch('/api/public-tenders/world-bank?refresh=1');const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحديث البنك الدولي');document.getElementById('updated').textContent='تم جلب '+d.count+' إشعاراً من البنك الدولي';await loadTenders();}
+ catch(e){status.className='notice error';status.textContent='تعذر تحديث البنك الدولي الآن: '+e.message+' — بقية الفهرس المحفوظ يبقى متاحاً.';await loadTenders();}
+}
+async function refreshVendorPanel(){
  status.className='notice';status.textContent='جارٍ تحديث موجز VendorPanel العام...';
  try{const r=await fetch('/api/public-tenders/vendorpanel?refresh=1');const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'تعذر تحديث VendorPanel');document.getElementById('updated').textContent='تم جلب '+d.count+' عطاء من VendorPanel RSS';await loadTenders();}
  catch(e){status.className='notice error';status.textContent='تعذر تحديث عطاءات VendorPanel: '+e.message+' — بقية الفهرس المحفوظ يبقى متاحاً.';await loadTenders();}
