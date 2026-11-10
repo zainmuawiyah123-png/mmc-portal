@@ -24,9 +24,9 @@ async function call(key,method,url,{body,headers}={}){
  for(const c of cookies){const first=c.split(';')[0];if(first.startsWith('tpkit_session='))sessions[key]=first;}
  const type=r.headers.get('content-type')||'';return {status:r.status,data:type.includes('application/json')?await r.json():await r.text(),headers:r.headers};
 }
-async function callUpload(key,url,field,fileName,content){
+async function callUpload(key,url,field,fileName,content,kind='technical'){
  const h={};if(sessions[key])h.Cookie=sessions[key];
- const form=new FormData();form.append('kind','technical');form.append('files',new Blob([content],{type:'application/pdf'}),fileName);
+ const form=new FormData();form.append('kind',kind);form.append('files',new Blob([content],{type:'application/pdf'}),fileName);
  const r=await fetch(base+url,{method:'POST',headers:h,body:form,redirect:'manual'});
  const type=r.headers.get('content-type')||'';return {status:r.status,data:type.includes('application/json')?await r.json():await r.text()};
 }
@@ -96,4 +96,35 @@ test('consulting firm and requester page inline scripts parse',()=>{
   assert.ok(scripts.length>0,file+' should contain application logic');
   scripts.forEach((source,index)=>new vm.Script(source,{filename:file+'#script-'+index}));
  }
+});
+
+test('consultant office tender desk keeps financial bids sealed until technical qualification',async()=>{
+ const owner=await register('officeTenderOwner','consultant');assert.equal(owner.status,201);
+ const ownerFirm=await call('officeTenderOwner','POST','/api/consulting/firms',{body:{legalName:'Office Tender Owner LLC',country:'JO',registrationNumber:'OFFICE-TENDER-1001',contactEmail:'owner-office@example.test',contactPhone:'+962790001001',specializations:['engineering_design']}});
+ assert.equal(ownerFirm.status,201,JSON.stringify(ownerFirm.data));const ownerId=ownerFirm.data.firm.id;
+ const peer=await register('officeTenderPeer','consultant');assert.equal(peer.status,201);
+ const peerFirm=await call('officeTenderPeer','POST','/api/consulting/firms',{body:{legalName:'Office Tender Peer LLC',country:'SA',registrationNumber:'OFFICE-TENDER-2002',contactEmail:'peer-office@example.test',contactPhone:'+966500002002',specializations:['engineering_design']}});
+ assert.equal(peerFirm.status,201,JSON.stringify(peerFirm.data));const peerId=peerFirm.data.firm.id;
+ const adminLogin=await call('adminUser','POST','/api/auth/login',{body:{email:'consulting-admin@example.test',password:'AdminPassword123'}});assert.equal(adminLogin.status,200);
+ const ownerDoc=await callUpload('officeTenderOwner','/api/consulting/firms/me/documents','files','registration.pdf','official registration file','registration');assert.equal(ownerDoc.status,201,JSON.stringify(ownerDoc.data));
+ const adminQueue=await call('adminUser','GET','/api/consulting/admin/firms?status=pending');assert.equal(adminQueue.status,200);const listed=adminQueue.data.firms.find(x=>x.id===ownerId);assert.ok(listed);assert.equal(listed.documents.length,1);
+ const adminDoc=await call('adminUser','GET','/api/consulting/admin/firms/'+ownerId+'/documents/'+ownerDoc.data.documents[0].id);assert.equal(adminDoc.status,200);assert.equal(adminDoc.data,'official registration file');
+ const verifyOwner=await call('adminUser','PATCH','/api/consulting/admin/firms/'+ownerId+'/verification',{body:{status:'verified',note:'تم التحقق من رقم التسجيل والوثيقة الرسمية'}});assert.equal(verifyOwner.status,200);
+ const verifyPeer=await call('adminUser','PATCH','/api/consulting/admin/firms/'+peerId+'/verification',{body:{status:'verified',note:'تم التحقق من رقم التسجيل والوثيقة الرسمية'}});assert.equal(verifyPeer.status,200);
+ const created=await call('officeTenderOwner','POST','/api/consulting/firm-tenders',{body:{title:'Geotechnical investigation and reporting',discipline:'geotechnical',country:'JO',location:'Amman',description:'Provide borehole investigations, laboratory tests, geotechnical interpretation and a signed design report.',scope:['Boreholes','Laboratory testing','Final report'],currency:'JOD',budgetMin:3000,budgetMax:6000,closingDate:'2099-01-01',technicalThreshold:50}});
+ assert.equal(created.status,201,JSON.stringify(created.data));const tenderId=created.data.tender.id;
+ const ownMarket=await call('officeTenderOwner','GET','/api/consulting/firm-tenders/market');assert.equal(ownMarket.status,200);assert.ok(!ownMarket.data.tenders.some(x=>x.id===tenderId));
+ const peerMarket=await call('officeTenderPeer','GET','/api/consulting/firm-tenders/market');assert.ok(peerMarket.data.tenders.some(x=>x.id===tenderId));
+ const submitted=await call('officeTenderPeer','POST','/api/consulting/firm-tenders/'+tenderId+'/proposals',{body:{technicalSummary:'Our geotechnical team has relevant investigation and design experience for major infrastructure projects.',methodology:'Execute field investigations, laboratory tests, engineering interpretation and prepare the signed report.',teamSummary:'Geotechnical lead, drilling supervisor and laboratory engineer.',financialAmount:4200,currency:'JOD',durationDays:30}});
+ assert.equal(submitted.status,201,JSON.stringify(submitted.data));
+ const competitorCannotSee=await call('officeTenderPeer','GET','/api/consulting/firm-tenders/'+tenderId+'/proposals');assert.equal(competitorCannotSee.status,404);
+ let bids=await call('officeTenderOwner','GET','/api/consulting/firm-tenders/'+tenderId+'/proposals');assert.equal(bids.status,200);assert.equal(bids.data.proposals.length,1);assert.equal(bids.data.proposals[0].financialOpened,false);assert.equal(bids.data.proposals[0].financial_amount,undefined);
+ const fail=await call('officeTenderOwner','PATCH','/api/consulting/firm-tender-proposals/'+submitted.data.proposal.id+'/evaluation',{body:{technicalScore:45}});assert.equal(fail.status,200);assert.equal(fail.data.status,'rejected');
+ bids=await call('officeTenderOwner','GET','/api/consulting/firm-tenders/'+tenderId+'/proposals');assert.equal(bids.data.proposals[0].financialOpened,false);assert.equal(bids.data.proposals[0].financial_amount,undefined);
+ const pass=await call('officeTenderOwner','PATCH','/api/consulting/firm-tender-proposals/'+submitted.data.proposal.id+'/evaluation',{body:{technicalScore:82}});assert.equal(pass.status,200);assert.equal(pass.data.status,'qualified');assert.equal(pass.data.financialOpened,true);
+ bids=await call('officeTenderOwner','GET','/api/consulting/firm-tenders/'+tenderId+'/proposals');assert.equal(bids.data.proposals[0].financialOpened,true);assert.equal(bids.data.proposals[0].financial_amount,4200);
+ const award=await call('officeTenderOwner','POST','/api/consulting/firm-tenders/'+tenderId+'/award',{body:{proposalId:submitted.data.proposal.id,contractReference:'SUB-TEST-1001'}});assert.equal(award.status,201,JSON.stringify(award.data));
+ const ownerContracts=await call('officeTenderOwner','GET','/api/consulting/firm-subcontracts');assert.equal(ownerContracts.status,200);assert.equal(ownerContracts.data.contracts.length,1);
+ const peerContracts=await call('officeTenderPeer','GET','/api/consulting/firm-subcontracts');assert.equal(peerContracts.status,200);assert.equal(peerContracts.data.contracts.length,1);
+ const closedMarket=await call('officeTenderPeer','GET','/api/consulting/firm-tenders/market');assert.ok(!closedMarket.data.tenders.some(x=>x.id===tenderId));
 });
