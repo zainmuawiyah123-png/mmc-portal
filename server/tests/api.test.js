@@ -585,93 +585,45 @@ test('54 — سلسلة كاملة كما تفعل الواجهة: إنشاء ث
 });
 
 /* ==========================================================
-   باقات المشتريات: تجربة 14 يوماً ثم الدفع والتفعيل
+   بوابة المشتريات: مجانية دائمة دون اشتراك أو تجربة
    ========================================================== */
 const reqs4 = () => [{ title: 'الخبرة', weight: 50, mandatory: true }, { title: 'المنهجية', weight: 50, mandatory: false }];
 const mkTender = (who, n) => call(who, 'POST', '/api/procurement/tenders', { body: { name: 'عطاء ' + n, reference: 'R-' + uniq(), requirements: reqs4() } });
 
-test('55 — باقات المشتريات الثلاث وأسعارها', async () => {
+test('55 — لا تعرض المنصة باقات مدفوعة لبوابة المشتريات', async () => {
   const r = await call('anon', 'GET', '/api/billing/plans?audience=buyer');
   assert.strictEqual(r.status, 200);
-  assert.deepStrictEqual(r.data.plans.map((p) => p.key), ['proc_basic', 'proc_pro', 'proc_ent']);
-  assert.deepStrictEqual(r.data.plans.map((p) => p.priceMonth), [49, 149, 399]);
-  assert.deepStrictEqual(r.data.plans.map((p) => p.maxUsers), [3, 10, null]);
-  assert.strictEqual(r.data.plans[0].maxTenders, 10);
-  assert.strictEqual(r.data.plans[1].maxTenders, null);
-  assert.ok(r.data.plans.every((p) => p.trialDays === 14));
+  assert.deepStrictEqual(r.data.plans, []);
+  assert.strictEqual(r.data.buyerCoreFree, true);
 });
 
-test('56 — مقاول لا يستطيع بدء تجربة أو فاتورة باقة مشتريات', async () => {
+test('56 — لا يستطيع حساب المشتريات بدء تجربة أو إصدار فاتورة اشتراك', async () => {
+  await call('buy', 'POST', '/api/auth/register', { body: { name: 'مشتريات', email: 'b' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  const me = await call('buy', 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.user.planKey, 'free');
+  assert.strictEqual(me.data.plan.plan.key, 'free');
+  assert.strictEqual((await call('buy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } })).status, 403);
+  assert.strictEqual((await call('buy', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_pro' } })).status, 403);
+  assert.strictEqual((await call('buy', 'GET', '/api/billing/invoices')).data.count, 0);
+});
+
+test('57 — تبقى عمليات المشتريات الأساسية متاحة دون حد عطاءات أو اشتراك', async () => {
+  await call('free', 'POST', '/api/auth/register', { body: { name: 'جهة مجانية', email: 'f' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
+  for (let i = 0; i < 15; i++) {
+    const created = await mkTender('free', i + 1);
+    assert.strictEqual(created.status, 201, JSON.stringify(created.data));
+  }
+  const me = await call('free', 'GET', '/api/auth/me');
+  assert.strictEqual(me.data.plan.plan.key, 'free');
+  assert.strictEqual(me.data.plan.plan.maxTenders, null);
+  assert.strictEqual(me.data.plan.plan.maxBytes, null);
+  assert.strictEqual(me.data.plan.usage.tenders, 15);
+});
+
+test('58 — المقاول لا يستطيع استخدام باقات المشتريات أو تجربتها', async () => {
   await call('con', 'POST', '/api/auth/register', { body: { name: 'مقاول', email: 'c' + uniq() + '@t.com', password: 'Password123' } });
   assert.strictEqual((await call('con', 'POST', '/api/billing/trial', { body: { planKey: 'proc_basic' } })).status, 403);
   assert.strictEqual((await call('con', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_pro' } })).status, 403);
-});
-
-test('57 — تجربة 14 يوماً تفتح الباقة مرة واحدة فقط', async () => {
-  await call('buy', 'POST', '/api/auth/register', { body: { name: 'مشتريات', email: 'b' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  const t = await call('buy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
-  assert.strictEqual(t.status, 201, JSON.stringify(t.data));
-  const me = await call('buy', 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'proc_pro');
-  const days = Math.round((me.data.plan.subscription.endsAt - Date.now() / 1000) / 86400);
-  assert.strictEqual(days, 14);
-  assert.strictEqual(me.data.plan.subscription.source, 'trial');
-  assert.strictEqual((await call('buy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_basic' } })).status, 409);
-});
-
-test('58 — الباقة المجانية تحدّ المشتريات بعطاء واحد، وBasic بعشرة', async () => {
-  await call('free', 'POST', '/api/auth/register', { body: { name: 'مجاني', email: 'f' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  assert.strictEqual((await mkTender('free', 1)).status, 201);
-  assert.strictEqual((await mkTender('free', 2)).status, 403, 'العطاء الثاني يتجاوز الحد');
-  await call('free', 'POST', '/api/billing/trial', { body: { planKey: 'proc_basic' } });
-  // عطاء واحد منشور سابقاً + 9 جديدة = 10 (حد Basic)
-  for (let i = 0; i < 9; i++) assert.strictEqual((await mkTender('free', 10 + i)).status, 201);
-  assert.strictEqual((await mkTender('free', 99)).status, 403);
-});
-
-test('59 — انتهاء التجربة يعيد المستخدم للمجانية فوراً', async () => {
-  const email = 'x' + uniq() + '@t.com';
-  await call('exp', 'POST', '/api/auth/register', { body: { name: 'منتهي', email, password: 'Password123', role: 'buyer' } });
-  await call('exp', 'POST', '/api/billing/trial', { body: { planKey: 'proc_ent' } });
-  getDB().prepare("UPDATE subscriptions SET ends_at = unixepoch() - 10 WHERE source='trial' AND plan_key='proc_ent' AND user_id=(SELECT id FROM users WHERE email=?)").run(email);
-  const me = await call('exp', 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'free');
-});
-
-test('60 — الدفع: فاتورة + إيصال + سعر خاص + اعتماد المدير يفتح الباقة', async () => {
-  const email = 'p' + uniq() + '@t.com';
-  await call('pay', 'POST', '/api/auth/register', { body: { name: 'دافع', email, password: 'Password123', role: 'buyer' } });
-  const inv = await call('pay', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_ent', billingCycle: 'monthly', currency: 'USD' } });
-  assert.strictEqual(inv.status, 201, JSON.stringify(inv.data));
-  assert.strictEqual(inv.data.invoice.amount, 399);
-  const id = inv.data.invoice.id;
-  // لا اعتماد قبل رفع الإيصال، والباقة ما زالت مغلقة
-  const adminEmail = 'a' + uniq() + '@t.com';
-  await call('adm', 'POST', '/api/auth/register', { body: { name: 'مدير', email: adminEmail, password: 'Password123' } });
-  getDB().prepare("UPDATE users SET role='admin' WHERE email=?").run(adminEmail);
-  await call('adm', 'POST', '/api/auth/login', { body: { email: adminEmail, password: 'Password123' } });
-  assert.strictEqual((await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/approve', { body: {} })).status, 409);
-  assert.strictEqual((await call('pay', 'GET', '/api/auth/me')).data.plan.plan.key, 'free');
-  // غير المدير لا يعدّل السعر
-  assert.strictEqual((await call('pay', 'POST', '/api/billing/admin/invoices/' + id + '/amount', { body: { amount: 1 } })).status, 403);
-  // سعر خاص ثم إيصال ثم اعتماد
-  assert.strictEqual((await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/amount', { body: { amount: 520 } })).status, 200);
-  const fd = new FormData();
-  fd.append('receipt', new Blob(['%PDF-1.4 receipt'], { type: 'application/pdf' }), 'receipt.pdf');
-  assert.strictEqual((await call('pay', 'POST', '/api/billing/invoices/' + id + '/receipt', { form: fd })).status, 422);
-  fd.append('transferReference', 'CLQ-123456');
-  fd.append('transferDate', '2026-11-05');
-  assert.strictEqual((await call('pay', 'POST', '/api/billing/invoices/' + id + '/receipt', { form: fd })).status, 201);
-  const ok = await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/approve', { body: {} });
-  assert.strictEqual(ok.status, 200, JSON.stringify(ok.data));
-  const me = await call('pay', 'GET', '/api/auth/me');
-  assert.strictEqual(me.data.plan.plan.key, 'proc_ent');
-  assert.strictEqual(me.data.plan.subscription.source, 'manual');
-  const days = Math.round((me.data.plan.subscription.endsAt - Date.now() / 1000) / 86400);
-  assert.strictEqual(days, 30);
-  assert.strictEqual((await mkTender('pay', 1)).status, 201);
-  // لا تعديل للسعر بعد الدفع
-  assert.strictEqual((await call('adm', 'POST', '/api/billing/admin/invoices/' + id + '/amount', { body: { amount: 5 } })).status, 409);
 });
 
 test('61 — بيانات الدفع تُقرأ من الإعدادات وتُعرض عبر /api/payment-info', async () => {
