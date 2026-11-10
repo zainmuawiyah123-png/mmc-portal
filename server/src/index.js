@@ -25,6 +25,7 @@ const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
 const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
+const mmcAiRoutes = require('./routes/mmc-ai');
 
 function createApp() {
   const app = express();
@@ -99,6 +100,7 @@ function createApp() {
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
+  app.use('/api/mmc-ai', mmcAiRoutes);
   app.use('/api/committee', require('./routes/committee'));
 
   app.use('/api', (req, res) => {
