@@ -12,7 +12,7 @@ function decodeXml(v) {
 function tag(xml,name) {
  const re=new RegExp('<'+name+'[^>]*>([\\s\\S]*?)</'+name+'>','i');
  const m=String(xml||'').match(re);
- return m?decodeXml(m[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()):'';
+ return m?decodeXml(m[1]).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim():'';
 }
 function safeUrl(value) {
  try { const u=new URL(value); return u.protocol==='https:'&&(u.hostname==='vendorpanel.com.au'||u.hostname.endsWith('.vendorpanel.com.au'))?u.toString():''; } catch(_){return '';}
