@@ -74,7 +74,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const viewerUpload=await upload('ai-viewer',projectId,'plan.pdf',Buffer.from('%PDF-1.4\\n%%EOF'));
  assert.equal(viewerUpload.status,403);
  const badPdf=await upload('ai-owner',projectId,'fake.pdf',Buffer.from('not a pdf'));
- assert.equal(badPdf.status,400);
+ assert.equal(badPdf.status,422);
  const goodPdf=await upload('ai-owner',projectId,'structural-plan.pdf',Buffer.from('%PDF-1.4\\n1 0 obj\\n<<>>\\nendobj\\n%%EOF'));
  assert.equal(goodPdf.status,201,JSON.stringify(goodPdf.data));
  assert.equal(goodPdf.data.document.file_ext,'.pdf');
