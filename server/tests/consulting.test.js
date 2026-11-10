@@ -58,7 +58,7 @@ test('consulting marketplace isolates requester, proposals, award and contract b
  const firmId=secondFirm.data.firm.id;
  const verifyFirm=await call('adminUser','PATCH','/api/consulting/admin/firms/'+firmId+'/verification',{body:{status:'verified',note:'تمت مطابقة رقم التسجيل في السجل التجاري'}});
  assert.equal(verifyFirm.status,200);
- const briefList=await call('firmOwner','GET','/api/consulting/documents/request/'+requestId);assert.equal(briefList.status,200);assert.equal(briefList.data.documents.length,1);assert.equal(briefList.data.documents[0].kind,'technical');
+ const briefList=await call('firmOwner','GET','/api/consulting/documents/request/'+requestId);assert.equal(briefList.status,200);const forbiddenBriefUpload=await callUpload('firmOwner','/api/consulting/documents/request/'+requestId,'files','extra-scope.pdf','not allowed');assert.equal(forbiddenBriefUpload.status,403);assert.equal(briefList.data.documents.length,1);assert.equal(briefList.data.documents[0].kind,'technical');
  const briefDownload=await call('firmOwner','GET','/api/consulting/documents/'+briefList.data.documents[0].id+'/download');assert.equal(briefDownload.status,200);assert.equal(briefDownload.data,'consulting scope test pdf');
 
  const feed=await call('firmOwner','GET','/api/consulting/requests/open');assert.equal(feed.status,200);assert.ok(feed.data.requests.some(x=>x.id===requestId));
@@ -66,7 +66,7 @@ test('consulting marketplace isolates requester, proposals, award and contract b
  assert.equal(proposalA.status,201,JSON.stringify(proposalA.data));
  const proposalDoc=await callUpload('firmOwner','/api/consulting/documents/proposal/'+proposalA.data.proposal.id,'files','methodology.pdf','confidential proposal file');assert.equal(proposalDoc.status,201,JSON.stringify(proposalDoc.data));
  const competitorDocs=await call('secondConsultant','GET','/api/consulting/documents/proposal/'+proposalA.data.proposal.id);assert.equal(competitorDocs.status,404);
- const requesterPreAward=await call('requesterBuyer','GET','/api/consulting/documents/proposal/'+proposalA.data.proposal.id);assert.equal(requesterPreAward.status,404);
+ const requesterPreAward=await call('requesterBuyer','GET','/api/consulting/documents/proposal/'+proposalA.data.proposal.id);assert.equal(requesterPreAward.status,200);assert.equal(requesterPreAward.data.documents.length,1);const requesterCannotUploadCompetitorProposal=await callUpload('requesterBuyer','/api/consulting/documents/proposal/'+proposalA.data.proposal.id,'files','buyer-note.pdf','not allowed before award');assert.equal(requesterCannotUploadCompetitorProposal.status,403);
 
  const proposalB=await call('secondConsultant','POST','/api/consulting/requests/'+requestId+'/proposals',{body:{technicalSummary:'Our multidisciplinary office will deliver structural design review and infrastructure engineering services.',methodology:'Kickoff, design audit, technical submissions, coordination and supervision reporting.',teamSummary:'Technical manager, two design engineers and resident inspector.',financialAmount:22500,currency:'USD',durationDays:135}});
  assert.equal(proposalB.status,201,JSON.stringify(proposalB.data));
