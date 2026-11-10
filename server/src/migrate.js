@@ -1306,6 +1306,23 @@ function upgradeMmcAiProjects(db) {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_ai_bim_issues_project ON ai_bim_issues(project_id,status,severity);
+    CREATE TABLE IF NOT EXISTS ai_bim_models (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      original_name TEXT NOT NULL,
+      model_format TEXT NOT NULL CHECK(model_format IN ('ifc','glb')),
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),
+      sha256 TEXT NOT NULL,
+      storage_key TEXT NOT NULL UNIQUE,
+      model_reference TEXT,
+      discipline TEXT NOT NULL DEFAULT 'general',
+      processing_status TEXT NOT NULL DEFAULT 'uploaded' CHECK(processing_status IN ('uploaded','queued','processing','ready','failed','needs_review')),
+      processing_message TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_bim_models_project ON ai_bim_models(project_id,created_at DESC);
   `);
 }
 
