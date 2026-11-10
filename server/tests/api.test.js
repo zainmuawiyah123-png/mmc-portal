@@ -806,11 +806,11 @@ test('67 — دول الخليج: فواتير بالعملات المربوطة
   const amt = async (cur) => (await call('gcc', 'POST', '/api/billing/invoices', { body: { planKey: 'starter', billingCycle: 'monthly', currency: cur } }));
   assert.strictEqual((await amt('USD')).data.invoice.amount, 39);
   assert.strictEqual((await amt('SAR')).data.invoice.amount, 146.25);
-  assert.strictEqual((await amt('AED')).data.invoice.amount, 143.25);
+  assert.strictEqual((await amt('AED')).data.invoice.amount, 143.23);
   assert.strictEqual((await amt('QAR')).data.invoice.amount, 141.96);
   assert.strictEqual((await amt('BHD')).data.invoice.amount, 14.664);
-  assert.strictEqual((await amt('OMR')).data.invoice.amount, 15.027);
-  assert.strictEqual((await amt('JOD')).data.invoice.amount, 27.66);
+  assert.strictEqual((await amt('OMR')).data.invoice.amount, 14.996);
+  assert.strictEqual((await amt('JOD')).data.invoice.amount, 27.65);
   assert.strictEqual((await amt('KWD')).status, 422);
 });
 
