@@ -53,3 +53,8 @@ test('rejects negative ARC radius', () => {
   const ent = ['0','ARC','40','-2','50','0','51','90'].join('\\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /negative arc radius/i);
 });
+
+test('rejects incomplete LINE entities instead of defaulting missing coordinates to zero', () => {
+  const ent = ['0','LINE','10','0','20','0','11','6'].join('\\n');
+  assert.throws(() => takeoffDxf(dxf(ent)), /missing required DXF group code 21/i);
+});
