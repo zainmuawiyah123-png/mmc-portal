@@ -11,7 +11,7 @@ const storage=require('../lib/storage');
 const router=express.Router();
 const MAX_BYTES=12*1024*1024;
 const TYPES={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png'};
-const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:2,fieldSize:200},fileFilter(req,file,cb){
+const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:3,fieldSize:200},fileFilter(req,file,cb){
  const ext=path.extname(file.originalname||'').toLowerCase();
  if(!TYPES[ext])return cb(E.validation('صور المشروع تقبل JPG وPNG فقط.'));
  cb(null,true);
