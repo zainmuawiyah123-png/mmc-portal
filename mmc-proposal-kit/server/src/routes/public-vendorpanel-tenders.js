@@ -1,7 +1,6 @@
 'use strict';
 const express = require('express');
 const crypto = require('crypto');
-const router = express.Router();
 const FEED_URL = 'https://www.vendorpanel.com.au/PublicTendersRssV2.aspx?mode=all';
 const CACHE_MS = 5 * 60 * 1000;
 let cache = { at: 0, count: 0 };
