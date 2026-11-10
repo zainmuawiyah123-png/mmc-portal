@@ -9,11 +9,9 @@ on:
       - 'server/src/routes/mmc-ai-documents.js'
       - 'server/src/routes/mmc-ai-images.js'
       - 'webpages/mmc-ai/**'
-      - 'server/tests/mmc-ai-ui.test.js'
       - 'server/src/migrate.js'
       - 'server/src/index.js'
       - 'server/tests/mmc-ai-*.test.js'
-      - 'webpages/mmc-ai/**'
       - 'server/src/lib/storage/**'
       - 'server/package-lock.json'
       - '.github/workflows/mmc-ai-kernel.yml'
@@ -41,4 +39,4 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
       - run: npm ci
-      - run: node --test tests/mmc-ai-dxf-takeoff.test.js tests/mmc-ai-projects.test.js
+      - run: node --test tests/mmc-ai-dxf-takeoff.test.js tests/mmc-ai-projects.test.js tests/mmc-ai-ui.test.js
