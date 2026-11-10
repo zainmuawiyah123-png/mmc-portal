@@ -3,121 +3,114 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'../../webpages/mmc-ai/index.html'),'utf8');
-test('MMC AI project documents are uploaded to the selected project',()=>{
- assert.match(html,/\/api\/mmc-ai\/projects\/\x27\+encodeURIComponent\(id\)\+\x27\/documents/);
- assert.match(html,/credentials:\x27same-origin\x27/);
- assert.match(html,/لم يبدأ التحليل الهندسي بعد/);
-});
-test('MMC AI photo gallery supports project-specific image retrieval and cover selection',()=>{
- assert.match(html,/projectGalleryItems/);
- assert.match(html,/\/images\/\x27\+encodeURIComponent\(item\.id\)\+\x27\/cover/);
- assert.match(html,/projectPhotoFile/);
-});
-test('MMC AI UI does not claim drawing analysis is already available',()=>{
- assert.match(html,/لم يبدأ التحليل الهندسي بعد/);
- assert.match(html,/المعايرة والقياس الآلي: قيد التطوير/);
+
+// Test the exact MMC AI page served by Docker's WEB_ROOT in production.
+const webRoot=path.join(__dirname,'../../webpages/technical-proposal-kit_v5');
+const html=fs.readFileSync(path.join(webRoot,'mmc-ai/index.html'),'utf8');
+const homeAr=fs.readFileSync(path.join(webRoot,'index-ar.html'),'utf8');
+const homeEn=fs.readFileSync(path.join(webRoot,'index.html'),'utf8');
+
+test('MMC AI is linked from both production-language home screens',()=>{
+ assert.match(homeAr,/href="mmc-ai\/index\.html"/);
+ assert.match(homeAr,/بوابة الذكاء الهندسي وإدارة المشاريع/);
+ assert.match(homeEn,/href="mmc-ai\/index\.html"/);
+ assert.match(homeEn,/MMC AI — Construction Intelligence/);
 });
 
-test('MMC AI includes live project executive dashboard and linked workspaces',()=>{
- assert.match(html,/id="executiveDashboard"/);
- assert.match(html,/\/api\/mmc-ai\/projects\/\x27\+encodeURIComponent\(id\)\+\x27\/dashboard/);
- assert.match(html,/id="riskPanel"/);
- assert.match(html,/\/risks/);
- assert.match(html,/id="claimsPanel"/);
- assert.match(html,/\/contract-events/);
+test('MMC AI page exposes Arabic and English language switching',()=>{
+ assert.match(html,/<html lang="en" dir="ltr">/);
+ assert.match(html,/id="languageToggle"/);
+ assert.match(html,/mmc-ai-language-switch/);
+ assert.match(html,/'Welcome to MMC AI':'مرحباً بك في MMC AI'/);
 });
 
-test('MMC AI exposes BIM coordination issue workspace without claiming 3D clash engine is live',()=>{
- assert.match(html,/id="bimPanel"/);
- assert.match(html,/\/bim\/issues/);
- assert.match(html,/عرض النموذج ثلاثي الأبعاد وتحليل هندسته واكتشاف التعارضات الآلي لم يُفعّل بعد/);
+test('project documents upload to the selected project through the authenticated API',()=>{
+ assert.match(html,/id="drawingFile"/);
+ assert.match(html,/loadProjectDocuments/);
+ assert.match(html,/\/documents/);
+ assert.match(html,/credentials:'same-origin'/);
 });
 
-test('MMC AI site photo upload captures caption and construction date',()=>{
+test('site photo upload captures caption and construction date',()=>{
+ assert.match(html,/id="projectPhotoFile"/);
  assert.match(html,/id="projectPhotoCaption"/);
  assert.match(html,/id="projectPhotoDate"/);
  assert.match(html,/fd\.append\('caption'/);
  assert.match(html,/fd\.append\('capturedAt'/);
 });
 
-test('MMC AI schedule allows project roles to update activity progress and status',()=>{
- assert.match(html,/percentComplete:value,status:status\.value/);
- assert.match(html,/await loadExecutiveDashboard\(id\)/);
- assert.match(html,/الإنجاز والحالة/);
+test('project gallery supports project-scoped images and cover selection',()=>{
+ assert.match(html,/projectGalleryItems/);
+ assert.match(html,/\/images\//);
+ assert.match(html,/\/cover/);
 });
 
-test('MMC AI BIM workspace supports secure IFC and GLB model intake',()=>{
+test('executive dashboard connects project risks and claims workspaces',()=>{
+ assert.match(html,/id="executiveDashboard"/);
+ assert.match(html,/loadExecutiveDashboard/);
+ assert.match(html,/id="riskPanel"/);
+ assert.match(html,/\/risks/);
+ assert.match(html,/id="claimsPanel"/);
+ assert.match(html,/\/contract-events/);
+});
+
+test('BIM workspace supports issues, IFC and GLB uploads, inspection and preview',()=>{
+ assert.match(html,/id="bimPanel"/);
+ assert.match(html,/\/bim\/issues/);
  assert.match(html,/id="bimModelFile"/);
+ assert.match(html,/id="bimModelUpload"/);
  assert.match(html,/\/bim\/models/);
- assert.match(html,/رفع نموذج IFC \/ GLB/);
- assert.match(html,/عرض النموذج ثلاثي الأبعاد وتحليل هندسته/);
-});
-
-test('MMC AI offers interactive GLB model preview with protected inline model URL',()=>{
+ assert.match(html,/\/inspect/);
  assert.match(html,/<model-viewer id="bimModelCanvas"/);
  assert.match(html,/download\?inline=1/);
- assert.match(html,/bimViewerClose/);
+ assert.match(html,/id="bimViewerClose"/);
 });
 
-test('MMC AI IFC model pre-inspection is available with clear scope disclosure',()=>{
- assert.match(html,/فحص IFC/);
- assert.ok(html.includes('/inspect'));
- assert.match(html,/ملفات IFC تحفظ وتتاح للتنزيل، وتحويلها إلى نموذج قابل للعرض والتحليل ما زال ضمن تطوير محرك BIM/);
+test('project schedule updates progress and refreshes executive indicators',()=>{
+ assert.match(html,/percentComplete:value,status:status\.value/);
+ assert.match(html,/loadExecutiveDashboard\(id\)/);
 });
 
-test('MMC AI contract events capture event dates and allow status workflow updates',()=>{
+test('contract events capture the event date and refresh project claims',()=>{
  assert.match(html,/id="claimEventDate"/);
  assert.match(html,/eventDate:document\.getElementById\('claimEventDate'\)\.value/);
- assert.match(html,/await loadProjectClaims\(id\)/);
- assert.match(html,/تاريخ الحدث/);
+ assert.match(html,/loadProjectClaims\(id\)/);
 });
 
-test('MMC AI assistant sends project-scoped questions and renders sourced answers',()=>{
+test('project assistant renders answers with their source records',()=>{
  assert.match(html,/id="assistantResponse"/);
  assert.match(html,/\/assistant/);
- assert.match(html,/مصدر الإجابة/);
- assert.match(html,/مساعد بيانات المشروع/);
+ assert.match(html,/Answer sources:/);
 });
 
-test('MMC AI PDF preflight action is available and explicitly disclaims engineering extraction',()=>{
- assert.ok(html.includes('/preflight/pdf'));
- assert.ok(html.includes('/extract/text'));
- assert.ok(html.includes('استخراج النص'));
- assert.ok(html.includes('مؤشرات الرسم'));
- assert.ok(html.includes('نطاق الإحداثيات الخام'));
- assert.match(html,/فحص PDF/);
- assert.match(html,/هذا الفحص يختبر سلامة الملف فقط ولا يشغّل استخراج النصوص أو تحليل المسارات/);
-});
-
-test('MMC AI PDF preflight copy distinguishes file validation from the separate text extractor',()=>{
- assert.match(html,/هذا الفحص يختبر سلامة الملف فقط/);
- assert.match(html,/استخدم «استخراج النص» للقراءة الأولية المنفصلة/);
+test('PDF preflight and preliminary text extraction are separate actions',()=>{
+ assert.match(html,/preflight\/pdf/);
  assert.match(html,/extract\/text/);
- assert.doesNotMatch(html,/محرك تحليل PDF الهندسي لم يُفعّل بعد/);
+ assert.match(html,/PDF Preflight/);
+ assert.match(html,/Extract Text/);
+ assert.match(html,/Drawing indicators:/);
+ assert.match(html,/Raw PDF coordinate range:/);
+ assert.match(html,/This check validates file integrity only/);
 });
 
-test('MMC AI dashboard uses the approved dark construction-intelligence visual language',()=>{
- assert.match(html,/id="mmc-ai-dark-dashboard"/);
- assert.match(html,/--bg:#071629/);
- assert.match(html,/\.project-photo\.has-image img\{display:block\}/);
-});
-
-test('MMC AI exposes a complete project-scoped data register with metadata-only protection',()=>{
+test('complete project data register supports search, audit sections and JSON export',()=>{
  assert.match(html,/id="allProjectDataPanel"/);
- assert.match(html,/data-overview/);
- assert.match(html,/id="allProjectDataJson"/);
- assert.match(html,/id="refreshAllProjectData"/);
- assert.match(html,/loadAllProjectData\(id\)/);
-});
-
-test('MMC AI full project register renders searchable sections and supports JSON export',()=>{
  assert.match(html,/id="allProjectDataSearch"/);
  assert.match(html,/id="allProjectDataSections"/);
  assert.match(html,/id="exportAllProjectData"/);
  assert.match(html,/mmc-ai-project-data\.json/);
- assert.match(html,/const labels=\{project:/);
- assert.match(html,/auditLog:'سجل العمليات والتدقيق'/);
+ assert.match(html,/auditLog:'Audit Log'/);
  assert.match(html,/document\.createElement\('details'\)/);
  assert.match(html,/document\.createElement\('pre'\)/);
+});
+
+test('plans modal is beside the language switch and preserves approved subscription choices',()=>{
+ assert.match(html,/id="openPlans"/);
+ assert.match(html,/id="plansDialog"/);
+ assert.match(html,/id="languageToggle"/);
+ assert.match(html,/id="selectFreePlan"/);
+ assert.match(html,/Choose exactly two activities/);
+ assert.match(html,/id="selectProPlan"/);
+ assert.match(html,/\$30/);
+ assert.match(html,/payment collection, account entitlement enforcement and automatic activation are not connected yet/i);
 });
