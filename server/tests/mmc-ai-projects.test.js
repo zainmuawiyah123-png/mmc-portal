@@ -135,6 +135,18 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(outsiderSchedule.status,404);
  const dependentDelete=await call('ai-owner','DELETE','/api/mmc-ai/projects/'+projectId+'/schedule/tasks/'+taskA.data.task.id,{});
  assert.equal(dependentDelete.status,409);
+ const riskCreate=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/risks',{title:'Unexpected groundwater',category:'technical',description:'Groundwater level higher than the design assumption.',probability:4,impact:5,mitigation:'Conduct pumping trial and submit revised method statement.'});
+ assert.equal(riskCreate.status,201,JSON.stringify(riskCreate.data));assert.equal(riskCreate.data.risk.score,20);assert.equal(riskCreate.data.risk.level,'critical');
+ const riskList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/risks');assert.equal(riskList.status,200);assert.equal(riskList.data.summary.critical,1);
+ const riskViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/risks',{title:'Not allowed',description:'Viewer cannot add risks',probability:1,impact:1});assert.equal(riskViewer.status,403);
+ const riskUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/risks/'+riskCreate.data.risk.id,{probability:2,impact:2,status:'mitigating'});assert.equal(riskUpdate.status,200);assert.equal(riskUpdate.data.risk.score,4);
+ const riskOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/risks');assert.equal(riskOutsider.status,404);
+ const eventCreate=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/contract-events',{title:'Late access to work area',fidicClause:'8.4',noticeDate:'2026-11-10',eventDate:'2026-11-09',particulars:'The work area was not handed over on the agreed date; site records and correspondence retained.',timeImpactDays:12,costImpact:8500,currency:'JOD'});
+ assert.equal(eventCreate.status,201,JSON.stringify(eventCreate.data));assert.equal(eventCreate.data.event.fidic_clause,'8.4');
+ const eventList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/contract-events');assert.equal(eventList.status,200);assert.equal(eventList.data.summary.timeImpactDays,12);assert.equal(eventList.data.summary.costImpact,8500);
+ const eventViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/contract-events',{title:'Not allowed',particulars:'Viewer cannot submit contractual events'});assert.equal(eventViewer.status,403);
+ const eventUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/contract-events/'+eventCreate.data.event.id,{status:'notice_sent'});assert.equal(eventUpdate.status,200);assert.equal(eventUpdate.data.event.status,'notice_sent');
+ const eventOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/contract-events');assert.equal(eventOutsider.status,404);
  const pdfTakeoff=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/takeoff/dxf',{});
  assert.equal(pdfTakeoff.status,422);
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
