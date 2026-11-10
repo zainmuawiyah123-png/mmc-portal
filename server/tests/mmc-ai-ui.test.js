@@ -46,3 +46,10 @@ test('MMC AI schedule allows project roles to update activity progress and statu
  assert.match(html,/await loadExecutiveDashboard\(id\)/);
  assert.match(html,/الإنجاز والحالة/);
 });
+
+test('MMC AI BIM workspace supports secure IFC and GLB model intake',()=>{
+ assert.match(html,/id="bimModelFile"/);
+ assert.match(html,/\/bim\/models/);
+ assert.match(html,/رفع نموذج IFC \/ GLB/);
+ assert.match(html,/عرض النموذج ثلاثي الأبعاد وتحليل هندسته/);
+});
