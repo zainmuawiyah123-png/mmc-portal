@@ -58,7 +58,7 @@ function ownInvoice(req, id) {
 }
 
 function isConsultingFirmMember(user) { return !!(user && user.role === 'consultant' && getDB().prepare("SELECT 1 FROM consulting_firm_members WHERE user_id=?").get(user.id)); }
-function audienceFor(user) { return user.role === 'buyer' ? 'buyer' : isConsultingFirmMember(user) ? 'consultant' : 'contractor'; }
+function audienceFor(user) { return user.role === 'buyer' ? 'buyer' : user.role === 'consultant' ? 'consultant' : 'contractor'; }
 function shapePlan(p) {
   return { key: p.key, nameAr: p.name_ar, nameEn: p.name_en, audience: p.audience,
     maxTenders: p.max_tenders === -1 ? null : p.max_tenders, maxSubmissions: p.max_submissions === -1 ? null : p.max_submissions, maxUsers: p.max_users === -1 ? null : p.max_users,
