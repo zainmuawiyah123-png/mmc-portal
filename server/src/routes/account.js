@@ -52,6 +52,11 @@ router.get('/plans', auth, wrap(async (req, res) => {
     return res.json({ plans: [{ key: 'free', nameAr: free.nameAr, nameEn: free.nameEn,
       maxTenders: null, maxSubmissions: null, maxBytes: null, priceMonth: 0, priceYear: 0, sortOrder: 0 }], buyerCoreFree: true });
   }
+  if (req.user.role === 'consultant') {
+    const free = A.planAndUsage(req.user.id).plan;
+    return res.json({ plans: [{ key: 'free', nameAr: 'الباقة الأساسية', nameEn: 'Basic', priceMonth: 0, priceYear: 0 }], consultantBaseFree: true,
+      consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false } });
+  }
   const rows = getDB().prepare("SELECT * FROM plans WHERE audience = 'contractor' OR key = 'free' ORDER BY sort_order").all();
   res.json({ plans: rows.map((p) => ({
     key: p.key, nameAr: p.name_ar, nameEn: p.name_en,
@@ -72,6 +77,7 @@ router.get('/usage', auth, wrap(async (req, res) => {
 ------------------------------------------------------------ */
 router.post('/plan', auth, wrap(async (req, res) => {
   if (req.user.role === 'buyer') throw E.forbidden('بوابة المشتريات الأساسية مجانية دائماً ولا يمكن تغييرها إلى باقة مدفوعة.');
+  if (req.user.role === 'consultant') throw E.forbidden('تُدار باقات المكاتب الاستشارية في بوابتها المستقلة، ولا يمكن تغييرها من باقات المقاولين.');
   const body = parse(planChangeSchema, req.body);
   if (body.planKey !== 'free') throw E.forbidden('لا يمكن تفعيل باقة مدفوعة يدوياً. أنشئ فاتورة من صفحة الاشتراكات، ويُفعّل الاشتراك بعد اعتماد الدفع.');
   const db = getDB();
@@ -108,6 +114,7 @@ router.post('/plan', auth, wrap(async (req, res) => {
 /* ---------------- طلب تسجيل اهتمام (صفحة ترقية الباقة) ---------------- */
 router.post('/upgrade-interest', auth, wrap(async (req, res) => {
   if (req.user.role === 'buyer') throw E.forbidden('لا توجد باقات اشتراك لبوابة المشتريات الأساسية.');
+  if (req.user.role === 'consultant') throw E.forbidden('لا يُسجَّل اهتمام المكاتب الاستشارية عبر باقات المقاولين.');
   const planKey = String((req.body && req.body.planKey) || '').slice(0, 20);
   // في هذه المرحلة نسجّل الاهتمام فقط، بلا دفع
   console.log('[upgrade-interest]', req.user.email, planKey, new Date().toISOString());
