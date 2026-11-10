@@ -783,6 +783,54 @@ function upgradeOpportunityWatch(db) {
   `);
 }
 
+
+/**
+ * Independent consulting-firm identity and membership.
+ * Additive/idempotent only. Does not reuse buyer organizations or evaluator assignments.
+ */
+function upgradeConsultingPortal(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS consulting_firms (
+      id TEXT PRIMARY KEY,
+      legal_name TEXT NOT NULL,
+      country TEXT NOT NULL CHECK(country IN ('JO','SA','AE')),
+      registration_number TEXT NOT NULL,
+      identity_key TEXT NOT NULL UNIQUE,
+      contact_email TEXT NOT NULL,
+      contact_phone TEXT NOT NULL,
+      specializations_json TEXT NOT NULL DEFAULT '[]',
+      experience_summary TEXT,
+      website TEXT,
+      verification_status TEXT NOT NULL DEFAULT 'pending' CHECK(verification_status IN ('pending','verified','rejected','suspended')),
+      verification_note TEXT,
+      verified_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      verified_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS consulting_firm_members (
+      id TEXT PRIMARY KEY,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      member_role TEXT NOT NULL DEFAULT 'owner' CHECK(member_role IN ('owner','manager','staff')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','invited','suspended')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(firm_id,user_id)
+    );
+    CREATE TABLE IF NOT EXISTS consulting_firm_verification_events (
+      id TEXT PRIMARY KEY,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL CHECK(action IN ('submitted','verified','rejected','suspended','reopened')),
+      note TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_firms_status ON consulting_firms(verification_status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_members_firm ON consulting_firm_members(firm_id, status);
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_events_firm ON consulting_firm_verification_events(firm_id, created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -816,6 +864,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeCommitteeAndMail(db);
   upgradeEInvoice(db);
   upgradeOpportunityWatch(db);
+  upgradeConsultingPortal(db);
 
   return db;
 }
