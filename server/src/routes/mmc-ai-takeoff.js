@@ -23,13 +23,12 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
  const raw=await store.get(doc.storage_key);
  if(!Buffer.isBuffer(raw))throw E.validation('تعذر قراءة ملف DXF من التخزين.');
  const result=takeoffDxf(raw.toString('utf8'));
- const runId=uid('aitake_');
+ const runId=uid('aitake_'),savedRows=[];
  db.transaction(()=>{
   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
    VALUES(?,?,?,?,?,'needs_review',?,?,?)`).run(runId,doc.project_id,doc.id,req.user.id,result.engine,JSON.stringify(result.units),JSON.stringify(result.summary),JSON.stringify(result.unsupported));
   const add=db.prepare(`INSERT INTO ai_takeoff_items(id,run_id,entity_index,entity_type,layer_name,quantity,unit,detail_json)
    VALUES(?,?,?,?,?,?,?,?)`);
-  const savedRows=[];
   for(const row of result.rows){const itemId=uid('aitem_');add.run(itemId,runId,row.entityIndex,row.entity,row.layer||'0',row.quantity,row.unit,JSON.stringify(row));savedRows.push({...row,id:itemId,review_status:'needs_review'});}
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
    VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'dxf_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,items:result.rows.length}));
