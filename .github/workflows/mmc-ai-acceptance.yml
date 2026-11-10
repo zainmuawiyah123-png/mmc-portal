@@ -1,0 +1,38 @@
+name: MMC AI acceptance tests
+on:
+  push:
+    branches:
+      - feature/mmc-ai-construction-intelligence
+    paths:
+      - 'server/**'
+      - 'webpages/mmc-ai/**'
+      - '.github/workflows/mmc-ai-acceptance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mmc-ai-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run MMC AI acceptance suite
+        run: >-
+          node --test
+          tests/mmc-ai-ui.test.js
+          tests/mmc-ai-dxf-takeoff.test.js
+          tests/mmc-ai-projects.test.js
+          tests/mmc-ai-schedule-engine.test.js
+          tests/mmc-ai-ifc-inspector.test.js
+          tests/mmc-ai-pdf-preflight.test.js
