@@ -72,3 +72,10 @@ test('MMC AI contract events capture event dates and allow status workflow updat
  assert.match(html,/await loadProjectClaims\(id\)/);
  assert.match(html,/تاريخ الحدث/);
 });
+
+test('MMC AI assistant sends project-scoped questions and renders sourced answers',()=>{
+ assert.match(html,/id="assistantResponse"/);
+ assert.match(html,/\/assistant/);
+ assert.match(html,/مصدر الإجابة/);
+ assert.match(html,/مساعد بيانات المشروع/);
+});
