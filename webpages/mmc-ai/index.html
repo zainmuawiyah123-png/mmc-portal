@@ -384,6 +384,19 @@ html{scroll-behavior:smooth;scroll-padding-top:82px}section[id],.panel[id]{scrol
       output.append(title,detail,limitation);notify('اكتمل فحص سلامة PDF الأولي فقط.');
      }catch(err){notify(err.message);}finally{check.disabled=false;check.textContent='فحص PDF';}});
      actions.appendChild(check);
+     const extract=document.createElement('button');extract.type='button';extract.textContent='استخراج النص';extract.style.cssText='border:1px solid #d8cba8;border-radius:7px;padding:7px 10px;background:#fff9eb;color:#8a641b;font-size:10px;cursor:pointer';
+     extract.addEventListener('click',async()=>{extract.disabled=true;extract.textContent='جارٍ الاستخراج...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/extract/text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'تعذر استخراج النص.');
+      const result=data.result,output=document.getElementById('takeoffResult');output.replaceChildren();
+      const title=document.createElement('strong');title.textContent='استخراج نص PDF — نتيجة أولية';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='الحالة: '+result.status+' · الصفحات: '+(result.pageCount??'غير محدد')+' · الأحرف: '+result.characterCount;
+      const body=document.createElement('pre');body.textContent=result.text||'لم يُعثر على نص قابل للاستخراج. قد يكون المخطط ممسوحاً ضوئياً ويحتاج OCR.';body.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto;background:#f7f9fb;padding:10px;border-radius:7px;font-size:11px;line-height:1.8';
+      const limitation=document.createElement('p');limitation.textContent='تنبيه: هذه قراءة نصية أولية فقط، وليست OCR أو تحليلاً للأبعاد أو حصر كميات.';
+      limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      output.append(title,summary,body,limitation);notify('اكتمل استخراج النص الأولي من PDF.');
+     }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='استخراج النص';}});
+     actions.appendChild(extract);
     }
     if(d.file_ext==='.dxf'){
      const take=document.createElement('button');take.type='button';take.textContent='حصر DXF';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
