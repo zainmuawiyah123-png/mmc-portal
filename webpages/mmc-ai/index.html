@@ -101,6 +101,37 @@
    <div class="tablewrap"><table style="width:100%"><thead><tr><th>النشاط</th><th>المدة</th><th>الأنشطة السابقة</th><th>البداية المبكرة</th><th>النهاية المبكرة</th><th>السماح</th><th>المسار الحرج</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد أنشطة بعد.</td></tr></tbody></table></div>
    <p class="note">تحليل CPM الحالي يحسب أيام العمل ومدد الاعتماد فقط؛ لا يطبق العطل الرسمية أو تقاويم الورديات أو قيود الموارد.</p>
   </div></section>
+  <section class="panel" id="riskPanel" style="margin:18px 0"><div class="panelhead"><h2>سجل المخاطر وإدارتها</h2><span>PROJECT RISK REGISTER</span></div><div style="padding:14px">
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input id="riskTitle" placeholder="عنوان الخطر" style="flex:2;min-width:180px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <select id="riskCategory" style="flex:1;min-width:130px;padding:9px;border:1px solid var(--line);border-radius:7px"><option value="technical">فني</option><option value="schedule">زمني</option><option value="cost">مالي</option><option value="safety">سلامة</option><option value="environmental">بيئي</option><option value="contractual">تعاقدي</option></select>
+    <select id="riskProbability" style="flex:1;min-width:110px;padding:9px;border:1px solid var(--line);border-radius:7px"><option value="1">احتمالية 1</option><option value="2">احتمالية 2</option><option value="3" selected>احتمالية 3</option><option value="4">احتمالية 4</option><option value="5">احتمالية 5</option></select>
+    <select id="riskImpact" style="flex:1;min-width:100px;padding:9px;border:1px solid var(--line);border-radius:7px"><option value="1">أثر 1</option><option value="2">أثر 2</option><option value="3" selected>أثر 3</option><option value="4">أثر 4</option><option value="5">أثر 5</option></select>
+   </div>
+   <textarea id="riskDescription" placeholder="وصف الخطر وتأثيره المحتمل" rows="2" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
+   <textarea id="riskMitigation" placeholder="إجراءات التخفيف والاستجابة" rows="2" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
+   <button id="riskAdd" type="button" class="btn primary">＋ تسجيل الخطر</button>
+   <div id="riskSummary" class="note" style="margin-top:12px">اختر مشروعاً لعرض المخاطر.</div>
+   <div class="tablewrap"><table style="width:100%"><thead><tr><th>الخطر</th><th>التصنيف</th><th>الاحتمالية</th><th>الأثر</th><th>الدرجة</th><th>المستوى</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="riskRows"><tr><td colspan="8" style="text-align:center;padding:18px">لا توجد مخاطر مسجلة.</td></tr></tbody></table></div>
+   <p class="note">درجة الخطر = الاحتمالية × الأثر (1–25). التصنيف مؤشر إداري أولي ويحتاج اعتماد مدير المشروع.</p>
+  </div></section>
+  <section class="panel" id="claimsPanel" style="margin:18px 0"><div class="panelhead"><h2>الأحداث التعاقدية والمطالبات</h2><span>FIDIC · CONTRACT & CLAIMS INTELLIGENCE</span></div><div style="padding:14px">
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input id="claimTitle" placeholder="عنوان الحدث / المطالبة" style="flex:2;min-width:190px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <input id="claimClause" placeholder="مرجع بند FIDIC (اختياري)" style="flex:1;min-width:150px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <input id="claimNoticeDate" type="date" title="تاريخ الإشعار" style="flex:1;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:7px">
+   </div>
+   <textarea id="claimParticulars" placeholder="الوقائع والتفاصيل والمراسلات المرجعية" rows="3" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input id="claimDays" type="number" min="0" step="1" placeholder="الأثر الزمني (أيام)" style="flex:1;min-width:130px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <input id="claimCost" type="number" min="0" step="any" placeholder="الأثر المالي" style="flex:1;min-width:130px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <select id="claimCurrency" style="flex:1;min-width:90px;padding:9px;border:1px solid var(--line);border-radius:7px"><option>JOD</option><option>SAR</option><option>AED</option><option>USD</option></select>
+    <button id="claimAdd" type="button" class="btn primary">＋ تسجيل الحدث</button>
+   </div>
+   <div id="claimSummary" class="note">اختر مشروعاً لعرض الأحداث التعاقدية.</div>
+   <div class="tablewrap"><table style="width:100%"><thead><tr><th>الحدث</th><th>بند FIDIC</th><th>تاريخ الإشعار</th><th>الأثر الزمني</th><th>الأثر المالي</th><th>العملة</th><th>الحالة</th></tr></thead><tbody id="claimRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد أحداث مسجلة.</td></tr></tbody></table></div>
+   <p class="note">السجل يحفظ الوقائع والآثار والمراجع. لا يصدر رأياً قانونياً ولا يقرر استحقاق المطالبة أو الالتزام بمواعيد FIDIC تلقائياً.</p>
+  </div></section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>سجل حصر الكميات</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>البند</th><th>الوحدة</th><th>الكمية</th><th>الحالة</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">لا توجد كميات فعلية بعد. ستظهر النتائج هنا بعد تفعيل محرك القياس والتحقق الهندسي.</td></tr></tbody></table></div></section>
    <section class="panel"><div class="panelhead"><h2>مستندات ومخططات المشروع</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>ارفع مخططاً أو مستنداً إلى المشروع الحالي</strong><small>PDF · DXF · PNG · JPG<br>حتى 25 MB · تخزين خاص بالمشروع</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">اختر مشروعاً لعرض مستنداته.</p></div><p class="note">الرفع والحفظ الآمن متاحان. حالة المستند بعد الرفع «تم الاستلام»؛ لا ندّعي تحليله آلياً حتى اكتمال محرك PDF/DXF ومعايرة القياس.</p></div></section>
@@ -185,11 +216,27 @@
    if(!data.tasks.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='أضف أول نشاط للبدء ببناء البرنامج الزمني.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
+ async function loadProjectRisks(id){
+  const body=document.getElementById('riskRows'),summary=document.getElementById('riskSummary');body.replaceChildren();if(!id){summary.textContent='اختر مشروعاً لعرض المخاطر.';return;}
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/risks',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل سجل المخاطر.');
+   summary.textContent='إجمالي المخاطر: '+d.summary.total+' · حرجة: '+d.summary.critical+' · مرتفعة: '+d.summary.high+' · مفتوحة/قيد المعالجة: '+d.summary.open;
+   for(const x of d.risks){const tr=document.createElement('tr');for(const v of [x.title,x.category,x.probability,x.impact,x.score,x.level,x.status]){const td=document.createElement('td');td.textContent=String(v);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';if(v=== 'critical'||v==='high')td.style.color='#b45309';tr.appendChild(td);}const td=document.createElement('td'),b=document.createElement('button');b.type='button';b.textContent=x.status==='closed'?'إعادة فتح':'إغلاق';b.style.cssText='padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer';b.addEventListener('click',async()=>{const rr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/risks/'+encodeURIComponent(x.id),{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:x.status==='closed'?'open':'closed'})});const dd=await rr.json();if(!rr.ok){notify(dd.message||'تعذر تحديث الخطر');return;}loadProjectRisks(id);});td.appendChild(b);tr.appendChild(td);body.appendChild(tr);}
+   if(!d.risks.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='لا توجد مخاطر مسجلة لهذا المشروع.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
+  }catch(e){summary.textContent=e.message;}
+ }
+ async function loadProjectClaims(id){
+  const body=document.getElementById('claimRows'),summary=document.getElementById('claimSummary');body.replaceChildren();if(!id){summary.textContent='اختر مشروعاً لعرض الأحداث التعاقدية.';return;}
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل سجل المطالبات.');
+   summary.textContent='الأحداث: '+d.summary.total+' · إشعارات مرسلة: '+d.summary.notices+' · قيد المراجعة: '+d.summary.underReview+' · مجموع مدد الأثر المسجلة: '+d.summary.timeImpactDays+' يوم · مجموع الأثر المالي: '+d.summary.costImpact.toFixed(3);
+   for(const x of d.events){const tr=document.createElement('tr');for(const v of [x.title,x.fidic_clause||'—',x.notice_date||'—',x.time_impact_days,x.cost_impact.toFixed(3),x.currency,x.status]){const td=document.createElement('td');td.textContent=String(v);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}body.appendChild(tr);}
+   if(!d.events.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='لا توجد أحداث تعاقدية مسجلة لهذا المشروع.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
+  }catch(e){summary.textContent=e.message;}
+ }
  async function selectProject(id){
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadProjectBoq(id);await loadProjectSchedule(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectRisks(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
@@ -203,6 +250,16 @@
    document.getElementById('photoMeta').textContent=(cover.caption||cover.original_name)+(cover.captured_at?' · '+cover.captured_at:'');
   }
  }
+ document.getElementById('riskAdd').addEventListener('click',async()=>{
+  if(!activeProject){notify('اختر مشروعاً أولاً.');return;}const id=activeProject.project_id||activeProject.id;
+  const payload={title:document.getElementById('riskTitle').value,category:document.getElementById('riskCategory').value,probability:document.getElementById('riskProbability').value,impact:document.getElementById('riskImpact').value,description:document.getElementById('riskDescription').value,mitigation:document.getElementById('riskMitigation').value};
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/risks',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تسجيل الخطر.');for(const k of ['riskTitle','riskDescription','riskMitigation'])document.getElementById(k).value='';await loadProjectRisks(id);notify('تم تسجيل الخطر وحساب درجته.');}catch(e){notify(e.message);}
+ });
+ document.getElementById('claimAdd').addEventListener('click',async()=>{
+  if(!activeProject){notify('اختر مشروعاً أولاً.');return;}const id=activeProject.project_id||activeProject.id;
+  const payload={title:document.getElementById('claimTitle').value,fidicClause:document.getElementById('claimClause').value,noticeDate:document.getElementById('claimNoticeDate').value||null,particulars:document.getElementById('claimParticulars').value,timeImpactDays:document.getElementById('claimDays').value||0,costImpact:document.getElementById('claimCost').value||0,currency:document.getElementById('claimCurrency').value};
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تسجيل الحدث.');for(const k of ['claimTitle','claimClause','claimNoticeDate','claimParticulars','claimDays','claimCost'])document.getElementById(k).value='';await loadProjectClaims(id);notify('تم حفظ الحدث التعاقدي في سجل المشروع.');}catch(e){notify(e.message);}
+ });
  document.getElementById('scheduleAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('اختر مشروعاً أولاً.');return;}
   const id=activeProject.project_id||activeProject.id,pred=document.getElementById('schedulePredecessor').value;
