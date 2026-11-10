@@ -25,5 +25,5 @@ jobs:
           cache: npm
           cache-dependency-path: mmc-proposal-kit/server/package-lock.json
       - run: npm ci
-      - run: node --check src/migrate.js && node --check src/index.js && node --check src/routes/public-apc-tenders.js && node --check src/routes/public-worldbank-tenders.js && node --check src/routes/public-tenders.js
+      - run: node --check src/migrate.js && node --check src/index.js && node --check src/routes/public-apc-tenders.js && node --check src/routes/public-worldbank-tenders.js && node --check src/routes/public-vendorpanel-tenders.js && node --check src/routes/public-tenders.js
       - run: npm test
