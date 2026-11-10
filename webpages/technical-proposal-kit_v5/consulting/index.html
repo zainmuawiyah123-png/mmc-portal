@@ -65,8 +65,8 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
   if(d.firm){
    $('#existing').hidden=false;$('#firmName').textContent=d.firm.legalName;$('#firmInfo').textContent=d.firm.country+' · رقم التسجيل: '+d.firm.registrationNumber+' · '+d.firm.contactEmail;
    $('#firmStatus').textContent='حالة التحقق: '+({pending:'قيد المراجعة',verified:'موثّق',rejected:'مرفوض',suspended:'موقوف'}[d.firm.verificationStatus]||d.firm.verificationStatus)+(d.firm.verificationNote?' — '+d.firm.verificationNote:'');
-   if(d.firm.verificationStatus==='verified'){$('#market').hidden=false;msg.textContent='تم التحقق من المكتب. يمكنك الآن الاطلاع على طلبات الخدمات وتقديم عروضك.';await loadMarket();}
-   else msg.textContent='ملف المكتب قيد المراجعة. ستفتح وظائف السوق بعد اعتماد التحقق القانوني.';
+   if(d.firm.verificationStatus==='verified'&&d.firm.memberStatus==='active'){$('#market').hidden=false;msg.textContent='تم التحقق من المكتب. يمكنك الآن الاطلاع على طلبات الخدمات وتقديم عروضك.';await loadMarket();}
+   else msg.textContent=d.firm.verificationStatus==='verified'?'عضوية المكتب موقوفة حالياً. راجع مسؤول المنصة.':'ملف المكتب قيد المراجعة. ستفتح وظائف السوق بعد اعتماد التحقق القانوني.';
   }else{$('#register').hidden=false;msg.textContent='لا يوجد ملف مكتب مرتبط بهذا الحساب. يمكنك تسجيل مكتبك الآن.';}
  }
  $('#firmForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),data={};for(const [k,v] of f.entries())data[k]=String(v).trim();data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}catch(err){showError(err);}});
