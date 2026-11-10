@@ -102,6 +102,20 @@
    <div class="tablewrap"><table style="width:100%"><thead><tr><th>النشاط</th><th>المدة</th><th>الأنشطة السابقة</th><th>البداية المبكرة</th><th>النهاية المبكرة</th><th>السماح</th><th>المسار الحرج</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد أنشطة بعد.</td></tr></tbody></table></div>
    <p class="note">تحليل CPM الحالي يحسب أيام العمل ومدد الاعتماد فقط؛ لا يطبق العطل الرسمية أو تقاويم الورديات أو قيود الموارد.</p>
   </div></section>
+  <section class="panel" id="bimPanel" style="margin:18px 0"><div class="panelhead"><h2>مراجعة التنسيق الهندسي BIM</h2><span>BIM COORDINATION · MODEL ISSUES</span></div><div style="padding:14px">
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px">
+    <input id="bimTitle" placeholder="عنوان الملاحظة / التعارض" style="flex:2;min-width:180px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <input id="bimModel" placeholder="مرجع النموذج / الإصدار" style="flex:1;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <select id="bimDiscipline" style="flex:1;min-width:120px;padding:9px;border:1px solid var(--line);border-radius:7px"><option value="civil">مدني</option><option value="structural">إنشائي</option><option value="mechanical">ميكانيك</option><option value="electrical">كهرباء</option><option value="architectural">معماري</option><option value="general">عام</option></select>
+    <select id="bimSeverity" style="flex:1;min-width:110px;padding:9px;border:1px solid var(--line);border-radius:7px"><option value="low">منخفض</option><option value="medium" selected>متوسط</option><option value="high">مرتفع</option><option value="critical">حرج</option></select>
+   </div>
+   <textarea id="bimDescription" rows="2" placeholder="وصف التعارض أو ملاحظة التنسيق وموقعها" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
+   <textarea id="bimResolution" rows="2" placeholder="الحل المقترح / الإجراء المطلوب" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
+   <button id="bimAdd" type="button" class="btn primary">＋ تسجيل ملاحظة BIM</button>
+   <div id="bimSummary" class="note" style="margin-top:12px">اختر مشروعاً لعرض ملاحظات التنسيق.</div>
+   <div class="tablewrap"><table style="width:100%"><thead><tr><th>الملاحظة</th><th>النموذج</th><th>التخصص</th><th>الخطورة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="bimRows"><tr><td colspan="6" style="text-align:center;padding:18px">لا توجد ملاحظات BIM.</td></tr></tbody></table></div>
+   <p class="note">سجل التنسيق وإدارة الملاحظات متاح. عرض ملفات IFC/GLB ثلاثية الأبعاد واكتشاف التعارضات الهندسي الآلي يتطلب محرك النماذج ثلاثية الأبعاد، ولم يتم تفعيله بعد.</p>
+  </div></section>
   <section class="panel" id="riskPanel" style="margin:18px 0"><div class="panelhead"><h2>سجل المخاطر وإدارتها</h2><span>PROJECT RISK REGISTER</span></div><div style="padding:14px">
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
     <input id="riskTitle" placeholder="عنوان الخطر" style="flex:2;min-width:180px;padding:9px;border:1px solid var(--line);border-radius:7px">
@@ -226,6 +240,13 @@
    if(!data.tasks.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='أضف أول نشاط للبدء ببناء البرنامج الزمني.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
+ async function loadProjectBim(id){
+  const body=document.getElementById('bimRows'),summary=document.getElementById('bimSummary');body.replaceChildren();if(!id){summary.textContent='اختر مشروعاً لعرض ملاحظات التنسيق.';return;}
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/bim/issues',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل ملاحظات BIM.');summary.textContent='الملاحظات: '+d.summary.total+' · المفتوحة: '+d.summary.open+' · الحرجة: '+d.summary.critical+' · المرتفعة: '+d.summary.high+' · المعالجة: '+d.summary.resolved;
+   for(const x of d.issues){const tr=document.createElement('tr');for(const v of [x.title,x.model_reference||'—',x.discipline,x.severity,x.status]){const td=document.createElement('td');td.textContent=String(v);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}const td=document.createElement('td'),b=document.createElement('button');b.type='button';b.textContent='معالجة';b.style.cssText='padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer';b.addEventListener('click',async()=>{const rr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/bim/issues/'+encodeURIComponent(x.id),{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:x.status==='resolved'?'open':'resolved'})});const dd=await rr.json();if(!rr.ok){notify(dd.message||'تعذر تحديث الملاحظة');return;}loadProjectBim(id);});td.appendChild(b);tr.appendChild(td);body.appendChild(tr);}
+   if(!d.issues.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.textContent='لا توجد ملاحظات تنسيق لهذا المشروع.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
+  }catch(e){summary.textContent=e.message;}
+ }
  async function loadProjectRisks(id){
   const body=document.getElementById('riskRows'),summary=document.getElementById('riskSummary');body.replaceChildren();if(!id){summary.textContent='اختر مشروعاً لعرض المخاطر.';return;}
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/risks',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل سجل المخاطر.');
@@ -246,7 +267,7 @@
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectRisks(id);await loadProjectClaims(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectRisks(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
@@ -260,6 +281,11 @@
    document.getElementById('photoMeta').textContent=(cover.caption||cover.original_name)+(cover.captured_at?' · '+cover.captured_at:'');
   }
  }
+ document.getElementById('bimAdd').addEventListener('click',async()=>{
+  if(!activeProject){notify('اختر مشروعاً أولاً.');return;}const id=activeProject.project_id||activeProject.id;
+  const payload={title:document.getElementById('bimTitle').value,modelReference:document.getElementById('bimModel').value,discipline:document.getElementById('bimDiscipline').value,severity:document.getElementById('bimSeverity').value,description:document.getElementById('bimDescription').value,proposedResolution:document.getElementById('bimResolution').value};
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/bim/issues',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تسجيل ملاحظة BIM.');for(const k of ['bimTitle','bimModel','bimDescription','bimResolution'])document.getElementById(k).value='';await loadProjectBim(id);notify('تم تسجيل ملاحظة التنسيق.');}catch(e){notify(e.message);}
+ });
  document.getElementById('riskAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('اختر مشروعاً أولاً.');return;}const id=activeProject.project_id||activeProject.id;
   const payload={title:document.getElementById('riskTitle').value,category:document.getElementById('riskCategory').value,probability:document.getElementById('riskProbability').value,impact:document.getElementById('riskImpact').value,description:document.getElementById('riskDescription').value,mitigation:document.getElementById('riskMitigation').value};
