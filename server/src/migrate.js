@@ -833,6 +833,42 @@ function upgradeConsultingPortal(db) {
 
 
 /** Independent consultancy marketplace: requester entities, requests, proposals and contracts. */
+function upgradeConsultingOfficeTenderDocuments(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS consulting_firm_tender_documents (
+      id TEXT PRIMARY KEY,
+      tender_id TEXT NOT NULL REFERENCES consulting_firm_tenders(id) ON DELETE CASCADE,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id),
+      document_kind TEXT NOT NULL CHECK(document_kind IN ('brief','scope','reference','other')),
+      storage_key TEXT NOT NULL UNIQUE,
+      storage_driver TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      checksum TEXT NOT NULL,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS consulting_firm_tender_proposal_documents (
+      id TEXT PRIMARY KEY,
+      tender_id TEXT NOT NULL REFERENCES consulting_firm_tenders(id) ON DELETE CASCADE,
+      proposal_id TEXT NOT NULL REFERENCES consulting_firm_tender_proposals(id) ON DELETE CASCADE,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id),
+      document_kind TEXT NOT NULL CHECK(document_kind IN ('technical','financial','reference','other')),
+      storage_key TEXT NOT NULL UNIQUE,
+      storage_driver TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      checksum TEXT NOT NULL,
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_tender_documents ON consulting_firm_tender_documents(tender_id,uploaded_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_tender_proposal_documents ON consulting_firm_tender_proposal_documents(proposal_id,uploaded_at DESC);
+  `);
+}
+
 function upgradeConsultingOfficeOperations(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS consulting_firm_subcontract_updates (
@@ -1114,6 +1150,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingFirmDocuments(db);
   upgradeConsultingOfficeTendering(db);
   upgradeConsultingOfficeOperations(db);
+  upgradeConsultingOfficeTenderDocuments(db);
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
 
