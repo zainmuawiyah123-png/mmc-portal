@@ -125,6 +125,18 @@ function createApp() {
     });
   });
 
+  // The independent consulting-firm portal is server-gated; it is not the evaluator workspace at /consultant/.
+  app.get(['/consulting', '/consulting/', '/consulting/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/');
+      if (!['consultant', 'admin'].includes(req.user.role)) {
+        return res.status(403).type('text').send('هذه البوابة مخصصة لحسابات المكاتب الاستشارية.');
+      }
+      return sendFromWeb('consulting/index.html', res, next);
+    });
+  });
+
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {
