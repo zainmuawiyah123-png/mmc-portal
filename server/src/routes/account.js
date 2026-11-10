@@ -51,7 +51,10 @@ router.delete('/requests/:id', auth, wrap(async (req, res) => {
 
 /* ---------------- GET /api/plans ---------------- */
 router.get('/plans', auth, wrap(async (req, res) => {
-  if (isConsultingFirmMember(req.user)) return res.json({ plans: [{ key: 'free', nameAr: 'الباقة الأساسية', nameEn: 'Basic', priceMonth: 0, priceYear: 0 }], consultantBaseFree: true, consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false } });
+  if (isConsultingFirmMember(req.user)) {
+    const paid = getDB().prepare("SELECT * FROM plans WHERE key='consultant_20'").get();
+    return res.json({ plans: [{ key: 'free', nameAr: 'الباقة الأساسية', nameEn: 'Basic', priceMonth: 0, priceYear: 0 }, ...(paid ? [{ key: paid.key, nameAr: paid.name_ar, nameEn: paid.name_en, priceMonth: paid.price_month, priceYear: paid.price_year, maxTenders: null, maxSubmissions: null, maxBytes: null }] : [])], consultantBaseFree: true, consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: !!paid } });
+  }
   const aud = req.user.role === 'buyer' ? 'buyer' : 'contractor';
   const rows = getDB().prepare("SELECT * FROM plans WHERE audience = ? OR key = 'free' ORDER BY sort_order").all(aud);
   res.json({

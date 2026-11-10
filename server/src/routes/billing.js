@@ -21,7 +21,7 @@ function isConsultingFirmMember(user) {
 }
 const auth = (req, res, next) => A.requireAuth(req, res, (err) => {
   if (err) return next(err);
-  if (isConsultingFirmMember(req.user)) return next(E.forbidden('فوترة المكاتب الاستشارية المستقلة لم تُفعّل بعد.'));
+  // الاستشاريون يستخدمون خطة consultant_20 عبر نفس مسار الفاتورة؛ لا تُعرض لهم باقات المقاولين.
   next();
 });
 const admin = [auth, A.requireRole('admin')];
@@ -65,7 +65,7 @@ function ownInvoice(req, id) {
   return row;
 }
 
-function audienceFor(user) { return user.role === 'buyer' ? 'buyer' : 'contractor'; }
+function audienceFor(user) { return user.role === 'buyer' ? 'buyer' : (user.role === 'consultant' ? 'consultant' : 'contractor'); }
 function shapePlan(p) {
   return { key: p.key, nameAr: p.name_ar, nameEn: p.name_en, audience: p.audience,
     maxTenders: p.max_tenders === -1 ? null : p.max_tenders, maxSubmissions: p.max_submissions === -1 ? null : p.max_submissions, maxUsers: p.max_users === -1 ? null : p.max_users,
@@ -75,11 +75,9 @@ function shapePlan(p) {
 /* الباقات المتاحة (عامة) — ?audience=buyer|contractor */
 router.get('/plans', wrap(async (req, res) => {
   const token = A.extractToken(req);
-  if (token) { try { const payload = A.verifyToken(token); const user = A.loadUser(payload.sub); if (isConsultingFirmMember(user)) return res.json({ plans: [], consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false } }); } catch (_) {} }
-  if (req.query.audience === 'consultant') return res.json({ plans: [], consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: false } });
-  const aud = req.query.audience === 'buyer' ? 'buyer' : 'contractor';
+  const aud = req.query.audience === 'buyer' ? 'buyer' : (req.query.audience === 'consultant' ? 'consultant' : 'contractor');
   const rows = getDB().prepare("SELECT * FROM plans WHERE audience = ? AND key != 'free' ORDER BY sort_order").all(aud);
-  res.json({ plans: rows.map(shapePlan) });
+  res.json({ plans: rows.map(shapePlan), ...(aud === 'consultant' ? { consultantProfessional: { priceMonth: 20, currency: 'USD', billingCycle: 'monthly', available: rows.some((p) => p.key === 'consultant_20') } } : {}) });
 }));
 
 /* تجربة مجانية لمرة واحدة لكل مستخدم على باقة مشتريات */
