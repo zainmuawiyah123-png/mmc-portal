@@ -74,8 +74,25 @@ router.patch('/firms/me', wrap(async (req,res)=>{
 }));
 
 router.get('/admin/pending', A.requireRole('admin'), wrap(async(req,res)=>{
-  const rows=getDB().prepare(`SELECT id,legal_name,country,registration_number,contact_email,contact_phone,verification_status,created_at FROM consulting_firms WHERE verification_status='pending' ORDER BY created_at`).all();
-  res.json({firms:rows});
+  const rows=getDB().prepare(`SELECT id,legal_name,country,registration_number,contact_email,contact_phone,specializations_json,experience_summary,website,verification_status,verification_note,created_at FROM consulting_firms WHERE verification_status='pending' ORDER BY created_at`).all();
+  res.json({firms:rows.map(f=>({...f,specializations:JSON.parse(f.specializations_json||'[]'),specializations_json:undefined,documents:getDB().prepare('SELECT id,document_kind,original_name,mime,size,uploaded_at FROM consulting_firm_documents WHERE firm_id=? ORDER BY uploaded_at DESC').all(f.id),events:getDB().prepare('SELECT action,note,created_at FROM consulting_firm_verification_events WHERE firm_id=? ORDER BY created_at DESC LIMIT 20').all(f.id)}))});
+}));
+router.get('/admin/firms', A.requireRole('admin'), wrap(async(req,res)=>{
+  const status=clip(req.query?.status,20);
+  if(status&&!['pending','verified','rejected','suspended'].includes(status)) throw E.validation('مرشح الحالة غير صالح.');
+  const rows=getDB().prepare(`SELECT id,legal_name,country,registration_number,contact_email,contact_phone,specializations_json,experience_summary,website,verification_status,verification_note,created_at,verified_at FROM consulting_firms ${status?'WHERE verification_status=?':''} ORDER BY created_at DESC LIMIT 300`).all(...(status?[status]:[]));
+  res.json({firms:rows.map(f=>({...f,specializations:JSON.parse(f.specializations_json||'[]'),specializations_json:undefined,documents:getDB().prepare('SELECT id,document_kind,original_name,mime,size,uploaded_at FROM consulting_firm_documents WHERE firm_id=? ORDER BY uploaded_at DESC').all(f.id),events:getDB().prepare('SELECT action,note,created_at FROM consulting_firm_verification_events WHERE firm_id=? ORDER BY created_at DESC LIMIT 20').all(f.id)}))});
+}));
+router.get('/admin/firms/:id/documents/:docId', A.requireRole('admin'), wrap(async(req,res)=>{
+  const d=getDB().prepare('SELECT * FROM consulting_firm_documents WHERE id=? AND firm_id=?').get(req.params.docId,req.params.id);
+  if(!d) throw E.notFound('وثيقة المكتب غير موجودة.');
+  const store=d.storage_driver==='s3'?require('../lib/storage/s3'):require('../lib/storage/local');
+  if(!(await store.exists(d.storage_key))) throw E.notFound('ملف الوثيقة غير موجود في التخزين.');
+  res.setHeader('Content-Type',d.mime||'application/octet-stream');
+  res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(d.original_name));
+  res.setHeader('Cache-Control','private, no-store');
+  const stream=store.stream(d.storage_key);
+  if(d.storage_driver==='s3'){const obj=await stream;obj.body.pipe(res);}else stream.pipe(res);
 }));
 
 router.patch('/admin/firms/:id/verification', A.requireRole('admin'), wrap(async(req,res)=>{
@@ -154,6 +171,30 @@ const upload = multer({
   limits: { fileSize: config.MAX_FILE_BYTES, files: 5 },
   fileFilter: (req,file,cb) => { try { S.assertAllowed(file.originalname,0); cb(null,true); } catch(err) { cb(err); } }
 });
+const firmDocKinds=['registration','professional_license','tax_certificate','insurance','portfolio','authorization','other'];
+router.post('/firms/me/documents', upload.array('files',5), wrap(async(req,res)=>{
+  requireConsultant(req);
+  const firm=firmFor(req.user.id); requireOwner(req,firm);
+  const kind=clip(req.body?.kind,30);
+  if(!firmDocKinds.includes(kind)) throw E.validation('نوع وثيقة المكتب غير صحيح.');
+  const files=req.files||[];
+  if(!files.length) throw E.validation('أرفق ملفاً واحداً على الأقل.');
+  const store=S.getStorage(),db=getDB(),created=[];
+  for(const f of files){
+    S.assertAllowed(f.originalname,f.size);
+    const id=uid('cfdoc_'),key=['consulting-firms',firm.id,kind,S.makeStoredName(f.originalname)].join('/');
+    const put=await store.put(key,f.buffer,{mime:f.mimetype||'application/octet-stream',originalName:S.displayName(f.originalname)});
+    db.prepare(`INSERT INTO consulting_firm_documents (id,firm_id,document_kind,storage_key,storage_driver,original_name,mime,size,checksum,uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id,firm.id,kind,key,store.DRIVER,S.displayName(f.originalname),f.mimetype||'application/octet-stream',f.size,put.checksum,req.user.id);
+    created.push({id,name:S.displayName(f.originalname),kind,size:f.size});
+  }
+  marketEvent(req.user.id,'firm',firm.id,'documents_uploaded',{count:created.length});
+  res.status(201).json({documents:created,message:'تم رفع وثائق المكتب وإضافتها إلى ملف المراجعة.'});
+}));
+router.get('/firms/me/documents',wrap(async(req,res)=>{
+  const firm=requireFirmMember(req);
+  const rows=getDB().prepare('SELECT id,document_kind,original_name,mime,size,uploaded_at FROM consulting_firm_documents WHERE firm_id=? ORDER BY uploaded_at DESC').all(firm.id);
+  res.json({documents:rows});
+}));
 const docKinds = ['brief','scope','reference','technical','financial','contract','deliverable','report'];
 function canReadDoc(user,doc) {
   if (user.role==='admin') return false;
