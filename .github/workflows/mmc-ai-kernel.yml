@@ -8,6 +8,7 @@ on:
       - 'server/src/routes/mmc-ai.js'
       - 'server/src/routes/mmc-ai-documents.js'
       - 'server/src/routes/mmc-ai-images.js'
+      - 'server/src/routes/mmc-ai-takeoff.js'
       - 'webpages/mmc-ai/**'
       - 'server/src/migrate.js'
       - 'server/src/index.js'
