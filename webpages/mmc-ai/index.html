@@ -141,6 +141,7 @@
     <input id="claimTitle" placeholder="عنوان الحدث / المطالبة" style="flex:2;min-width:190px;padding:9px;border:1px solid var(--line);border-radius:7px">
     <input id="claimClause" placeholder="مرجع بند FIDIC (اختياري)" style="flex:1;min-width:150px;padding:9px;border:1px solid var(--line);border-radius:7px">
     <input id="claimNoticeDate" type="date" title="تاريخ الإشعار" style="flex:1;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:7px">
+    <input id="claimEventDate" type="date" title="تاريخ وقوع الحدث" style="flex:1;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:7px">
    </div>
    <textarea id="claimParticulars" placeholder="الوقائع والتفاصيل والمراسلات المرجعية" rows="3" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
@@ -150,7 +151,7 @@
     <button id="claimAdd" type="button" class="btn primary">＋ تسجيل الحدث</button>
    </div>
    <div id="claimSummary" class="note">اختر مشروعاً لعرض الأحداث التعاقدية.</div>
-   <div class="tablewrap"><table style="width:100%"><thead><tr><th>الحدث</th><th>بند FIDIC</th><th>تاريخ الإشعار</th><th>الأثر الزمني</th><th>الأثر المالي</th><th>العملة</th><th>الحالة</th></tr></thead><tbody id="claimRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد أحداث مسجلة.</td></tr></tbody></table></div>
+   <div class="tablewrap"><table style="width:100%"><thead><tr><th>الحدث</th><th>بند FIDIC</th><th>تاريخ الإشعار</th><th>تاريخ الحدث</th><th>الأثر الزمني</th><th>الأثر المالي</th><th>العملة</th><th>الحالة</th></tr></thead><tbody id="claimRows"><tr><td colspan="7" style="text-align:center;padding:18px">لا توجد أحداث مسجلة.</td></tr></tbody></table></div>
    <p class="note">السجل يحفظ الوقائع والآثار والمراجع. لا يصدر رأياً قانونياً ولا يقرر استحقاق المطالبة أو الالتزام بمواعيد FIDIC تلقائياً.</p>
   </div></section>
   <div class="lower">
@@ -272,8 +273,9 @@
   const body=document.getElementById('claimRows'),summary=document.getElementById('claimSummary');body.replaceChildren();if(!id){summary.textContent='اختر مشروعاً لعرض الأحداث التعاقدية.';return;}
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل سجل المطالبات.');
    summary.textContent='الأحداث: '+d.summary.total+' · إشعارات مرسلة: '+d.summary.notices+' · قيد المراجعة: '+d.summary.underReview+' · مجموع مدد الأثر المسجلة: '+d.summary.timeImpactDays+' يوم · مجموع الأثر المالي: '+d.summary.costImpact.toFixed(3);
-   for(const x of d.events){const tr=document.createElement('tr');for(const v of [x.title,x.fidic_clause||'—',x.notice_date||'—',x.time_impact_days,x.cost_impact.toFixed(3),x.currency,x.status]){const td=document.createElement('td');td.textContent=String(v);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}body.appendChild(tr);}
-   if(!d.events.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='لا توجد أحداث تعاقدية مسجلة لهذا المشروع.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
+   for(const x of d.events){const tr=document.createElement('tr');for(const v of [x.title,x.fidic_clause||'—',x.notice_date||'—',x.event_date||'—',x.time_impact_days,x.cost_impact.toFixed(3),x.currency]){const td=document.createElement('td');td.textContent=String(v);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}
+    const td=document.createElement('td'),select=document.createElement('select'),save=document.createElement('button');for(const [value,label] of [['draft','مسودة'],['notice_sent','تم إرسال الإشعار'],['submitted','مقدمة'],['under_review','قيد المراجعة'],['agreed','متفق عليها'],['rejected','مرفوضة'],['closed','مغلقة']]){const o=document.createElement('option');o.value=value;o.textContent=label;select.appendChild(o);}select.value=x.status;select.style.cssText='max-width:125px;padding:5px;border:1px solid var(--line);border-radius:5px';save.type='button';save.textContent='حفظ';save.style.cssText='margin-inline-start:5px;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:#f5f8fb';save.addEventListener('click',async()=>{try{const rr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events/'+encodeURIComponent(x.id),{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:select.value})}),dd=await rr.json();if(!rr.ok)throw new Error(dd.message||'تعذر تحديث الحالة.');await loadProjectClaims(id);await loadExecutiveDashboard(id);notify('تم تحديث حالة الحدث التعاقدي.');}catch(e){notify(e.message);}});td.append(select,save);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5;white-space:nowrap';tr.appendChild(td);body.appendChild(tr);}
+   if(!d.events.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='لا توجد أحداث تعاقدية مسجلة لهذا المشروع.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
  async function selectProject(id){
@@ -311,8 +313,8 @@
  });
  document.getElementById('claimAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('اختر مشروعاً أولاً.');return;}const id=activeProject.project_id||activeProject.id;
-  const payload={title:document.getElementById('claimTitle').value,fidicClause:document.getElementById('claimClause').value,noticeDate:document.getElementById('claimNoticeDate').value||null,particulars:document.getElementById('claimParticulars').value,timeImpactDays:document.getElementById('claimDays').value||0,costImpact:document.getElementById('claimCost').value||0,currency:document.getElementById('claimCurrency').value};
-  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تسجيل الحدث.');for(const k of ['claimTitle','claimClause','claimNoticeDate','claimParticulars','claimDays','claimCost'])document.getElementById(k).value='';await loadProjectClaims(id);notify('تم حفظ الحدث التعاقدي في سجل المشروع.');}catch(e){notify(e.message);}
+  const payload={title:document.getElementById('claimTitle').value,fidicClause:document.getElementById('claimClause').value,noticeDate:document.getElementById('claimNoticeDate').value||null,eventDate:document.getElementById('claimEventDate').value||null,particulars:document.getElementById('claimParticulars').value,timeImpactDays:document.getElementById('claimDays').value||0,costImpact:document.getElementById('claimCost').value||0,currency:document.getElementById('claimCurrency').value};
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تسجيل الحدث.');for(const k of ['claimTitle','claimClause','claimNoticeDate','claimEventDate','claimParticulars','claimDays','claimCost'])document.getElementById(k).value='';await loadProjectClaims(id);notify('تم حفظ الحدث التعاقدي في سجل المشروع.');}catch(e){notify(e.message);}
  });
  document.getElementById('scheduleAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('اختر مشروعاً أولاً.');return;}
