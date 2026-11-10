@@ -47,7 +47,7 @@ router.get('/', A.requireAuth, A.requireRole('contractor', 'admin'), wrap(async 
 // Unified feed inside the contractor portal: tenders published on the platform by procurement
 // offices + external notices (JONEPS, Arab Potash, World Bank, UNGM). Requires a signed-in user.
 const ymd = (days=0) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date(Date.now()+days*86400000));
-const MARKET_ROLES = ['contractor','consultant','admin'];
+const MARKET_ROLES = ['contractor','admin'];
 router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res) => {
  const db=getDB(); refreshExpiredOpportunities(db);
  const me=req.user.id;
