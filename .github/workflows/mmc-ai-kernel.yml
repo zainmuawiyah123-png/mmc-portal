@@ -1,0 +1,34 @@
+name: MMC AI DXF geometry kernel tests
+on:
+  push:
+    branches:
+      - feature/mmc-ai-construction-intelligence
+    paths:
+      - 'server/src/lib/mmc-ai/**'
+      - 'server/tests/mmc-ai-*.test.js'
+      - 'server/package-lock.json'
+      - '.github/workflows/mmc-ai-kernel.yml'
+  pull_request:
+    paths:
+      - 'server/src/lib/mmc-ai/**'
+      - 'server/tests/mmc-ai-*.test.js'
+      - 'server/package-lock.json'
+      - '.github/workflows/mmc-ai-kernel.yml'
+permissions:
+  contents: read
+jobs:
+  dxf-kernel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: node --test tests/mmc-ai-dxf-takeoff.test.js
