@@ -798,16 +798,18 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
 })();
 </script>
 
+<div id="plansDialog" role="dialog" aria-modal="true" aria-labelledby="plansDialogTitle">
+ <div class="plans-dialog-shell">
+  <div class="plans-dialog-head"><strong id="plansDialogTitle">Plans & Pricing</strong><button type="button" class="plans-close" id="closePlans" aria-label="Close plans">✕ Close</button></div>
+ </div>
+</div>
 <script id="mmc-ai-plans-top-modal">
 (()=>{
  const plans=document.getElementById('plans'),open=document.getElementById('openPlans');
- if(!plans||!open)return;
- const dialog=document.createElement('div');dialog.id='plansDialog';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','plansDialogTitle');
- const shell=document.createElement('div');shell.className='plans-dialog-shell';
- const head=document.createElement('div');head.className='plans-dialog-head';
- const title=document.createElement('strong');title.id='plansDialogTitle';title.textContent='Plans & Pricing';
- const close=document.createElement('button');close.type='button';close.className='plans-close';close.textContent='✕ Close';close.setAttribute('aria-label','Close plans');
- head.append(title,close);shell.append(head,plans);dialog.append(shell);document.body.append(dialog);
+ const dialog=document.getElementById('plansDialog'),shell=dialog?.querySelector('.plans-dialog-shell');
+ const title=document.getElementById('plansDialogTitle'),close=document.getElementById('closePlans');
+ if(!plans||!open||!dialog||!shell||!title||!close)return;
+ shell.append(plans);
  function show(){dialog.classList.add('open');document.body.style.overflow='hidden';close.focus();}
  function hide(){dialog.classList.remove('open');document.body.style.overflow='';open.focus();}
  open.addEventListener('click',show);close.addEventListener('click',hide);
