@@ -7,8 +7,8 @@
  * Quantities are calculated from CAD coordinates and the drawing's $INSUNITS.
  * This module deliberately does not use an LLM to invent geometry or scale.
  *
- * Limitations: no blocks/xrefs, SPLINE, HATCH, 3D solids, paper-space viewport
- * transforms, raster drawings, or automatic BOQ classification. Unsupported
+ * Limitations: no xrefs, SPLINE, HATCH, 3D solids, paper-space viewport
+ * transforms, raster drawings, nested/array INSERTs, or automatic BOQ classification. Unsupported
  * entities are counted and reported, never silently converted to quantities.
  */
 const UNIT_TO_METRE = {
@@ -227,7 +227,7 @@ function expandBlockInserts(entities, blocks) {
     const columns = first(entity,70,1), rows = first(entity,71,1);
     const rotation = first(entity,50,0);
     if (columns !== 1 || rows !== 1) { mark('INSERT_ARRAY_UNSUPPORTED'); continue; }
-    if (![sx,sy,sz,rotation].every(Number.isFinite) || sx <= 0 || sy <= 0 || sz <= 0 || Math.abs(sx-sy)>1e-9 || Math.abs(sx-sz)>1e-9) {
+    if (![sx,sy,sz,rotation].every(Number.isFinite) || sx <= 0 || sy <= 0 || sz <= 0 || Math.abs(sx-sy)>1e-9) {
       mark('INSERT_UNSUPPORTED_SCALE'); continue;
     }
     if (block.entities.some(e => e.type === 'INSERT')) { mark('INSERT_NESTED_BLOCK'); continue; }
