@@ -124,6 +124,8 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(taskC.status,201,JSON.stringify(taskC.data));
  const taskD=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/schedule/tasks',{name:'Superstructure',durationDays:4,predecessors:[taskB.data.task.id,taskC.data.task.id]});
  assert.equal(taskD.status,201,JSON.stringify(taskD.data));
+ const taskProgressA=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/schedule/tasks/'+taskA.data.task.id,{percentComplete:50,status:'in_progress',actualStart:'2026-11-12'});assert.equal(taskProgressA.status,200);
+ const taskProgressB=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/schedule/tasks/'+taskB.data.task.id,{percentComplete:100,status:'completed',actualStart:'2026-11-17',actualFinish:'2026-11-19'});assert.equal(taskProgressB.status,200);
  const schedule=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/schedule');
  assert.equal(schedule.status,200);assert.equal(schedule.data.analysis.projectDurationWorkingDays,12);
  assert.equal(schedule.data.analysis.criticalTaskCount,3);
@@ -154,7 +156,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const eventUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/contract-events/'+eventCreate.data.event.id,{status:'notice_sent'});assert.equal(eventUpdate.status,200);assert.equal(eventUpdate.data.event.status,'notice_sent');
  const eventOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/contract-events');assert.equal(eventOutsider.status,404);
  const executive=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/dashboard');
- assert.equal(executive.status,200);assert.equal(executive.data.summary.boqItems,0);assert.equal(executive.data.summary.scheduleTasks,4);assert.equal(executive.data.summary.criticalRisks,0);assert.equal(executive.data.summary.bimIssues,1);assert.equal(executive.data.summary.openBimIssues,0);assert.equal(executive.data.summary.criticalBimIssues,0);assert.equal(executive.data.summary.contractEvents,1);assert.equal(executive.data.summary.documents,2);assert.equal(executive.data.summary.sitePhotos,0);
+ assert.equal(executive.status,200);assert.equal(executive.data.summary.boqItems,0);assert.equal(executive.data.summary.scheduleTasks,4);assert.equal(executive.data.summary.averageTaskProgress,47.1);assert.equal(executive.data.summary.completedTasks,1);assert.equal(executive.data.summary.inProgressTasks,1);assert.equal(executive.data.summary.criticalRisks,0);assert.equal(executive.data.summary.bimIssues,1);assert.equal(executive.data.summary.openBimIssues,0);assert.equal(executive.data.summary.criticalBimIssues,0);assert.equal(executive.data.summary.contractEvents,1);assert.equal(executive.data.summary.documents,2);assert.equal(executive.data.summary.sitePhotos,0);
  const executiveOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/dashboard');assert.equal(executiveOutsider.status,404);
 
  const pdfTakeoff=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/takeoff/dxf',{});
