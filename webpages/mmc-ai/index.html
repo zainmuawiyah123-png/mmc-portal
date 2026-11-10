@@ -379,7 +379,7 @@ html{scroll-behavior:smooth;scroll-padding-top:82px}section[id],.panel[id]{scrol
       const report=data.report,output=document.getElementById('takeoffResult');output.replaceChildren();
       const title=document.createElement('strong');title.textContent='نتيجة فحص PDF الأولي — ليس تحليلاً هندسياً';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
       const detail=document.createElement('p');detail.textContent='الإصدار: '+report.version+' · الحجم: '+(report.bytes/1048576).toFixed(2)+' MB · الصفحات المقدرة: '+(report.pageCount??'غير محدد')+' · الحالة: '+report.status;
-      const limitation=document.createElement('p');limitation.textContent='لم يتم استخراج النصوص أو المسارات أو الأبعاد أو الكميات. محرك تحليل PDF الهندسي لم يُفعّل بعد.';
+      const limitation=document.createElement('p');limitation.textContent='هذا الفحص يختبر سلامة الملف فقط ولا يشغّل استخراج النصوص أو تحليل المسارات. استخدم «استخراج النص» للقراءة الأولية المنفصلة؛ ولا ينتج هذا الفحص أبعاداً أو كميات.';
       limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
       output.append(title,detail,limitation);notify('اكتمل فحص سلامة PDF الأولي فقط.');
      }catch(err){notify(err.message);}finally{check.disabled=false;check.textContent='فحص PDF';}});
