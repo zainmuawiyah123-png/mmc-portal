@@ -78,6 +78,14 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
 #projectGalleryItems>div{background:#142a41!important;border-color:#2c4965!important}
 .footer{color:#728aa2}
 @media(max-width:850px){.content{padding:20px 15px}.project-showcase{grid-template-columns:1fr}.project-photo,.project-photo img{min-height:230px}}
+
+/* MMC AI executive cockpit refresh — real project data only */
+.cockpit{margin:0 0 20px;padding:22px;border:1px solid #29435d;border-radius:16px;background:linear-gradient(120deg,#10243d 0%,#142f4b 58%,#10243d 100%);box-shadow:0 16px 38px #0003;position:relative;overflow:hidden}
+.cockpit:after{content:"";position:absolute;width:300px;height:300px;border:1px solid #4d8bb533;border-radius:50%;right:-120px;top:-170px;box-shadow:0 0 0 26px #4d8bb311,0 0 0 54px #4d8bb30a;pointer-events:none}
+.cockpit-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;position:relative;z-index:1}.cockpit-heading h2{margin:5px 0 5px;color:#f4f8fc;font-size:21px;letter-spacing:-.3px}.cockpit-heading p{margin:0;color:#a9bdd1;font-size:12px}.cockpit-tag{border:1px solid #3c6688;background:#173957;color:#9ed9ed;border-radius:30px;padding:8px 11px;font-size:9px;letter-spacing:.7px;white-space:nowrap}
+.cockpit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;position:relative;z-index:1}.cockpit-card{min-height:145px;border:1px solid #34516d;border-radius:12px;background:linear-gradient(145deg,#193754,#122a43);padding:15px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;transition:transform .18s,border-color .18s}.cockpit-card:hover{transform:translateY(-2px);border-color:#5b9ac0}.cockpit-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#245276;color:#79d5ec;font-size:18px}.cockpit-card small{display:block;color:#82a6c2;font-size:9px;letter-spacing:1px;margin-bottom:5px}.cockpit-card strong{display:block;color:#f0f6fc;font-size:13px}.cockpit-card p{margin:5px 0 0;color:#a5b9cb;font-size:10px;line-height:1.5}.cockpit-state{margin-top:auto;color:#7dd8bf;font-size:9px;border-top:1px solid #34516d;padding-top:8px;width:100%}.cockpit-foot{position:relative;z-index:1;margin-top:14px;padding-top:12px;border-top:1px solid #2d4964;color:#8fa9bf;font-size:10px}.cockpit-foot span{color:#62d2ac;margin-right:6px}
+@media(max-width:1050px){.cockpit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.cockpit{padding:16px}.cockpit-heading{display:block}.cockpit-tag{display:inline-block;margin-top:12px;white-space:normal}.cockpit-grid{grid-template-columns:1fr 1fr;gap:8px}.cockpit-card{min-height:138px;padding:12px}.cockpit-heading h2{font-size:18px}}
 </style>
 </head>
 <body>
@@ -104,7 +112,16 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
 <main class="main">
  <header class="topbar"><div class="crumb">MMC / <b>Construction Intelligence</b> / Dashboard</div><div class="topright"><span class="status">● Preview Environment</span><div class="avatar">MM</div></div></header>
  <section class="content" id="overview">
-  <div class="welcome"><div><div class="eyebrow">CONSTRUCTION INTELLIGENCE</div><h1>Welcome to MMC AI</h1><p>AI-powered workspace for projects, drawings, quantities and engineering decisions.</p></div><div class="actions"><button class="btn" id="langBtn">English</button><button class="btn primary" id="newProject">＋ New Project</button></div></div>
+  <div class="welcome"><div><div class="eyebrow">CONSTRUCTION INTELLIGENCE</div><h1>Welcome to MMC AI</h1><p>AI-powered workspace for projects, drawings, quantities and engineering decisions.</p></div><div class="actions"><button class="btn primary" id="newProject">＋ New Project</button></div></div><section class="cockpit" aria-label="Project control center">
+  <div class="cockpit-heading"><div><span class="eyebrow">MMC AI WORKSPACE</span><h2>Project Control Center</h2><p>One place to monitor engineering, delivery, cost and project risk.</p></div><span class="cockpit-tag">LIVE PROJECT DATA · SIGN-IN REQUIRED</span></div>
+  <div class="cockpit-grid">
+   <article class="cockpit-card cockpit-card-feature"><span class="cockpit-icon">▧</span><div><small>PROJECT DELIVERY</small><strong>Project overview</strong><p>Progress, milestones and site records</p></div><span class="cockpit-state">Awaiting project</span></article>
+   <article class="cockpit-card"><span class="cockpit-icon">⌗</span><div><small>ENGINEERING</small><strong>Drawings & quantities</strong><p>PDF review · DXF takeoff · BOQ</p></div><span class="cockpit-state">Ready to review</span></article>
+   <article class="cockpit-card"><span class="cockpit-icon">◷</span><div><small>PLANNING</small><strong>Schedule & progress</strong><p>CPM logic · critical activities</p></div><span class="cockpit-state">Awaiting project</span></article>
+   <article class="cockpit-card"><span class="cockpit-icon">◇</span><div><small>COMMERCIAL</small><strong>Contracts & risk</strong><p>Events · claims · risk register</p></div><span class="cockpit-state">Awaiting project</span></article>
+  </div>
+  <div class="cockpit-foot"><span>●</span> No sample KPIs or invented project figures are displayed. Project indicators load from your secured workspace.</div>
+ </section>
   <section class="project-showcase" id="projectShowcase">
    <div class="project-photo" id="projectPhoto"><img id="projectCover" alt="Project construction site"><div class="photo-empty"><div><strong>Project Under Construction</strong><span>Upload an actual site photo to use as the project cover<br>We never present a stock image as your project</span></div></div><span class="photo-label" id="photoLabel">Project Cover</span></div>
    <div class="project-info"><div class="eyebrow">PROJECT SITE / LIVE PROGRESS</div><h2 id="projectTitle">Project Site Gallery</h2><p id="projectDescription">Select a project to view its site cover and construction photo log. Photos are stored privately for project members.</p>
@@ -551,7 +568,6 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
    await loadProjectDocuments(id);
   }catch(err){box.textContent=err.message;}finally{e.target.value='';}
  });
- document.getElementById('langBtn').remove();
  document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{
   e.preventDefault();
   const key=(a.getAttribute('href')||'').slice(1);
