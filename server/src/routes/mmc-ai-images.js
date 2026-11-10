@@ -61,6 +61,20 @@ router.post('/projects/:projectId/images',upload.single('file'),wrap(async(req,r
  const image=db.prepare('SELECT id,project_id,uploaded_by,original_name,mime_type,size_bytes,sha256,caption,captured_at,is_cover,created_at FROM ai_project_images WHERE id=?').get(id);
  res.status(201).json({image});
 }));
+router.patch('/projects/:projectId/images/:imageId/cover',wrap(async(req,res)=>{
+ const projectId=req.params.projectId,db=getDB(),m=membership(projectId,req.user.id);
+ if(!m||m.status!=='active')throw E.notFound('المشروع غير موجود.');
+ if(!canUpload(m.role))throw E.forbidden('لا تملك صلاحية تغيير صورة الغلاف.');
+ const img=db.prepare('SELECT id FROM ai_project_images WHERE id=? AND project_id=?').get(req.params.imageId,projectId);
+ if(!img)throw E.notFound('صورة المشروع غير موجودة.');
+ db.transaction(()=>{
+  db.prepare('UPDATE ai_project_images SET is_cover=0 WHERE project_id=?').run(projectId);
+  db.prepare('UPDATE ai_project_images SET is_cover=1 WHERE id=? AND project_id=?').run(img.id,projectId);
+  db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)`)
+   .run(uid('aial_'),projectId,req.user.id,'project_image_cover_changed','project_image',img.id,null);
+ })();
+ res.json({ok:true,imageId:img.id});
+}));
 router.get('/projects/:projectId/images/:imageId/download',wrap(async(req,res)=>{
  const m=membership(req.params.projectId,req.user.id);
  if(!m||m.status!=='active')throw E.notFound('المشروع غير موجود.');
