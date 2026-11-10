@@ -71,6 +71,11 @@ function first(e, code, fallback = 0) {
 }
 function all(e, code) { return e.pairs.filter(x => x.code === code).map(x => Number(x.value)); }
 function layerOf(e) { return e.pairs.find(x => x.code === 8)?.value || '0'; }
+function assertFinite(values, label) {
+  if (values.some(value => !Number.isFinite(value))) {
+    throw new Error('Invalid non-numeric geometry in ' + label + '.');
+  }
+}
 function pointDistance(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
 
 function polylineVertices(e) {
