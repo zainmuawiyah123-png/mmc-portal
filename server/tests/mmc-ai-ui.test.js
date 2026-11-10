@@ -110,3 +110,14 @@ test('MMC AI exposes a complete project-scoped data register with metadata-only 
  assert.match(html,/id="refreshAllProjectData"/);
  assert.match(html,/loadAllProjectData\(id\)/);
 });
+
+test('MMC AI full project register renders searchable sections and supports JSON export',()=>{
+ assert.match(html,/id="allProjectDataSearch"/);
+ assert.match(html,/id="allProjectDataSections"/);
+ assert.match(html,/id="exportAllProjectData"/);
+ assert.match(html,/mmc-ai-project-data\.json/);
+ assert.match(html,/const labels=\{project:/);
+ assert.match(html,/auditLog:'سجل العمليات والتدقيق'/);
+ assert.match(html,/document\.createElement\('details'\)/);
+ assert.match(html,/document\.createElement\('pre'\)/);
+});
