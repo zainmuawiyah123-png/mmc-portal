@@ -343,7 +343,7 @@ router.get('/firm-subcontracts',wrap(async(req,res)=>{
 
 // Firm team, reporting and subcontract lifecycle. All records are scoped to the authenticated legal firm.
 router.get('/firms/me/members',wrap(async(req,res)=>{
- const firm=requireFirmMember(req);
+ const firm=requireFirmManager(req);
  const rows=getDB().prepare(`SELECT m.id,m.user_id,m.member_role,m.status,m.created_at,u.name,u.email FROM consulting_firm_members m JOIN users u ON u.id=m.user_id WHERE m.firm_id=? ORDER BY CASE m.member_role WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END,m.created_at`).all(firm.id);
  res.json({members:rows});
 }));
