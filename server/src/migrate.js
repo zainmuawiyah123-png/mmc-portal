@@ -833,6 +833,25 @@ function upgradeConsultingPortal(db) {
 
 
 /** Independent consultancy marketplace: requester entities, requests, proposals and contracts. */
+function upgradeConsultingFirmDocuments(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS consulting_firm_documents (
+      id TEXT PRIMARY KEY,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      document_kind TEXT NOT NULL CHECK(document_kind IN ('registration','professional_license','tax_certificate','insurance','portfolio','authorization','other')),
+      storage_key TEXT NOT NULL UNIQUE,
+      storage_driver TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      checksum TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL REFERENCES users(id),
+      uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_documents_firm ON consulting_firm_documents(firm_id,uploaded_at DESC);
+  `);
+}
+
 function upgradeConsultingMarketplace(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS consulting_requester_entities (
@@ -1003,6 +1022,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeEInvoice(db);
   upgradeOpportunityWatch(db);
   upgradeConsultingPortal(db);
+  upgradeConsultingFirmDocuments(db);
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
 
