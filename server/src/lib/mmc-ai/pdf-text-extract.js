@@ -38,8 +38,31 @@ function decodePdfString(raw){
  }
  return bytes.toString('latin1');
 }
+function stripPdfComments(src){
+ let out='',inLiteral=false,depth=0,escaped=false,inHex=false;
+ for(let i=0;i<src.length;i++){
+  const ch=src[i],next=src[i+1];
+  if(inLiteral){
+   out+=ch;
+   if(escaped){escaped=false;continue;}
+   if(ch==='\\'){escaped=true;continue;}
+   if(ch==='(')depth++;
+   else if(ch===')'&&--depth===0)inLiteral=false;
+   continue;
+  }
+  if(inHex){
+   out+=ch;if(ch==='>')inHex=false;continue;
+  }
+  if(ch==='('){inLiteral=true;depth=1;out+=ch;continue;}
+  if(ch==='<'&&next!=='<'){inHex=true;out+=ch;continue;}
+  if(ch==='%' ){while(i<src.length&&src[i]!=='\n'&&src[i]!=='\r'){out+=' ';i++;}if(i<src.length)out+=src[i];continue;}
+  out+=ch;
+ }
+ return out;
+}
 function extractFromContent(src){
  const out=[];
+ src=stripPdfComments(src);
  const re=/\[(?:\s*(?:\((?:\\[\s\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>|[-+]?(?:\d+\.?\d*|\.\d+))\s*)*\]\s*TJ|\((?:\\[\s\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>/g;
  let m;
  while((m=re.exec(src))){
