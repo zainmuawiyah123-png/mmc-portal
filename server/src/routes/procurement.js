@@ -195,7 +195,7 @@ router.post('/tenders/:id/submit', contractor, bidUpload.fields([{ name: 'techni
   if (x.t.procurement_status !== 'published') throw E.conflict('العطاء غير منشور أو مغلق.');
   if (!O.ownerVerified(x.t.user_id)) throw E.conflict('جهة هذا العطاء غير موثّقة حالياً، فلا تُقبل عروض جديدة عليه.');
   if (isExpired(x.t.closing, x.t.country)) throw E.conflict('انتهى موعد استلام العروض لهذا العطاء (' + x.t.closing + ').');
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'buyer') {
     const { plan, usage } = A.planAndUsage(req.user.id);
     if (plan.maxSubmissions !== null && usage.submissions >= plan.maxSubmissions) {
       throw E.forbidden('بلغت حد باقتك من التقديمات الإلكترونية (' + plan.maxSubmissions + ' خلال 365 يوماً). رقِّ باقتك من صفحة الاشتراك للمتابعة.');

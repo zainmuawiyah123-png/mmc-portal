@@ -75,7 +75,8 @@ function createApp() {
         login: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'portal', 'pt-9f3c7a1e5b2d', 'login.html')),
         procurement: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'procurement', 'index.html')),
         bid: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'bid', 'index.html')),
-        admin: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'admin', 'index.html'))
+        admin: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'admin', 'index.html')),
+        consultant: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'consultant', 'index.html'))
       }
     });
   });
@@ -184,6 +185,7 @@ function createApp() {
   app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
   app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
+  app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
 
 

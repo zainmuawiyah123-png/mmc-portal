@@ -195,15 +195,15 @@ const PLANS_SEED = [
   ['starter', 'Starter',      'Starter',       3,  200 * 1024 * 1024,  39,  390, 2],
   ['pro',     'Professional', 'Professional', 15,  1024 * 1024 * 1024, 89,  890, 3],
   ['ent',     'Enterprise',   'Enterprise',   -1,  -1,                 199, 1990, 4],
-  // باقات المشتريات (الأسعار بالدولار؛ السنوي = 10 أشهر. سعر Enterprise "ابتداءً من" ويعدّله المدير لكل حالة)
-  ['proc_basic', 'المشتريات Basic',        'Procurement Basic',        10, 2 * 1024 * 1024 * 1024,  49,  490, 5],
-  ['proc_pro',   'المشتريات Professional', 'Procurement Professional', -1, 10 * 1024 * 1024 * 1024, 149, 1490, 6],
-  ['proc_ent',   'المشتريات Enterprise',   'Procurement Enterprise',   -1, -1,                      399, 3990, 7]
+  ['proc_basic', 'المشتريات المجانية', 'Free Procurement', -1, -1, 0, 0, 5],
+  ['proc_pro',   'المشتريات المجانية', 'Free Procurement', -1, -1, 0, 0, 6],
+  ['proc_ent',   'المشتريات المجانية', 'Free Procurement', -1, -1, 0, 0, 7],
+  ['consultant_20', 'اشتراك المكتب الاستشاري', 'Consultant subscription', -1, 5 * 1024 * 1024 * 1024, 20, 200, 8]
 ];
 // عدد المستخدمين المسموح (-1 = غير محدود) — للعرض حالياً؛ لا يوجد نموذج منظمة/مقاعد بعد
-const PLAN_SEATS = { free: 1, starter: 1, pro: 10, ent: -1, proc_basic: 3, proc_pro: 10, proc_ent: -1 };
+const PLAN_SEATS = { free: 1, starter: 1, pro: 10, ent: -1, proc_basic: 3, proc_pro: 10, proc_ent: -1, consultant_20: -1 };
 // عدد التقديمات الإلكترونية على عطاءات المنصة خلال 365 يوماً (-1 = غير محدود). حدّ مساحة العمل (max_tenders) منفصل عنه
-const PLAN_SUBMISSIONS = { free: 2, starter: 10, pro: 40, ent: -1, proc_basic: -1, proc_pro: -1, proc_ent: -1 };
+const PLAN_SUBMISSIONS = { free: 2, starter: 10, pro: 40, ent: -1, proc_basic: -1, proc_pro: -1, proc_ent: -1, consultant_20: -1 };
 const TRIAL_DAYS = 14;
 
 /**
@@ -399,7 +399,8 @@ function upgradePlans(db) {
   if (!cols.has('audience')) db.exec("ALTER TABLE plans ADD COLUMN audience TEXT NOT NULL DEFAULT 'contractor'");
   if (!cols.has('max_users')) db.exec('ALTER TABLE plans ADD COLUMN max_users INTEGER NOT NULL DEFAULT 1');
   if (!cols.has('trial_days')) db.exec('ALTER TABLE plans ADD COLUMN trial_days INTEGER NOT NULL DEFAULT 0');
-  db.prepare("UPDATE plans SET audience='buyer', trial_days=? WHERE key LIKE 'proc\\_%' ESCAPE '\\'").run(TRIAL_DAYS);
+  db.prepare("UPDATE plans SET audience='buyer', trial_days=0 WHERE key LIKE 'proc\\_%' ESCAPE '\\'").run();
+  db.prepare("UPDATE plans SET audience='consultant', trial_days=0 WHERE key='consultant_20'").run();
   if (!cols.has('max_submissions')) db.exec('ALTER TABLE plans ADD COLUMN max_submissions INTEGER NOT NULL DEFAULT -1');
   const upS = db.prepare('UPDATE plans SET max_submissions=? WHERE key=?');
   Object.entries(PLAN_SUBMISSIONS).forEach(([k, v]) => upS.run(v, k));

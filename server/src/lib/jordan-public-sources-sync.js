@@ -59,7 +59,19 @@ function parseJprc(html,source,today=new Date().toISOString().slice(0,10)){
  }
  return items;
 }
+function parseGAM(html,source,today=new Date().toISOString().slice(0,10)){
+ const items=[],seen=new Set();
+ for(const m of String(html||'').matchAll(/<tr\b[\s\S]*?<\/tr>/gi)){
+  const cells=[...m[0].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(x=>decode(x[1]));
+  if(cells.length<2||!/\d/.test(cells[0])||/رقم المناقصة|tender/i.test(cells[0]))continue;
+  const number=cells[0].trim(),title=cells[1].trim();
+  if(!title||seen.has(number))continue;seen.add(number);
+  items.push({id:source.key+':'+number.replace(/\s+/g,''),title:title.slice(0,300),authority:source.authority,country:'JO',sector:null,tenderNumber:number,summary:'كفالة الدخول: '+(cells[2]||'غير مذكورة')+' | ثمن نسخة الدخول: '+(cells[3]||'غير مذكور'),publishedAt:null,closingAt:null,sourceUrl:source.url,applicationUrl:null,status:'open',language:'ar'});
+ }
+ return items;
+}
 function parseSource(html,source,today=new Date().toISOString().slice(0,10)){
+ if(source.key==='gam')return parseGAM(html,source,today);
  if(source.key==='jprc')return parseJprc(html,source,today);
  const blocks=candidateBlocks(html),items=[],seen=new Set();
  const consume=(block,baseUrl)=>{
@@ -173,6 +185,11 @@ async function syncOne(source){
  });
  return {...tx(items),received:items.length,normalized:items.length,source:source.key,sourceUrl:source.url};
 }
+async function syncGAM(){
+ const source=SOURCES.find(x=>x.key==='gam');
+ if(!source)throw new Error('GAM source is not configured.');
+ return syncOne(source);
+}
 async function syncJordanPublicSources(){
  const results={};
  for(let i=0;i<SOURCES.length;i+=4){
@@ -184,4 +201,4 @@ async function syncJordanPublicSources(){
  }
  return results;
 }
-module.exports={SOURCES,parseSource,syncOne,syncJordanPublicSources};
+module.exports={SOURCES,parseGAM,parseSource,syncOne,syncGAM,syncJordanPublicSources};

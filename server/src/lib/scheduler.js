@@ -105,6 +105,8 @@ async function runOpportunitySyncJob() {
     catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
   };
+  await runSource('gam',()=>require('./jordan-public-sources-sync').syncGAM());
+  await runSource('austender',()=>require('./austender-sync').syncAusTender());
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('apc',()=>require('./apc-sync').syncAPC());
   await runSource('jprc',()=>require('./jprc-sync').syncJPRC());
