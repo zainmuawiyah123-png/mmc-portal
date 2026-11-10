@@ -38,6 +38,8 @@ test('reports PDF vector drawing diagnostics without claiming dimensions or quan
  assert.equal(r.diagnostics.lineTo,2);
  assert.equal(r.diagnostics.rectangles,1);
  assert.equal(r.diagnostics.paintOperations,2);
+ assert.equal(r.diagnostics.coordinatePointCount,5);
+ assert.deepEqual(r.diagnostics.rawCoordinateBounds,{minX:0,minY:0,maxX:100,maxY:50});
  assert.ok(r.limitations.some(x=>x.includes('لا يستخرج OCR')));
 });
 test('does not count operator-like words inside PDF strings as graphics',()=>{
