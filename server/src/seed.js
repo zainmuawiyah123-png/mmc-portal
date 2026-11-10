@@ -48,7 +48,7 @@ async function main() {
   db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, plan_key)
               VALUES (?,?,?,?,?, ?, 'free')`).run(id, email, hash, name, company, role);
   db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
-              VALUES (?,?, 'free', 'active', 'trial')`).run(uid('sub_'), id);
+              VALUES (?,?, 'free', 'active', ?)`).run(uid('sub_'), id, role === 'buyer' ? 'system' : 'trial');
 
   const stored = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(id).password_hash;
 
@@ -58,7 +58,7 @@ async function main() {
   console.log('  email   : ' + email);
   console.log('  الاسم   : ' + name);
   console.log('  الدور   : ' + role);
-  console.log('  الباقة  : free (عطاء واحد · 25 م.ب)');
+  console.log('  الباقة  : ' + (role === 'buyer' ? 'مجانية دائماً لعمليات المشتريات الأساسية' : 'free'));
   console.log('  التشفير : ' + stored.slice(0, 7) + '…  (bcrypt، الطول ' + stored.length + ')');
   console.log('  كلمة المرور لم تُخزَّن نصاً — تحقق من ذلك في قاعدة البيانات.');
   console.log('');

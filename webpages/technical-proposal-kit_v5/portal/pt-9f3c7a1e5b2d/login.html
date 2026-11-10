@@ -108,14 +108,22 @@
   var defaultLabel='<span data-ar="دخول" data-en="Sign in">دخول</span>';
 
   // إن كانت هناك جلسة قائمة، تجاوز صفحة الدخول
-  API.me().then(function(){
-    var next=new URLSearchParams(location.search).get('next') || 'index.html';
-    location.replace(safeNext(next));
+  API.me().then(function(session){
+    // حافظ على الوجهة المطلوبة عند وجود جلسة سابقة؛ وإلا وجّه كل دور إلى بوابته.
+    var requested=new URLSearchParams(location.search).get('next');
+    var role=session && session.user && session.user.role;
+    var home=role==='admin' ? '../../admin/index.html'
+      : role==='buyer' ? '/consulting/requester/'
+      : role==='consultant' ? '/consulting/'
+      : 'index.html';
+    location.replace(safeNext(requested || home));
   }).catch(function(){ /* لا جلسة — ابقَ هنا */ });
 
   function safeNext(n){
     // منع إعادة التوجيه المفتوح: مسارات نسبية فقط داخل البوابة
-    // مسموح: صفحات البوابة نفسها، أو بوابات المقاول/المشتريات/الإدارة بالضبط
+    // مسموح: صفحات البوابة نفسها، والبوابات المستقلة المعروفة فقط.
+    // مسارات الاستشاري والجهة الطالبة مطابقة حرفياً لتجنب إعادة التوجيه المفتوح.
+    if(n==='/consulting/'||n==='/consulting'||n==='/consulting/requester/'||n==='/consulting/requester') return n;
     if(/^\.\.\/\.\.\/(bid|procurement|admin|tender-opportunities)\/index\.html$/.test(n)) return n;
     if(/^\.\.\/\.\.\/international-tenders\/(index\.html|uk\/find-a-tender\.html)$/.test(n)) return n;
     if(/^[a-z-]+\.html(\?[A-Za-z0-9_=&.-]*)?$/.test(n)) return n;
@@ -138,7 +146,7 @@
     API.login({email:email,password:pass}).then(function(res){
       showAlert(T('تم تسجيل الدخول. جارٍ التحويل…','Signed in. Redirecting…'),'ok');
       var next=new URLSearchParams(location.search).get('next');
-      if(!next) next=(res.user && res.user.role==='admin') ? '../../admin/index.html' : (res.user && res.user.role==='buyer' ? '../../procurement/index.html' : (res.user && res.user.role==='consultant' ? '../../consultant/index.html' : 'index.html'));
+      if(!next) next=(res.user && res.user.role==='admin') ? '../../admin/index.html' : (res.user && res.user.role==='buyer' ? '/consulting/requester/' : (res.user && res.user.role==='consultant' ? '/consulting/' : 'index.html'));
       setTimeout(function(){ location.replace(safeNext(next)); }, 350);
     }).catch(function(err){
       busy(false, defaultLabel);
