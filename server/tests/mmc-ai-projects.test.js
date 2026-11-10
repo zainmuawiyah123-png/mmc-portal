@@ -71,11 +71,11 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const auditRead=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId);
  assert.equal(auditRead.status,200);
  assert.equal(auditRead.data.members.length,2);
- const viewerUpload=await upload('ai-viewer',projectId,'plan.pdf',Buffer.from('%PDF-1.4\\n%%EOF'));
+ const viewerUpload=await upload('ai-viewer',projectId,'plan.pdf',Buffer.from('%PDF-1.4\n%%EOF'));
  assert.equal(viewerUpload.status,403);
  const badPdf=await upload('ai-owner',projectId,'fake.pdf',Buffer.from('not a pdf'));
  assert.equal(badPdf.status,422);
- const goodPdf=await upload('ai-owner',projectId,'structural-plan.pdf',Buffer.from('%PDF-1.4\\n1 0 obj\\n<<>>\\nendobj\\n%%EOF'));
+ const goodPdf=await upload('ai-owner',projectId,'structural-plan.pdf',Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF'));
  assert.equal(goodPdf.status,201,JSON.stringify(goodPdf.data));
  assert.equal(goodPdf.data.document.file_ext,'.pdf');
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
@@ -84,13 +84,13 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const ownerDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents/'+docId+'/download',{headers:{Cookie:jar['ai-owner']}});
  assert.equal(ownerDownload.status,200);
  assert.equal(ownerDownload.headers.get('content-length'),String(goodPdf.data.document.size_bytes));
- assert.match(await ownerDownload.text(),/^%PDF-1\\.4/);
+ assert.match(await ownerDownload.text(),/^%PDF-1\.4/);
  const viewerDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents/'+docId+'/download',{headers:{Cookie:jar['ai-viewer']}});
  assert.equal(viewerDownload.status,200);
 
  const outsiderDocs=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/documents');
  assert.equal(outsiderDocs.status,404);
- const outsiderUpload=await upload('ai-outsider',projectId,'other.pdf',Buffer.from('%PDF-1.4\\n%%EOF'));
+ const outsiderUpload=await upload('ai-outsider',projectId,'other.pdf',Buffer.from('%PDF-1.4\n%%EOF'));
  assert.equal(outsiderUpload.status,404);
 
 });
