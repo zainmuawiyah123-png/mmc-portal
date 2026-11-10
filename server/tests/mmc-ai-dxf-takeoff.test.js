@@ -44,3 +44,12 @@ test('accepts standard DXF files with trailing CRLF newline', () => {
   const result = takeoffDxf(content);
   assert.equal(result.rows[0].quantity, 10);
 });
+
+test('rejects non-numeric LINE coordinates instead of emitting NaN', () => {
+  const ent = ['0','LINE','10','not-a-number','20','0','11','6','21','8'].join('\\n');
+  assert.throws(() => takeoffDxf(dxf(ent)), /non-numeric geometry/i);
+});
+test('rejects negative ARC radius', () => {
+  const ent = ['0','ARC','40','-2','50','0','51','90'].join('\\n');
+  assert.throws(() => takeoffDxf(dxf(ent)), /negative arc radius/i);
+});
