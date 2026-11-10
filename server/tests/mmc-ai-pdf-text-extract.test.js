@@ -87,3 +87,17 @@ test('extracts strings shown with PDF single-quote and double-quote text operato
  assert.match(r.text,/Second line/);
  assert.equal(r.diagnostics.textShowingOperations,2);
 });
+
+test('decodes UTF-16LE PDF strings when little-endian BOM is present',()=>{
+ const bytes=Buffer.concat([Buffer.from([0xff,0xfe]),Buffer.from('MMC site plan','utf16le')]);
+ const literal='('+bytes.toString('latin1')+') Tj';
+ const hex='<'+bytes.toString('hex')+'> Tj';
+ assert.match(extractPdfText(pdf('BT '+literal+' ET')).text,/MMC site plan/);
+ assert.match(extractPdfText(pdf('BT '+hex+' ET')).text,/MMC site plan/);
+});
+test('decodes escaped parentheses, octal escapes, and escaped line breaks',()=>{
+ const r=extractPdfText(pdf('BT (MMC \\(AI\\) \\101\\nConstruction) Tj (Plan\\\nSet) Tj ET'));
+ assert.match(r.text,/MMC \(AI\) A/);
+ assert.match(r.text,/Construction/);
+ assert.match(r.text,/PlanSet/);
+});
