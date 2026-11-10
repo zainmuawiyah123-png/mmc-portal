@@ -28,6 +28,7 @@ if(a==='approve'){var d=prompt(T('مدة التوثيق بالأيام:','Verifi
 else{var n=prompt(a==='reject'?T('سبب الرفض (يظهر للجهة):','Reason for rejection (shown to the organization):'):T('سبب سحب التوثيق:','Reason for revoking:'));if(n===null)return;body={note:n}}
 call('POST','/admin/'+id+'/'+a,body).then(function(r){show(r.message);load()}).catch(function(err){show(err.message)})};
 sel.onchange=load;load();window.addEventListener('mmc:lang',function(){load()})})();
+</script>
 <div class="admin-wrap" style="padding-top:0"><div class="admin-head"><div><div class="eyebrow">مراجعة المكاتب الاستشارية</div><h1>ملفات المكاتب وقرارات الاعتماد</h1><p class="small">راجع رقم التسجيل والتخصصات والخبرات والوثائق المرفوعة، ثم سجّل قرارك وسبب القرار.</p></div><div class="filter"><select id="consultantStatus"><option value="pending">قيد المراجعة</option><option value="">جميع الحالات</option><option value="verified">موثّق</option><option value="rejected">مرفوض</option><option value="suspended">موقوف</option></select><button class="btn amber" id="consultantRefresh">تحديث</button></div></div><div id="consultantNotice" class="notice" hidden></div><div class="p-card table-wrap"><table class="admin-table"><thead><tr><th>المكتب والرقم القانوني</th><th>بيانات التواصل والتخصصات</th><th>الخبرات والوثائق</th><th>حالة المراجعة</th><th>قرار الإدارة</th></tr></thead><tbody id="consultantRows"><tr><td colspan="5">جارٍ تحميل الملفات…</td></tr></tbody></table></div></div>
 <script>
 (function(){
