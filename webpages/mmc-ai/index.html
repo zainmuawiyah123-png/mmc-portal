@@ -112,6 +112,7 @@ td{background:#10243d!important;color:#dce8f3!important;border-color:#29435d!imp
    </div></section>
   </div>
   <section class="panel" id="executiveDashboard" style="margin:18px 0"><div class="panelhead"><h2>ملخص المشروع التنفيذي</h2><span>LIVE PROJECT INTELLIGENCE</span></div><div id="executiveSummary" style="padding:14px"><p class="note">اختر مشروعاً لعرض المؤشرات التنفيذية المجمعة.</p></div></section>
+  <section class="panel" id="allProjectDataPanel" style="margin:18px 0"><div class="panelhead"><h2>جميع بيانات المشروع</h2><span>FULL PROJECT DATA REGISTER</span><button type="button" class="btn" id="refreshAllProjectData">تحديث البيانات</button></div><div style="padding:14px"><p class="note">عرض تفصيلي لسجلات المشروع المسموح لك بالاطلاع عليها، بما فيها BOQ والبرنامج والمخاطر والمطالبات والوثائق وBIM والصور والأعضاء وسجل التدقيق. البيانات الوصفية فقط للملفات؛ لا يعرض هذا القسم مفاتيح التخزين أو محتوى الملفات الثنائي.</p><div id="allProjectDataCounts" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div><pre id="allProjectDataJson" dir="ltr" style="white-space:pre-wrap;overflow:auto;max-height:620px;background:#081a2d;color:#d9e8f5;border:1px solid #29435d;border-radius:9px;padding:14px;font:11px/1.7 ui-monospace,monospace">اختر مشروعاً لعرض جميع بياناته.</pre></div></section>
   <section class="panel" id="boqPanel" style="margin:18px 0"><div class="panelhead"><h2>جدول الكميات والتكلفة التقديرية</h2><span>PROJECT BOQ & ESTIMATE</span></div>
    <div style="padding:14px">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -313,11 +314,23 @@ td{background:#10243d!important;color:#dce8f3!important;border-color:#29435d!imp
    if(!d.events.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='لا توجد أحداث تعاقدية مسجلة لهذا المشروع.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
+ async function loadAllProjectData(id){
+  const output=document.getElementById('allProjectDataJson'),counts=document.getElementById('allProjectDataCounts');
+  output.textContent='جارٍ تحميل جميع بيانات المشروع...';counts.replaceChildren();
+  if(!id){output.textContent='اختر مشروعاً لعرض جميع بياناته.';return;}
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/data-overview',{credentials:'same-origin',cache:'no-store'}),d=await r.json();
+   if(!r.ok)throw new Error(d.message||'تعذر تحميل بيانات المشروع.');
+   for(const [key,value] of Object.entries(d.counts||{})){const chip=document.createElement('span');chip.textContent=key+': '+value;chip.style.cssText='background:#183653;border:1px solid #34516e;color:#dce8f3;padding:7px 10px;border-radius:7px;font-size:10px';counts.appendChild(chip);}
+   output.textContent=JSON.stringify({generatedAt:d.generatedAt,counts:d.counts,data:d.data,limitations:d.limitations},null,2);
+  }catch(e){output.textContent=e.message;}
+ }
+ document.getElementById('refreshAllProjectData').addEventListener('click',()=>loadAllProjectData(activeProject?.project_id||activeProject?.id));
  async function selectProject(id){
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
