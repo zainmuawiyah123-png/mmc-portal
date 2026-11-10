@@ -40,22 +40,18 @@ function decodePdfString(raw){
 }
 function extractFromContent(src){
  const out=[];
- const literal=/\((?:\\[\s\S]|[^\\)])*\)/g;
- const hex=/<(?!<)[0-9a-fA-F\s]+>/g;
- const tokens=[];
- let m;while((m=literal.exec(src)))tokens.push({at:m.index,value:m[0]});
- while((m=hex.exec(src)))tokens.push({at:m.index,value:m[0]});
- tokens.sort((a,b)=>a.at-b.at);
- for(const token of tokens){
-  const tail=src.slice(token.at+token.value.length);
-  if(/^\s*Tj\b/.test(tail)||/^\s*['"]/.test(tail))out.push(decodePdfString(token.value));
-  else if(/^\s*(?:[-+]?\d+(?:\.\d+)?\s*)*TJ\b/.test(tail)){
-   const arr=src.slice(Math.max(0,src.lastIndexOf('[',token.at)),src.indexOf(']',token.at)+1);
-   if(arr.includes(token.value))continue;
+ const re=/\[(?:\s*(?:\((?:\\[\s\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>|[-+]?(?:\d+\.?\d*|\.\d+))\s*)*\]\s*TJ|\((?:\\[\s\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>/g;
+ let m;
+ while((m=re.exec(src))){
+  const token=m[0];
+  if(token[0]==='['){
+   const vals=token.slice(1,token.lastIndexOf(']')).match(/\((?:\\[\s\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>/g)||[];
+   out.push(vals.map(decodePdfString).join(''));
+   continue;
   }
+  const tail=src.slice(re.lastIndex);
+  if(/^\s*Tj\b/.test(tail)||/^\s*['"]/.test(tail))out.push(decodePdfString(token));
  }
- const arrays=/\[([\s\S]*?)\]\s*TJ/g;
- while((m=arrays.exec(src))){const vals=m[1].match(/\((?:\\[\s\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>/g)||[];out.push(vals.map(decodePdfString).join(''));}
  return out;
 }
 function tokenizeContentStream(src){
