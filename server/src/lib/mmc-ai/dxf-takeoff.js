@@ -127,6 +127,112 @@ function polylineMetrics(vertices, closed) {
   return { perimeter, area: closed ? Math.abs(area2 / 2 + curvedArea) : null };
 }
 
+
+function blocksFrom(pairs) {
+  const blocks = new Map();
+  let section = '', block = null, entity = null, readingHeader = false;
+  const flushEntity = () => { if (block && entity) block.entities.push(entity); entity = null; };
+  for (const p of pairs) {
+    if (p.code === 0 && p.value === 'SECTION') { flushEntity(); section = ''; continue; }
+    if (p.code === 2 && !section) { section = p.value; continue; }
+    if (section !== 'BLOCKS') continue;
+    if (p.code === 0 && p.value === 'ENDSEC') {
+      flushEntity();
+      if (block) blocks.set(block.name, block);
+      block = null; section = ''; continue;
+    }
+    if (p.code === 0 && p.value === 'BLOCK') {
+      flushEntity();
+      if (block) blocks.set(block.name, block);
+      block = { name: '', baseX: 0, baseY: 0, entities: [] };
+      readingHeader = true; continue;
+    }
+    if (p.code === 0 && p.value === 'ENDBLK') {
+      flushEntity();
+      if (block?.name) blocks.set(block.name, block);
+      block = null; readingHeader = false; continue;
+    }
+    if (!block) continue;
+    if (p.code === 0) {
+      flushEntity();
+      entity = { type: p.value, pairs: [] };
+      readingHeader = false;
+    } else if (readingHeader && p.code === 2) block.name = p.value;
+    else if (readingHeader && p.code === 10) block.baseX = Number(p.value);
+    else if (readingHeader && p.code === 20) block.baseY = Number(p.value);
+    else if (entity) entity.pairs.push(p);
+  }
+  flushEntity();
+  if (block?.name) blocks.set(block.name, block);
+  return blocks;
+}
+
+function transformBlockEntity(entity, block, insert, scale, rotation) {
+  const radians = rotation * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians);
+  const ix = first(insert, 10), iy = first(insert, 20);
+  const layer = layerOf(insert);
+  const transform = (x, y) => {
+    const dx = (x - block.baseX) * scale, dy = (y - block.baseY) * scale;
+    return { x: ix + dx * cos - dy * sin, y: iy + dx * sin + dy * cos };
+  };
+  const pairs = entity.pairs.map(p => ({ ...p }));
+  const set = (code, value) => {
+    const p = pairs.find(x => x.code === code);
+    if (p) p.value = String(value);
+  };
+  if (entity.type === 'LINE') {
+    requireCodes(entity, [10,20,11,21], 'block LINE');
+    const a = transform(first(entity,10), first(entity,20));
+    const b = transform(first(entity,11), first(entity,21));
+    set(10,a.x); set(20,a.y); set(11,b.x); set(21,b.y);
+  } else if (entity.type === 'CIRCLE' || entity.type === 'ARC') {
+    requireCodes(entity, entity.type === 'ARC' ? [10,20,40,50,51] : [10,20,40], 'block ' + entity.type);
+    const c = transform(first(entity,10), first(entity,20));
+    set(10,c.x); set(20,c.y); set(40,first(entity,40)*scale);
+    if (entity.type === 'ARC') {
+      set(50,first(entity,50)+rotation); set(51,first(entity,51)+rotation);
+    }
+  } else if (entity.type === 'LWPOLYLINE') {
+    const vertices = polylineVertices(entity);
+    let vertexIndex = 0;
+    for (const p of pairs) {
+      if (p.code === 10) {
+        const point = transform(vertices[vertexIndex].x, vertices[vertexIndex].y);
+        p.value = String(point.x);
+      } else if (p.code === 20) {
+        const point = transform(vertices[vertexIndex].x, vertices[vertexIndex].y);
+        p.value = String(point.y); vertexIndex++;
+      }
+    }
+  }
+  const childLayer = entity.pairs.find(p => p.code === 8)?.value || '0';
+  if (childLayer === '0') {
+    const layerPair = pairs.find(p => p.code === 8);
+    if (layerPair) layerPair.value = layer;
+    else pairs.unshift({ code: 8, value: layer });
+  }
+  return { type: entity.type, pairs, blockName: block.name };
+}
+
+function expandBlockInserts(entities, blocks) {
+  const expanded = [], unsupported = {};
+  const mark = name => { unsupported[name] = (unsupported[name] || 0) + 1; };
+  for (const entity of entities) {
+    if (entity.type !== 'INSERT') { expanded.push(entity); continue; }
+    const name = entity.pairs.find(p => p.code === 2)?.value;
+    const block = blocks.get(name);
+    if (!block) { mark('INSERT_MISSING_BLOCK'); continue; }
+    const sx = first(entity,41,1), sy = first(entity,42,1), sz = first(entity,43,1);
+    const rotation = first(entity,50,0);
+    if (![sx,sy,sz,rotation].every(Number.isFinite) || sx <= 0 || sy <= 0 || sz <= 0 || Math.abs(sx-sy)>1e-9 || Math.abs(sx-sz)>1e-9) {
+      mark('INSERT_UNSUPPORTED_SCALE'); continue;
+    }
+    if (block.entities.some(e => e.type === 'INSERT')) { mark('INSERT_NESTED_BLOCK'); continue; }
+    for (const child of block.entities) expanded.push(transformBlockEntity(child, block, entity, sx, rotation));
+  }
+  return { entities: expanded, unsupported };
+}
+
 function takeoffDxf(text, options = {}) {
   const pairs = parsePairs(text);
   const unitCode = readHeaderUnits(pairs);
@@ -134,13 +240,16 @@ function takeoffDxf(text, options = {}) {
   if (!Number.isFinite(metresPerUnit) || metresPerUnit <= 0) {
     throw new Error('Drawing units are undefined. Set a verified metresPerUnit scale before measuring.');
   }
-  const entities = entitiesFrom(pairs);
+  const sourceEntities = entitiesFrom(pairs);
+  const blockExpansion = expandBlockInserts(sourceEntities, blocksFrom(pairs));
+  const entities = blockExpansion.entities;
   const rows = [];
-  const unsupported = {};
+  const unsupported = { ...blockExpansion.unsupported };
   const byLayer = {};
   for (let index = 0; index < entities.length; index++) {
     const e = entities[index], layer = layerOf(e);
     const row = { entity: e.type, entityIndex: index, layer };
+    if (e.blockName) row.sourceBlock = e.blockName;
     let quantity = null, unit = null;
     if (e.type === 'LINE') {
       requireCodes(e, [10, 20, 11, 21], 'LINE entity ' + index);
@@ -202,4 +311,4 @@ function takeoffDxf(text, options = {}) {
   };
 }
 
-module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, polylineMetrics, UNIT_TO_METRE };
+module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
