@@ -128,3 +128,22 @@ test('consultant office tender desk keeps financial bids sealed until technical 
  const peerContracts=await call('officeTenderPeer','GET','/api/consulting/firm-subcontracts');assert.equal(peerContracts.status,200);assert.equal(peerContracts.data.contracts.length,1);
  const closedMarket=await call('officeTenderPeer','GET','/api/consulting/firm-tenders/market');assert.ok(!closedMarket.data.tenders.some(x=>x.id===tenderId));
 });
+
+test('consultant office team, reporting and subcontract documents/progress are tenant-scoped',async()=>{
+ const team=await register('officeTeamMember','consultant');assert.equal(team.status,201);
+ const added=await call('officeTenderOwner','POST','/api/consulting/firms/me/members',{body:{email:team.data.user.email,role:'staff'}});assert.equal(added.status,201,JSON.stringify(added.data));
+ const list=await call('officeTenderOwner','GET','/api/consulting/firms/me/members');assert.equal(list.status,200);assert.ok(list.data.members.some(x=>x.user_id===team.data.user.id&&x.member_role==='staff'));
+ const staffTenders=await call('officeTeamMember','GET','/api/consulting/firm-tenders/mine');assert.equal(staffTenders.status,200);
+ const staffCannotAdd=await call('officeTeamMember','POST','/api/consulting/firms/me/members',{body:{email:'someone@example.test',role:'staff'}});assert.equal(staffCannotAdd.status,404);
+ const roleUpdate=await call('officeTenderOwner','PATCH','/api/consulting/firms/me/members/'+added.data.member.id,{body:{role:'manager'}});assert.equal(roleUpdate.status,200);assert.equal(roleUpdate.data.role,'manager');
+ const report=await call('officeTenderOwner','GET','/api/consulting/reports/summary');assert.equal(report.status,200);assert.ok(report.data.summary.ownSubconsultantTenders>=1);assert.ok(report.data.summary.receivedSubconsultantProposals>=1);
+ const ownerList=await call('officeTenderOwner','GET','/api/consulting/firm-subcontracts');assert.equal(ownerList.status,200);assert.equal(ownerList.data.contracts.length,1);const contractId=ownerList.data.contracts[0].id;
+ const doc=await callUpload('officeTenderPeer','/api/consulting/firm-subcontracts/'+contractId+'/documents','files','subcontract.pdf','subcontract document','contract');assert.equal(doc.status,201,JSON.stringify(doc.data));
+ const ownerDocs=await call('officeTenderOwner','GET','/api/consulting/firm-subcontracts/'+contractId+'/documents');assert.equal(ownerDocs.status,200);assert.equal(ownerDocs.data.documents.length,1);
+ const downloaded=await call('officeTenderOwner','GET','/api/consulting/firm-subcontracts/'+contractId+'/documents/'+doc.data.documents[0].id+'/download');assert.equal(downloaded.status,200);assert.equal(downloaded.data,'subcontract document');
+ const progress=await call('officeTenderPeer','POST','/api/consulting/firm-subcontracts/'+contractId+'/updates',{body:{type:'progress',progressPercent:40,note:'تم البدء في إعداد المخرجات الاستشارية المتفق عليها.'}});assert.equal(progress.status,201);
+ const updates=await call('officeTenderOwner','GET','/api/consulting/firm-subcontracts/'+contractId+'/updates');assert.equal(updates.status,200);assert.equal(updates.data.updates.length,1);assert.equal(updates.data.updates[0].progress_percent,40);
+ const activate=await call('officeTenderPeer','PATCH','/api/consulting/firm-subcontracts/'+contractId+'/status',{body:{status:'active',note:'أكد المكتب المختار بدء العمل في نطاق الخدمة.'}});assert.equal(activate.status,200);
+ const finish=await call('officeTenderOwner','PATCH','/api/consulting/firm-subcontracts/'+contractId+'/status',{body:{status:'completed',note:'تم استلام التقرير والمخرجات واعتماد اكتمال الخدمة.'}});assert.equal(finish.status,200);
+ const closedUpdate=await call('officeTenderPeer','POST','/api/consulting/firm-subcontracts/'+contractId+'/updates',{body:{type:'progress',note:'لا ينبغي قبول هذا التحديث بعد الإغلاق.'}});assert.equal(closedUpdate.status,409);
+});
