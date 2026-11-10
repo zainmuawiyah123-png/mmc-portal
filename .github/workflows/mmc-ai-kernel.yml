@@ -25,6 +25,7 @@ on:
   pull_request:
     paths:
       - 'server/src/lib/mmc-ai/**'
+      - 'server/src/routes/mmc-ai.js'
       - 'server/tests/mmc-ai-*.test.js'
       - 'server/src/routes/mmc-ai-boq.js'
       - 'server/src/routes/mmc-ai-schedule.js'
