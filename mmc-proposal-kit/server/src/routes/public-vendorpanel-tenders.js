@@ -10,9 +10,9 @@ function decodeXml(v) {
  .replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 }
 function tag(xml,name) {
- const re=new RegExp('<(?:[\\\\w.-]+:)?'+name+'\\\\b[^>]*>([\\\\s\\\\S]*?)<\\\\/(?:[\\\\w.-]+:)?'+name+'\\\\s*>','i');
+ const re=new RegExp('<(?:[\\\\w.-]+:)?'+name+'\\\b[^>]*>([\\\s\\\S]*?)<\\\\/(?:[\\\\w.-]+:)?'+name+'\\\s*>','i');
  const m=String(xml||'').match(re);
- return m?decodeXml(m[1].replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ').trim()):'';
+ return m?decodeXml(m[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()):'';
 }
 function safeUrl(value) {
  try { const u=new URL(value); return u.protocol==='https:'&&(u.hostname==='vendorpanel.com.au'||u.hostname.endsWith('.vendorpanel.com.au'))?u.toString():''; } catch(_){return '';}
@@ -41,17 +41,17 @@ function parseVendorPanelFeed(xml) {
 }
 function persist(tenders) {
  const db=require('../db').getDB();
- db.prepare(\`INSERT INTO tender_sources
+ db.prepare(`INSERT INTO tender_sources
  (source_key,name_ar,name_en,country_code,market_scope,publisher_type,source_url,connector_status,access_mode,last_synced_at,last_sync_status,last_sync_message)
  VALUES ('vendorpanel-australia','عطاءات VendorPanel العامة — أستراليا','VendorPanel Public Tenders — Australia','AU','national','public-marketplace',?,'active','Public RSS feed; public tender information may be redistributed with source attribution',unixepoch(),'success',?)
- ON CONFLICT(source_key) DO UPDATE SET connector_status='active',last_synced_at=unixepoch(),last_sync_status='success',last_sync_message=excluded.last_sync_message,updated_at=unixepoch()\`)
+ ON CONFLICT(source_key) DO UPDATE SET connector_status='active',last_synced_at=unixepoch(),last_sync_status='success',last_sync_message=excluded.last_sync_message,updated_at=unixepoch()`)
  .run(FEED_URL,'Imported '+tenders.length+' public RSS records');
- const upsert=db.prepare(\`INSERT INTO public_tenders
+ const upsert=db.prepare(`INSERT INTO public_tenders
  (id,source_key,source_ref,country_code,market_scope,publisher_type,publisher_name,tender_number,title,description,published_at,closing_at,status,official_url,last_verified_at,review_status,raw_metadata)
  VALUES (@id,'vendorpanel-australia',@sourceRef,'AU','national','public-marketplace',@publisherName,@tenderNumber,@title,@description,@publishedAt,@closingAt,@status,@officialUrl,unixepoch(),'published',@rawMetadata)
  ON CONFLICT(source_key,source_ref) DO UPDATE SET publisher_name=excluded.publisher_name,tender_number=excluded.tender_number,title=excluded.title,
  description=excluded.description,published_at=excluded.published_at,closing_at=excluded.closing_at,status=excluded.status,official_url=excluded.official_url,
- last_verified_at=unixepoch(),fetched_at=unixepoch(),raw_metadata=excluded.raw_metadata,updated_at=unixepoch()\`);
+ last_verified_at=unixepoch(),fetched_at=unixepoch(),raw_metadata=excluded.raw_metadata,updated_at=unixepoch()`);
  db.transaction(()=>tenders.forEach(t=>{
   const status=t.closingAt?(t.closingAt<new Date().toISOString().slice(0,10)?'closed':'open'):'unknown';
   upsert.run({...t,tenderNumber:(t.sourceRef.match(/\bVP\d+\b/i)||[])[0]||t.sourceRef,status,rawMetadata:JSON.stringify(t)});
