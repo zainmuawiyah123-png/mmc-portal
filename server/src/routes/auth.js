@@ -66,7 +66,7 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
               VALUES (?, ?, ?, ?, ?, ?, ?, 'free')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
 
   db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
-              VALUES (?, ?, 'free', 'active', ?)`).run(uid('sub_'), id, body.role === 'buyer' ? 'system' : 'trial');
+              VALUES (?, ?, 'free', 'active', ?)`).run(uid('sub_'), id, ['buyer','consultant'].includes(body.role) ? 'system' : 'trial');
 
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
   A.setSessionCookie(res, A.signToken(user));
@@ -74,7 +74,7 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
   res.status(201).json({
     user: publicUser(user),
     plan: A.planAndUsage(id),
-    message: body.role === 'buyer' ? 'تم إنشاء حساب الجهة. بوابة المشتريات الأساسية مجانية بالكامل.' : 'تم إنشاء الحساب. أنت الآن على الباقة المجانية.'
+    message: body.role === 'buyer' ? 'تم إنشاء حساب الجهة. بوابة المشتريات الأساسية مجانية بالكامل.' : body.role === 'consultant' ? 'تم إنشاء حساب الاستشاري الأساسي. لا توجد تجربة مدفوعة تلقائية.' : 'تم إنشاء الحساب. أنت الآن على الباقة المجانية.'
   });
 }));
 
