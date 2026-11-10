@@ -34,6 +34,14 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
  function showError(e){msg.textContent=e.message||'تعذر إكمال العملية';}
  async function api(path,options){const r=await fetch('/api'+path,Object.assign({credentials:'same-origin',headers:{'Content-Type':'application/json'}},options||{}));const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر الاتصال بالخادم');return d;}
  function node(tag,txt,cls){const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n;}
+
+ async function documentPanel(card,type,id,canUpload){
+  const box=node('div',undefined,'mine');box.append(node('strong','الوثائق والمرفقات'));card.append(box);
+  async function refresh(){const d=await api('/consulting/documents/'+type+'/'+id);const list=node('div');if(!d.documents.length)list.append(node('p','لا توجد وثائق مرفقة.','muted'));d.documents.forEach(doc=>{const a=node('a',doc.name+' · '+Math.ceil(doc.size/1024)+' KB');a.href='/api/consulting/documents/'+doc.id+'/download';a.target='_blank';a.rel='noopener';list.append(a);});const old=box.querySelector('[data-doc-list]');if(old)old.remove();list.dataset.docList='1';box.append(list);}
+  try{await refresh();}catch(e){box.append(node('p',e.message,'muted'));}
+  if(canUpload){const form=node('form');const kind=node('select');[['technical','عرض فني'],['financial','عرض مالي'],['reference','مراجع'],['contract','عقد'],['deliverable','مخرج فني'],['report','تقرير']].forEach(([v,l])=>{const o=node('option',l);o.value=v;kind.append(o);});const files=node('input');files.type='file';files.multiple=true;files.required=true;const submit=node('button','رفع الوثائق','btn sm light');submit.type='submit';form.append(kind,files,submit);form.onsubmit=async e=>{e.preventDefault();const data=new FormData();data.append('kind',kind.value);Array.from(files.files).forEach(f=>data.append('files',f));try{const response=await fetch('/api/consulting/documents/'+type+'/'+id,{method:'POST',credentials:'same-origin',body:data});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error?.message||'تعذر رفع الوثائق');msg.textContent='تم رفع الوثائق بنجاح.';files.value='';await refresh();}catch(err){showError(err);}};box.append(form);}
+ }
+
  async function loadMarket(){
   const [feed,mine,contracts]=await Promise.all([api('/consulting/requests/open'),api('/consulting/proposals/mine'),api('/consulting/contracts')]);
   const list=$('#requests');list.replaceChildren();
@@ -43,6 +51,7 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
    card.append(node('p',r.discipline+' · '+r.country+(r.location?' · '+r.location:'')));
    card.append(node('p',r.description));card.append(node('p','العملة: '+r.currency+(r.budget_min!=null?' · الميزانية من '+r.budget_min:'')+(r.budget_max!=null?' إلى '+r.budget_max:''),'muted'));
    if(r.scope&&r.scope.length)card.append(node('p','النطاق: '+r.scope.join('، ')));
+   documentPanel(card,'request',r.id,false);
    const form=node('form');const summary=node('textarea');summary.name='technicalSummary';summary.required=true;summary.minLength=20;summary.placeholder='الملخص الفني والخبرات ذات الصلة';
    const method=node('textarea');method.name='methodology';method.placeholder='منهجية التنفيذ';
    const team=node('textarea');team.name='teamSummary';team.placeholder='الفريق المقترح';
@@ -56,12 +65,13 @@ body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.
   });
   const mineBox=$('#myProposals');mineBox.replaceChildren();
   if(!mine.proposals.length)mineBox.append(node('p','لم تقدم عروضاً بعد.','muted'));
-  mine.proposals.forEach(p=>mineBox.append(node('div',p.request_title+' · '+p.financial_amount+' '+p.currency+' · '+p.status,'mine')));
+  mine.proposals.forEach(p=>{const card=node('article',undefined,'request');card.append(node('h3',p.request_title+' · '+p.financial_amount+' '+p.currency+' · '+p.status));documentPanel(card,'proposal',p.id,true);mineBox.append(card);});
   const contractBox=$('#myContracts');contractBox.replaceChildren();
   if(!contracts.contracts.length)contractBox.append(node('p','لا توجد عقود مسندة للمكتب بعد.','muted'));
   contracts.contracts.forEach(contract=>{
    const card=node('article',undefined,'request');card.append(node('h3',contract.contract_reference+' · '+contract.request_title));card.append(node('p','الجهة: '+contract.requester_name+' · '+contract.agreed_amount+' '+contract.currency));
    card.append(node('p','الحالة: '+({awarded:'تمت الترسية',active:'قيد التنفيذ',completed:'مكتمل',terminated:'منتهٍ'}[contract.status]||contract.status)));
+   documentPanel(card,'contract',contract.id,true);
    if(contract.status==='awarded'){const start=node('button','تأكيد بدء التنفيذ','btn sm amber');start.type='button';start.onclick=async()=>{try{await api('/consulting/contracts/'+contract.id+'/status',{method:'PATCH',body:JSON.stringify({status:'active',note:'بدأ المكتب تنفيذ الخدمة الاستشارية المتفق عليها.'})});await loadMarket();}catch(e){showError(e);}};card.append(start);}
    if(['awarded','active'].includes(contract.status)){const form=node('form');const type=node('select');[['progress','تقدم العمل'],['milestone','إنجاز مرحلة'],['issue','ملاحظة أو عائق']].forEach(([v,l])=>{const o=node('option',l);o.value=v;type.append(o);});const pct=node('input');pct.type='number';pct.min='0';pct.max='100';pct.placeholder='نسبة الإنجاز % (اختياري)';const note=node('textarea');note.required=true;note.minLength=5;note.placeholder='اكتب تحديث التنفيذ أو الإنجاز';const submit=node('button','إضافة تحديث','btn sm light');submit.type='submit';form.append(type,pct,note,submit);form.onsubmit=async e=>{e.preventDefault();try{await api('/consulting/contracts/'+contract.id+'/updates',{method:'POST',body:JSON.stringify({type:type.value,progressPercent:pct.value===''?null:Number(pct.value),note:note.value})});await loadMarket();}catch(err){showError(err);}};card.append(form);}
    const history=node('button','سجل التحديثات','btn sm light');history.type='button';const historyBox=node('div');history.onclick=async()=>{try{const h=await api('/consulting/contracts/'+contract.id+'/updates');historyBox.replaceChildren();if(!h.updates.length)historyBox.append(node('p','لا توجد تحديثات.','muted'));h.updates.forEach(u=>historyBox.append(node('p',(u.actor_name||'')+' · '+u.note+(u.progress_percent==null?'':' · '+u.progress_percent+'%'),'mine')));}catch(e){showError(e);}};card.append(history,historyBox);contractBox.append(card);
