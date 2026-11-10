@@ -38,14 +38,14 @@ The existing `/api/requests` flow is the buyer's project/request-to-procurement 
 - Store uploaded documents through the existing storage abstraction, with separate ownership keys and access checks; never serve private proposal documents as static files.
 
 ## Identity and verification separation
-- The existing registration schema supports `consultant`, but that role is also used by committee evaluators. Do not silently reinterpret or migrate existing consultant users.
+- The existing registration schema supports `consultant`, but that role is also used by committee evaluators. A user becomes a consulting-market participant only by explicitly creating a separate `consulting_firm_members` record; an evaluator assignment alone does not grant firm membership or consultant-market billing. Do not silently reinterpret or migrate existing consultant users.
 - Introduce a separate consulting-firm membership/eligibility check and onboarding flow. An existing evaluator does not become a firm member merely because their user role is `consultant`.
 - Collect country, legal registration number, official contact details, and evidence documents in the consulting-firm onboarding process. Normalize country + registration number for duplicate detection.
 - Verification must be independent of buyer `org_verifications`; do not attach consultant firms to buyer organizations.
 - Do not assume email/SMS OTP is available: the current mail queue depends on SMTP configuration, and no verified OTP flow was found. Build verification as an explicit, testable process with delivery readiness checks before enabling OTP.
 
 ## Subscription isolation
-- The current `billing.js` maps every non-buyer role to `contractor`; its `/plans`, `/trial`, `/invoices`, and approval paths are contractor-oriented. Do not expose consultant users to contractor plans or alter contractor plan prices.
+- The current `billing.js` and `account.js` historically mapped evaluator-role users to contractor plans. They now check explicit consulting-firm membership before isolating a member into the consulting audience, preserving evaluator-only accounts and contractor prices while preventing a registered firm member from falling through to contractor billing.
 - The current invoice flow supports currency conversion using `org.js` and accepts several invoice currencies. The approved platform subscription policy is USD-only. A separate consulting subscription implementation must store and return USD amounts only and must not change project invoice currencies.
 - Do not add a consultant plan to the shared contractor audience or use the generic contractor subscription path until isolation and regression tests prove no cross-audience effects.
 - Suggested isolated plan identifier: `consultant_pro`, monthly amount `20`, currency `USD`; implement only in a separate consultant billing path or a carefully audience-scoped billing design with explicit regression coverage.
