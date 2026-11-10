@@ -7,6 +7,7 @@ on:
       - 'server/src/lib/mmc-ai/**'
       - 'server/src/routes/mmc-ai.js'
       - 'server/src/routes/mmc-ai-documents.js'
+      - 'server/src/routes/mmc-ai-images.js'
       - 'server/src/migrate.js'
       - 'server/src/index.js'
       - 'server/tests/mmc-ai-*.test.js'
