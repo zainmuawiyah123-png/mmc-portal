@@ -138,6 +138,19 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
 @media(max-width:520px){#plans{padding:15px}.plan-card{padding:16px}.plan-activity-list{grid-template-columns:1fr}.plan-price strong{font-size:30px}}
 </style>
 
+<style id="mmc-ai-top-plans-modal">
+.plans-top-button{border:1px solid #398bc4;background:linear-gradient(135deg,#2876c7,#1b9ac0);color:#fff;border-radius:9px;padding:9px 13px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 5px 16px #0003}
+.plans-top-button:hover{filter:brightness(1.12);transform:translateY(-1px)}
+#plansDialog{position:fixed;inset:0;z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:5vh 18px 24px;background:#020b16c9;backdrop-filter:blur(5px);overflow:auto}
+#plansDialog.open{display:flex}
+#plansDialog .plans-dialog-shell{width:min(1040px,100%);position:relative;margin:auto;background:#0b192a;border:1px solid #365674;border-radius:18px;box-shadow:0 28px 90px #0009;padding:20px}
+#plansDialog .plans-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;color:#f2f7fc}
+#plansDialog .plans-dialog-head strong{font-size:15px}
+#plansDialog .plans-close{border:1px solid #456783;background:#173653;color:#fff;border-radius:8px;padding:8px 12px;cursor:pointer}
+#plansDialog #plans{margin:0}
+#plansDialog .plan-heading{padding-top:0}
+@media(max-width:600px){.topright{gap:6px!important}.plans-top-button{font-size:10px;padding:7px 8px}.lang-toggle{font-size:10px;padding:7px 8px}.status{display:none!important}#plansDialog{padding:12px 8px}#plansDialog .plans-dialog-shell{padding:12px;border-radius:13px}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -162,7 +175,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
  <div class="sidebottom">MMC / TenderWise<br>Independent portal within MMC ecosystem<br>© MMC Construction Intelligence</div>
 </aside>
 <main class="main">
- <header class="topbar"><div class="crumb">MMC / <b>Construction Intelligence</b> / Dashboard</div><div class="topright"><button type="button" class="lang-toggle" id="languageToggle" aria-label="Switch language">العربية</button><span class="status">● Preview Environment</span><div class="avatar">MM</div></div></header>
+ <header class="topbar"><div class="crumb">MMC / <b>Construction Intelligence</b> / Dashboard</div><div class="topright"><button type="button" class="plans-top-button" id="openPlans" aria-haspopup="dialog" aria-controls="plansDialog">✦ Plans & Pricing</button><button type="button" class="lang-toggle" id="languageToggle" aria-label="Switch language">العربية</button><span class="status">● Preview Environment</span><div class="avatar">MM</div></div></header>
  <section class="content" id="overview">
   <div class="welcome"><div><div class="eyebrow">CONSTRUCTION INTELLIGENCE</div><h1>Welcome to MMC AI</h1><p>AI-powered workspace for projects, drawings, quantities and engineering decisions.</p></div><div class="actions"><button class="btn primary" id="newProject">＋ New Project</button></div></div><section class="cockpit" aria-label="Project control center">
   <div class="cockpit-heading"><div><span class="eyebrow">MMC AI WORKSPACE</span><h2>Project Control Center</h2><p>One place to monitor engineering, delivery, cost and project risk.</p></div><span class="cockpit-tag">LIVE PROJECT DATA · SIGN-IN REQUIRED</span></div>
@@ -785,4 +798,24 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
 })();
 </script>
 
+<script id="mmc-ai-plans-top-modal">
+(()=>{
+ const plans=document.getElementById('plans'),open=document.getElementById('openPlans');
+ if(!plans||!open)return;
+ const dialog=document.createElement('div');dialog.id='plansDialog';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','plansDialogTitle');
+ const shell=document.createElement('div');shell.className='plans-dialog-shell';
+ const head=document.createElement('div');head.className='plans-dialog-head';
+ const title=document.createElement('strong');title.id='plansDialogTitle';title.textContent='Plans & Pricing';
+ const close=document.createElement('button');close.type='button';close.className='plans-close';close.textContent='✕ Close';close.setAttribute('aria-label','Close plans');
+ head.append(title,close);shell.append(head,plans);dialog.append(shell);document.body.append(dialog);
+ function show(){dialog.classList.add('open');document.body.style.overflow='hidden';close.focus();}
+ function hide(){dialog.classList.remove('open');document.body.style.overflow='';open.focus();}
+ open.addEventListener('click',show);close.addEventListener('click',hide);
+ dialog.addEventListener('click',e=>{if(e.target===dialog)hide();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&dialog.classList.contains('open'))hide();});
+ document.querySelectorAll('.nav a[href="#plans"]').forEach(a=>a.addEventListener('click',show));
+ const lang=document.getElementById('languageToggle');
+ if(lang){const observer=new MutationObserver(()=>{title.textContent=document.documentElement.lang==='ar'?'الباقات والأسعار':'Plans & Pricing';close.textContent=document.documentElement.lang==='ar'?'✕ إغلاق':'✕ Close';});observer.observe(lang,{childList:true,characterData:true,subtree:true});}
+})();
+</script>
 </body></html>
