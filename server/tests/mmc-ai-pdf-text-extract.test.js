@@ -101,3 +101,12 @@ test('decodes escaped parentheses, octal escapes, and escaped line breaks',()=>{
  assert.match(r.text,/Construction/);
  assert.match(r.text,/PlanSet/);
 });
+
+test('preserves source order across Tj and TJ text operations',()=>{
+ const r=extractPdfText(pdf('BT (First) Tj [(Second) -20 (Third)] TJ (Fourth) Tj ET'));
+ assert.equal(r.text,'First\nSecondThird\nFourth');
+});
+test('does not extract text-looking operators from PDF comments',()=>{
+ const r=extractPdfText(pdf('% (fake comment text) Tj\nBT (real text) Tj ET'));
+ assert.equal(r.text,'real text');
+});
