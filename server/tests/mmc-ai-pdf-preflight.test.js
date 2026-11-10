@@ -13,7 +13,10 @@ test('accepts a structurally plausible PDF and reports conservative page count',
   assert.equal(result.version, '1.7');
   assert.equal(result.pageCount, 2);
   assert.equal(result.status, 'preflight_passed');
-  assert.equal(result.extractionReady, true);
+  assert.equal(result.extractionReady, false);
+  assert.equal(result.analysisStatus, 'password_required');
+  assert.equal(result.analysisStatus, 'parser_not_configured');
+  assert.ok(result.limitations.some(item => item.includes('does not mean')));
 });
 
 test('does not count the /Pages tree as a page object', () => {
