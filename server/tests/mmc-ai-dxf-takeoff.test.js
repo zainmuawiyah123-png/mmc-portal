@@ -58,3 +58,14 @@ test('rejects incomplete LINE entities instead of defaulting missing coordinates
   const ent = ['0','LINE','10','0','20','0','11','6'].join('\n');
   assert.throws(() => takeoffDxf(dxf(ent)), /missing required DXF group code 21/i);
 });
+
+test('rejects LWPOLYLINE vertices with missing Y coordinates', () => {
+  const ent = ['0','LWPOLYLINE','70','1','10','0','20','0','10','4','10','4','20','3'].join('\\n');
+  assert.throws(() => takeoffDxf(dxf(ent)), /missing Y coordinate/i);
+});
+test('computes semicircular bulge length and area on a closed polyline', () => {
+  const ent = ['0','LWPOLYLINE','70','1','10','0','20','0','42','1','10','2','20','0'].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.ok(Math.abs(result.rows[0].length_m - (Math.PI + 2)) < 1e-10);
+  assert.ok(Math.abs(result.rows[0].area_m2 - (Math.PI / 2)) < 1e-10);
+});
