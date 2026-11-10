@@ -107,11 +107,20 @@ function expireIfDue(userId) {
 }
 
 function planAndUsage(userId) {
-  expireIfDue(userId);
   const db = getDB();
-  const user = db.prepare('SELECT plan_key FROM users WHERE id = ?').get(userId);
-  const planKey = user ? user.plan_key : 'free';
-  const plan = db.prepare('SELECT * FROM plans WHERE key = ?').get(planKey) || db.prepare("SELECT * FROM plans WHERE key='free'").get();
+  let user = db.prepare('SELECT role, plan_key FROM users WHERE id = ?').get(userId);
+  if (user && user.role !== 'buyer') {
+    expireIfDue(userId);
+    user = db.prepare('SELECT role, plan_key FROM users WHERE id = ?').get(userId);
+  }
+  const buyerCoreFree = !!user && user.role === 'buyer';
+  const planKey = buyerCoreFree ? 'free' : (user ? user.plan_key : 'free');
+  const storedPlan = db.prepare('SELECT * FROM plans WHERE key = ?').get(planKey) || db.prepare("SELECT * FROM plans WHERE key='free'").get();
+  // Buyer core operations are permanently free; retain technical upload limits in middleware/config.
+  const plan = buyerCoreFree ? {
+    ...storedPlan, key: 'free', max_tenders: -1, max_submissions: -1,
+    max_bytes: -1, max_users: -1, price_month: 0, price_year: 0
+  } : storedPlan;
 
   const tenderCount = db.prepare('SELECT COUNT(*) AS n FROM tenders WHERE user_id = ?').get(userId).n;
   const agg = db.prepare(
