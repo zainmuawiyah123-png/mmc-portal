@@ -34,6 +34,11 @@ async function upload(user,projectId,name,bytes){
  const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();
  return {status:r.status,data};
 }
+async function uploadBimModel(user,projectId,name,bytes,fields={}){
+ const form=new FormData();form.append('file',new Blob([bytes]),name);for(const [k,v] of Object.entries(fields))form.append(k,String(v));
+ const r=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/bim/models',{method:'POST',headers:{...(jar[user]?{Cookie:jar[user]}:{})},body:form});
+ const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();return {status:r.status,data};
+}
 async function uploadImage(user,projectId,name,bytes,fields={}){
  const form=new FormData();form.append('file',new Blob([bytes]),name);
  for(const [k,v] of Object.entries(fields))form.append(k,String(v));
@@ -139,6 +144,13 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(dependentDelete.status,409);
  const bimCreate=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/bim/issues',{title:'HVAC duct clashes with beam',modelReference:'Coordination model v03',discipline:'mechanical',severity:'high',description:'Duct route intersects structural beam at grid B-4.',elementIds:['DUCT-004','BEAM-B4'],proposedResolution:'Review alternative duct elevation with structural engineer.'});
  assert.equal(bimCreate.status,201,JSON.stringify(bimCreate.data));assert.deepEqual(bimCreate.data.issue.element_ids,['DUCT-004','BEAM-B4']);
+ const badBimModel=await uploadBimModel('ai-owner',projectId,'broken.ifc',Buffer.from('not an IFC model'));assert.equal(badBimModel.status,422);
+ const viewerBimModel=await uploadBimModel('ai-viewer',projectId,'model.ifc',Buffer.from('ISO-10303-21;\nEND-ISO-10303-21;'));assert.equal(viewerBimModel.status,403);
+ const ifcBytes=Buffer.from('ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION((\'ViewDefinition [CoordinationView]\'),\'2;1\');\nENDSEC;\nDATA;\nENDSEC;\nEND-ISO-10303-21;');
+ const ifcModel=await uploadBimModel('ai-owner',projectId,'coordination.ifc',ifcBytes,{modelReference:'IFC-COORD-R01',discipline:'structural'});assert.equal(ifcModel.status,201,JSON.stringify(ifcModel.data));assert.equal(ifcModel.data.model.model_format,'ifc');
+ const modelList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/bim/models');assert.equal(modelList.status,200);assert.equal(modelList.data.summary.ifc,1);
+ const modelDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/bim/models/'+ifcModel.data.model.id+'/download',{headers:{Cookie:jar['ai-owner']}});assert.equal(modelDownload.status,200);assert.deepEqual(Buffer.from(await modelDownload.arrayBuffer()),ifcBytes);
+ const modelOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/bim/models');assert.equal(modelOutsider.status,404);
  const bimList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/bim/issues');assert.equal(bimList.status,200);assert.equal(bimList.data.summary.high,1);
  const bimViewer=await call('ai-viewer','POST','/api/mmc-ai/projects/'+projectId+'/bim/issues',{title:'Viewer not permitted',description:'This should be rejected'});assert.equal(bimViewer.status,403);
  const bimUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/bim/issues/'+bimCreate.data.issue.id,{status:'resolved'});assert.equal(bimUpdate.status,200);assert.equal(bimUpdate.data.issue.status,'resolved');
