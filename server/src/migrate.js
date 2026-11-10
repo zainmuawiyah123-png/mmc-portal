@@ -833,6 +833,66 @@ function upgradeConsultingPortal(db) {
 
 
 /** Independent consultancy marketplace: requester entities, requests, proposals and contracts. */
+function upgradeConsultingOfficeTendering(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS consulting_firm_tenders (
+      id TEXT PRIMARY KEY,
+      reference TEXT NOT NULL UNIQUE,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      created_by TEXT NOT NULL REFERENCES users(id),
+      title TEXT NOT NULL,
+      discipline TEXT NOT NULL CHECK(discipline IN ('engineering_design','site_supervision','project_management','quantity_surveying','geotechnical','environmental','transportation','water_wastewater','architecture','other')),
+      country TEXT NOT NULL CHECK(country IN ('JO','SA','AE')),
+      location TEXT,
+      description TEXT NOT NULL,
+      scope_json TEXT NOT NULL DEFAULT '[]',
+      currency TEXT NOT NULL CHECK(currency IN ('USD','JOD','SAR','AED')),
+      budget_min REAL,
+      budget_max REAL,
+      closing_at INTEGER,
+      technical_threshold INTEGER NOT NULL DEFAULT 50 CHECK(technical_threshold BETWEEN 1 AND 100),
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed','awarded','cancelled')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS consulting_firm_tender_proposals (
+      id TEXT PRIMARY KEY,
+      tender_id TEXT NOT NULL REFERENCES consulting_firm_tenders(id) ON DELETE CASCADE,
+      firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
+      submitted_by TEXT NOT NULL REFERENCES users(id),
+      technical_summary TEXT NOT NULL,
+      methodology TEXT,
+      team_summary TEXT,
+      financial_amount REAL NOT NULL CHECK(financial_amount > 0),
+      currency TEXT NOT NULL CHECK(currency IN ('USD','JOD','SAR','AED')),
+      duration_days INTEGER NOT NULL CHECK(duration_days BETWEEN 1 AND 3650),
+      technical_score REAL CHECK(technical_score IS NULL OR technical_score BETWEEN 0 AND 100),
+      status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted','qualified','rejected','selected')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(tender_id,firm_id)
+    );
+    CREATE TABLE IF NOT EXISTS consulting_firm_subcontracts (
+      id TEXT PRIMARY KEY,
+      tender_id TEXT NOT NULL UNIQUE REFERENCES consulting_firm_tenders(id),
+      proposal_id TEXT NOT NULL UNIQUE REFERENCES consulting_firm_tender_proposals(id),
+      owner_firm_id TEXT NOT NULL REFERENCES consulting_firms(id),
+      selected_firm_id TEXT NOT NULL REFERENCES consulting_firms(id),
+      contract_reference TEXT NOT NULL UNIQUE,
+      agreed_amount REAL NOT NULL CHECK(agreed_amount > 0),
+      currency TEXT NOT NULL CHECK(currency IN ('USD','JOD','SAR','AED')),
+      status TEXT NOT NULL DEFAULT 'awarded' CHECK(status IN ('awarded','active','completed','terminated')),
+      created_by TEXT NOT NULL REFERENCES users(id),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_tenders_market ON consulting_firm_tenders(status,country,closing_at);
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_tenders_owner ON consulting_firm_tenders(firm_id,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_proposals_tender ON consulting_firm_tender_proposals(tender_id,status,created_at);
+    CREATE INDEX IF NOT EXISTS idx_consulting_firm_proposals_firm ON consulting_firm_tender_proposals(firm_id,created_at DESC);
+  `);
+}
+
 function upgradeConsultingFirmDocuments(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS consulting_firm_documents (
@@ -1023,6 +1083,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeOpportunityWatch(db);
   upgradeConsultingPortal(db);
   upgradeConsultingFirmDocuments(db);
+  upgradeConsultingOfficeTendering(db);
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
 
