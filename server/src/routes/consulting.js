@@ -345,7 +345,7 @@ router.post('/firm-tenders/:id/award',wrap(async(req,res)=>{
   db.prepare(`UPDATE consulting_firm_tender_proposals SET status=CASE WHEN id=? THEN 'selected' ELSE CASE WHEN status='qualified' THEN 'rejected' ELSE status END END,updated_at=unixepoch() WHERE tender_id=?`).run(p.id,tender.id);
   db.prepare(`UPDATE consulting_firm_tenders SET status='awarded',updated_at=unixepoch() WHERE id=?`).run(tender.id);
   db.prepare(`INSERT INTO consulting_firm_subcontracts (id,tender_id,proposal_id,owner_firm_id,selected_firm_id,contract_reference,agreed_amount,currency,created_by) VALUES (?,?,?,?,?,?,?,?,?)`).run(id,tender.id,p.id,firm.id,p.firm_id,ref,p.financial_amount,p.currency,req.user.id);
- });
+  })();
  marketEvent(req.user.id,'firm_subcontract',id,'awarded',{tenderId:tender.id,selectedFirmId:p.firm_id});
  res.status(201).json({contract:{id,reference:ref,amount:p.financial_amount,currency:p.currency,status:'awarded'},message:'تمت ترسية الخدمة الاستشارية الفرعية وإنشاء سجل التعاقد.'});
 }));
