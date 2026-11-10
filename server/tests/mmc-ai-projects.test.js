@@ -28,6 +28,12 @@ async function call(user,method,url,body){
  return {status:r.status,data};
 }
 const uniq=()=>Math.random().toString(36).slice(2,10);
+async function upload(user,projectId,name,bytes){
+ const form=new FormData();form.append('file',new Blob([bytes]),name);
+ const r=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents',{method:'POST',headers:{...(jar[user]?{Cookie:jar[user]}:{})},body:form});
+ const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();
+ return {status:r.status,data};
+}
 async function register(key){const r=await call(key,'POST','/api/auth/register',{name:key,email:key+uniq()+'@test.local',password:'Password123',company:key});assert.equal(r.status,201,JSON.stringify(r.data));return r.data.user.id;}
 test.before(async()=>{
  migrate(process.env.DB_PATH);
@@ -65,4 +71,18 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const auditRead=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId);
  assert.equal(auditRead.status,200);
  assert.equal(auditRead.data.members.length,2);
+ const viewerUpload=await upload('ai-viewer',projectId,'plan.pdf',Buffer.from('%PDF-1.4\\n%%EOF'));
+ assert.equal(viewerUpload.status,403);
+ const badPdf=await upload('ai-owner',projectId,'fake.pdf',Buffer.from('not a pdf'));
+ assert.equal(badPdf.status,400);
+ const goodPdf=await upload('ai-owner',projectId,'structural-plan.pdf',Buffer.from('%PDF-1.4\\n1 0 obj\\n<<>>\\nendobj\\n%%EOF'));
+ assert.equal(goodPdf.status,201,JSON.stringify(goodPdf.data));
+ assert.equal(goodPdf.data.document.file_ext,'.pdf');
+ const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
+ assert.equal(docs.status,200);assert.equal(docs.data.documents.length,1);
+ const outsiderDocs=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/documents');
+ assert.equal(outsiderDocs.status,404);
+ const outsiderUpload=await upload('ai-outsider',projectId,'other.pdf',Buffer.from('%PDF-1.4\\n%%EOF'));
+ assert.equal(outsiderUpload.status,404);
+
 });
