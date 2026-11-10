@@ -87,7 +87,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(viewerUpload.status,403);
  const badPdf=await upload('ai-owner',projectId,'fake.pdf',Buffer.from('not a pdf'));
  assert.equal(badPdf.status,422);
- const goodPdf=await upload('ai-owner',projectId,'structural-plan.pdf',Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF'));
+ const goodPdf=await upload('ai-owner',projectId,'structural-plan.pdf',Buffer.from('%PDF-1.4\n1 0 obj\n<< /Type /Page >>\nendobj\n2 0 obj\n<< /Length 23 >>\nstream\nBT (MMC PDF Text) Tj ET\nendstream\nendobj\n%%EOF'));
  assert.equal(goodPdf.status,201,JSON.stringify(goodPdf.data));
 
  assert.equal(goodPdf.data.document.file_ext,'.pdf');
@@ -97,6 +97,13 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(pdfPreflight.data.report.extractionReady,false);
  assert.equal(pdfPreflight.data.report.analysisStatus,'parser_not_configured');
  assert.match(pdfPreflight.data.notice,/لا يستخرج النصوص أو الأبعاد أو الكميات/);
+ const pdfText=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/extract/text',{});
+ assert.equal(pdfText.status,200,JSON.stringify(pdfText.data));
+ assert.equal(pdfText.data.result.status,'partial_text_extracted');
+ assert.match(pdfText.data.result.text,/MMC PDF Text/);
+ assert.match(pdfText.data.notice,/لا يمثل OCR أو تحليلاً هندسياً/);
+ const outsiderPdfText=await call('ai-outsider','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/extract/text',{});
+ assert.equal(outsiderPdfText.status,404);
  const outsiderPdfPreflight=await call('ai-outsider','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/preflight/pdf',{});
  assert.equal(outsiderPdfPreflight.status,404);
 
