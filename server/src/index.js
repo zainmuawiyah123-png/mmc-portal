@@ -28,6 +28,7 @@ const consultingRoutes = require('./routes/consulting');
 const mmcAiRoutes = require('./routes/mmc-ai');
 const mmcAiDocumentRoutes = require('./routes/mmc-ai-documents');
 const mmcAiImageRoutes = require('./routes/mmc-ai-images');
+const mmcAiTakeoffRoutes = require('./routes/mmc-ai-takeoff');
 
 function createApp() {
   const app = express();
@@ -105,6 +106,7 @@ function createApp() {
   app.use('/api/mmc-ai', mmcAiRoutes);
   app.use('/api/mmc-ai', mmcAiDocumentRoutes);
   app.use('/api/mmc-ai', mmcAiImageRoutes);
+  app.use('/api/mmc-ai', mmcAiTakeoffRoutes);
   app.use('/api/committee', require('./routes/committee'));
 
   app.use('/api', (req, res) => {
