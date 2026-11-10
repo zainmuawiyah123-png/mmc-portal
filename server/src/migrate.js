@@ -821,7 +821,7 @@ function upgradeConsultingPortal(db) {
       id TEXT PRIMARY KEY,
       firm_id TEXT NOT NULL REFERENCES consulting_firms(id) ON DELETE CASCADE,
       actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-      action TEXT NOT NULL CHECK(action IN ('submitted','verified','rejected','suspended','reopened')),
+      action TEXT NOT NULL CHECK(action IN ('submitted','verified','rejected','suspended','reopened','pending')),
       note TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
