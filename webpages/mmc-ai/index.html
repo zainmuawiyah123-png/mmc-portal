@@ -113,9 +113,11 @@
    <textarea id="bimDescription" rows="2" placeholder="وصف التعارض أو ملاحظة التنسيق وموقعها" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
    <textarea id="bimResolution" rows="2" placeholder="الحل المقترح / الإجراء المطلوب" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px"></textarea>
    <button id="bimAdd" type="button" class="btn primary">＋ تسجيل ملاحظة BIM</button>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0"><input id="bimModelFile" type="file" accept=".ifc,.glb" style="max-width:260px"><input id="bimModelReference" maxlength="240" placeholder="مرجع النموذج / الإصدار" style="flex:1;min-width:170px;padding:9px;border:1px solid var(--line);border-radius:7px"><button id="bimModelUpload" type="button" class="btn">رفع نموذج IFC / GLB</button></div>
+   <div id="bimModelsList" class="note">لم يتم تحميل قائمة النماذج بعد.</div>
    <div id="bimSummary" class="note" style="margin-top:12px">اختر مشروعاً لعرض ملاحظات التنسيق.</div>
    <div class="tablewrap"><table style="width:100%"><thead><tr><th>الملاحظة</th><th>النموذج</th><th>التخصص</th><th>الخطورة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="bimRows"><tr><td colspan="6" style="text-align:center;padding:18px">لا توجد ملاحظات BIM.</td></tr></tbody></table></div>
-   <p class="note">سجل التنسيق وإدارة الملاحظات متاح. عرض ملفات IFC/GLB ثلاثية الأبعاد واكتشاف التعارضات الهندسي الآلي يتطلب محرك النماذج ثلاثية الأبعاد، ولم يتم تفعيله بعد.</p>
+   <p class="note">يمكن رفع ملفات IFC النصية وGLB وحفظها ضمن المشروع. التحقق الحالي أولي لصيغة الملف فقط؛ عرض النموذج ثلاثي الأبعاد وتحليل هندسته واكتشاف التعارضات الآلي لم يُفعّل بعد.</p>
   </div></section>
   <section class="panel" id="riskPanel" style="margin:18px 0"><div class="panelhead"><h2>سجل المخاطر وإدارتها</h2><span>PROJECT RISK REGISTER</span></div><div style="padding:14px">
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
@@ -242,6 +244,12 @@
    if(!data.tasks.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='أضف أول نشاط للبدء ببناء البرنامج الزمني.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
+ async function loadProjectBimModels(id){
+  const host=document.getElementById('bimModelsList');host.replaceChildren();if(!id){host.textContent='اختر مشروعاً لعرض نماذج BIM.';return;}
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/bim/models',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل نماذج BIM.');const summary=document.createElement('div');summary.textContent='النماذج المحفوظة: '+d.summary.total+' · IFC: '+d.summary.ifc+' · GLB: '+d.summary.glb;host.appendChild(summary);
+   for(const m of d.models){const row=document.createElement('div');row.style.cssText='display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:9px;margin-top:7px';const info=document.createElement('span');info.textContent=m.original_name+' · '+m.model_format.toUpperCase()+' · '+(m.model_reference||'بدون مرجع')+' · '+(m.processing_status==='uploaded'?'تم الرفع - بانتظار المعالجة':m.processing_status);const link=document.createElement('a');link.href='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/bim/models/'+encodeURIComponent(m.id)+'/download';link.textContent='تنزيل النموذج';link.style.cssText='color:#2563a6;text-decoration:underline';row.append(info,link);host.appendChild(row);}
+  }catch(e){host.textContent=e.message;}
+ }
  async function loadProjectBim(id){
   const body=document.getElementById('bimRows'),summary=document.getElementById('bimSummary');body.replaceChildren();if(!id){summary.textContent='اختر مشروعاً لعرض ملاحظات التنسيق.';return;}
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/bim/issues',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر تحميل ملاحظات BIM.');summary.textContent='الملاحظات: '+d.summary.total+' · المفتوحة: '+d.summary.open+' · الحرجة: '+d.summary.critical+' · المرتفعة: '+d.summary.high+' · المعالجة: '+d.summary.resolved;
@@ -269,7 +277,7 @@
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('تعذر فتح المشروع المحدد.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectRisks(id);await loadProjectClaims(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('تعذر تحميل صور المشروع.');
   const images=(await list.json()).images||[];
@@ -283,6 +291,10 @@
    document.getElementById('photoMeta').textContent=(cover.caption||cover.original_name)+(cover.captured_at?' · '+cover.captured_at:'');
   }
  }
+ document.getElementById('bimModelUpload').addEventListener('click',async()=>{
+  if(!activeProject){notify('اختر مشروعاً أولاً.');return;}const file=document.getElementById('bimModelFile').files?.[0];if(!file){notify('اختر ملف IFC أو GLB.');return;}const id=activeProject.project_id||activeProject.id,fd=new FormData();fd.append('file',file);fd.append('modelReference',document.getElementById('bimModelReference').value.trim());fd.append('discipline',document.getElementById('bimDiscipline').value);
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/bim/models',{method:'POST',credentials:'same-origin',body:fd}),d=await r.json();if(!r.ok)throw new Error(d.message||'تعذر رفع نموذج BIM.');document.getElementById('bimModelFile').value='';document.getElementById('bimModelReference').value='';await loadProjectBimModels(id);await loadExecutiveDashboard(id);notify(d.notice||'تم رفع النموذج.');}catch(e){notify(e.message);}
+ });
  document.getElementById('bimAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('اختر مشروعاً أولاً.');return;}const id=activeProject.project_id||activeProject.id;
   const payload={title:document.getElementById('bimTitle').value,modelReference:document.getElementById('bimModel').value,discipline:document.getElementById('bimDiscipline').value,severity:document.getElementById('bimSeverity').value,description:document.getElementById('bimDescription').value,proposedResolution:document.getElementById('bimResolution').value};
