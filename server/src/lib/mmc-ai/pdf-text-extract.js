@@ -40,7 +40,7 @@ function decodePdfString(raw){
 }
 function extractFromContent(src){
  const out=[];
- const literal=/\((?:\\.|[^\\)])*\)/g;
+ const literal=/\((?:\\[\\s\\S]|[^\\)])*\)/g;
  const hex=/<(?!<)[0-9a-fA-F\s]+>/g;
  const tokens=[];
  let m;while((m=literal.exec(src)))tokens.push({at:m.index,value:m[0]});
@@ -55,12 +55,12 @@ function extractFromContent(src){
   }
  }
  const arrays=/\[([\s\S]*?)\]\s*TJ/g;
- while((m=arrays.exec(src))){const vals=m[1].match(/\((?:\\.|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>/g)||[];out.push(vals.map(decodePdfString).join(''));}
+ while((m=arrays.exec(src))){const vals=m[1].match(/\((?:\\[\\s\\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>/g)||[];out.push(vals.map(decodePdfString).join(''));}
  return out;
 }
 function tokenizeContentStream(src){
  const tokens=[];
- const re=/%[^\r\n]*|\((?:\\.|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]*>|\/[^\s<>()\[\]{}%]+|[-+]?(?:\d+\.?\d*|\.\d+)|['"]|[A-Za-z][A-Za-z0-9*']*/g;
+ const re=/%[^\r\n]*|\((?:\\[\\s\\S]|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]*>|\/[^\s<>()\[\]{}%]+|[-+]?(?:\d+\.?\d*|\.\d+)|['"]|[A-Za-z][A-Za-z0-9*']*/g;
  let match;
  while((match=re.exec(src))){
   const value=match[0];
