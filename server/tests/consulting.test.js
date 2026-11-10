@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const os=require('node:os');
 const path=require('node:path');
+const vm=require('node:vm');
 const TMP=fs.mkdtempSync(path.join(os.tmpdir(),'mmc-consulting-test-'));
 process.env.NODE_ENV='test';
 process.env.DB_PATH=path.join(TMP,'test.db');
@@ -62,4 +63,14 @@ test('consulting marketplace isolates requester, proposals, award and contract b
  const contractB=await call('secondConsultant','GET','/api/consulting/contracts');assert.equal(contractB.status,200);assert.equal(contractB.data.contracts.length,0);
  const contractBuyer=await call('requesterBuyer','GET','/api/consulting/contracts');assert.equal(contractBuyer.status,200);assert.equal(contractBuyer.data.contracts.length,1);const update=await call('firmOwner','POST','/api/consulting/contracts/'+awarded.data.contract.id+'/updates',{body:{type:'progress',progressPercent:35,note:'تم إنجاز مراجعة التصميم الأولية وإرسال الملاحظات الفنية.'}});assert.equal(update.status,201);const buyerUpdates=await call('requesterBuyer','GET','/api/consulting/contracts/'+awarded.data.contract.id+'/updates');assert.equal(buyerUpdates.status,200);assert.equal(buyerUpdates.data.updates.length,1);assert.equal(buyerUpdates.data.updates[0].progress_percent,35);const activate=await call('firmOwner','PATCH','/api/consulting/contracts/'+awarded.data.contract.id+'/status',{body:{status:'active',note:'بدأ المكتب تنفيذ نطاق الخدمة المتفق عليه.'}});assert.equal(activate.status,200);const consultantComplete=await call('firmOwner','PATCH','/api/consulting/contracts/'+awarded.data.contract.id+'/status',{body:{status:'completed',note:'محاولة إغلاق غير مخولة من المكتب.'}});assert.equal(consultantComplete.status,409);const complete=await call('requesterBuyer','PATCH','/api/consulting/contracts/'+awarded.data.contract.id+'/status',{body:{status:'completed',note:'تم استلام المخرجات واعتماد اكتمال الخدمة.'}});assert.equal(complete.status,200);const competitorUpdates=await call('secondConsultant','GET','/api/consulting/contracts/'+awarded.data.contract.id+'/updates');assert.equal(competitorUpdates.status,404);
  const finalProposals=await call('requesterBuyer','GET','/api/consulting/requests/'+requestId+'/proposals');assert.equal(finalProposals.data.proposals.find(x=>x.id===proposalA.data.proposal.id).status,'selected');assert.equal(finalProposals.data.proposals.find(x=>x.id===proposalB.data.proposal.id).status,'rejected');
+});
+
+test('consulting firm and requester page inline scripts parse',()=>{
+ const root=path.resolve(__dirname,'../../webpages/technical-proposal-kit_v5');
+ for(const file of ['consulting/index.html','consulting/requester/index.html']){
+  const html=fs.readFileSync(path.join(root,file),'utf8');
+  const scripts=[...html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)];
+  assert.ok(scripts.length>0,file+' should contain application logic');
+  scripts.forEach((match,index)=>new vm.Script(match[1],{filename:file+'#script-'+index}));
+ }
 });
