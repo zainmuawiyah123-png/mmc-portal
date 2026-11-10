@@ -65,6 +65,13 @@ function entitiesFrom(pairs) {
   return entities;
 }
 
+function requireCodes(e, codes, label) {
+  for (const code of codes) {
+    if (!e.pairs.some(p => p.code === code)) {
+      throw new Error('Missing required DXF group code ' + code + ' in ' + label + '.');
+    }
+  }
+}
 function first(e, code, fallback = 0) {
   const p = e.pairs.find(x => x.code === code);
   return p ? Number(p.value) : fallback;
@@ -131,7 +138,7 @@ function takeoffDxf(text, options = {}) {
       const a = { x: first(e, 10), y: first(e, 20) }, b = { x: first(e, 11), y: first(e, 21) };
       quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
     } else if (e.type === 'LWPOLYLINE') {
-      const vertices = polylineVertices(e), closed = (first(e, 70) & 1) === 1;
+      requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);\n      const vertices = polylineVertices(e), closed = (first(e, 70) & 1) === 1;
       if (vertices.length < 2) { unsupported[e.type] = (unsupported[e.type] || 0) + 1; continue; }
       const m = polylineMetrics(vertices, closed);
       row.closed = closed;
