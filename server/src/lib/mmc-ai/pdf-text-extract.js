@@ -34,21 +34,32 @@ function extractFromContent(src){
  while((m=arrays.exec(src))){const vals=m[1].match(/\((?:\\.|[^\\)])*\)|<(?!<)[0-9a-fA-F\s]+>/g)||[];out.push(vals.map(decodePdfString).join(''));}
  return out;
 }
+function tokenizeContentStream(src){
+ const tokens=[];
+ const re=/%[^\r\n]*|\\((?:\\\\.|[^\\\\)])*\\)|<(?!<)[0-9a-fA-F\\s]*>|\\/[^\\s<>()\\[\\]{}%]+|[-+]?(?:\\d+\\.?\\d*|\\.\\d+)|[A-Za-z][A-Za-z0-9*']*/g;
+ let match;
+ while((match=re.exec(src))){
+  const value=match[0];
+  if(value[0]==='%')continue;
+  if(value[0]==='('||value[0]==='<'||value[0]==='/')continue;
+  tokens.push(value);
+ }
+ return tokens;
+}
 function inspectContentOperators(src){
- const masked=src.replace(/%[^\r\n]*/g,' ').replace(/\((?:\\.|[^\\)])*\)/g,' ').replace(/<(?!<)[0-9a-fA-F\s]+>/g,' ');
- const tokenRe=/[-+]?(?:\d+\.?\d*|\.\d+)|[A-Za-z*]+/g;
- const tokens=masked.match(tokenRe)||[],counts={},numbers=[];
- const points=[];
+ const tokens=tokenizeContentStream(src),counts={},numbers=[],points=[];
+ const operators=new Set(['m','l','c','v','y','h','re','S','s','f','F','f*','B','B*','b','b*','n','Do','BT','ET','Tj','TJ','q','Q','cm','w','Tc','Tw','Tz','TL','Tf','Tr','Ts','Td','TD','Tm','T*','W','W*','J','j','M','d','ri','i','gs','sh','CS','cs','SC','SCN','sc','scn','G','g','RG','rg','K','k']);
+ const add=(x,y)=>{if(Number.isFinite(x)&&Number.isFinite(y))points.push([x,y]);};
  for(const token of tokens){
-  if(/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(token)){numbers.push(Number(token));continue;}
+  if(/^[-+]?(?:\\d+\\.?\\d*|\\.\\d+)$/.test(token)){numbers.push(Number(token));continue;}
+  if(!operators.has(token))continue;
   counts[token]=(counts[token]||0)+1;
-  const take=(n)=>numbers.splice(Math.max(0,numbers.length-n),n);
-  const add=(x,y)=>{if(Number.isFinite(x)&&Number.isFinite(y))points.push([x,y]);};
+  const take=n=>numbers.splice(Math.max(0,numbers.length-n),n);
   if(token==='m'||token==='l'){const a=take(2);if(a.length===2)add(a[0],a[1]);}
   else if(token==='c'){const a=take(6);if(a.length===6){add(a[0],a[1]);add(a[2],a[3]);add(a[4],a[5]);}}
   else if(token==='v'||token==='y'){const a=take(4);if(a.length===4){add(a[0],a[1]);add(a[2],a[3]);}}
   else if(token==='re'){const a=take(4);if(a.length===4){const [x,y,w,h]=a;add(x,y);add(x+w,y+h);}}
-  else if(['h','S','s','f','F','f*','B','B*','b','b*','n','Do','BT','ET','Tj','TJ','q','Q','cm','w'].includes(token))numbers.length=0;
+  numbers.length=0;
  }
  const pathOps=['m','l','c','v','y','h','re','S','s','f','F','f*','B','B*','b','b*','n'];
  const vectorPathOperators=pathOps.reduce((sum,key)=>sum+(counts[key]||0),0);
