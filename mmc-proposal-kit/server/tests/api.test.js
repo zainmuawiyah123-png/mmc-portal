@@ -23,6 +23,7 @@ process.env.PAYMENT_ACCOUNT_HOLDER = 'MMC Test Account';
 const { migrate } = require('../src/migrate');
 const { createApp } = require('../src/index');
 const { getDB, closeDB } = require('../src/db');
+const { parseVendorPanelFeed } = require('../src/routes/public-vendorpanel-tenders');
 
 let server, base;
 const cookies = {};   // مفتاح: اسم الجلسة → قيمة الكوكي
@@ -756,4 +757,21 @@ test('64 — موصل البنك الدولي يحول الإشعارات الع
   } finally {
     global.fetch = originalFetch;
   }
+});
+
+
+test('VendorPanel RSS parser extracts public tender fields and rejects non-source links', () => {
+  const xml = `<?xml version="1.0"?><rss><channel><item>
+    <title>Bridge rehabilitation works</title>
+    <link>https://www.vendorpanel.com.au/PublicTenders.aspx?emcc=123</link>
+    <guid>VP533135</guid>
+    <description><![CDATA[Issued by: Mareeba Shire Council VP Reference: VP533135 Opened: Tuesday 10 November 2026 04:36 PM Closing: Friday 04 December 2026 11:00 AM]]></description>
+  </item><item><title>Unsafe external link</title><link>https://example.com/tender</link><guid>VP123456</guid></item></channel></rss>`;
+  const rows = parseVendorPanelFeed(xml);
+  assert.strictEqual(rows.length, 1);
+  assert.strictEqual(rows[0].sourceRef, 'VP533135');
+  assert.strictEqual(rows[0].publisherName, 'Mareeba Shire Council');
+  assert.strictEqual(rows[0].title, 'Bridge rehabilitation works');
+  assert.strictEqual(rows[0].officialUrl, 'https://www.vendorpanel.com.au/PublicTenders.aspx?emcc=123');
+  assert.strictEqual(rows[0].closingAt, '2026-12-04');
 });
