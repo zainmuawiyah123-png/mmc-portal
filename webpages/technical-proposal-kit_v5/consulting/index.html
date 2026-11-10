@@ -5,17 +5,16 @@
 <title>بوابة المكاتب الاستشارية | MMC</title>
 <link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
 <style>
-body{background:#f5f7fa}.wrap{max-width:900px;margin:36px auto;padding:0 16px}.panel{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:22px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}label{display:block;font-weight:600;margin:8px 0}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;margin-top:5px}textarea{min-height:90px}.muted{color:#64748b}.status{padding:10px;border-radius:8px;background:#eff6ff;margin:12px 0}button{cursor:pointer}
+body{background:#f5f7fa}.wrap{max-width:1000px;margin:36px auto;padding:0 16px}.panel{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:22px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}label{display:block;font-weight:600;margin:8px 0}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;margin-top:5px}textarea{min-height:90px}.muted{color:#64748b}.status{padding:10px;border-radius:8px;background:#eff6ff;margin:12px 0}.request{border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:12px 0}.request h3{margin-top:0}.request form{border-top:1px solid #e2e8f0;margin-top:12px;padding-top:12px}button{cursor:pointer}.mine{padding:10px;background:#f8fafc;border-radius:8px;margin:8px 0}
 </style></head>
 <body>
 <header class="p-top"><div class="brand"><span class="mark">M</span><span><span>MMC / TenderWise</span><small>Consulting Firms Portal</small></span></div><div class="spacer"></div><span id="user"></span></header>
 <main class="wrap">
- <div class="p-head"><div class="eyebrow">بوابة مستقلة للمكاتب الاستشارية</div><h1>ملف المكتب الاستشاري</h1><p class="muted">هذه البوابة مستقلة عن بوابة المقاولين والمشتريات ومساحة مقيّمي العطاءات.</p></div>
+ <div class="p-head"><div class="eyebrow">بوابة مستقلة للمكاتب الاستشارية</div><h1>ملف المكتب وسوق الخدمات الاستشارية</h1><p class="muted">بوابة مستقلة عن المقاولين والمشتريات ومساحة مقيّمي العطاءات. لا يمكن لأي مكتب الاطلاع على عروض المكاتب المنافسة.</p></div>
  <div id="message" class="status">جارٍ تحميل بيانات الحساب…</div>
  <section id="existing" class="panel" hidden><h2 id="firmName"></h2><p id="firmInfo"></p><p id="firmStatus" class="status"></p><p class="muted">الباقة الأساسية مجانية. الباقة الاحترافية: 20 USD شهرياً. تفعيل الاشتراك والدفع غير متاحين في هذه المرحلة.</p></section>
- <section id="register" class="panel" hidden><h2>تسجيل مكتب استشاري</h2><p class="muted">يجب إدخال بيانات المكتب القانونية. يبقى الملف قيد المراجعة حتى التحقق منه.</p>
- <form id="firmForm">
- <div class="grid">
+ <section id="register" class="panel" hidden><h2>تسجيل مكتب استشاري</h2><p class="muted">أدخل بيانات المكتب القانونية. يبقى الملف قيد المراجعة حتى التحقق منه.</p>
+ <form id="firmForm"><div class="grid">
  <label>الاسم القانوني للمكتب<input name="legalName" required minlength="3" maxlength="180"></label>
  <label>الدولة<select name="country"><option value="JO">الأردن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option></select></label>
  <label>رقم التسجيل القانوني<input name="registrationNumber" required maxlength="80"></label>
@@ -25,31 +24,53 @@ body{background:#f5f7fa}.wrap{max-width:900px;margin:36px auto;padding:0 16px}.p
  </div>
  <label>التخصصات (افصل بينها بفاصلة)<input name="specializations" maxlength="1000" placeholder="تصميم إنشائي، إشراف، طرق، بنية تحتية"></label>
  <label>الخبرات والمشاريع السابقة<textarea name="experienceSummary" maxlength="3000"></textarea></label>
- <button class="btn amber" type="submit">إرسال ملف المكتب للتحقق</button>
- </form></section>
- <section class="panel"><h3>المرحلة الحالية</h3><ul><li>تسجيل هوية المكتب القانونية وعضوية المالك.</li><li>مراجعة التحقق قبل إتاحة وظائف السوق.</li><li>لن تظهر عروض المكاتب المنافسة لأي مكتب.</li><li>سوق طلبات الخدمات والعروض والعقود والاشتراك الاحترافي سيُفعّل بعد اكتمال اختبارات الفصل والصلاحيات.</li></ul></section>
+ <button class="btn amber" type="submit">إرسال ملف المكتب للتحقق</button></form></section>
+ <section id="market" class="panel" hidden><h2>طلبات الخدمات الاستشارية المتاحة</h2><p class="muted">تظهر هنا الطلبات المنشورة للجهات. يمكنك تقديم عرض واحد لكل طلب، ولا تظهر عروض المنافسين.</p><div id="requests"></div><h2>عروضي المقدمة</h2><div id="myProposals"></div></section>
+ <section class="panel"><h3>معلومات الباقة</h3><ul><li>الأساسية: مجانية لملف المكتب.</li><li>الاحترافية: 20 USD شهرياً، ويظل تفعيلها مغلقاً حتى استكمال الفوترة المستقلة.</li><li>التقديم على طلبات السوق متاح للمكاتب التي اكتمل التحقق القانوني منها.</li></ul></section>
 </main>
 <script>
 (function(){
- const $=s=>document.querySelector(s), msg=$('#message');
+ const $=s=>document.querySelector(s),msg=$('#message');
  function showError(e){msg.textContent=e.message||'تعذر إكمال العملية';}
  async function api(path,options){const r=await fetch('/api'+path,Object.assign({credentials:'same-origin',headers:{'Content-Type':'application/json'}},options||{}));const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر الاتصال بالخادم');return d;}
+ function node(tag,txt,cls){const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n;}
+ async function loadMarket(){
+  const [feed,mine]=await Promise.all([api('/consulting/requests/open'),api('/consulting/proposals/mine')]);
+  const list=$('#requests');list.replaceChildren();
+  if(!feed.requests.length)list.append(node('p','لا توجد طلبات مفتوحة حالياً.','muted'));
+  feed.requests.forEach(r=>{
+   const card=node('article',undefined,'request');card.append(node('h3',r.reference+' · '+r.title));
+   card.append(node('p',r.discipline+' · '+r.country+(r.location?' · '+r.location:'')));
+   card.append(node('p',r.description));card.append(node('p','العملة: '+r.currency+(r.budget_min!=null?' · الميزانية من '+r.budget_min:'')+(r.budget_max!=null?' إلى '+r.budget_max:''),'muted'));
+   if(r.scope&&r.scope.length)card.append(node('p','النطاق: '+r.scope.join('، ')));
+   const form=node('form');const summary=node('textarea');summary.name='technicalSummary';summary.required=true;summary.minLength=20;summary.placeholder='الملخص الفني والخبرات ذات الصلة';
+   const method=node('textarea');method.name='methodology';method.placeholder='منهجية التنفيذ';
+   const team=node('textarea');team.name='teamSummary';team.placeholder='الفريق المقترح';
+   const amount=node('input');amount.type='number';amount.name='financialAmount';amount.min='0.01';amount.step='0.01';amount.required=true;amount.placeholder='قيمة العرض ('+r.currency+')';
+   const days=node('input');days.type='number';days.name='durationDays';days.min='1';days.max='3650';days.required=true;days.placeholder='مدة التنفيذ بالأيام';
+   const currency=node('input');currency.type='hidden';currency.name='currency';currency.value=r.currency;
+   [['الملخص الفني',summary],['منهجية التنفيذ',method],['الفريق',team],['القيمة المالية',amount],['مدة التنفيذ',days]].forEach(([label,field])=>{const l=node('label',label);l.append(field);form.append(l);});
+   const btn=node('button','إرسال العرض','btn amber');btn.type='submit';form.append(currency,btn);
+   form.addEventListener('submit',async e=>{e.preventDefault();const data={technicalSummary:summary.value,methodology:method.value,teamSummary:team.value,financialAmount:Number(amount.value),durationDays:Number(days.value),currency:r.currency};try{const out=await api('/consulting/requests/'+r.id+'/proposals',{method:'POST',body:JSON.stringify(data)});msg.textContent=out.message;await loadMarket();}catch(err){showError(err);}});
+   card.append(form);list.append(card);
+  });
+  const mineBox=$('#myProposals');mineBox.replaceChildren();
+  if(!mine.proposals.length)mineBox.append(node('p','لم تقدم عروضاً بعد.','muted'));
+  mine.proposals.forEach(p=>mineBox.append(node('div',p.request_title+' · '+p.financial_amount+' '+p.currency+' · '+p.status,'mine')));
+ }
  async function load(){
   const me=await api('/auth/me');$('#user').textContent=me.user.name||me.user.email;
-  if(me.user.role!=='consultant'&&me.user.role!=='admin')throw new Error('هذه البوابة مخصصة لحساب المكتب الاستشاري.');
+  if(me.user.role!=='consultant')throw new Error('هذه البوابة مخصصة لحسابات المكاتب الاستشارية.');
   const d=await api('/consulting/me');
-  if(d.firm){$('#existing').hidden=false;$('#firmName').textContent=d.firm.legalName;$('#firmInfo').textContent=d.firm.country+' · رقم التسجيل: '+d.firm.registrationNumber+' · '+d.firm.contactEmail;$('#firmStatus').textContent='حالة التحقق: '+({pending:'قيد المراجعة',verified:'موثّق',rejected:'مرفوض',suspended:'موقوف'}[d.firm.verificationStatus]||d.firm.verificationStatus)+(d.firm.verificationNote?' — '+d.firm.verificationNote:'');}
-  else{$('#register').hidden=false;msg.textContent='لا يوجد ملف مكتب مرتبط بهذا الحساب. يمكنك تسجيل مكتبك الآن.';}
+  if(d.firm){
+   $('#existing').hidden=false;$('#firmName').textContent=d.firm.legalName;$('#firmInfo').textContent=d.firm.country+' · رقم التسجيل: '+d.firm.registrationNumber+' · '+d.firm.contactEmail;
+   $('#firmStatus').textContent='حالة التحقق: '+({pending:'قيد المراجعة',verified:'موثّق',rejected:'مرفوض',suspended:'موقوف'}[d.firm.verificationStatus]||d.firm.verificationStatus)+(d.firm.verificationNote?' — '+d.firm.verificationNote:'');
+   if(d.firm.verificationStatus==='verified'){$('#market').hidden=false;msg.textContent='تم التحقق من المكتب. يمكنك الآن الاطلاع على طلبات الخدمات وتقديم عروضك.';await loadMarket();}
+   else msg.textContent='ملف المكتب قيد المراجعة. ستفتح وظائف السوق بعد اعتماد التحقق القانوني.';
+  }else{$('#register').hidden=false;msg.textContent='لا يوجد ملف مكتب مرتبط بهذا الحساب. يمكنك تسجيل مكتبك الآن.';}
  }
- $('#firmForm').addEventListener('submit',async e=>{
-  e.preventDefault();const f=new FormData(e.currentTarget),data={};
-  for(const [k,v] of f.entries())data[k]=String(v).trim();
-  data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);
-  try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}
-  catch(err){showError(err);}
- });
+ $('#firmForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),data={};for(const [k,v] of f.entries())data[k]=String(v).trim();data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}catch(err){showError(err);}});
  load().catch(showError);
 })();
 </script>
-<script src="../portal/pt-9f3c7a1e5b2d/assets/api.js"></script>
 </body></html>
