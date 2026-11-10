@@ -40,3 +40,9 @@ test('MMC AI site photo upload captures caption and construction date',()=>{
  assert.match(html,/fd\.append\('caption'/);
  assert.match(html,/fd\.append\('capturedAt'/);
 });
+
+test('MMC AI schedule allows project roles to update activity progress and status',()=>{
+ assert.match(html,/percentComplete:value,status:status\.value/);
+ assert.match(html,/await loadExecutiveDashboard\(id\)/);
+ assert.match(html,/الإنجاز والحالة/);
+});
