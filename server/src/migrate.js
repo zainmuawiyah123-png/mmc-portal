@@ -1175,6 +1175,23 @@ function upgradeMmcAiProjects(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_ai_documents_project ON ai_documents(project_id,created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_ai_documents_uploader ON ai_documents(uploaded_by,created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS ai_project_images (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      uploaded_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png')),
+      size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),
+      sha256 TEXT NOT NULL,
+      storage_key TEXT NOT NULL UNIQUE,
+      caption TEXT,
+      captured_at TEXT,
+      is_cover INTEGER NOT NULL DEFAULT 0 CHECK(is_cover IN (0,1)),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_project_images_project ON ai_project_images(project_id,created_at DESC);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_project_single_cover ON ai_project_images(project_id) WHERE is_cover=1;
   `);
 }
 
