@@ -691,7 +691,6 @@ const bidBody = (t, amount = 1000, currency = 'JOD') => { const fd = new FormDat
 test('63 — لا تقديم بعد موعد الإغلاق، ويُقبل في يوم الإغلاق نفسه وبدون موعد', async () => {
   const ymd = (d) => new Date(d).toISOString().slice(0, 10);
   await call('qbuy', 'POST', '/api/auth/register', { body: { name: 'جهة', email: 'qb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  await call('qbuy', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
   const qcEmail = 'qc' + uniq() + '@t.com';
   await call('qcon', 'POST', '/api/auth/register', { body: { name: 'مقاول', email: qcEmail, password: 'Password123' } });
   grantPlan(qcEmail, 'ent');
@@ -752,7 +751,6 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
   cfg.REQUIRE_ORG_VERIFICATION = true;
   try {
     await call('vb', 'POST', '/api/auth/register', { body: { name: 'جهة', email: 'vb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-    await call('vb', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
     const blocked = await mkTender('vb', 1);
     assert.strictEqual(blocked.status, 403);
     assert.strictEqual(blocked.data.error.code, 'ORG_NOT_VERIFIED');
@@ -804,15 +802,15 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
 });
 
 test('67 — دول الخليج: فواتير بالعملات المربوطة، والدينار الكويتي بالدولار فقط', async () => {
-  await call('gcc', 'POST', '/api/auth/register', { body: { name: 'خليجي', email: 'g' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  const amt = async (cur) => (await call('gcc', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', billingCycle: 'monthly', currency: cur } }));
-  assert.strictEqual((await amt('USD')).data.invoice.amount, 49);
-  assert.strictEqual((await amt('SAR')).data.invoice.amount, 183.75);
-  assert.strictEqual((await amt('AED')).data.invoice.amount, 179.95);
-  assert.strictEqual((await amt('QAR')).data.invoice.amount, 178.36);
-  assert.strictEqual((await amt('BHD')).data.invoice.amount, 18.424);
-  assert.strictEqual((await amt('OMR')).data.invoice.amount, 18.841);
-  assert.strictEqual((await amt('JOD')).data.invoice.amount, 34.74);
+  await call('gcc', 'POST', '/api/auth/register', { body: { name: 'مقاول خليجي', email: 'g' + uniq() + '@t.com', password: 'Password123', role: 'contractor' } });
+  const amt = async (cur) => (await call('gcc', 'POST', '/api/billing/invoices', { body: { planKey: 'starter', billingCycle: 'monthly', currency: cur } }));
+  assert.strictEqual((await amt('USD')).data.invoice.amount, 39);
+  assert.strictEqual((await amt('SAR')).data.invoice.amount, 146.25);
+  assert.strictEqual((await amt('AED')).data.invoice.amount, 143.25);
+  assert.strictEqual((await amt('QAR')).data.invoice.amount, 141.96);
+  assert.strictEqual((await amt('BHD')).data.invoice.amount, 14.664);
+  assert.strictEqual((await amt('OMR')).data.invoice.amount, 15.027);
+  assert.strictEqual((await amt('JOD')).data.invoice.amount, 27.66);
   assert.strictEqual((await amt('KWD')).status, 422);
 });
 
@@ -827,7 +825,6 @@ test('68 — توقيت إغلاق العطاء حسب دولة الجهة (ال
 
 test('69 — نص العطاء بالعربية والإنجليزية: الاسم والملاحظات وعناوين المتطلبات', async () => {
   await call('bl', 'POST', '/api/auth/register', { body: { name: 'جهة ثنائية', email: 'bl' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-  await call('bl', 'POST', '/api/billing/trial', { body: { planKey: 'proc_pro' } });
   const mk = await call('bl', 'POST', '/api/procurement/tenders', { body: {
     name: 'إنشاء مبنى الإدارة', nameEn: 'Administration building construction', notes: 'ملاحظات', notesEn: 'Site visit is mandatory', reference: 'BL-' + uniq(),
     requirements: [{ title: 'الخبرة السابقة', titleEn: 'Previous experience', description: 'وصف', descriptionEn: 'Describe similar projects', weight: 60, mandatory: true }, { title: 'المنهجية', weight: 40 }] } });
@@ -1416,8 +1413,8 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
     await makeAdmin('eadm');
     const mkInvoice = async (who, company, tin) => {
       const email = who + uniq() + '@t.com';
-      await call(who, 'POST', '/api/auth/register', { body: { name: who, email, password: 'Password123', role: 'buyer', company } });
-      const inv = await call(who, 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', billingCycle: 'monthly', currency: 'USD', buyerTaxNumber: tin } });
+      await call(who, 'POST', '/api/auth/register', { body: { name: who, email, password: 'Password123', role: 'contractor', company } });
+      const inv = await call(who, 'POST', '/api/billing/invoices', { body: { planKey: 'starter', billingCycle: 'monthly', currency: 'USD', buyerTaxNumber: tin } });
       assert.strictEqual(inv.status, 201, JSON.stringify(inv.data));
       const fd = new FormData();
       fd.append('receipt', new Blob(['%PDF-1.4 r'], { type: 'application/pdf' }), 'r.pdf'); fd.append('transferReference', 'REF-' + uniq()); fd.append('transferDate', '2026-11-05');
@@ -1427,8 +1424,8 @@ test('91 — الفوترة الوطنية: بناء XML وإرساله، ICV م
     const waitFor = async (id, status) => { for (let i = 0; i < 40; i++) { const r = getDB().prepare('SELECT * FROM einvoice_submissions WHERE invoice_id=?').get(id); if (r && r.status === status) return r; await new Promise((x) => setTimeout(x, 50)); } return getDB().prepare('SELECT * FROM einvoice_submissions WHERE invoice_id=?').get(id); };
 
     // رقم ضريبي غير صالح يُرفض عند إنشاء الفاتورة
-    await call('ebad', 'POST', '/api/auth/register', { body: { name: 'مشتري تجريبي', email: 'eb' + uniq() + '@t.com', password: 'Password123', role: 'buyer' } });
-    assert.strictEqual((await call('ebad', 'POST', '/api/billing/invoices', { body: { planKey: 'proc_basic', currency: 'USD', buyerTaxNumber: '12' } })).status, 422);
+    await call('ebad', 'POST', '/api/auth/register', { body: { name: 'مقاول تجريبي', email: 'eb' + uniq() + '@t.com', password: 'Password123', role: 'contractor' } });
+    assert.strictEqual((await call('ebad', 'POST', '/api/billing/invoices', { body: { planKey: 'starter', currency: 'USD', buyerTaxNumber: '12' } })).status, 422);
 
     // 1) اعتماد → إرسال ناجح
     const i1 = await mkInvoice('einv1', 'شركة أ & ب <م>', '987654321');
