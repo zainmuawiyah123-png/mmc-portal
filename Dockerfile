@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
@@ -26,4 +26,4 @@ VOLUME /data
 EXPOSE 4000
 WORKDIR /app/server
 # ترحيل القاعدة، ثم إنشاء حساب المدير إن عُيّنت ADMIN_EMAIL/ADMIN_PASSWORD، ثم الخادم
-CMD ["sh", "-c", "mkdir -p /data/uploads /data/backups && node src/migrate.js && node scripts/setup-admin.js; node src/index.js"]
+CMD ["sh", "-c", "mkdir -p /data/uploads /data/backups && node src/migrate.js && node scripts/setup-admin.js && node src/index.js"]
