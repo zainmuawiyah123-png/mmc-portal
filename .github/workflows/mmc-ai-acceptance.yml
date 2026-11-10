@@ -36,3 +36,4 @@ jobs:
           tests/mmc-ai-schedule-engine.test.js
           tests/mmc-ai-ifc-inspector.test.js
           tests/mmc-ai-pdf-preflight.test.js
+          tests/mmc-ai-pdf-text-extract.test.js
