@@ -10,16 +10,16 @@ router.use(A.requireAuth);
 const clip = (v,n) => String(v == null ? '' : v).trim().slice(0,n);
 const identity = (country, registration) => country + ':' + registration.toUpperCase().replace(/[^A-Z0-9]/g,'');
 function firmFor(userId) {
-  return getDB().prepare(`SELECT f.*, m.member_role, m.status member_status FROM consulting_firm_members m JOIN consulting_firms f ON f.id=m.firm_id WHERE m.user_id=? AND m.status='active'`).get(userId) || null;
+  return getDB().prepare(`SELECT f.*, m.member_role, m.status member_status FROM consulting_firm_members m JOIN consulting_firms f ON f.id=m.firm_id WHERE m.user_id=?`).get(userId) || null;
 }
 function requireConsultant(req) { if (req.user.role !== 'consultant') throw E.forbidden('هذه الخدمة مخصصة لحسابات المكاتب الاستشارية.'); }
-function requireOwner(req, firm) { if (!firm || firm.member_role !== 'owner') throw E.notFound('ملف المكتب غير موجود.'); }
+function requireOwner(req, firm) { if (!firm || firm.member_status !== 'active' || firm.member_role !== 'owner') throw E.notFound('ملف المكتب غير موجود.'); }
 
 router.get('/me', wrap(async (req,res) => {
   requireConsultant(req);
   const firm=firmFor(req.user.id);
   res.setHeader('Cache-Control','no-store');
-  res.json({ firm: firm ? { id:firm.id, legalName:firm.legal_name, country:firm.country, registrationNumber:firm.registration_number, contactEmail:firm.contact_email, contactPhone:firm.contact_phone, specializations:JSON.parse(firm.specializations_json||'[]'), experienceSummary:firm.experience_summary, website:firm.website, verificationStatus:firm.verification_status, verificationNote:firm.verification_note, memberRole:firm.member_role } : null, subscription: { plan:'free', professionalAvailable:false, professionalPrice:20, currency:'USD', billingCycle:'monthly' } });
+  res.json({ firm: firm ? { id:firm.id, legalName:firm.legal_name, country:firm.country, registrationNumber:firm.registration_number, contactEmail:firm.contact_email, contactPhone:firm.contact_phone, specializations:JSON.parse(firm.specializations_json||'[]'), experienceSummary:firm.experience_summary, website:firm.website, verificationStatus:firm.verification_status, verificationNote:firm.verification_note, memberRole:firm.member_role, memberStatus:firm.member_status } : null, subscription: { plan:'free', professionalAvailable:false, professionalPrice:20, currency:'USD', billingCycle:'monthly' } });
 }));
 
 router.post('/firms', wrap(async (req,res) => {
