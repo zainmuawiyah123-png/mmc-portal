@@ -43,7 +43,7 @@ router.post('/projects/:projectId/images',upload.single('file'),wrap(async(req,r
  if(file.size<1||!validImage(file,ext))throw E.validation('محتوى الصورة لا يطابق نوع الملف.');
  const caption=String(req.body?.caption||'').trim().slice(0,240)||null;
  const capturedAt=String(req.body?.capturedAt||'').trim();
- if(capturedAt&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(capturedAt))throw E.validation('تاريخ التقاط الصورة يجب أن يكون YYYY-MM-DD.');
+ if(capturedAt&&!/^\d{4}-\d{2}-\d{2}$/.test(capturedAt))throw E.validation('تاريخ التقاط الصورة يجب أن يكون YYYY-MM-DD.');
  const isCover=['true','1','yes'].includes(String(req.body?.isCover||'').toLowerCase());
  const id=uid('aiimg_'),key=['mmc-ai','projects',projectId,'images',crypto.randomBytes(18).toString('hex')+ext].join('/');
  const checksum=crypto.createHash('sha256').update(file.buffer).digest('hex');
