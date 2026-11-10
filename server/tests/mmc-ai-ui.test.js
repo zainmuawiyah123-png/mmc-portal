@@ -62,6 +62,6 @@ test('MMC AI offers interactive GLB model preview with protected inline model UR
 
 test('MMC AI IFC model pre-inspection is available with clear scope disclosure',()=>{
  assert.match(html,/فحص IFC/);
- assert.match(html,//inspect/);
+ assert.match(html,/\\/inspect/);
  assert.match(html,/لم يتم بعد تحليل هندسته أو تشغيل كشف التعارضات/);
 });
