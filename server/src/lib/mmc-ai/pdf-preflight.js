@@ -47,9 +47,11 @@ function preflightPdf(input, options = {}) {
     pageCount: pageCount > 0 ? pageCount : null,
     pageCountMethod: declaredCounts.length ? 'pages-tree-count' : (pageObjects ? 'page-object-scan' : 'unknown'),
     status: encrypted ? 'password_required' : 'preflight_passed',
-    extractionReady: !encrypted && pageCount > 0,
+    extractionReady: false,
+    analysisStatus: encrypted ? 'password_required' : 'parser_not_configured',
     limitations: [
       'Structural preflight only; no text, vector, image, dimension, or quantity extraction.',
+      'A passing preflight does not mean the PDF parser or engineering analysis has run.',
       'Page count is a conservative scan and must be confirmed by a full PDF parser.'
     ]
   });
