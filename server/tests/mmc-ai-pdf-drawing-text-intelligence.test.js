@@ -103,6 +103,7 @@ test('classifies spatial OCR callouts as discipline candidates without treating 
   assert.ok(candidates.some(item => item.candidateTypes.includes('plumbing_drainage')));
   assert.ok(candidates.some(item => item.candidateTypes.includes('fire_protection')));
   assert.ok(candidates.every(item => item.measurementEligible === false));
+  assert.deepEqual(candidates.find(item => item.raw === '6000 mm').normalizedValuesMm, [6000]);
   assert.ok(candidates.every(item => item.box && item.page === 1));
 });
 
@@ -171,4 +172,7 @@ test('recognizes Arabic-Indic numerals and Arabic engineering units without appr
   assert.ok(candidates.some(item => item.raw === '٣٠٠×٦٠٠' && item.values[0] === 300 && item.values[1] === 600));
   assert.ok(candidates.some(item => item.raw === '٢٫٥ م' && item.values[0] === 2.5 && item.units[0] === 'm'));
   assert.ok(candidates.every(item => item.measurementEligible === false));
+  assert.deepEqual(candidates.find(item => item.raw === '٦٠٠٠ مم').normalizedValuesMm, [6000]);
+  assert.equal(candidates.find(item => item.raw === '٣٠٠×٦٠٠').normalizedValuesMm, null);
+  assert.deepEqual(candidates.find(item => item.raw === '٢٫٥ م').normalizedValuesMm, [2500]);
 });
