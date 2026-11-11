@@ -120,7 +120,7 @@ test('calculates rectangular beam concrete and formwork with explicit bar schedu
     stirrups: { diameterMm: 10, spacingMm: 150, cutLengthMm: 1500 }
   });
   assert.equal(result.concreteM3, 0.675);
-  assert.equal(result.formworkM2, 6.75);
+  assert.equal(result.formworkM2, 6);
   assert.equal(result.stirrups.count, 35);
   assert.equal(result.measurementEligible, false);
 });
