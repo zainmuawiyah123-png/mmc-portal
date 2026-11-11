@@ -20,7 +20,7 @@ function buildDrawingSheetRegister(sheets) {
     if (!documentId || !revision || !sheetNumber) {
       throw new TypeError('Every sheet requires documentId, revision and sheetNumber');
     }
-    const entry = { documentId, revision, sheetNumber, title: sheet.title || null };
+    const entry = { documentId, revision, sheetNumber, title: sheet.title || null, references: Array.isArray(sheet.references) ? sheet.references : [] };
     entries.push(entry);
     const matches = byNumber.get(sheetNumber) || [];
     matches.push(entry);
