@@ -11,6 +11,7 @@ const storage=require('../lib/storage');
 const {preflightPdf}=require('../lib/mmc-ai/pdf-preflight');
 const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
 const {analyzePdfDrawingText}=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
+const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -114,11 +115,22 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
  let extraction;
  try{extraction=extractPdfText(bytes);}catch(err){throw E.validation(err.message||'تعذر استخراج النص من PDF.');}
+ let ocr=null;
+ const shouldOcr=extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
+ if(shouldOcr){
+  try{
+   ocr=await ocrPdf(bytes,{maxPages:req.body?.maxPages,dpi:req.body?.dpi});
+   const recognized=ocr.pages.map(page=>'[OCR PAGE '+page.page+']\\n'+page.text).join('\\n');
+   extraction={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\\n'),characterCount:extraction.characterCount+recognized.length,ocrEngine:ocr.engine};
+  }catch(error){
+   ocr={status:error.code==='OCR_RUNTIME_UNAVAILABLE'?'runtime_unavailable':'failed',code:error.code||'OCR_FAILED',message:error.message,details:error.details||null};
+  }
+ }
  const analysis=analyzePdfDrawingText(extraction,{documentId:doc.id,revision:req.body?.revision||null,sheetOrPage:req.body?.sheetOrPage||doc.original_name});
  db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
-  .run(uid('aial_'),doc.project_id,req.user.id,'pdf_drawing_text_analysis_completed','document',doc.id,JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length}));
+  .run(uid('aial_'),doc.project_id,req.user.id,'pdf_drawing_text_analysis_completed','document',doc.id,JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed'}));
  res.setHeader('Cache-Control','no-store');
- res.json({documentId:doc.id,analysis,notice:'تحليل قرائن نصية فقط؛ لم يتم تنفيذ OCR أو قراءة هندسية للرسومات أو استخراج كميات.'});
+ res.json({documentId:doc.id,analysis,ocr,notice:'تم دمج النص المستخرج مع OCR عند الحاجة. النتائج النصية ليست قراءة هندسية كاملة أو اعتماداً للكميات.'});
 }));
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();
