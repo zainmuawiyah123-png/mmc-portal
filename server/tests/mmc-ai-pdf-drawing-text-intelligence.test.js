@@ -152,3 +152,23 @@ test('extracts spatial OCR dimension candidates with source boxes but never mark
   assert.equal(explicit.sourceWordCount, 2);
   assert.equal(pair.sourceWordCount, 1);
 });
+
+
+test('recognizes Arabic-Indic numerals and Arabic engineering units without approving takeoff', () => {
+  const result = analyzePdfDrawingText({
+    text: 'مخطط إنشائي',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: '٦٠٠٠', confidence: 96, box: { left: 10, top: 10, width: 40, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'مم', confidence: 95, box: { left: 53, top: 10, width: 18, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: '٣٠٠×٦٠٠', confidence: 94, box: { left: 10, top: 35, width: 65, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: '٢٫٥', confidence: 92, box: { left: 10, top: 60, width: 22, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: 'م', confidence: 92, box: { left: 35, top: 60, width: 10, height: 15 } }
+    ]
+  });
+  const candidates = result.metadata.ocrSpatialDimensionCandidates;
+  assert.ok(candidates.some(item => item.raw === '٦٠٠٠ مم' && item.values[0] === 6000 && item.units[0] === 'mm'));
+  assert.ok(candidates.some(item => item.raw === '٣٠٠×٦٠٠' && item.values[0] === 300 && item.values[1] === 600));
+  assert.ok(candidates.some(item => item.raw === '٢٫٥ م' && item.values[0] === 2.5 && item.units[0] === 'm'));
+  assert.ok(candidates.every(item => item.measurementEligible === false));
+});
