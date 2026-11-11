@@ -209,38 +209,69 @@ function inferElementFamily(tag) {
 function buildSpatialElementCandidates(lines, dimensions, options = {}) {
   const maxDistancePx = Number.isFinite(options.maxDistancePx) ? options.maxDistancePx : 160;
   const annotations = classifySpatialOcrAnnotations(lines);
-  return annotations.map(annotation => {
+  const candidates = annotations.map((annotation, index) => {
     const tag = extractElementTag(annotation.raw);
-    const reinforcementCandidates = extractReinforcementCallouts(annotation.raw);
     const nearby = dimensions
-      .filter(dimension => dimension.page === annotation.page && dimension.box)
-      .map(dimension => ({ dimension, distancePx: spatialDistance(annotation.box, dimension.box) }))
+      .map((dimension, dimensionIndex) => ({
+        dimension, dimensionIndex,
+        distancePx: dimension.page === annotation.page && dimension.box
+          ? spatialDistance(annotation.box, dimension.box) : Infinity
+      }))
       .filter(item => item.distancePx <= maxDistancePx)
       .sort((a, b) => a.distancePx - b.distancePx);
-    const nearest = nearby[0] || null;
-    const ambiguous = Boolean(nearest && nearby[1] &&
-      Math.abs(nearby[1].distancePx - nearest.distancePx) < 20);
-    const attachedDimension = nearest && !ambiguous ? nearest.dimension : null;
+    const ambiguous = Boolean(nearby[0] && nearby[1] &&
+      Math.abs(nearby[1].distancePx - nearby[0].distancePx) < 20);
+    return {
+      index, annotation, tag,
+      reinforcementCandidates: extractReinforcementCallouts(annotation.raw),
+      nearby, ambiguous
+    };
+  });
+
+  // Resolve globally rather than independently per label: a single dimension
+  // callout must never be silently counted against multiple drawing elements.
+  const assignments = new Map();
+  const usedDimensions = new Set();
+  const edges = [];
+  for (const candidate of candidates) {
+    if (candidate.ambiguous) continue;
+    for (const item of candidate.nearby) {
+      edges.push({ candidateIndex: candidate.index, dimensionIndex: item.dimensionIndex, distancePx: item.distancePx });
+    }
+  }
+  edges.sort((a, b) => a.distancePx - b.distancePx ||
+    a.candidateIndex - b.candidateIndex || a.dimensionIndex - b.dimensionIndex);
+  for (const edge of edges) {
+    if (assignments.has(edge.candidateIndex) || usedDimensions.has(edge.dimensionIndex)) continue;
+    assignments.set(edge.candidateIndex, edge);
+    usedDimensions.add(edge.dimensionIndex);
+  }
+
+  return candidates.map(candidate => {
+    const { annotation, tag, nearby, ambiguous } = candidate;
+    const assignment = assignments.get(candidate.index);
+    const dimension = assignment ? dimensions[assignment.dimensionIndex] : null;
     return {
       page: annotation.page,
       rawLabel: annotation.raw,
       elementTagCandidate: tag,
       elementFamilyCandidate: inferElementFamily(tag),
-      reinforcementCandidates,
+      reinforcementCandidates: candidate.reinforcementCandidates,
       disciplineCandidates: annotation.candidateTypes,
       labelBox: annotation.box,
-      dimensionCandidate: attachedDimension ? {
-        raw: attachedDimension.raw,
-        kind: attachedDimension.kind,
-        values: attachedDimension.values,
-        units: attachedDimension.units,
-        normalizedValuesMm: attachedDimension.normalizedValuesMm,
-        box: attachedDimension.box,
-        distancePx: Number(nearest.distancePx.toFixed(2))
+      dimensionCandidate: dimension ? {
+        raw: dimension.raw,
+        kind: dimension.kind,
+        values: dimension.values,
+        units: dimension.units,
+        normalizedValuesMm: dimension.normalizedValuesMm,
+        box: dimension.box,
+        distancePx: Number(assignment.distancePx.toFixed(2))
       } : null,
       associationStatus: ambiguous ? 'ambiguous_nearby_dimensions' :
-        attachedDimension ? 'spatially_associated_candidate' :
-        nearby.length ? 'dimension_association_unresolved' : 'no_nearby_dimension_candidate',
+        dimension ? 'spatially_associated_candidate' :
+        nearby.length ? 'dimension_candidate_already_assigned_or_unresolved' :
+        'no_nearby_dimension_candidate',
       reviewStatus: annotation.status,
       measurementEligible: false,
       source: 'OCR text and rendered-page pixel proximity; not verified CAD/BIM geometry'
