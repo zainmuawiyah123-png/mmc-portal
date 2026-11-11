@@ -102,7 +102,7 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrWordCount: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.length : 0,
     ocrWordEvidence: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.slice(0, 20000).map(word => ({ page: word.page, text: word.text, confidence: word.confidence, box: word.box })) : [],
     ocrSpatialLines: spatialOcrLines(extraction.ocrWords).slice(0, 5000),
-    ocrDimensionCallouts: spatialOcrLines(extraction.ocrWords).filter(line => /\\d\\s*(?:mm|cm|m)\\b|\\d\\s*[x×]\\s*\\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
+    ocrDimensionCallouts: spatialOcrLines(extraction.ocrWords).filter(line => /\d\s*(?:mm|cm|m)\b|\d\s*[x×]\s*\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
     textualSheetNumberCandidates: sheetNumbers,
     textualRevisionCandidates: revisions,
     textualScaleCandidates: scales,
@@ -141,4 +141,4 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ]
   };
 }
-module.exports = { analyzePdfDrawingText };
+module.exports = { analyzePdfDrawingText, spatialOcrLines };
