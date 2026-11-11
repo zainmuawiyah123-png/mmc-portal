@@ -121,7 +121,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
   try{
    ocr=await ocrPdf(bytes,{maxPages:req.body?.maxPages,dpi:req.body?.dpi});
    const recognized=ocr.pages.map(page=>'[OCR PAGE '+page.page+']\n'+page.text).join('\n');
-   extraction={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\n'),characterCount:extraction.characterCount+recognized.length,ocrEngine:ocr.engine,ocrPerformed:true,ocrPageCount:ocr.pagesProcessed,ocrAverageConfidence:ocr.pages.filter(page=>Number.isFinite(page.averageConfidence)).length?Number((ocr.pages.reduce((sum,page)=>sum+(page.averageConfidence||0),0)/ocr.pages.filter(page=>Number.isFinite(page.averageConfidence)).length).toFixed(2)):null};
+   extraction={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\n'),characterCount:extraction.characterCount+recognized.length,ocrEngine:ocr.engine,ocrPerformed:true,ocrPageCount:ocr.pagesProcessed,ocrAverageConfidence:ocr.pages.filter(page=>Number.isFinite(page.averageConfidence)).length?Number((ocr.pages.reduce((sum,page)=>sum+(page.averageConfidence||0),0)/ocr.pages.filter(page=>Number.isFinite(page.averageConfidence)).length).toFixed(2)):null,ocrWords:ocr.pages.flatMap(page=>page.words.map(word=>({page:page.page,text:word.text,confidence:word.confidence,box:word.box}))).slice(0,20000)};
   }catch(error){
    ocr={status:error.code==='OCR_RUNTIME_UNAVAILABLE'?'runtime_unavailable':'failed',code:error.code||'OCR_FAILED',message:error.message,details:error.details||null};
   }
