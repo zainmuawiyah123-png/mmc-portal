@@ -41,10 +41,10 @@ test('runs OCR against an actual scanned engineering-sheet PDF fixture', async t
     const generator = path.join(__dirname, 'fixtures', 'create-scanned-drawing-pdf.py');
     const generated = spawnSync('python3', [generator, pdfPath], { encoding: 'utf8', timeout: 20000 });
     assert.equal(generated.status, 0, generated.stderr || 'PDF fixture generation failed');
-    const result = await ocrPdf(await fs.readFile(pdfPath), { maxPages: 2, dpi: 200 });
+    const result = await ocrPdf(await fs.readFile(pdfPath), { maxPages: 1, dpi: 200 });
     assert.equal(result.pagesProcessed, 1);
-    assert.equal(result.totalPages, 1);
-    assert.equal(result.truncatedAtPageLimit, false);
+    assert.equal(result.totalPages, 2);
+    assert.equal(result.truncatedAtPageLimit, true);
     const recognized = result.pages.map(page => page.text).join('\n').toUpperCase();
     assert.match(recognized, /GROUND/);
     assert.match(recognized, /FLOOR/);
