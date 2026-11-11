@@ -7,7 +7,9 @@ const {
   calculateRectangularConcrete,
   calculateRebarScheduleWeight,
   calculateSlabReinforcementTakeoff,
-  calculateIsolatedFootingTakeoff
+  calculateIsolatedFootingTakeoff,
+  calculateColumnTakeoff,
+  calculateBeamTakeoff
 } = require('../src/lib/mmc-ai/measurement-kernels');
 
 test('calculates cut and fill independently using average end area', () => {
@@ -95,4 +97,41 @@ test('rejects an isolated footing pedestal larger than the footing plan', () => 
     lengthMm: 2000, widthMm: 1800, thicknessMm: 400, coverMm: 50,
     pedestal: { lengthMm: 2200, widthMm: 500, heightMm: 500 }
   }), /cannot exceed/);
+});
+
+
+test('calculates rectangular column concrete, formwork and scheduled longitudinal bars', () => {
+  const result = calculateColumnTakeoff({
+    heightMm: 3000, sectionWidthMm: 400, sectionDepthMm: 400, coverMm: 40,
+    longitudinalBars: [{ barMark: 'C1-L', diameterMm: 20, count: 8 }],
+    ties: { diameterMm: 10, spacingMm: 150, cutLengthMm: 1400 }
+  });
+  assert.equal(result.concreteM3, 0.48);
+  assert.equal(result.formworkM2, 4.8);
+  assert.equal(result.longitudinalReinforcement.rows[0].count, 8);
+  assert.equal(result.ties.count, 21);
+  assert.equal(result.measurementEligible, false);
+});
+
+test('calculates rectangular beam concrete and formwork with explicit bar schedule', () => {
+  const result = calculateBeamTakeoff({
+    lengthMm: 5000, widthMm: 300, overallDepthMm: 600, slabThicknessMm: 150, coverMm: 40,
+    longitudinalBars: [{ barMark: 'B1-M', diameterMm: 20, count: 4, cutLengthMm: 5200 }],
+    stirrups: { diameterMm: 10, spacingMm: 150, cutLengthMm: 1500 }
+  });
+  assert.equal(result.concreteM3, 0.675);
+  assert.equal(result.formworkM2, 6.75);
+  assert.equal(result.stirrups.count, 35);
+  assert.equal(result.measurementEligible, false);
+});
+
+test('rejects impossible column and beam geometry', () => {
+  assert.throws(() => calculateColumnTakeoff({
+    heightMm: 3000, sectionWidthMm: 300, sectionDepthMm: 300, coverMm: 160,
+    longitudinalBars: [{ diameterMm: 16, count: 4, cutLengthMm: 3000 }]
+  }), /cover/);
+  assert.throws(() => calculateBeamTakeoff({
+    lengthMm: 5000, widthMm: 300, overallDepthMm: 500, slabThicknessMm: 500,
+    longitudinalBars: [{ diameterMm: 16, count: 4, cutLengthMm: 5000 }]
+  }), /slabThicknessMm/);
 });
