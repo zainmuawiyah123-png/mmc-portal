@@ -10,6 +10,7 @@ const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const {preflightPdf}=require('../lib/mmc-ai/pdf-preflight');
 const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
+const {analyzePdfDrawingText}=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -98,6 +99,26 @@ router.post('/projects/:projectId/documents/:documentId/extract/text',wrap(async
  VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_text_extraction_completed','document',doc.id,JSON.stringify({engine:result.engine,status:result.status,characterCount:result.characterCount,pageCount:result.pageCount}));
  res.setHeader('Cache-Control','no-store');
  res.json({documentId:doc.id,result,notice:'استخراج نصي أولي فقط؛ لا يمثل OCR أو تحليلاً هندسياً أو حصر كميات.'});
+}));
+router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc) throw E.notFound('المستند غير موجود.');
+ if(doc.file_ext!=='.pdf') throw E.validation('تحليل بيانات لوحة الرسم النصية متاح لملفات PDF فقط.');
+ const store=storage.getStorage();
+ if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+ const bytes=await store.get(doc.storage_key);
+ if(!Buffer.isBuffer(bytes)||bytes.length!==Number(doc.size_bytes)) throw E.validation('فشل التحقق من حجم المستند المخزن.');
+ const actualHash=crypto.createHash('sha256').update(bytes).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
+ if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
+ let extraction;
+ try{extraction=extractPdfText(bytes);}catch(err){throw E.validation(err.message||'تعذر استخراج النص من PDF.');}
+ const analysis=analyzePdfDrawingText(extraction,{documentId:doc.id,revision:req.body?.revision||null,sheetOrPage:req.body?.sheetOrPage||doc.original_name});
+ db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
+  .run(uid('aial_'),doc.project_id,req.user.id,'pdf_drawing_text_analysis_completed','document',doc.id,JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length}));
+ res.setHeader('Cache-Control','no-store');
+ res.json({documentId:doc.id,analysis,notice:'تحليل قرائن نصية فقط؛ لم يتم تنفيذ OCR أو قراءة هندسية للرسومات أو استخراج كميات.'});
 }));
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();
