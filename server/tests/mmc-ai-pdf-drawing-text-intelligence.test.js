@@ -106,6 +106,25 @@ test('classifies spatial OCR callouts as discipline candidates without treating 
   assert.ok(candidates.every(item => item.box && item.page === 1));
 });
 
+
+test('recognizes Arabic engineering discipline terms as non-measured candidates', () => {
+  const result = analyzePdfDrawingText({
+    text: 'ملاحظات المشروع',
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'خرسانة', confidence: 94, box: { left: 10, top: 10, width: 45, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: 'بلاط', confidence: 93, box: { left: 10, top: 30, width: 30, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: 'تكييف', confidence: 92, box: { left: 10, top: 50, width: 35, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 4, text: 'حفر', confidence: 91, box: { left: 10, top: 70, width: 20, height: 12 } }
+    ]
+  });
+  const types = result.metadata.spatialEngineeringAnnotations.flatMap(item => item.candidateTypes);
+  assert.ok(types.includes('structural'));
+  assert.ok(types.includes('architectural'));
+  assert.ok(types.includes('mechanical_hvac'));
+  assert.ok(types.includes('earthworks_levels'));
+  assert.ok(result.metadata.spatialEngineeringAnnotations.every(item => item.measurementEligible === false));
+});
+
 test('rejects a missing extraction result', () => {
   assert.throws(() => analyzePdfDrawingText(null), /PDF text extraction result is required/);
 });
