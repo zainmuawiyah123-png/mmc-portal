@@ -57,7 +57,7 @@ test('runs real DXF geometry extraction into traceable classified candidates', (
     '0','LINE','8','STR-BEAM','10','0','20','0','11','6','21','8',
     '0','LWPOLYLINE','8','STR-SLAB','70','1','10','0','20','0','10','5','20','0','10','5','20','4','10','0','20','4',
     '0','ENDSEC','0','EOF'
-  ].join('\\n');
+  ].join('\n');
   const measured = takeoffDxf(dxf);
   const result = normalizeDxfDrawing({
     content: dxf,
