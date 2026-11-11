@@ -11,6 +11,12 @@ const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const DEFAULT_MAX_PAGES = 20;
 const DEFAULT_DPI = 200;
 
+function parsePdfPageCount(pdfInfo) {
+  const match = String(pdfInfo || '').match(/^Pages:\\s+(\\d+)/mi);
+  const count = match ? Number(match[1]) : null;
+  return Number.isInteger(count) && count > 0 ? count : null;
+}
+
 function parseTesseractTsv(tsv) {
   const lines = String(tsv || '').split(/\r?\n/);
   const words = [];
@@ -162,4 +168,4 @@ async function ocrPdf(input, options = {}) {
   }
 }
 
-module.exports = { ocrPdf, parseTesseractTsv, inspectOcrRuntime };
+module.exports = { ocrPdf, parseTesseractTsv, parsePdfPageCount, inspectOcrRuntime };
