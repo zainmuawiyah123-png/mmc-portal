@@ -72,6 +72,39 @@ function classifySpatialOcrAnnotations(lines) {
     };
   }).filter(Boolean).slice(0, 3000);
 }
+function extractSpatialDimensionCandidates(lines) {
+  const candidates = [];
+  const patterns = [
+    { kind: 'explicit_length', regex: /\\b(\\d+(?:[.,]\\d+)?)\\s*(mm|cm|m)\\b/gi, values: m => [Number(m[1].replace(',', '.'))], units: m => [m[2].toLowerCase()] },
+    { kind: 'dimension_pair', regex: /\\b(\\d{2,6}(?:[.,]\\d+)?)\\s*[x×]\\s*(\\d{2,6}(?:[.,]\\d+)?)(?:\\s*(mm|cm|m))?\\b/gi, values: m => [Number(m[1].replace(',', '.')), Number(m[2].replace(',', '.'))], units: m => [m[3] ? m[3].toLowerCase() : null, m[3] ? m[3].toLowerCase() : null] }
+  ];
+  for (const line of lines) {
+    for (const pattern of patterns) {
+      pattern.regex.lastIndex = 0;
+      let match;
+      while ((match = pattern.regex.exec(line.text))) {
+        const raw = clean(match[0]);
+        candidates.push({
+          page: line.page,
+          raw,
+          kind: pattern.kind,
+          values: pattern.values(match),
+          units: pattern.units(match),
+          box: line.box,
+          coordinateSpace: line.coordinateSpace,
+          ocrConfidence: line.confidence,
+          status: pattern.kind === 'explicit_length' || pattern.units(match).every(Boolean)
+            ? 'explicit_unit_candidate_requires_drawing_context'
+            : 'unit_or_dimension_meaning_unresolved',
+          measurementEligible: false,
+          source: 'OCR word boxes; unverified dimension text'
+        });
+      }
+    }
+  }
+  return candidates.slice(0, 1500);
+}
+
 function analyzePdfDrawingText(extraction, document = {}) {
   if (!extraction || typeof extraction.text !== 'string') {
     throw new TypeError('PDF text extraction result is required');
@@ -131,6 +164,7 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrWordCount: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.length : 0,
     ocrWordEvidence: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.slice(0, 20000).map(word => ({ page: word.page, text: word.text, confidence: word.confidence, box: word.box })) : [],
     ocrSpatialLines: spatialOcrLines(extraction.ocrWords).slice(0, 5000),
+    ocrSpatialDimensionCandidates: extractSpatialDimensionCandidates(spatialOcrLines(extraction.ocrWords)),
     spatialEngineeringAnnotations: classifySpatialOcrAnnotations(spatialOcrLines(extraction.ocrWords)),
     ocrDimensionCallouts: spatialOcrLines(extraction.ocrWords).filter(line => /\d\s*(?:mm|cm|m)\b|\d\s*[x×]\s*\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
     textualSheetNumberCandidates: sheetNumbers,
