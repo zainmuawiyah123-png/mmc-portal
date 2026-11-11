@@ -159,3 +159,38 @@ test('rejects wall opening deductions exceeding gross wall face area', () => {
     openings: [{ widthMm: 2500, heightMm: 2000 }]
   }), /cannot exceed/);
 });
+
+
+test('calculates straight stair waist, step wedges and landing concrete separately', () => {
+  const result = calculateConcreteStairTakeoff({
+    clearWidthMm: 1200, goingMm: 300, riserMm: 160, stepCount: 10,
+    waistThicknessMm: 150, landingLengthMm: 1200, landingThicknessMm: 150
+  });
+  assert.equal(result.totalRunMm, 3000);
+  assert.equal(result.totalRiseMm, 1600);
+  assert.equal(result.waistConcreteM3, 0.6);
+  assert.equal(result.stepConcreteM3, 0.288);
+  assert.equal(result.landingConcreteM3, 0.216);
+  assert.equal(result.totalConcreteM3, 1.104);
+  assert.equal(result.measurementEligible, false);
+});
+
+test('calculates rectangular retaining wall stem and base concrete separately', () => {
+  const result = calculateRetainingWallTakeoff({
+    stemLengthMm: 6000, stemHeightMm: 3000, stemThicknessMm: 300,
+    baseWidthMm: 2500, baseThicknessMm: 500, heelWidthMm: 1500,
+    toeWidthMm: 700, footingLengthMm: 6000
+  });
+  assert.equal(result.stemConcreteM3, 5.4);
+  assert.equal(result.baseConcreteM3, 7.5);
+  assert.equal(result.totalConcreteM3, 12.9);
+  assert.equal(result.measurementEligible, false);
+});
+
+test('rejects retaining wall base width inconsistent with heel, toe and stem', () => {
+  assert.throws(() => calculateRetainingWallTakeoff({
+    stemLengthMm: 5000, stemHeightMm: 2500, stemThicknessMm: 400,
+    baseWidthMm: 2000, baseThicknessMm: 400,
+    heelWidthMm: 1200, toeWidthMm: 500
+  }), /cannot exceed/);
+});
