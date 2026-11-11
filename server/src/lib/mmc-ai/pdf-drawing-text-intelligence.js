@@ -171,9 +171,8 @@ function extractElementTag(text) {
 }
 function extractReinforcementCallouts(text) {
   const normalized = normalizeEngineeringNumerals(text).replace(/[ØΦ]/g, 'T');
-  // Supports count+diameter marks (4T20), diameter-only marks (T16),
-  // and explicit spacing callouts (T16@200 / 4T20@150).
-  const pattern = /(?:(\d{1,3})\s*)?T\s*(\d{1,2})(?:\s*[@/\-]\s*(\d{2,4}))?/gi;
+  // Preserve count, diameter, spacing and common distribution hints separately.
+  const pattern = /(?:(\d{1,3})\s*)?[TY]\s*(\d{1,2})(?:\s*[@/\-]\s*(\d{2,4}))?/gi;
   const results = [];
   let match;
   while ((match = pattern.exec(normalized))) {
@@ -182,15 +181,22 @@ function extractReinforcementCallouts(text) {
     const spacingMm = match[3] ? Number(match[3]) : null;
     if ((barCount !== null && barCount <= 0) || diameterMm < 6 || diameterMm > 50) continue;
     if (spacingMm !== null && (spacingMm < 40 || spacingMm > 2000)) continue;
+    const tail = normalized.slice(pattern.lastIndex, pattern.lastIndex + 16);
+    const directionMatch = tail.match(/^\s*(EW|EF|E\.W\.|E\.F\.|BOTH\s+WAYS|EACH\s+WAY|EACH\s+FACE)\b/i);
+    const directionToken = directionMatch ? directionMatch[1].toUpperCase().replace(/\./g, '') : null;
+    const distribution = directionToken === 'EW' || directionToken === 'BOTH WAYS' || directionToken === 'EACH WAY'
+      ? 'each_way' : directionToken === 'EF' || directionToken === 'EACH FACE' ? 'each_face' : null;
     results.push({
       raw: clean(match[0]),
       barCount,
       diameterMm,
       spacingMm,
+      distribution,
       nominalUnitMassKgPerM: Number((diameterMm * diameterMm / 162).toFixed(4)),
       totalBarLength: null,
       totalSteelMassKg: null,
-      status: spacingMm !== null ? 'diameter_and_spacing_candidate_length_and_distribution_unverified' :
+      status: distribution ? 'reinforcement_distribution_candidate_requires_detail_confirmation' :
+        spacingMm !== null ? 'diameter_and_spacing_candidate_length_and_distribution_unverified' :
         barCount !== null ? 'bar_count_and_diameter_candidate_length_and_shape_not_read' :
         'diameter_candidate_count_spacing_and_length_unresolved',
       measurementEligible: false
