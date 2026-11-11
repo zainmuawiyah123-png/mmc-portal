@@ -105,9 +105,9 @@ function extractSpatialDimensionCandidates(lines) {
   const number = '[0-9٠-٩۰-۹]+(?:[.,٫][0-9٠-٩۰-۹]+)?';
   const unit = '(?:mm|cm|m|مم|سم|م)';
   const patterns = [
-    { kind: 'explicit_length', regex: new RegExp('(' + number + ')\\\\s*(' + unit + ')(?![\\\\p{L}])', 'giu'),
+    { kind: 'explicit_length', regex: new RegExp('(' + number + ')\\s*(' + unit + ')(?![\\p{L}])', 'giu'),
       values: m => [engineeringNumber(m[1])], units: m => [normalizeEngineeringUnit(m[2])] },
-    { kind: 'dimension_pair', regex: new RegExp('(' + number + ')\\\\s*[x×]\\\\s*(' + number + ')(?:\\\\s*(' + unit + '))?', 'giu'),
+    { kind: 'dimension_pair', regex: new RegExp('(' + number + ')\\s*[x×]\\s*(' + number + ')(?:\\s*(' + unit + '))?', 'giu'),
       values: m => [engineeringNumber(m[1]), engineeringNumber(m[2])],
       units: m => [m[3] ? normalizeEngineeringUnit(m[3]) : null, m[3] ? normalizeEngineeringUnit(m[3]) : null] }
   ];
