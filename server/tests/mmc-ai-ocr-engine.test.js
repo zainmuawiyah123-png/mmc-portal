@@ -17,6 +17,8 @@ test('parses OCR TSV words, boxes, line grouping, and confidence', () => {
   const result = parseTesseractTsv(tsv);
   assert.equal(result.text, 'GROUND FLOOR\n6000mm');
   assert.equal(result.wordCount, 3);
+  assert.equal(result.words[0].page, 1);
+  assert.equal(result.words[2].page, 1);
   assert.equal(result.averageConfidence, 92);
   assert.deepEqual(result.words[0].box, { left: 20, top: 30, width: 40, height: 12 });
 });
