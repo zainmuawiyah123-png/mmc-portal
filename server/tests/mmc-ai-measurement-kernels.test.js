@@ -14,8 +14,8 @@ test('calculates cut and fill independently using average end area', () => {
     { chainageM: 20, cutAreaM2: 14, fillAreaM2: 4 },
     { chainageM: 50, cutAreaM2: 8, fillAreaM2: 6 }
   ]);
-  assert.equal(result.cutM3, 490);
-  assert.equal(result.fillM3, 170);
+  assert.equal(result.cutM3, 570);
+  assert.equal(result.fillM3, 210);
   assert.equal(result.intervals.length, 2);
 });
 
@@ -37,7 +37,7 @@ test('calculates reinforcement weight by schedule row and bar diameter', () => {
     { barMark: 'B2', diameterMm: 12, cutLengthMm: 1800, count: 8 }
   ]);
   assert.equal(result.totalLengthM, 43.2);
-  assert.equal(result.totalWeightKg, 67.2);
+  assert.equal(result.totalWeightKg, 58.311111);
 });
 
 test('rejects missing, negative and inconsistent engineering inputs', () => {
