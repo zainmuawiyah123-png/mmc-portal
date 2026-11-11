@@ -134,3 +134,17 @@ test('analyses a synthetic architectural ground-floor plan PDF fixture',()=>{
  assert.equal(r.diagnostics.coordinatePointCount,10);
  assert.ok(r.limitations.some(x=>x.includes('لا يستخرج OCR')));
 });
+
+
+const { createTwoPageArchitecturalFixture } = require('./fixtures/mmc-ai-pdf-fixtures');
+test('reads generated two-page PDF acceptance fixture without external uploads',()=>{
+ const bytes=createTwoPageArchitecturalFixture();
+ const r=extractPdfText(bytes);
+ assert.equal(r.pageCount,2);
+ assert.match(r.text,/MMC AI SYNTHETIC ACCEPTANCE PLAN/);
+ assert.match(r.text,/GROUND FLOOR - KNOWN RAW EXTENTS 600 x 400/);
+ assert.equal(r.diagnostics.rectangles,1);
+ assert.ok(r.diagnostics.rawCoordinateBounds);
+ assert.equal(r.diagnostics.rawCoordinateBounds.maxX,600);
+ assert.equal(r.diagnostics.rawCoordinateBounds.maxY,400);
+});
