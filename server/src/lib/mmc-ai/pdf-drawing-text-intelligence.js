@@ -74,6 +74,8 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrPerformed: extraction.ocrPerformed === true,
     ocrPageCount: Number.isInteger(extraction.ocrPageCount) ? extraction.ocrPageCount : 0,
     ocrAverageConfidence: Number.isFinite(extraction.ocrAverageConfidence) ? extraction.ocrAverageConfidence : null,
+    ocrWordCount: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.length : 0,
+    ocrWordEvidence: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.slice(0, 20000).map(word => ({ page: word.page, text: word.text, confidence: word.confidence, box: word.box })) : [],
     textualSheetNumberCandidates: sheetNumbers,
     textualRevisionCandidates: revisions,
     textualScaleCandidates: scales,
