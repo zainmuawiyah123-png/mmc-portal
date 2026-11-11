@@ -43,6 +43,35 @@ function spatialOcrLines(words) {
     };
   }).sort((a, b) => a.page - b.page || a.box.top - b.box.top || a.box.left - b.box.left);
 }
+const SPATIAL_ANNOTATION_RULES = [
+  ['dimensions', /\b\d+(?:\.\d+)?\s*(?:mm|cm|m)\b|\b\d+\s*[x×]\s*\d+\b/i],
+  ['structural', /\b(?:C\d{1,3}|B\d{1,3}|BM\d{1,3}|S\d{1,3})\s*[-:]?\s*\d{2,4}\s*[x×]\s*\d{2,4}\b|\b\d+\s*[TØΦ]\s*\d{1,2}\b|\b(?:C|M)\s*\d{2,3}\b/i],
+  ['architectural', /\b(?:D|W|WD|SD)-?\d{1,3}\b|\b(?:TILE|CERAMIC|MARBLE|PAINT|PLASTER|FLOOR FINISH|WALL FINISH)\b/i],
+  ['electrical', /\b(?:DB|MDB|SMDB|LP|PP|ELP)-?\d{0,3}\b|\b(?:CABLE|CONDUIT|LIGHTING|SOCKET|OUTLET|EARTH)\b/i],
+  ['mechanical_hvac', /\b(?:AHU|FCU|FAHU|VAV|VRF|CHW|HVAC)-?\d{0,3}\b|\b(?:DUCT|DIFFUSER|GRILLE|DAMPER|EXHAUST FAN)\b/i],
+  ['plumbing_drainage', /\b(?:DN|Ø)\s*\d{1,4}\b|\b(?:PPR|UPVC|HDPE|WASTE|SOIL|RAINWATER|DRAIN|CLEANOUT|MANHOLE)\b/i],
+  ['fire_protection', /\b(?:SPRINKLER|FHC|FIRE HOSE|FIRE HYDRANT|FIRE PUMP|FIRE ALARM|SMOKE DETECTOR)\b/i],
+  ['earthworks_levels', /\b(?:EXCAVATION|BACKFILL|COMPACTION|FORMATION LEVEL|EXISTING LEVEL|PROPOSED LEVEL|RL\s*[-+]?\d+(?:\.\d+)?)\b/i]
+];
+function classifySpatialOcrAnnotations(lines) {
+  return lines.map(line => {
+    const candidateTypes = SPATIAL_ANNOTATION_RULES
+      .filter(([, pattern]) => pattern.test(line.text))
+      .map(([type]) => type);
+    if (!candidateTypes.length) return null;
+    return {
+      page: line.page,
+      raw: line.text,
+      box: line.box,
+      coordinateSpace: line.coordinateSpace,
+      ocrConfidence: line.confidence,
+      candidateTypes,
+      status: line.confidence >= 90 ? 'candidate_requires_drawing_context' : 'manual_review_required',
+      measurementEligible: false,
+      source: 'OCR word boxes; semantic text candidate only'
+    };
+  }).filter(Boolean).slice(0, 3000);
+}
 function analyzePdfDrawingText(extraction, document = {}) {
   if (!extraction || typeof extraction.text !== 'string') {
     throw new TypeError('PDF text extraction result is required');
@@ -102,6 +131,7 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrWordCount: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.length : 0,
     ocrWordEvidence: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.slice(0, 20000).map(word => ({ page: word.page, text: word.text, confidence: word.confidence, box: word.box })) : [],
     ocrSpatialLines: spatialOcrLines(extraction.ocrWords).slice(0, 5000),
+    spatialEngineeringAnnotations: classifySpatialOcrAnnotations(spatialOcrLines(extraction.ocrWords)),
     ocrDimensionCallouts: spatialOcrLines(extraction.ocrWords).filter(line => /\d\s*(?:mm|cm|m)\b|\d\s*[x×]\s*\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
     textualSheetNumberCandidates: sheetNumbers,
     textualRevisionCandidates: revisions,
@@ -141,4 +171,4 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ]
   };
 }
-module.exports = { analyzePdfDrawingText, spatialOcrLines };
+module.exports = { analyzePdfDrawingText, spatialOcrLines, classifySpatialOcrAnnotations };
