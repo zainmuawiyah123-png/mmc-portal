@@ -350,6 +350,66 @@ function calculateBeamTakeoff({
   };
 }
 
+
+function calculateConcreteWallTakeoff({
+  lengthMm, heightMm, thicknessMm, coverMm,
+  verticalBars, horizontalBars, openings = []
+} = {}) {
+  positive(lengthMm, 'lengthMm');
+  positive(heightMm, 'heightMm');
+  positive(thicknessMm, 'thicknessMm');
+  nonNegative(coverMm, 'coverMm');
+  if (coverMm * 2 >= Math.min(lengthMm, heightMm, thicknessMm)) {
+    throw new RangeError('cover must be less than half of wall dimensions');
+  }
+  if (!Array.isArray(openings)) throw new TypeError('openings must be an array');
+  let openingAreaM2 = 0;
+  const normalizedOpenings = openings.map((opening, index) => {
+    positive(opening.widthMm, 'openings[' + index + '].widthMm');
+    positive(opening.heightMm, 'openings[' + index + '].heightMm');
+    const area = opening.widthMm / MM_PER_M * opening.heightMm / MM_PER_M;
+    openingAreaM2 += area;
+    return { mark: opening.mark || null, widthMm: opening.widthMm, heightMm: opening.heightMm, areaM2: round(area) };
+  });
+  const grossFaceAreaM2 = lengthMm / MM_PER_M * heightMm / MM_PER_M;
+  if (openingAreaM2 > grossFaceAreaM2 + 1e-9) {
+    throw new RangeError('opening areas cannot exceed gross wall face area');
+  }
+  const voidVolumesM3 = normalizedOpenings.map(opening => opening.areaM2 * thicknessMm / MM_PER_M);
+  const concrete = calculateRectangularConcrete({
+    lengthMm, widthMm: thicknessMm, depthMm: heightMm, voidsM3: voidVolumesM3
+  });
+  const reinforcement = (verticalBars || horizontalBars) ? calculateSlabReinforcementTakeoff({
+    slabLengthMm: lengthMm,
+    slabWidthMm: heightMm,
+    coverMm,
+    barsAlongLength: horizontalBars ? { ...horizontalBars, layers: (horizontalBars.layers || 1) * 2 } : null,
+    barsAlongWidth: verticalBars ? { ...verticalBars, layers: (verticalBars.layers || 1) * 2 } : null
+  }) : null;
+  return {
+    method: 'rectangular_concrete_wall_with_explicit_opening_deductions',
+    ruleId: 'WALL-CONCRETE-FORMWORK-DOUBLE_FACE-REINFORCEMENT',
+    ruleVersion: '1.0',
+    grossConcreteM3: concrete.grossM3,
+    openingDeductionsM3: concrete.voidDeductionsM3,
+    netConcreteM3: concrete.netM3,
+    grossFormworkBothFacesM2: round(grossFaceAreaM2 * 2),
+    netFormworkBothFacesM2: round((grossFaceAreaM2 - openingAreaM2) * 2),
+    openingAreaM2: round(openingAreaM2),
+    openings: normalizedOpenings,
+    reinforcement,
+    inputs: { lengthMm, heightMm, thicknessMm, coverMm, verticalBars, horizontalBars, openings },
+    limitations: [
+      'Rectangular constant-thickness wall only; returns gross double-face formwork less explicitly dimensioned opening faces.',
+      'Opening reveal formwork, lintels, jambs, sills, boundary elements and local thickening are excluded.',
+      'Reinforcement estimate assumes two identical faces and uniform spacing; opening trimming bars, extra bars, boundary reinforcement and anchorage are excluded.',
+      'Opening locations are not used to trim individual bars; reinforcement result is a gross theoretical estimate and must not be treated as an approved net bar schedule.',
+      'Verify construction joints, pour sequence, cover, lap and development lengths, wall boundary zones and project measurement rules.'
+    ],
+    measurementEligible: false
+  };
+}
+
 module.exports = {
   calculateEarthworkAverageEndArea,
   calculatePrismoidalVolume,
@@ -358,5 +418,6 @@ module.exports = {
   calculateSlabReinforcementTakeoff,
   calculateIsolatedFootingTakeoff,
   calculateColumnTakeoff,
-  calculateBeamTakeoff
+  calculateBeamTakeoff,
+  calculateConcreteWallTakeoff
 };
