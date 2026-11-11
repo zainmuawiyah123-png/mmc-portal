@@ -33,13 +33,28 @@ function spatialOcrLines(words) {
     const top = Math.min(...sorted.map(word => word.box.top));
     const right = Math.max(...sorted.map(word => word.box.left + word.box.width));
     const bottom = Math.max(...sorted.map(word => word.box.top + word.box.height));
+    let cursor = 0;
+    const wordBoxes = sorted.map(word => {
+      const start = cursor;
+      cursor += word.text.length;
+      const end = cursor;
+      cursor += 1;
+      return {
+        text: word.text,
+        start,
+        end,
+        confidence: Number.isFinite(word.confidence) ? word.confidence : null,
+        box: { ...word.box }
+      };
+    });
     return {
       page: sorted[0].page,
       text: sorted.map(word => word.text).join(' '),
       confidence: Number((sorted.reduce((sum, word) => sum + (Number.isFinite(word.confidence) ? word.confidence : 0), 0) / sorted.length).toFixed(2)),
       box: { left, top, width: right - left, height: bottom - top },
       coordinateSpace: 'rendered_page_pixels',
-      words: sorted.length
+      words: sorted.length,
+      wordBoxes
     };
   }).sort((a, b) => a.page - b.page || a.box.top - b.box.top || a.box.left - b.box.left);
 }
@@ -90,9 +105,18 @@ function extractSpatialDimensionCandidates(lines) {
           kind: pattern.kind,
           values: pattern.values(match),
           units: pattern.units(match),
-          box: line.box,
+          box: (() => {
+            const matchedWords = (line.wordBoxes || []).filter(word => word.start < match.index + match[0].length && word.end > match.index);
+            if (!matchedWords.length) return line.box;
+            const left = Math.min(...matchedWords.map(word => word.box.left));
+            const top = Math.min(...matchedWords.map(word => word.box.top));
+            const right = Math.max(...matchedWords.map(word => word.box.left + word.box.width));
+            const bottom = Math.max(...matchedWords.map(word => word.box.top + word.box.height));
+            return { left, top, width: right - left, height: bottom - top };
+          })(),
           coordinateSpace: line.coordinateSpace,
           ocrConfidence: line.confidence,
+          sourceWordCount: (line.wordBoxes || []).filter(word => word.start < match.index + match[0].length && word.end > match.index).length,
           status: pattern.kind === 'explicit_length' || pattern.units(match).every(Boolean)
             ? 'explicit_unit_candidate_requires_drawing_context'
             : 'unit_or_dimension_meaning_unresolved',
