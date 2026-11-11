@@ -5,7 +5,9 @@ const {
   calculateEarthworkAverageEndArea,
   calculatePrismoidalVolume,
   calculateRectangularConcrete,
-  calculateRebarScheduleWeight
+  calculateRebarScheduleWeight,
+  calculateSlabReinforcementTakeoff,
+  calculateIsolatedFootingTakeoff
 } = require('../src/lib/mmc-ai/measurement-kernels');
 
 test('calculates cut and fill independently using average end area', () => {
@@ -71,4 +73,26 @@ test('rejects slab reinforcement inputs with impossible cover or missing bar dir
   assert.throws(() => calculateSlabReinforcementTakeoff({
     slabLengthMm: 6000, slabWidthMm: 4000, coverMm: 40
   }), /at least one reinforcement direction/);
+});
+
+
+test('calculates isolated footing concrete and explicit base reinforcement separately', () => {
+  const result = calculateIsolatedFootingTakeoff({
+    lengthMm: 2400, widthMm: 2000, thicknessMm: 500, coverMm: 75,
+    reinforcementAlongLength: { diameterMm: 16, spacingMm: 150, layers: 1 },
+    reinforcementAlongWidth: { diameterMm: 16, spacingMm: 150, layers: 1 },
+    pedestal: { lengthMm: 500, widthMm: 500, heightMm: 600 }
+  });
+  assert.equal(result.footingGrossConcreteM3, 2.4);
+  assert.equal(result.pedestalConcreteM3, 0.15);
+  assert.equal(result.combinedConcreteM3, 2.55);
+  assert.equal(result.reinforcement.totalBars, 56);
+  assert.equal(result.measurementEligible, false);
+});
+
+test('rejects an isolated footing pedestal larger than the footing plan', () => {
+  assert.throws(() => calculateIsolatedFootingTakeoff({
+    lengthMm: 2000, widthMm: 1800, thicknessMm: 400, coverMm: 50,
+    pedestal: { lengthMm: 2200, widthMm: 500, heightMm: 500 }
+  }), /cannot exceed/);
 });
