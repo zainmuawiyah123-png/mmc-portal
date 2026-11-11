@@ -29,16 +29,15 @@ function quantityRecordFromMeasurement({
     duplicateGroup: duplicateGroup || null,
     notes: notes || null,
     derivation: {
-      method: measurement.method === 'average_end_area' || measurement.method === 'prismoidal' ||
-        measurement.method === 'rectangular_prism_with_explicit_void_deductions' ||
-        measurement.method === 'bar_bending_schedule_theoretical_unit_weight' ||
-        measurement.method === 'classified_wall_area_with_opening_deductions' ||
-        measurement.method === 'straight_rectangular_duct_external_surface' ||
-        measurement.method === 'measured_route_segments_with_explicit_allowance' ||
-        measurement.method === 'classified_finish_surface_area' ||
-        measurement.method === 'explicit_schedule_item_count'
-        ? 'rule_based_calculation'
-        : 'manual_entry',
+      method: measurement.method === 'explicit_schedule_item_count'
+        ? 'schedule_takeoff'
+        : measurement.method === 'measured_route_segments_with_explicit_allowance'
+          ? 'route_trace'
+          : measurement.method === 'bim_element_takeoff'
+            ? 'bim_element_takeoff'
+            : measurement.method === 'cad_geometry'
+              ? 'cad_geometry'
+              : 'rule_based_calculation',
       ruleId: measurement.ruleId,
       ruleVersion: measurement.ruleVersion,
       formula: measurement.formula,
