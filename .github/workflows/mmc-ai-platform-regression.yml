@@ -1,0 +1,40 @@
+name: MMC AI and platform regression
+on:
+  push:
+    branches:
+      - feature/mmc-ai-drawing-reader-demo
+    paths:
+      - 'server/**'
+      - 'Dockerfile'
+      - '.github/workflows/mmc-ai-platform-regression.yml'
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'Dockerfile'
+      - '.github/workflows/mmc-ai-platform-regression.yml'
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify complete platform regression suite
+        run: npm run test:all
+      - name: Verify MMC AI regression suite
+        run: npm run test:mmc-ai
+      - name: Build production image
+        run: docker build -f ../Dockerfile -t mmc-ai-platform-regression ..
