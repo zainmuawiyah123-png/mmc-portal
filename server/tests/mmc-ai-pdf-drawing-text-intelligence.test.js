@@ -66,6 +66,23 @@ test('records OCR provenance when raster text was recognized', () => {
   assert.ok(!result.unresolved.some(item => item.includes('OCR was not performed')));
 });
 
+
+test('groups OCR words by page and visual line while retaining bounding boxes', () => {
+  const result = analyzePdfDrawingText({
+    text: 'DIMENSION 6000 mm',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 2, text: '6000', confidence: 95, box: { left: 100, top: 200, width: 40, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: 'mm', confidence: 90, box: { left: 145, top: 200, width: 18, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: 'NOTE', confidence: 96, box: { left: 100, top: 240, width: 35, height: 15 } }
+    ]
+  });
+  assert.equal(result.metadata.ocrSpatialLines.length, 2);
+  assert.equal(result.metadata.ocrSpatialLines[0].text, '6000 mm');
+  assert.deepEqual(result.metadata.ocrSpatialLines[0].box, { left: 100, top: 200, width: 63, height: 15 });
+  assert.equal(result.metadata.ocrDimensionCallouts[0].status, 'candidate_requires_drawing_verification');
+});
+
 test('rejects a missing extraction result', () => {
   assert.throws(() => analyzePdfDrawingText(null), /PDF text extraction result is required/);
 });
