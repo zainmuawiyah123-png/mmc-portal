@@ -18,6 +18,31 @@ function collect(text, regex, map = match => match[1]) {
   while ((match = regex.exec(text))) out.push(map(match));
   return unique(out);
 }
+function spatialOcrLines(words) {
+  if (!Array.isArray(words)) return [];
+  const groups = new Map();
+  for (const word of words) {
+    if (!word || typeof word.text !== 'string' || !word.box || !Number.isFinite(word.page)) continue;
+    const key = [word.page, word.block ?? 0, word.paragraph ?? 0, word.line ?? 0].join(':');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(word);
+  }
+  return [...groups.values()].map(group => {
+    const sorted = group.slice().sort((a, b) => a.box.left - b.box.left);
+    const left = Math.min(...sorted.map(word => word.box.left));
+    const top = Math.min(...sorted.map(word => word.box.top));
+    const right = Math.max(...sorted.map(word => word.box.left + word.box.width));
+    const bottom = Math.max(...sorted.map(word => word.box.top + word.box.height));
+    return {
+      page: sorted[0].page,
+      text: sorted.map(word => word.text).join(' '),
+      confidence: Number((sorted.reduce((sum, word) => sum + (Number.isFinite(word.confidence) ? word.confidence : 0), 0) / sorted.length).toFixed(2)),
+      box: { left, top, width: right - left, height: bottom - top },
+      coordinateSpace: 'rendered_page_pixels',
+      words: sorted.length
+    };
+  }).sort((a, b) => a.page - b.page || a.box.top - b.box.top || a.box.left - b.box.left);
+}
 function analyzePdfDrawingText(extraction, document = {}) {
   if (!extraction || typeof extraction.text !== 'string') {
     throw new TypeError('PDF text extraction result is required');
@@ -76,6 +101,8 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrAverageConfidence: Number.isFinite(extraction.ocrAverageConfidence) ? extraction.ocrAverageConfidence : null,
     ocrWordCount: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.length : 0,
     ocrWordEvidence: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.slice(0, 20000).map(word => ({ page: word.page, text: word.text, confidence: word.confidence, box: word.box })) : [],
+    ocrSpatialLines: spatialOcrLines(extraction.ocrWords).slice(0, 5000),
+    ocrDimensionCallouts: spatialOcrLines(extraction.ocrWords).filter(line => /\\d\\s*(?:mm|cm|m)\\b|\\d\\s*[x×]\\s*\\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
     textualSheetNumberCandidates: sheetNumbers,
     textualRevisionCandidates: revisions,
     textualScaleCandidates: scales,
