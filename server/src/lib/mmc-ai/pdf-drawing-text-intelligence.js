@@ -3,7 +3,7 @@
 /**
  * Conservative PDF drawing-sheet text intelligence.
  * Extracts explicit title-block and cross-reference clues from the existing
- * PDF text extractor. It does not perform OCR, page-layout analysis, scale
+ * PDF text extractor and optional OCR text. It does not perform page-layout analysis, scale
  * calibration, geometry reconstruction or quantity takeoff.
  */
 function clean(value) {
@@ -71,6 +71,9 @@ function analyzePdfDrawingText(extraction, document = {}) {
     sheetInRegister: document.sheetOrPage || null,
     extractedPageCount: Number.isInteger(extraction.pageCount) ? extraction.pageCount : null,
     extractionEngine: extraction.engine || null,
+    ocrPerformed: extraction.ocrPerformed === true,
+    ocrPageCount: Number.isInteger(extraction.ocrPageCount) ? extraction.ocrPageCount : 0,
+    ocrAverageConfidence: Number.isFinite(extraction.ocrAverageConfidence) ? extraction.ocrAverageConfidence : null,
     textualSheetNumberCandidates: sheetNumbers,
     textualRevisionCandidates: revisions,
     textualScaleCandidates: scales,
@@ -94,7 +97,7 @@ function analyzePdfDrawingText(extraction, document = {}) {
     metadata,
     conflicts,
     evidence: {
-      source: 'PDF text extractor output',
+      source: extraction.ocrPerformed === true ? 'PDF text extractor and OCR output' : 'PDF text extractor output',
       characterCount: extraction.characterCount ?? text.length,
       evidenceCount,
       confidence: 'unscored_textual_clues_only'
@@ -104,7 +107,7 @@ function analyzePdfDrawingText(extraction, document = {}) {
       'Scale candidates are not applied to drawing geometry.',
       'Dimensions are preserved as explicit callouts; they are not assumed to describe the complete drawing extent.',
       'Detail references are not yet resolved to other sheets or viewports.',
-      'Raster-only text requires an OCR engine; no OCR was performed.',
+      ...(extraction.ocrPerformed === true ? [] : ['Raster-only text requires OCR; OCR was not performed for this analysis.']),
       'No engineering element classification or quantity calculation was performed.'
     ]
   };
