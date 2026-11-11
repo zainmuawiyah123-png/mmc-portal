@@ -87,11 +87,29 @@ function classifySpatialOcrAnnotations(lines) {
     };
   }).filter(Boolean).slice(0, 3000);
 }
+function normalizeEngineeringNumerals(value) {
+  const digits = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+    '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9' };
+  return String(value || '').replace(/[٠-٩۰-۹]/g, digit => digits[digit]).replace(/٫/g, '.');
+}
+function engineeringNumber(value) {
+  const parsed = Number(normalizeEngineeringNumerals(value).replace(/,/g, '.'));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+function normalizeEngineeringUnit(value) {
+  const unit = String(value || '').toLowerCase();
+  return ({ 'مم': 'mm', 'سم': 'cm', 'م': 'm' })[unit] || unit;
+}
 function extractSpatialDimensionCandidates(lines) {
   const candidates = [];
+  const number = '[0-9٠-٩۰-۹]+(?:[.,٫][0-9٠-٩۰-۹]+)?';
+  const unit = '(?:mm|cm|m|مم|سم|م)';
   const patterns = [
-    { kind: 'explicit_length', regex: /\b(\d+(?:[.,]\d+)?)\s*(mm|cm|m)\b/gi, values: m => [Number(m[1].replace(',', '.'))], units: m => [m[2].toLowerCase()] },
-    { kind: 'dimension_pair', regex: /\b(\d{2,6}(?:[.,]\d+)?)\s*[x×]\s*(\d{2,6}(?:[.,]\d+)?)(?:\s*(mm|cm|m))?\b/gi, values: m => [Number(m[1].replace(',', '.')), Number(m[2].replace(',', '.'))], units: m => [m[3] ? m[3].toLowerCase() : null, m[3] ? m[3].toLowerCase() : null] }
+    { kind: 'explicit_length', regex: new RegExp('(' + number + ')\\\\s*(' + unit + ')(?![\\\\p{L}])', 'giu'),
+      values: m => [engineeringNumber(m[1])], units: m => [normalizeEngineeringUnit(m[2])] },
+    { kind: 'dimension_pair', regex: new RegExp('(' + number + ')\\\\s*[x×]\\\\s*(' + number + ')(?:\\\\s*(' + unit + '))?', 'giu'),
+      values: m => [engineeringNumber(m[1]), engineeringNumber(m[2])],
+      units: m => [m[3] ? normalizeEngineeringUnit(m[3]) : null, m[3] ? normalizeEngineeringUnit(m[3]) : null] }
   ];
   for (const line of lines) {
     for (const pattern of patterns) {
@@ -99,25 +117,29 @@ function extractSpatialDimensionCandidates(lines) {
       let match;
       while ((match = pattern.regex.exec(line.text))) {
         const raw = clean(match[0]);
+        const matchedWords = (line.wordBoxes || []).filter(word =>
+          word.start < match.index + match[0].length && word.end > match.index);
+        const box = (() => {
+          if (!matchedWords.length) return line.box;
+          const left = Math.min(...matchedWords.map(word => word.box.left));
+          const top = Math.min(...matchedWords.map(word => word.box.top));
+          const right = Math.max(...matchedWords.map(word => word.box.left + word.box.width));
+          const bottom = Math.max(...matchedWords.map(word => word.box.top + word.box.height));
+          return { left, top, width: right - left, height: bottom - top };
+        })();
+        const values = pattern.values(match);
+        const units = pattern.units(match);
         candidates.push({
           page: line.page,
           raw,
           kind: pattern.kind,
-          values: pattern.values(match),
-          units: pattern.units(match),
-          box: (() => {
-            const matchedWords = (line.wordBoxes || []).filter(word => word.start < match.index + match[0].length && word.end > match.index);
-            if (!matchedWords.length) return line.box;
-            const left = Math.min(...matchedWords.map(word => word.box.left));
-            const top = Math.min(...matchedWords.map(word => word.box.top));
-            const right = Math.max(...matchedWords.map(word => word.box.left + word.box.width));
-            const bottom = Math.max(...matchedWords.map(word => word.box.top + word.box.height));
-            return { left, top, width: right - left, height: bottom - top };
-          })(),
+          values,
+          units,
+          box,
           coordinateSpace: line.coordinateSpace,
           ocrConfidence: line.confidence,
-          sourceWordCount: (line.wordBoxes || []).filter(word => word.start < match.index + match[0].length && word.end > match.index).length,
-          status: pattern.kind === 'explicit_length' || pattern.units(match).every(Boolean)
+          sourceWordCount: matchedWords.length,
+          status: values.every(Number.isFinite) && (pattern.kind === 'explicit_length' || units.every(Boolean))
             ? 'explicit_unit_candidate_requires_drawing_context'
             : 'unit_or_dimension_meaning_unresolved',
           measurementEligible: false,
