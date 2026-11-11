@@ -178,10 +178,67 @@ function calculateSlabReinforcementTakeoff({
   };
 }
 
+
+function calculateIsolatedFootingTakeoff({
+  lengthMm, widthMm, thicknessMm, coverMm,
+  reinforcementAlongLength, reinforcementAlongWidth, pedestal, voidsM3 = []
+} = {}) {
+  positive(lengthMm, 'footing lengthMm');
+  positive(widthMm, 'footing widthMm');
+  positive(thicknessMm, 'footing thicknessMm');
+  const concrete = calculateRectangularConcrete({
+    lengthMm, widthMm, depthMm: thicknessMm, voidsM3
+  });
+  let pedestalResult = null;
+  if (pedestal) {
+    positive(pedestal.lengthMm, 'pedestal lengthMm');
+    positive(pedestal.widthMm, 'pedestal widthMm');
+    positive(pedestal.heightMm, 'pedestal heightMm');
+    if (pedestal.lengthMm > lengthMm || pedestal.widthMm > widthMm) {
+      throw new RangeError('pedestal plan dimensions cannot exceed footing dimensions');
+    }
+    pedestalResult = {
+      lengthMm: pedestal.lengthMm,
+      widthMm: pedestal.widthMm,
+      heightMm: pedestal.heightMm,
+      concreteM3: round(pedestal.lengthMm / MM_PER_M * pedestal.widthMm / MM_PER_M * pedestal.heightMm / MM_PER_M)
+    };
+  }
+  let reinforcement = null;
+  if (reinforcementAlongLength || reinforcementAlongWidth) {
+    reinforcement = calculateSlabReinforcementTakeoff({
+      slabLengthMm: lengthMm, slabWidthMm: widthMm, coverMm,
+      barsAlongLength: reinforcementAlongLength,
+      barsAlongWidth: reinforcementAlongWidth
+    });
+  }
+  return {
+    method: 'isolated_rectangular_footing_explicit_geometry',
+    ruleId: 'FOOTING-CONCRETE-AND-BASE-MAT-REINFORCEMENT',
+    ruleVersion: '1.0',
+    footingConcreteM3: concrete.netM3,
+    footingGrossConcreteM3: concrete.grossM3,
+    voidDeductionsM3: concrete.voidDeductionsM3,
+    pedestal,
+    pedestalConcreteM3: pedestalResult ? pedestalResult.concreteM3 : null,
+    combinedConcreteM3: round(concrete.netM3 + (pedestalResult ? pedestalResult.concreteM3 : 0)),
+    reinforcement,
+    inputs: { lengthMm, widthMm, thicknessMm, coverMm, reinforcementAlongLength, reinforcementAlongWidth, pedestal, voidsM3: [...voidsM3] },
+    limitations: [
+      'Only explicitly dimensioned rectangular footing and optional rectangular pedestal volumes are included.',
+      'Reinforcement estimate covers only the explicitly supplied uniform base-mat directions and layers.',
+      'Column starters, dowels, top bars, hooks, bends, anchorage, laps, chairs, blinding concrete, side slopes and wastage are excluded unless separately measured.',
+      'Do not use until footing geometry, cover, bar layout and measurement convention are checked against approved drawings and specifications.'
+    ],
+    measurementEligible: false
+  };
+}
+
 module.exports = {
   calculateEarthworkAverageEndArea,
   calculatePrismoidalVolume,
   calculateRectangularConcrete,
   calculateRebarScheduleWeight,
-  calculateSlabReinforcementTakeoff
+  calculateSlabReinforcementTakeoff,
+  calculateIsolatedFootingTakeoff
 };
