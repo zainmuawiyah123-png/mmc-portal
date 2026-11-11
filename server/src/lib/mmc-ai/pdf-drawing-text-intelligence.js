@@ -170,27 +170,35 @@ function extractElementTag(text) {
   return match ? clean(match[0]).replace(/\s+/g, '').toUpperCase() : null;
 }
 function extractReinforcementCallouts(text) {
-  const normalized = normalizeEngineeringNumerals(text);
-  const pattern = /(\d{1,3})\s*[TØΦY]\s*(\d{1,2})(?!\d)/gi;
+  const normalized = normalizeEngineeringNumerals(text).replace(/[ØΦ]/g, 'T');
+  // Supports count+diameter marks (4T20), diameter-only marks (T16),
+  // and explicit spacing callouts (T16@200 / 4T20@150).
+  const pattern = /(?:(\d{1,3})\s*)?T\s*(\d{1,2})(?:\s*[@/\-]\s*(\d{2,4}))?/gi;
   const results = [];
   let match;
   while ((match = pattern.exec(normalized))) {
-    const barCount = Number(match[1]);
+    const barCount = match[1] ? Number(match[1]) : null;
     const diameterMm = Number(match[2]);
-    if (barCount <= 0 || diameterMm < 6 || diameterMm > 50) continue;
+    const spacingMm = match[3] ? Number(match[3]) : null;
+    if ((barCount !== null && barCount <= 0) || diameterMm < 6 || diameterMm > 50) continue;
+    if (spacingMm !== null && (spacingMm < 40 || spacingMm > 2000)) continue;
     results.push({
       raw: clean(match[0]),
       barCount,
       diameterMm,
+      spacingMm,
       nominalUnitMassKgPerM: Number((diameterMm * diameterMm / 162).toFixed(4)),
       totalBarLength: null,
       totalSteelMassKg: null,
-      status: 'bar_count_and_diameter_candidate_length_and_shape_not_read',
+      status: spacingMm !== null ? 'diameter_and_spacing_candidate_length_and_distribution_unverified' :
+        barCount !== null ? 'bar_count_and_diameter_candidate_length_and_shape_not_read' :
+        'diameter_candidate_count_spacing_and_length_unresolved',
       measurementEligible: false
     });
   }
   return results;
 }
+
 function inferElementFamily(tag) {
   if (!tag) return null;
   const prefix = tag.match(/^[A-Z]+/)?.[0] || '';
