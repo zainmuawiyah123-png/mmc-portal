@@ -74,18 +74,18 @@ obj(1, b"<< /Type /Catalog /Pages 2 0 R >>")
 obj(2, b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
 obj(3, b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 700 481.25] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>")
 stream = b"q 700 0 0 481.25 0 0 cm /Im0 Do Q"
-obj(4, b"<< /Length %d >>\\nstream\\n" % len(stream) + stream + b"\\nendstream")
-obj(5, b"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\\nstream\\n" % (w,h,len(raw)) + raw + b"\\nendstream")
-pdf = bytearray(b"%PDF-1.4\\n")
+obj(4, b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
+obj(5, b"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\nstream\n" % (w,h,len(raw)) + raw + b"\nendstream")
+pdf = bytearray(b"%PDF-1.4\n")
 offsets = [0] * 6
 for number, body in objects:
     offsets[number] = len(pdf)
-    pdf.extend(("%d 0 obj\\n" % number).encode() + body + b"\\nendobj\\n")
+    pdf.extend(("%d 0 obj\n" % number).encode() + body + b"\nendobj\n")
 xref = len(pdf)
-pdf.extend(b"xref\\n0 6\\n0000000000 65535 f \\n")
+pdf.extend(b"xref\n0 6\n0000000000 65535 f \n")
 for number in range(1,6):
-    pdf.extend(("%010d 00000 n \\n" % offsets[number]).encode())
-pdf.extend(("trailer\\n<< /Size 6 /Root 1 0 R >>\\nstartxref\\n%d\\n%%%%EOF\\n" % xref).encode())
+    pdf.extend(("%010d 00000 n \n" % offsets[number]).encode())
+pdf.extend(("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % xref).encode())
 open(out, "wb").write(pdf)
 `;
   try {
@@ -95,7 +95,7 @@ open(out, "wb").write(pdf)
     assert.equal(result.totalPages, 1);
     assert.equal(result.pagesProcessed, 1);
     assert.equal(result.truncatedAtPageLimit, false);
-    const recognized = result.pages.map(page => page.text).join('\\n').toUpperCase();
+    const recognized = result.pages.map(page => page.text).join('\n').toUpperCase();
     assert.match(recognized, /GROUND FLOOR PLAN/);
     assert.match(recognized, /6000 MM/);
     assert.match(recognized, /CONCRETE C30/);
