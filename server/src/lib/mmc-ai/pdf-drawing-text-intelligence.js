@@ -75,8 +75,8 @@ function classifySpatialOcrAnnotations(lines) {
 function extractSpatialDimensionCandidates(lines) {
   const candidates = [];
   const patterns = [
-    { kind: 'explicit_length', regex: /\\b(\\d+(?:[.,]\\d+)?)\\s*(mm|cm|m)\\b/gi, values: m => [Number(m[1].replace(',', '.'))], units: m => [m[2].toLowerCase()] },
-    { kind: 'dimension_pair', regex: /\\b(\\d{2,6}(?:[.,]\\d+)?)\\s*[x×]\\s*(\\d{2,6}(?:[.,]\\d+)?)(?:\\s*(mm|cm|m))?\\b/gi, values: m => [Number(m[1].replace(',', '.')), Number(m[2].replace(',', '.'))], units: m => [m[3] ? m[3].toLowerCase() : null, m[3] ? m[3].toLowerCase() : null] }
+    { kind: 'explicit_length', regex: /\b(\d+(?:[.,]\d+)?)\s*(mm|cm|m)\b/gi, values: m => [Number(m[1].replace(',', '.'))], units: m => [m[2].toLowerCase()] },
+    { kind: 'dimension_pair', regex: /\b(\d{2,6}(?:[.,]\d+)?)\s*[x×]\s*(\d{2,6}(?:[.,]\d+)?)(?:\s*(mm|cm|m))?\b/gi, values: m => [Number(m[1].replace(',', '.')), Number(m[2].replace(',', '.'))], units: m => [m[3] ? m[3].toLowerCase() : null, m[3] ? m[3].toLowerCase() : null] }
   ];
   for (const line of lines) {
     for (const pattern of patterns) {
