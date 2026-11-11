@@ -234,11 +234,129 @@ function calculateIsolatedFootingTakeoff({
   };
 }
 
+
+function calculateColumnTakeoff({
+  heightMm, sectionWidthMm, sectionDepthMm, longitudinalBars,
+  ties, coverMm, spliceLengthMm = 0
+} = {}) {
+  positive(heightMm, 'heightMm');
+  positive(sectionWidthMm, 'sectionWidthMm');
+  positive(sectionDepthMm, 'sectionDepthMm');
+  nonNegative(coverMm, 'coverMm');
+  nonNegative(spliceLengthMm, 'spliceLengthMm');
+  if (coverMm * 2 >= Math.min(sectionWidthMm, sectionDepthMm)) {
+    throw new RangeError('cover must be less than half of both column section dimensions');
+  }
+  if (!Array.isArray(longitudinalBars) || longitudinalBars.length === 0) {
+    throw new TypeError('longitudinalBars schedule is required');
+  }
+  const grossConcreteM3 = heightMm / MM_PER_M * sectionWidthMm / MM_PER_M * sectionDepthMm / MM_PER_M;
+  const formworkM2 = 2 * (sectionWidthMm + sectionDepthMm) / MM_PER_M * heightMm / MM_PER_M;
+  const longitudinal = calculateRebarScheduleWeight(longitudinalBars.map((bar, index) => ({
+    ...bar,
+    cutLengthMm: bar.cutLengthMm === undefined ? heightMm + spliceLengthMm : bar.cutLengthMm
+  })));
+  let tieResult = null;
+  if (ties) {
+    positive(ties.diameterMm, 'ties diameterMm');
+    positive(ties.spacingMm, 'ties spacingMm');
+    const tieCount = Math.ceil(heightMm / ties.spacingMm) + 1;
+    const tieWidthMm = sectionWidthMm - 2 * coverMm;
+    const tieDepthMm = sectionDepthMm - 2 * coverMm;
+    const tieShape = ties.cutLengthMm === undefined ? null : ties.cutLengthMm;
+    const tieLengthMm = tieShape === null ? null : tieShape;
+    tieResult = {
+      diameterMm: ties.diameterMm,
+      spacingMm: ties.spacingMm,
+      count: tieCount,
+      cutLengthMm: tieLengthMm,
+      totalLengthM: tieLengthMm === null ? null : round(tieCount * tieLengthMm / MM_PER_M),
+      theoreticalWeightKg: tieLengthMm === null ? null : round(tieCount * tieLengthMm / MM_PER_M * ties.diameterMm * ties.diameterMm / 162),
+      internalCoreWidthMm: tieWidthMm,
+      internalCoreDepthMm: tieDepthMm,
+      status: tieLengthMm === null ? 'tie_count_candidate_cut_length_requires_hook_and_bend_detail' : 'explicit_tie_cut_length_estimate'
+    };
+  }
+  return {
+    method: 'rectangular_column_explicit_schedule_estimate',
+    ruleId: 'COLUMN-CONCRETE-FORMWORK-LONGITUDINAL-REBAR-TIES',
+    ruleVersion: '1.0',
+    concreteM3: round(grossConcreteM3),
+    formworkM2: round(formworkM2),
+    longitudinalReinforcement: longitudinal,
+    ties: tieResult,
+    totalSteelWeightKg: round(longitudinal.totalWeightKg + (tieResult?.theoreticalWeightKg || 0)),
+    inputs: { heightMm, sectionWidthMm, sectionDepthMm, longitudinalBars, ties, coverMm, spliceLengthMm },
+    limitations: [
+      'Rectangular prismatic column only; beams, capitals, offsets and non-prismatic zones are excluded.',
+      'Longitudinal bar cut lengths default to clear storey height plus the explicitly supplied splice length; anchorage into footing, beam or slab is excluded.',
+      'Tie count is a uniform-spacing estimate; confinement zones, end-zone spacing changes and seismic detailing must be supplied and checked separately.',
+      'Tie weight is omitted unless an explicit cut length including hooks and bends is supplied.',
+      'Formwork excludes construction joints, deductions and special surface conditions.',
+      'Verify lap locations, development lengths, cover, seismic detailing and measurement rules against approved structural drawings and specifications.'
+    ],
+    measurementEligible: false
+  };
+}
+
+function calculateBeamTakeoff({
+  lengthMm, widthMm, overallDepthMm, slabThicknessMm = 0,
+  longitudinalBars, stirrups, coverMm
+} = {}) {
+  positive(lengthMm, 'lengthMm');
+  positive(widthMm, 'widthMm');
+  positive(overallDepthMm, 'overallDepthMm');
+  nonNegative(slabThicknessMm, 'slabThicknessMm');
+  nonNegative(coverMm, 'coverMm');
+  if (slabThicknessMm >= overallDepthMm) throw new RangeError('slabThicknessMm must be less than overallDepthMm');
+  if (coverMm * 2 >= Math.min(widthMm, overallDepthMm)) throw new RangeError('cover must be less than half of beam width and depth');
+  if (!Array.isArray(longitudinalBars) || longitudinalBars.length === 0) throw new TypeError('longitudinalBars schedule is required');
+  const beamConcreteM3 = lengthMm / MM_PER_M * widthMm / MM_PER_M * (overallDepthMm - slabThicknessMm) / MM_PER_M;
+  const formworkM2 = lengthMm / MM_PER_M * (widthMm + 2 * (overallDepthMm - slabThicknessMm)) / MM_PER_M;
+  const longitudinal = calculateRebarScheduleWeight(longitudinalBars);
+  let stirrupResult = null;
+  if (stirrups) {
+    positive(stirrups.diameterMm, 'stirrups diameterMm');
+    positive(stirrups.spacingMm, 'stirrups spacingMm');
+    const count = Math.ceil(lengthMm / stirrups.spacingMm) + 1;
+    stirrupResult = {
+      diameterMm: stirrups.diameterMm,
+      spacingMm: stirrups.spacingMm,
+      count,
+      cutLengthMm: stirrups.cutLengthMm === undefined ? null : stirrups.cutLengthMm,
+      totalLengthM: stirrups.cutLengthMm === undefined ? null : round(count * stirrups.cutLengthMm / MM_PER_M),
+      theoreticalWeightKg: stirrups.cutLengthMm === undefined ? null : round(count * stirrups.cutLengthMm / MM_PER_M * stirrups.diameterMm * stirrups.diameterMm / 162),
+      status: stirrups.cutLengthMm === undefined ? 'stirrup_count_candidate_requires_zone_spacing_and_bend_detail' : 'explicit_stirrup_cut_length_estimate'
+    };
+  }
+  return {
+    method: 'rectangular_beam_explicit_schedule_estimate',
+    ruleId: 'BEAM-CONCRETE-FORMWORK-LONGITUDINAL-REBAR-STIRRUPS',
+    ruleVersion: '1.0',
+    concreteM3: round(beamConcreteM3),
+    formworkM2: round(formworkM2),
+    longitudinalReinforcement: longitudinal,
+    stirrups: stirrupResult,
+    totalSteelWeightKg: round(longitudinal.totalWeightKg + (stirrupResult?.theoreticalWeightKg || 0)),
+    inputs: { lengthMm, widthMm, overallDepthMm, slabThicknessMm, longitudinalBars, stirrups, coverMm },
+    limitations: [
+      'Rectangular prismatic beam only; haunches, drops, tapered sections and complex beam-column joints are excluded.',
+      'Concrete volume subtracts the explicitly supplied slab thickness only; intersection deductions and pour-sequence rules require project measurement policy.',
+      'Uniform stirrup count is indicative only; support zones, midspan zones and seismic confinement spacing must be measured separately.',
+      'Stirrup weight is omitted unless explicit cut length including hooks and bends is supplied.',
+      'Verify bar curtailment, anchorage, laps, support zones, cover and applicable measurement rules against approved details.'
+    ],
+    measurementEligible: false
+  };
+}
+
 module.exports = {
   calculateEarthworkAverageEndArea,
   calculatePrismoidalVolume,
   calculateRectangularConcrete,
   calculateRebarScheduleWeight,
   calculateSlabReinforcementTakeoff,
-  calculateIsolatedFootingTakeoff
+  calculateIsolatedFootingTakeoff,
+  calculateColumnTakeoff,
+  calculateBeamTakeoff
 };
