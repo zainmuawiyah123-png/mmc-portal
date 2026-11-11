@@ -128,3 +128,21 @@ test('recognizes Arabic engineering discipline terms as non-measured candidates'
 test('rejects a missing extraction result', () => {
   assert.throws(() => analyzePdfDrawingText(null), /PDF text extraction result is required/);
 });
+
+
+test('extracts spatial OCR dimension candidates with source boxes but never marks them measured', () => {
+  const result = analyzePdfDrawingText({
+    text: 'STRUCTURAL PLAN',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: '6000', confidence: 96, box: { left: 100, top: 200, width: 42, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'mm', confidence: 95, box: { left: 146, top: 200, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: '300x600', confidence: 92, box: { left: 100, top: 240, width: 60, height: 15 } }
+    ]
+  });
+  const candidates = result.metadata.ocrSpatialDimensionCandidates;
+  assert.ok(candidates.some(item => item.raw === '6000 mm' && item.kind === 'explicit_length'));
+  assert.ok(candidates.some(item => item.raw === '300x600' && item.kind === 'dimension_pair'));
+  assert.ok(candidates.every(item => item.measurementEligible === false));
+  assert.ok(candidates.every(item => item.page === 1 && item.box && item.ocrConfidence >= 90));
+});
