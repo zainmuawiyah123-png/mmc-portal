@@ -83,6 +83,29 @@ test('groups OCR words by page and visual line while retaining bounding boxes', 
   assert.equal(result.metadata.ocrDimensionCallouts[0].status, 'candidate_requires_drawing_verification');
 });
 
+
+test('classifies spatial OCR callouts as discipline candidates without treating them as measured quantities', () => {
+  const result = analyzePdfDrawingText({
+    text: 'STRUCTURAL AND MEP NOTES',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'B1', confidence: 96, box: { left: 100, top: 100, width: 20, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 1, text: '300x600', confidence: 96, box: { left: 125, top: 100, width: 55, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: 'AHU-01', confidence: 94, box: { left: 100, top: 130, width: 55, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: 'DN', confidence: 92, box: { left: 100, top: 160, width: 20, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: '100', confidence: 92, box: { left: 125, top: 160, width: 30, height: 12 } },
+      { page: 1, block: 1, paragraph: 1, line: 4, text: 'SPRINKLER', confidence: 91, box: { left: 100, top: 190, width: 70, height: 12 } }
+    ]
+  });
+  const candidates = result.metadata.spatialEngineeringAnnotations;
+  assert.ok(candidates.some(item => item.candidateTypes.includes('structural')));
+  assert.ok(candidates.some(item => item.candidateTypes.includes('mechanical_hvac')));
+  assert.ok(candidates.some(item => item.candidateTypes.includes('plumbing_drainage')));
+  assert.ok(candidates.some(item => item.candidateTypes.includes('fire_protection')));
+  assert.ok(candidates.every(item => item.measurementEligible === false));
+  assert.ok(candidates.every(item => item.box && item.page === 1));
+});
+
 test('rejects a missing extraction result', () => {
   assert.throws(() => analyzePdfDrawingText(null), /PDF text extraction result is required/);
 });
