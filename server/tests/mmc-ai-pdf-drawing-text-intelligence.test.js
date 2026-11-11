@@ -48,6 +48,21 @@ test('does not invent drawing metadata when PDF text is empty', () => {
   assert.equal(result.evidence.evidenceCount, 0);
 });
 
+
+test('records OCR provenance when raster text was recognized', () => {
+  const result = analyzePdfDrawingText({
+    text: 'STRUCTURAL FOUNDATION PLAN\\nDRAWING NO: S-101',
+    ocrPerformed: true,
+    ocrPageCount: 2,
+    ocrAverageConfidence: 87.5
+  }, { documentId: 'OCR-1' });
+  assert.equal(result.metadata.ocrPerformed, true);
+  assert.equal(result.metadata.ocrPageCount, 2);
+  assert.equal(result.metadata.ocrAverageConfidence, 87.5);
+  assert.equal(result.evidence.source, 'PDF text extractor and OCR output');
+  assert.ok(!result.unresolved.some(item => item.includes('OCR was not performed')));
+});
+
 test('rejects a missing extraction result', () => {
   assert.throws(() => analyzePdfDrawingText(null), /PDF text extraction result is required/);
 });
