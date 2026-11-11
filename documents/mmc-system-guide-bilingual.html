@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MMC System Guide — Four Portals / دليل نظام MMC — أربع بوابات</title>
+<style>
+@page { size: A4; margin: 16mm 15mm 18mm; @bottom-center { content: "MMC System Guide · دليل النظام · " counter(page); color:#6d7f91; font-size:8pt; } }
+@font-face { font-family: NotoArabic; src: url("/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf"); }
+@font-face { font-family: NotoArabic; src: url("/usr/share/fonts/truetype/noto/NotoSansArabic-SemiBold.ttf"); font-weight:700; }
+* { box-sizing:border-box; }
+body { margin:0; color:#18334f; font-family:Arial, NotoArabic, sans-serif; font-size:10.2pt; line-height:1.5; }
+h1,h2,h3,p { margin:0; }
+.cover { min-height:245mm; display:flex; flex-direction:column; justify-content:space-between; padding:10mm 4mm 8mm; }
+.brand { color:#b45309; font-weight:700; letter-spacing:1.5px; font-size:10pt; }
+.cover h1 { font-size:29pt; line-height:1.1; color:#10243d; max-width:175mm; margin-top:22mm; }
+.cover h1 span { display:block; color:#b45309; font-family:NotoArabic,Arial,sans-serif; font-size:25pt; margin-top:8mm; }
+.cover .lead { font-size:14pt; color:#557087; max-width:165mm; margin-top:10mm; }
+.cover .lead.ar { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; font-size:13pt; margin-left:auto; }
+.cover-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:22mm; }
+.cover-card { border:1px solid #cad8e3; border-top:4px solid #b45309; border-radius:8px; padding:11px; min-height:43mm; background:#f7fafc; }
+.cover-card b { display:block; font-size:11pt; margin-bottom:4px; }
+.cover-card small { color:#63798c; }
+.cover-card.ar { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; }
+.meta { border-top:1px solid #cad8e3; padding-top:8mm; display:flex; justify-content:space-between; color:#71869a; font-size:9pt; }
+.page { page-break-before:always; }
+.page-title { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #b45309; padding-bottom:6px; margin-bottom:13px; }
+.page-title h2 { font-size:20pt; color:#10243d; }
+.page-title .ar-title { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; color:#b45309; font-size:17pt; }
+.intro { background:#edf5fa; border-left:4px solid #287dcc; padding:12px 14px; margin-bottom:13px; }
+.intro.ar { border-left:0; border-right:4px solid #b45309; direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; margin-top:10px; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:13px; align-items:start; }
+.panel { border:1px solid #cbd9e4; border-radius:8px; padding:12px; margin-bottom:11px; break-inside:avoid; }
+.panel h3 { color:#b45309; font-size:12.5pt; margin-bottom:6px; }
+.panel.ar { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; }
+.panel ul { margin:6px 0 0 18px; padding:0; }
+.panel.ar ul { margin:6px 18px 0 0; }
+.panel li { margin:3px 0; }
+.portal { display:grid; grid-template-columns:27mm 1fr 1fr; gap:10px; align-items:start; border:1px solid #cbd9e4; border-radius:9px; padding:11px; margin:9px 0; break-inside:avoid; }
+.portal-num { width:23mm; height:23mm; border-radius:50%; background:#10243d; color:#fff; display:grid; place-items:center; font-size:15pt; font-weight:700; line-height:23mm; text-align:center; }
+.portal h3 { color:#10243d; font-size:12pt; margin-bottom:3px; }
+.portal .ar { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; }
+.portal .ar h3 { color:#b45309; }
+.note { background:#fff8ed; border:1px solid #eed4a8; border-radius:7px; padding:10px 12px; margin-top:12px; }
+.note.ar { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; }
+.flow { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; margin:12px 0 15px; }
+.step { background:#f5f8fb; border:1px solid #cbd9e4; border-radius:7px; padding:9px; min-height:31mm; }
+.step b { display:block; color:#b45309; font-size:8pt; margin-bottom:3px; }
+.step.ar { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; }
+.linkbox { background:#10243d; color:#fff; border-radius:8px; padding:13px 15px; margin-top:14px; }
+.linkbox a { color:#8de3f2; }
+.small { color:#6a7e91; font-size:8.8pt; }
+.artext { direction:rtl; text-align:right; font-family:NotoArabic,Arial,sans-serif; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div>
+    <div class="brand">MMC · SYSTEM GUIDE · VERSION 2.0</div>
+    <h1>MMC Unified Electronic Tender &amp; Construction Intelligence Platform<span>دليل نظام MMC الموحد للعطاءات الإلكترونية والذكاء الهندسي</span></h1>
+    <p class="lead">A simple guide to the four connected workspaces: Contractor, Procurement, Administration and MMC-AI.</p>
+    <p class="lead ar">دليل مبسط للبوابات الأربع المترابطة: المقاول، المشتريات، الإدارة، وMMC-AI.</p>
+    <div class="cover-grid">
+      <div class="cover-card"><b>01 · Contractor</b><small>Submit and track tender responses.</small></div>
+      <div class="cover-card"><b>02 · Procurement</b><small>Create tenders and evaluate bids.</small></div>
+      <div class="cover-card"><b>03 · Administration</b><small>Verify, approve and activate plans.</small></div>
+      <div class="cover-card ar"><b>04 · MMC-AI</b><small>مساحة الذكاء الهندسي وإدارة المشروع.</small></div>
+    </div>
+  </div>
+  <div class="meta"><span>MMC Technical Proposal Kit · Bilingual Edition</span><span>دليل ثنائي اللغة · نسخة واحدة</span></div>
+</section>
+
+<section class="page">
+  <div class="page-title"><h2>1. What the system does</h2><div class="ar-title">١. ماذا يفعل النظام؟</div></div>
+  <div class="intro">MMC connects tender preparation, controlled technical evaluation, plan administration and construction intelligence in one platform. Financial offers remain protected during technical evaluation until the buyer opens them for qualified submissions.</div>
+  <div class="intro ar">تجمع منصة MMC إعداد العطاءات، والتقييم الفني المنضبط، وإدارة الباقات، والذكاء الهندسي للمشاريع في نظام واحد. تبقى العروض المالية محمية أثناء التقييم الفني إلى أن يفتحها المشتري للعروض المؤهلة.</div>
+  <div class="two-col">
+    <div class="panel"><h3>Who uses it?</h3><ul><li>Contractors preparing and submitting offers.</li><li>Procurement teams creating tenders and evaluating technical submissions.</li><li>Administrators reviewing organization records, payments and plan activation.</li><li>Project owners, contractors and consultants using MMC-AI for project records and engineering workflows.</li></ul></div>
+    <div class="panel ar"><h3>من يستخدم النظام؟</h3><ul><li>المقاولون لإعداد العروض وتقديمها.</li><li>فرق المشتريات لإنشاء العطاءات وتقييم العروض الفنية.</li><li>الإدارة لمراجعة بيانات الجهات والمدفوعات وتفعيل الباقات.</li><li>الملاك والمقاولون والاستشاريون لاستخدام MMC-AI في سجلات المشروع ومسارات العمل الهندسية.</li></ul></div>
+  </div>
+  <div class="note"><b>Important:</b> MMC-AI provides a project workspace and preliminary engineering tools. Its automated or AI-assisted outputs must be checked by the responsible engineer before contractual, safety or construction decisions.</div>
+  <div class="note ar"><b>مهم:</b> توفر MMC-AI مساحة للمشروع وأدوات هندسية أولية. يجب أن يراجع المهندس المسؤول النتائج الآلية أو المدعومة بالذكاء الاصطناعي قبل اتخاذ أي قرار تعاقدي أو متعلق بالسلامة أو التنفيذ.</div>
+</section>
+
+<section class="page">
+  <div class="page-title"><h2>2. The four portals</h2><div class="ar-title">٢. البوابات الأربع</div></div>
+  <div class="portal"><div class="portal-num">01</div><div><h3>Contractor Portal</h3><p>Register the organization, choose a plan, prepare tender documents, upload technical and financial files, and track activation and submission status.</p></div><div class="ar"><h3>بوابة المقاول</h3><p>تسجيل الجهة، اختيار الباقة، تجهيز مستندات العطاء، رفع الملفات الفنية والمالية، ومتابعة التفعيل وحالة التقديم.</p></div></div>
+  <div class="portal"><div class="portal-num">02</div><div><h3>Procurement Portal</h3><p>Create a tender, define requirements and weights, receive submissions, review technical scores, then open financial offers only for qualified bidders and rank the result.</p></div><div class="ar"><h3>بوابة المشتريات</h3><p>إنشاء العطاء، تحديد المتطلبات والأوزان، استقبال العروض، مراجعة الدرجات الفنية، ثم فتح العروض المالية للمؤهلين وترتيب النتيجة.</p></div></div>
+  <div class="portal"><div class="portal-num">03</div><div><h3>Administration Portal</h3><p>Review verification and payment records, approve or reject receipts, activate plans, and maintain expiry and account status.</p></div><div class="ar"><h3>بوابة الإدارة</h3><p>مراجعة طلبات التوثيق وسجلات الدفع، اعتماد أو رفض الإيصالات، تفعيل الباقات، ومتابعة تاريخ الانتهاء وحالة الحساب.</p></div></div>
+  <div class="portal"><div class="portal-num">04</div><div><h3>MMC-AI Construction Intelligence</h3><p>Create a project workspace; upload PDF, DXF, image and BIM files; review drawings; prepare preliminary takeoffs and BOQ records; monitor schedules, critical activities, risks, contract events and site photos; and ask questions about registered project data.</p></div><div class="ar"><h3>MMC-AI للذكاء الهندسي</h3><p>إنشاء مساحة للمشروع؛ رفع ملفات PDF وDXF والصور وBIM؛ مراجعة المخططات؛ إعداد حصر كميات وBOQ أولي؛ متابعة البرنامج والأنشطة الحرجة والمخاطر والأحداث التعاقدية وصور الموقع؛ وطرح أسئلة عن بيانات المشروع المسجلة.</p></div></div>
+</section>
+
+<section class="page">
+  <div class="page-title"><h2>3. Simple operating sequence</h2><div class="ar-title">٣. طريقة الاستخدام المبسطة</div></div>
+  <div class="flow">
+    <div class="step"><b>STEP 1</b>Open the homepage and select the workspace that matches your role.</div>
+    <div class="step"><b>STEP 2</b>Register or sign in, then complete organization verification when required.</div>
+    <div class="step"><b>STEP 3</b>Prepare the tender or project records and upload the relevant files.</div>
+    <div class="step"><b>STEP 4</b>Review results, approvals, schedules and alerts; keep an audit trail.</div>
+    <div class="step"><b>STEP 5</b>Export or submit only after the responsible person has checked the information.</div>
+  </div>
+  <div class="flow">
+    <div class="step ar"><b>الخطوة ١</b>افتح الصفحة الرئيسية واختر مساحة العمل المناسبة لدورك.</div>
+    <div class="step ar"><b>الخطوة ٢</b>سجّل الدخول وأكمل توثيق الجهة عند الحاجة.</div>
+    <div class="step ar"><b>الخطوة ٣</b>جهّز بيانات العطاء أو المشروع وارفع الملفات المطلوبة.</div>
+    <div class="step ar"><b>الخطوة ٤</b>راجع النتائج والاعتمادات والبرامج والتنبيهات واحتفظ بسجل واضح.</div>
+    <div class="step ar"><b>الخطوة ٥</b>صدّر أو قدّم العمل بعد مراجعة المعلومات من المسؤول المختص.</div>
+  </div>
+  <div class="two-col">
+    <div class="panel"><h3>MMC-AI in one minute</h3><p>MMC-AI is not a replacement for the tender portal. It is the project-side workspace used after or alongside tender preparation to organize drawings, quantities, BIM coordination, schedule progress, risk, claims and site evidence in one place.</p></div>
+    <div class="panel ar"><h3>MMC-AI في دقيقة واحدة</h3><p>ليست MMC-AI بديلاً عن بوابة العطاءات، بل هي مساحة عمل للمشروع تُستخدم بعد إعداد العطاء أو بالتوازي معه لتنظيم المخططات والكميات وتنسيق BIM وتقدم البرنامج والمخاطر والمطالبات وأدلة الموقع في مكان واحد.</p></div>
+  </div>
+  <div class="linkbox"><b>Start from the homepage / ابدأ من الصفحة الرئيسية:</b><br><a href="https://mmc-portal-1.onrender.com/">https://mmc-portal-1.onrender.com/</a><br><span class="small" style="color:#c5d7e8">The homepage is the permanent location for this guide. It links to all four workspaces and this single bilingual PDF.</span></div>
+</section>
+</body>
+</html>
