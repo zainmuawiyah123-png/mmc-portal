@@ -54,11 +54,14 @@ test('records OCR provenance when raster text was recognized', () => {
     text: 'STRUCTURAL FOUNDATION PLAN\\nDRAWING NO: S-101',
     ocrPerformed: true,
     ocrPageCount: 2,
-    ocrAverageConfidence: 87.5
+    ocrAverageConfidence: 87.5,
+    ocrWords: [{ page: 1, text: 'FOUNDATION', confidence: 91.2, box: { left: 100, top: 200, width: 120, height: 30 } }]
   }, { documentId: 'OCR-1' });
   assert.equal(result.metadata.ocrPerformed, true);
   assert.equal(result.metadata.ocrPageCount, 2);
   assert.equal(result.metadata.ocrAverageConfidence, 87.5);
+  assert.equal(result.metadata.ocrWordCount, 1);
+  assert.deepEqual(result.metadata.ocrWordEvidence[0].box, { left: 100, top: 200, width: 120, height: 30 });
   assert.equal(result.evidence.source, 'PDF text extractor and OCR output');
   assert.ok(!result.unresolved.some(item => item.includes('OCR was not performed')));
 });
