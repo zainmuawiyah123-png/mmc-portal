@@ -30,13 +30,19 @@ jobs:
       - name: Install OCR runtime and fixture dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara python3-pil fonts-dejavu-core
+          sudo apt-get install -y --no-install-recommends poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara fonts-dejavu-core
+      - name: Setup Python 3.12 for scanned fixture generation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PDF fixture generator
+        run: python -m pip install --disable-pip-version-check Pillow
       - name: Verify OCR runtime
         run: |
           pdfinfo -v
           pdftoppm -v
           tesseract --list-langs
-          python3 -c "from PIL import Image, ImageDraw, ImageFont"
+          python -c "from PIL import Image, ImageDraw, ImageFont"
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
