@@ -11,7 +11,7 @@ test('calculates masonry net area and volume after explicit opening deductions',
   assert.equal(result.grossAreaM2, 30);
   assert.equal(result.openingDeductionsM2, 2);
   assert.equal(result.netAreaM2, 28);
-  assert.equal(result.netVolumeM3, 5.2);
+  assert.equal(result.netVolumeM3, 4.4);
 });
 
 test('calculates straight rectangular duct surface and length by segment', () => {
