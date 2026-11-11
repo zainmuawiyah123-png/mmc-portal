@@ -120,8 +120,8 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  if(shouldOcr){
   try{
    ocr=await ocrPdf(bytes,{maxPages:req.body?.maxPages,dpi:req.body?.dpi});
-   const recognized=ocr.pages.map(page=>'[OCR PAGE '+page.page+']\\n'+page.text).join('\\n');
-   extraction={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\\n'),characterCount:extraction.characterCount+recognized.length,ocrEngine:ocr.engine};
+   const recognized=ocr.pages.map(page=>'[OCR PAGE '+page.page+']\n'+page.text).join('\n');
+   extraction={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\n'),characterCount:extraction.characterCount+recognized.length,ocrEngine:ocr.engine};
   }catch(error){
    ocr={status:error.code==='OCR_RUNTIME_UNAVAILABLE'?'runtime_unavailable':'failed',code:error.code||'OCR_FAILED',message:error.message,details:error.details||null};
   }
