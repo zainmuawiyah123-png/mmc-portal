@@ -201,7 +201,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
  </div>
 </section>
   <section class="project-showcase" id="projectShowcase">
-   <div class="project-photo has-image" id="projectPhoto"><img id="projectCover" src="assets/site-progress-foundation-rebar.jpeg" alt="Reinforced concrete foundation under construction with site workers" style="object-fit:contain;background:#0b1e33" loading="eager" decoding="async"><div class="photo-empty"><div><strong>Project Under Construction</strong><span>Upload an actual site photo to replace this illustrative construction image<br>We never present a stock image as your project</span></div></div><span class="photo-label" id="photoLabel">MMC Site Gallery</span></div>
+   <div class="project-photo" id="projectPhoto"><img id="projectCover" alt="Illustrative Site Gallery preview showing reinforced concrete foundation work" style="object-fit:contain;background:#0b1e33" loading="eager" decoding="async"><div class="photo-empty"><div><strong>Project Site Gallery</strong><span>Select a project to view its saved photos, or upload a site photo for the selected project.<br>Project photos remain private to project members</span></div></div><span class="photo-label" id="photoLabel">Site Gallery Preview</span></div>
    <div class="project-info"><div class="eyebrow">PROJECT SITE / LIVE PROGRESS</div><h2 id="projectTitle">Project Site Gallery</h2><p id="projectDescription">Select a project to view its site cover and construction photo log. Photos are stored privately for project members.</p>
     <div class="project-tools"><select id="projectSelect" aria-label="Select project"><option value="">Loading projects...</option></select><button class="btn primary" id="uploadProjectPhoto" type="button">＋ Upload Site Photo</button><input id="projectPhotoFile" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px"><input id="projectPhotoCaption" maxlength="240" placeholder="Photo caption: foundation pour, excavation..." style="flex:2;min-width:190px;padding:9px;border:1px solid var(--line);border-radius:7px"><input id="projectPhotoDate" type="date" aria-label="Photo date" style="flex:1;min-width:145px;padding:9px;border:1px solid var(--line);border-radius:7px"></div>
@@ -375,15 +375,18 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    if(!items.length){sel.innerHTML='<option value="">No projects yet</option>';activeProject=null;showProject(null);return;}
    for(const p of items){const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o);}
    const chosen=items.find(p=>p.id===preferred)||items[0];sel.value=chosen.id;await selectProject(chosen.id);
-  }catch(e){sel.innerHTML='<option value="">Could not load projects</option>';notify(e.message);}
+  }catch(e){sel.innerHTML='<option value="">Could not load projects</option>';showProject(null);notify(e.message);}
  }
  function showProject(p){
   const photo=document.getElementById('projectPhoto'),img=document.getElementById('projectCover');
+  const label=document.getElementById('photoLabel');
   photo.classList.remove('has-image');img.removeAttribute('src');
   document.getElementById('projectTitle').textContent=p?p.name:'Create your first project';
-  document.getElementById('projectDescription').textContent=p?(p.description||'Upload an actual site photo as the project cover and add dated photos to track construction progress.'):'Create a project, then upload a construction-site photo to display it here.';
+  document.getElementById('projectDescription').textContent=p?(p.description||'Upload an actual site photo as the project cover and add dated photos to track construction progress.'):'Select a project to view its private site photos. The preview image is illustrative and is not linked to project data.';
   document.getElementById('uploadProjectPhoto').disabled=!p;
-  document.getElementById('photoMeta').textContent=p?'No cover photo uploaded for this project yet.':'Photos are stored within the project and accessible only to its members.';
+  document.getElementById('photoMeta').textContent=p?'No cover photo uploaded for this project yet.':'Preview image only; it is not associated with a project record.';
+  label.textContent=p?'Project Site Gallery':'Site Gallery Preview';
+  if(!p){img.src='assets/site-progress-foundation-rebar.jpeg';img.alt='Illustrative Site Gallery preview showing reinforced concrete foundation work';photo.classList.add('has-image');}
  }
  async function loadProjectGallery(id,images){
   const host=document.getElementById('projectGalleryItems');host.replaceChildren();
@@ -519,6 +522,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   if(cover){
    const img=document.getElementById('projectCover');
    img.src='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images/'+encodeURIComponent(cover.id)+'/download';
+   img.alt=cover.caption||cover.original_name||'Project site photo';
    document.getElementById('projectPhoto').classList.add('has-image');
    document.getElementById('photoLabel').textContent=cover.is_cover?'Project Cover':'Construction Progress Photo';
    document.getElementById('photoMeta').textContent=(cover.caption||cover.original_name)+(cover.captured_at?' · '+cover.captured_at:'');
