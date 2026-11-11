@@ -12,7 +12,7 @@ const DEFAULT_MAX_PAGES = 20;
 const DEFAULT_DPI = 200;
 
 function parsePdfPageCount(pdfInfo) {
-  const match = String(pdfInfo || '').match(/^Pages:\\s+(\\d+)/mi);
+  const match = String(pdfInfo || '').match(/^Pages:\s+(\d+)/mi);
   const count = match ? Number(match[1]) : null;
   return Number.isInteger(count) && count > 0 ? count : null;
 }
@@ -114,8 +114,7 @@ async function ocrPdf(input, options = {}) {
   try {
     await fs.writeFile(pdfPath, bytes, { flag: 'wx', mode: 0o600 });
     const info = await run('pdfinfo', [pdfPath], { timeout: 15000, maxBuffer: 1024 * 1024 });
-    const pageMatch = info.stdout.match(/^Pages:\\s+(\\d+)/mi);
-    const totalPages = pageMatch ? Number(pageMatch[1]) : null;
+    const totalPages = parsePdfPageCount(info.stdout);
     if (!totalPages || !Number.isInteger(totalPages) || totalPages < 1) {
       throw Object.assign(new Error('Unable to determine PDF page count.'), { code: 'OCR_PAGE_COUNT_UNKNOWN' });
     }
