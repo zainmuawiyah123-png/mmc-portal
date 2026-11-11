@@ -58,15 +58,16 @@ async function commandAvailable(command, args = ['--version']) {
 }
 
 async function inspectOcrRuntime() {
-  const [renderer, tesseract] = await Promise.all([
+  const [renderer, tesseract, pdfinfo] = await Promise.all([
     commandAvailable('pdftoppm', ['-v']),
-    commandAvailable('tesseract', ['--version'])
+    commandAvailable('tesseract', ['--version']),
+    commandAvailable('pdfinfo', ['-v'])
   ]);
-  if (!renderer || !tesseract) {
+  if (!renderer || !tesseract || !pdfinfo) {
     return {
       available: false,
       engine: 'tesseract-pdftoppm',
-      missing: [!renderer ? 'pdftoppm' : null, !tesseract ? 'tesseract' : null].filter(Boolean)
+      missing: [!renderer ? 'pdftoppm' : null, !tesseract ? 'tesseract' : null, !pdfinfo ? 'pdfinfo' : null].filter(Boolean)
     };
   }
   try {
@@ -106,8 +107,15 @@ async function ocrPdf(input, options = {}) {
   const prefix = path.join(directory, 'page');
   try {
     await fs.writeFile(pdfPath, bytes, { flag: 'wx', mode: 0o600 });
+    const info = await run('pdfinfo', [pdfPath], { timeout: 15000, maxBuffer: 1024 * 1024 });
+    const pageMatch = info.stdout.match(/^Pages:\\s+(\\d+)/mi);
+    const totalPages = pageMatch ? Number(pageMatch[1]) : null;
+    if (!totalPages || !Number.isInteger(totalPages) || totalPages < 1) {
+      throw Object.assign(new Error('Unable to determine PDF page count.'), { code: 'OCR_PAGE_COUNT_UNKNOWN' });
+    }
+    const pagesToProcess = Math.min(totalPages, maxPages);
     await run('pdftoppm', [
-      '-f', '1', '-l', String(maxPages), '-r', String(dpi), '-png', pdfPath, prefix
+      '-f', '1', '-l', String(pagesToProcess), '-r', String(dpi), '-png', pdfPath, prefix
     ], { timeout: 120000, maxBuffer: 4 * 1024 * 1024 });
 
     const names = (await fs.readdir(directory))
@@ -139,7 +147,8 @@ async function ocrPdf(input, options = {}) {
       dpi,
       pageLimit: maxPages,
       pagesProcessed: pages.length,
-      truncatedAtPageLimit: pages.length === maxPages,
+      totalPages,
+      truncatedAtPageLimit: totalPages > pages.length,
       characterCount: pages.reduce((sum, page) => sum + page.text.length, 0),
       pages,
       limitations: [
