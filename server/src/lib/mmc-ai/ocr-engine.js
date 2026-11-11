@@ -38,6 +38,7 @@ function parseTesseractTsv(tsv) {
         width: Number(cols[8]) || 0,
         height: Number(cols[9]) || 0
       },
+      page: Number(cols[1]) || 0,
       block: Number(cols[2]) || 0,
       paragraph: Number(cols[3]) || 0,
       line: Number(cols[4]) || 0
