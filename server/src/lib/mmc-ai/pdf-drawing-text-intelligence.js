@@ -157,6 +157,57 @@ function extractSpatialDimensionCandidates(lines) {
   return candidates.slice(0, 1500);
 }
 
+
+function centerOf(box) {
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+function spatialDistance(a, b) {
+  const ca = centerOf(a), cb = centerOf(b);
+  return Math.hypot(ca.x - cb.x, ca.y - cb.y);
+}
+function extractElementTag(text) {
+  const match = String(text || '').match(/\b(?:B|BM|C|COL|F|FOOTING|S|SL|W|D|DB|AHU|FCU|VAV|P|MH|FH|SP)-?\s*\d{1,4}[A-Z]?\b/i);
+  return match ? clean(match[0]).replace(/\s+/g, '').toUpperCase() : null;
+}
+function buildSpatialElementCandidates(lines, dimensions, options = {}) {
+  const maxDistancePx = Number.isFinite(options.maxDistancePx) ? options.maxDistancePx : 160;
+  const annotations = classifySpatialOcrAnnotations(lines);
+  return annotations.map(annotation => {
+    const tag = extractElementTag(annotation.raw);
+    const nearby = dimensions
+      .filter(dimension => dimension.page === annotation.page && dimension.box)
+      .map(dimension => ({ dimension, distancePx: spatialDistance(annotation.box, dimension.box) }))
+      .filter(item => item.distancePx <= maxDistancePx)
+      .sort((a, b) => a.distancePx - b.distancePx);
+    const nearest = nearby[0] || null;
+    const ambiguous = Boolean(nearest && nearby[1] &&
+      Math.abs(nearby[1].distancePx - nearest.distancePx) < 20);
+    const attachedDimension = nearest && !ambiguous ? nearest.dimension : null;
+    return {
+      page: annotation.page,
+      rawLabel: annotation.raw,
+      elementTagCandidate: tag,
+      disciplineCandidates: annotation.candidateTypes,
+      labelBox: annotation.box,
+      dimensionCandidate: attachedDimension ? {
+        raw: attachedDimension.raw,
+        kind: attachedDimension.kind,
+        values: attachedDimension.values,
+        units: attachedDimension.units,
+        normalizedValuesMm: attachedDimension.normalizedValuesMm,
+        box: attachedDimension.box,
+        distancePx: Number(nearest.distancePx.toFixed(2))
+      } : null,
+      associationStatus: ambiguous ? 'ambiguous_nearby_dimensions' :
+        attachedDimension ? 'spatially_associated_candidate' :
+        nearby.length ? 'dimension_association_unresolved' : 'no_nearby_dimension_candidate',
+      reviewStatus: annotation.status,
+      measurementEligible: false,
+      source: 'OCR text and rendered-page pixel proximity; not verified CAD/BIM geometry'
+    };
+  }).slice(0, 3000);
+}
+
 function analyzePdfDrawingText(extraction, document = {}) {
   if (!extraction || typeof extraction.text !== 'string') {
     throw new TypeError('PDF text extraction result is required');
@@ -218,6 +269,10 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrSpatialLines: spatialOcrLines(extraction.ocrWords).slice(0, 5000),
     ocrSpatialDimensionCandidates: extractSpatialDimensionCandidates(spatialOcrLines(extraction.ocrWords)),
     spatialEngineeringAnnotations: classifySpatialOcrAnnotations(spatialOcrLines(extraction.ocrWords)),
+    spatialElementCandidates: buildSpatialElementCandidates(
+      spatialOcrLines(extraction.ocrWords),
+      extractSpatialDimensionCandidates(spatialOcrLines(extraction.ocrWords))
+    ),
     ocrDimensionCallouts: spatialOcrLines(extraction.ocrWords).filter(line => /\d\s*(?:mm|cm|m)\b|\d\s*[x×]\s*\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
     textualSheetNumberCandidates: sheetNumbers,
     textualRevisionCandidates: revisions,
@@ -257,4 +312,4 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ]
   };
 }
-module.exports = { analyzePdfDrawingText, spatialOcrLines, classifySpatialOcrAnnotations };
+module.exports = { analyzePdfDrawingText, spatialOcrLines, classifySpatialOcrAnnotations, buildSpatialElementCandidates };
