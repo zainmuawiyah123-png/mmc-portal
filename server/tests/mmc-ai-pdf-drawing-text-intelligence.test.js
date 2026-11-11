@@ -273,3 +273,19 @@ test('reads reinforcement diameter and spacing notations without inventing bar c
   assert.ok(candidates.some(item => item.diameterMm === 12 && item.spacingMm === null && item.barCount === null));
   assert.ok(candidates.every(item => item.totalSteelMassKg === null && item.measurementEligible === false));
 });
+
+
+test('captures reinforcement distribution hints such as each way and each face', () => {
+  const result = analyzePdfDrawingText({
+    text: 'SLAB REINFORCEMENT PLAN',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'T12@150 EW', confidence: 95, box: { left: 10, top: 10, width: 80, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: 'Y16-200 EF', confidence: 95, box: { left: 10, top: 35, width: 80, height: 15 } }
+    ]
+  });
+  const candidates = result.metadata.spatialElementCandidates.flatMap(item => item.reinforcementCandidates);
+  assert.ok(candidates.some(item => item.diameterMm === 12 && item.spacingMm === 150 && item.distribution === 'each_way'));
+  assert.ok(candidates.some(item => item.diameterMm === 16 && item.spacingMm === 200 && item.distribution === 'each_face'));
+  assert.ok(candidates.every(item => item.measurementEligible === false && item.totalSteelMassKg === null));
+});
