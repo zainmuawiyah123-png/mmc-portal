@@ -75,3 +75,52 @@ test('runs real DXF geometry extraction into traceable classified candidates', (
   assert.equal(result.elements[1].measurements[0].quantity, 20);
   assert.ok(result.elements.every(item => item.reviewState === 'requires_engineering_review'));
 });
+
+
+test('runs a synthetic multi-discipline drawing package against known geometric reference values', () => {
+  const dxf = [
+    '0','SECTION','2','HEADER','9','$INSUNITS','70','6','0','ENDSEC',
+    '0','SECTION','2','ENTITIES',
+    '0','LWPOLYLINE','8','SITE-BOUNDARY','70','1','10','0','20','0','10','20','20','0','10','20','20','10','10','0','20','10',
+    '0','LWPOLYLINE','8','ARCH-FLOOR','70','1','10','0','20','0','10','10','20','0','10','10','20','8','10','0','20','8',
+    '0','LINE','8','ELEC-TRAY','10','0','20','0','11','12','21','0',
+    '0','LINE','8','MECH-DUCT','10','0','20','0','11','0','21','8',
+    '0','LINE','8','PLUMB-PIPE','10','0','20','0','11','15','21','0',
+    '0','LINE','8','FIRE-PIPE','10','0','20','0','11','10','21','0',
+    '0','ENDSEC','0','EOF'
+  ].join('\n');
+  const measured = takeoffDxf(dxf);
+  const result = normalizeDxfDrawing({
+    content: dxf,
+    takeoff: measured,
+    document: { documentId: 'SYNTH-MEP-ARCH-01', revision: 'A', sheetOrPage: 'C-001' },
+    layerMap: {
+      'SITE-BOUNDARY': { discipline: 'civil_earthworks', system: 'site', elementType: 'site boundary', measurements: ['area_m2'] },
+      'ARCH-FLOOR': { discipline: 'architectural', system: 'flooring', elementType: 'floor finish boundary', measurements: ['area_m2'] },
+      'ELEC-TRAY': { discipline: 'electrical', system: 'containment', elementType: 'cable tray route', measurements: ['length_m'] },
+      'MECH-DUCT': { discipline: 'mechanical', system: 'hvac', elementType: 'duct route', measurements: ['length_m'] },
+      'PLUMB-PIPE': { discipline: 'plumbing', system: 'water', elementType: 'pipe route', measurements: ['length_m'] },
+      'FIRE-PIPE': { discipline: 'fire_protection', system: 'sprinkler', elementType: 'fire pipe route', measurements: ['length_m'] }
+    }
+  });
+  const expected = {
+    'site boundary': ['area_m2', 200],
+    'floor finish boundary': ['area_m2', 80],
+    'cable tray route': ['length_m', 12],
+    'duct route': ['length_m', 8],
+    'pipe route': ['length_m', 15],
+    'fire pipe route': ['length_m', 10]
+  };
+  assert.equal(result.elementCount, 6);
+  assert.equal(result.unresolvedCount, 0);
+  for (const element of result.elements) {
+    const [measure, quantity] = expected[element.elementType];
+    assert.equal(element.measurements[0].measurement, measure);
+    assert.equal(element.measurements[0].quantity, quantity);
+  }
+  assert.deepEqual(
+    [...new Set(result.elements.map(element => element.discipline))].sort(),
+    ['architectural','civil_earthworks','electrical','fire_protection','mechanical','plumbing'].sort()
+  );
+  assert.ok(result.elements.every(element => element.approvalEligible === false));
+});
