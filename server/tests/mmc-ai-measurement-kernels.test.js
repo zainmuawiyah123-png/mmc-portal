@@ -10,7 +10,9 @@ const {
   calculateIsolatedFootingTakeoff,
   calculateColumnTakeoff,
   calculateBeamTakeoff,
-  calculateConcreteWallTakeoff
+  calculateConcreteWallTakeoff,
+  calculateConcreteStairTakeoff,
+  calculateRetainingWallTakeoff
 } = require('../src/lib/mmc-ai/measurement-kernels');
 
 test('calculates cut and fill independently using average end area', () => {
