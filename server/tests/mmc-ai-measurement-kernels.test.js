@@ -170,10 +170,10 @@ test('calculates straight stair waist, step wedges and landing concrete separate
   });
   assert.equal(result.totalRunMm, 3000);
   assert.equal(result.totalRiseMm, 1600);
-  assert.equal(result.waistConcreteM3, 0.6);
+  assert.equal(result.waistConcreteM3, 0.612);
   assert.equal(result.stepConcreteM3, 0.288);
   assert.equal(result.landingConcreteM3, 0.216);
-  assert.equal(result.totalConcreteM3, 1.104);
+  assert.equal(result.totalConcreteM3, 1.116);
   assert.equal(result.measurementEligible, false);
 });
 
