@@ -169,11 +169,49 @@ function extractElementTag(text) {
   const match = String(text || '').match(/\b(?:B|BM|C|COL|F|FOOTING|S|SL|W|D|DB|AHU|FCU|VAV|P|MH|FH|SP)-?\s*\d{1,4}[A-Z]?\b/i);
   return match ? clean(match[0]).replace(/\s+/g, '').toUpperCase() : null;
 }
+function extractReinforcementCallouts(text) {
+  const normalized = normalizeEngineeringNumerals(text);
+  const pattern = /(\d{1,3})\s*[TØΦY]\s*(\d{1,2})(?!\d)/gi;
+  const results = [];
+  let match;
+  while ((match = pattern.exec(normalized))) {
+    const barCount = Number(match[1]);
+    const diameterMm = Number(match[2]);
+    if (barCount <= 0 || diameterMm < 6 || diameterMm > 50) continue;
+    results.push({
+      raw: clean(match[0]),
+      barCount,
+      diameterMm,
+      nominalUnitMassKgPerM: Number((diameterMm * diameterMm / 162).toFixed(4)),
+      totalBarLength: null,
+      totalSteelMassKg: null,
+      status: 'bar_count_and_diameter_candidate_length_and_shape_not_read',
+      measurementEligible: false
+    });
+  }
+  return results;
+}
+function inferElementFamily(tag) {
+  if (!tag) return null;
+  const prefix = tag.match(/^[A-Z]+/)?.[0] || '';
+  const families = {
+    B: 'beam', BM: 'beam', C: 'column', COL: 'column',
+    F: 'footing', FOOTING: 'footing', S: 'slab_or_structural_mark_unresolved',
+    SL: 'slab', W: 'wall', D: 'door_or_detail_mark_unresolved',
+    DB: 'distribution_board', AHU: 'air_handling_unit',
+    FCU: 'fan_coil_unit', VAV: 'variable_air_volume_unit',
+    P: 'pipe_or_pump_mark_unresolved', MH: 'manhole',
+    FH: 'fire_hose_or_fire_hydrant_mark_unresolved',
+    SP: 'sprinkler_or_special_mark_unresolved'
+  };
+  return families[prefix] || null;
+}
 function buildSpatialElementCandidates(lines, dimensions, options = {}) {
   const maxDistancePx = Number.isFinite(options.maxDistancePx) ? options.maxDistancePx : 160;
   const annotations = classifySpatialOcrAnnotations(lines);
   return annotations.map(annotation => {
     const tag = extractElementTag(annotation.raw);
+    const reinforcementCandidates = extractReinforcementCallouts(annotation.raw);
     const nearby = dimensions
       .filter(dimension => dimension.page === annotation.page && dimension.box)
       .map(dimension => ({ dimension, distancePx: spatialDistance(annotation.box, dimension.box) }))
@@ -187,6 +225,8 @@ function buildSpatialElementCandidates(lines, dimensions, options = {}) {
       page: annotation.page,
       rawLabel: annotation.raw,
       elementTagCandidate: tag,
+      elementFamilyCandidate: inferElementFamily(tag),
+      reinforcementCandidates,
       disciplineCandidates: annotation.candidateTypes,
       labelBox: annotation.box,
       dimensionCandidate: attachedDimension ? {
