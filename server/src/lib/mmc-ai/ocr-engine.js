@@ -10,6 +10,8 @@ const run = promisify(execFile);
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const DEFAULT_MAX_PAGES = 20;
 const DEFAULT_DPI = 200;
+const MAX_CONCURRENT_OCR_JOBS = 1;
+let activeOcrJobs = 0;
 
 function parsePdfPageCount(pdfInfo) {
   const match = String(pdfInfo || '').match(/^Pages:\s+(\d+)/mi);
@@ -108,10 +110,15 @@ async function ocrPdf(input, options = {}) {
     );
   }
 
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'mmc-ai-ocr-'));
-  const pdfPath = path.join(directory, 'source.pdf');
-  const prefix = path.join(directory, 'page');
+  if (activeOcrJobs >= MAX_CONCURRENT_OCR_JOBS) {
+    throw Object.assign(new Error('OCR worker is busy.'), { code: 'OCR_BUSY' });
+  }
+  activeOcrJobs++;
+  let directory;
   try {
+    directory = await fs.mkdtemp(path.join(os.tmpdir(), 'mmc-ai-ocr-'));
+    const pdfPath = path.join(directory, 'source.pdf');
+    const prefix = path.join(directory, 'page');
     await fs.writeFile(pdfPath, bytes, { flag: 'wx', mode: 0o600 });
     const info = await run('pdfinfo', [pdfPath], { timeout: 15000, maxBuffer: 1024 * 1024 });
     const totalPages = parsePdfPageCount(info.stdout);
@@ -163,7 +170,8 @@ async function ocrPdf(input, options = {}) {
       ]
     };
   } finally {
-    await fs.rm(directory, { recursive: true, force: true });
+    if (directory) await fs.rm(directory, { recursive: true, force: true });
+    activeOcrJobs--;
   }
 }
 
