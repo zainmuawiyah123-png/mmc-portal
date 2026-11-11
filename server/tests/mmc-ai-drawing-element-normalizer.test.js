@@ -47,3 +47,31 @@ test('requires revision and sheet identity to keep quantities auditable', () => 
     content: 'synthetic dxf bytes', takeoff, document: { documentId: 'D1', revision: '', sheetOrPage: 'A1' }, layerMap
   }), /document.revision is required/);
 });
+
+const { takeoffDxf } = require('../src/lib/mmc-ai/dxf-takeoff');
+
+test('runs real DXF geometry extraction into traceable classified candidates', () => {
+  const dxf = [
+    '0','SECTION','2','HEADER','9','$INSUNITS','70','6','0','ENDSEC',
+    '0','SECTION','2','ENTITIES',
+    '0','LINE','8','STR-BEAM','10','0','20','0','11','6','21','8',
+    '0','LWPOLYLINE','8','STR-SLAB','70','1','10','0','20','0','10','5','20','0','10','5','20','4','10','0','20','4',
+    '0','ENDSEC','0','EOF'
+  ].join('\\n');
+  const measured = takeoffDxf(dxf);
+  const result = normalizeDxfDrawing({
+    content: dxf,
+    takeoff: measured,
+    document: { documentId: 'SYNTH-01', revision: 'B', sheetOrPage: 'S-101' },
+    layerMap: {
+      'STR-BEAM': { discipline: 'structural', system: 'frame', elementType: 'beam reference line', measurements: ['length_m'] },
+      'STR-SLAB': { discipline: 'structural', system: 'floor', elementType: 'slab boundary', measurements: ['area_m2'] }
+    }
+  });
+  assert.equal(measured.rows.length, 2);
+  assert.equal(result.elementCount, 2);
+  assert.equal(result.unresolvedCount, 0);
+  assert.equal(result.elements[0].measurements[0].quantity, 10);
+  assert.equal(result.elements[1].measurements[0].quantity, 20);
+  assert.ok(result.elements.every(item => item.reviewState === 'requires_engineering_review'));
+});
