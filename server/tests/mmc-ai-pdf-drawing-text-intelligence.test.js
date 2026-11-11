@@ -255,3 +255,21 @@ test('does not assign one OCR dimension callout to multiple nearby elements', ()
   assert.equal(elements.filter(item => item.associationStatus === 'dimension_candidate_already_assigned_or_unresolved').length, 1);
   assert.ok(elements.every(item => item.measurementEligible === false));
 });
+
+
+test('reads reinforcement diameter and spacing notations without inventing bar counts or lengths', () => {
+  const result = analyzePdfDrawingText({
+    text: 'STRUCTURAL REINFORCEMENT',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'T16@200', confidence: 95, box: { left: 10, top: 10, width: 60, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: '4T20@150', confidence: 96, box: { left: 10, top: 35, width: 70, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: 'Ø12', confidence: 94, box: { left: 10, top: 60, width: 35, height: 15 } }
+    ]
+  });
+  const candidates = result.metadata.spatialElementCandidates.flatMap(item => item.reinforcementCandidates);
+  assert.ok(candidates.some(item => item.diameterMm === 16 && item.spacingMm === 200 && item.barCount === null));
+  assert.ok(candidates.some(item => item.diameterMm === 20 && item.spacingMm === 150 && item.barCount === 4));
+  assert.ok(candidates.some(item => item.diameterMm === 12 && item.spacingMm === null && item.barCount === null));
+  assert.ok(candidates.every(item => item.totalSteelMassKg === null && item.measurementEligible === false));
+});
