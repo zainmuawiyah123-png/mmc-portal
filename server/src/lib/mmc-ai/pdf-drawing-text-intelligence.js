@@ -129,12 +129,18 @@ function extractSpatialDimensionCandidates(lines) {
         })();
         const values = pattern.values(match);
         const units = pattern.units(match);
+        const unitToMm = { mm: 1, cm: 10, m: 1000 };
+        const normalizedValuesMm = units.length === values.length && units.every(unit => unit && unitToMm[unit])
+          ? values.map((value, index) => value * unitToMm[units[index]])
+          : null;
         candidates.push({
           page: line.page,
           raw,
           kind: pattern.kind,
           values,
           units,
+          normalizedValuesMm,
+          dimensionRole: 'unresolved_callout_not_element_geometry',
           box,
           coordinateSpace: line.coordinateSpace,
           ocrConfidence: line.confidence,
