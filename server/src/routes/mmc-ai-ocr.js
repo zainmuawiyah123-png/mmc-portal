@@ -49,6 +49,7 @@ router.post('/projects/:projectId/documents/:documentId/ocr/pdf', wrap(async (re
     throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
   }
 
+  res.setHeader('Cache-Control', 'no-store');
   let result;
   try {
     result = await ocrPdf(bytes, {
@@ -57,10 +58,16 @@ router.post('/projects/:projectId/documents/:documentId/ocr/pdf', wrap(async (re
     });
   } catch (error) {
     if (error.code === 'OCR_RUNTIME_UNAVAILABLE') {
-      return res.status(503).json({
-        error: { code: error.code, message: error.message },
-        runtime: error.details
-      });
+      return res.status(503).json({ error: { code: error.code, message: error.message }, runtime: error.details });
+    }
+    if (error.code === 'OCR_BUSY') {
+      return res.status(429).json({ error: { code: error.code, message: 'هناك عملية OCR أخرى قيد التنفيذ؛ أعد المحاولة بعد قليل.' } });
+    }
+    if (error.code === 'ETIMEDOUT' || error.killed) {
+      return res.status(504).json({ error: { code: 'OCR_TIMEOUT', message: 'تجاوز تحليل الملف الوقت المسموح؛ جرّب صفحات أقل أو دقة أقل.' } });
+    }
+    if (error.code === 'OCR_PDF_TOO_LARGE') {
+      return res.status(413).json({ error: { code: error.code, message: error.message } });
     }
     throw E.validation(error.message || 'تعذر تنفيذ OCR على ملف PDF.');
   }
@@ -76,7 +83,6 @@ router.post('/projects/:projectId/documents/:documentId/ocr/pdf', wrap(async (re
       characterCount: result.characterCount
     })
   );
-  res.setHeader('Cache-Control', 'no-store');
   res.json({
     documentId: doc.id,
     result,
