@@ -145,4 +145,10 @@ test('extracts spatial OCR dimension candidates with source boxes but never mark
   assert.ok(candidates.some(item => item.raw === '300x600' && item.kind === 'dimension_pair'));
   assert.ok(candidates.every(item => item.measurementEligible === false));
   assert.ok(candidates.every(item => item.page === 1 && item.box && item.ocrConfidence >= 90));
+  const explicit = candidates.find(item => item.raw === '6000 mm');
+  const pair = candidates.find(item => item.raw === '300x600');
+  assert.deepEqual(explicit.box, { left: 100, top: 200, width: 66, height: 15 });
+  assert.deepEqual(pair.box, { left: 100, top: 240, width: 60, height: 15 });
+  assert.equal(explicit.sourceWordCount, 2);
+  assert.equal(pair.sourceWordCount, 1);
 });
