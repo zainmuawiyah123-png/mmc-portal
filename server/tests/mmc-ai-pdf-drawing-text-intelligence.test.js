@@ -176,3 +176,42 @@ test('recognizes Arabic-Indic numerals and Arabic engineering units without appr
   assert.equal(candidates.find(item => item.raw === '٣٠٠×٦٠٠').normalizedValuesMm, null);
   assert.deepEqual(candidates.find(item => item.raw === '٢٫٥ م').normalizedValuesMm, [2500]);
 });
+
+
+test('associates structural OCR labels with nearby dimensions as review-only candidates', () => {
+  const result = analyzePdfDrawingText({
+    text: 'مخطط إنشائي',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'B1', confidence: 97, box: { left: 100, top: 100, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: '300x600', confidence: 96, box: { left: 125, top: 120, width: 60, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: 'C1', confidence: 97, box: { left: 400, top: 100, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 4, text: '400x400', confidence: 96, box: { left: 425, top: 120, width: 60, height: 15 } }
+    ]
+  });
+  const elements = result.metadata.spatialElementCandidates;
+  const beam = elements.find(item => item.elementTagCandidate === 'B1');
+  const column = elements.find(item => item.elementTagCandidate === 'C1');
+  assert.ok(beam && column);
+  assert.equal(beam.dimensionCandidate.raw, '300x600');
+  assert.equal(column.dimensionCandidate.raw, '400x400');
+  assert.equal(beam.associationStatus, 'spatially_associated_candidate');
+  assert.equal(column.associationStatus, 'spatially_associated_candidate');
+  assert.ok(elements.every(item => item.measurementEligible === false));
+});
+
+test('does not force an association when multiple dimension candidates are equally close', () => {
+  const result = analyzePdfDrawingText({
+    text: 'STRUCTURAL PLAN',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'B2', confidence: 96, box: { left: 100, top: 100, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: '300x600', confidence: 95, box: { left: 40, top: 120, width: 60, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: '350x700', confidence: 95, box: { left: 180, top: 120, width: 60, height: 15 } }
+    ]
+  });
+  const beam = result.metadata.spatialElementCandidates.find(item => item.elementTagCandidate === 'B2');
+  assert.equal(beam.associationStatus, 'ambiguous_nearby_dimensions');
+  assert.equal(beam.dimensionCandidate, null);
+  assert.equal(beam.measurementEligible, false);
+});
