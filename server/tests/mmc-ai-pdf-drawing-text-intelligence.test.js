@@ -236,3 +236,22 @@ test('extracts reinforcement count and bar diameter as non-approved candidates',
   assert.deepEqual(column.reinforcementCandidates.map(item => [item.barCount, item.diameterMm]), [[8, 16]]);
   assert.ok(beam.reinforcementCandidates.every(item => item.totalSteelMassKg === null && item.measurementEligible === false));
 });
+
+
+test('does not assign one OCR dimension callout to multiple nearby elements', () => {
+  const result = analyzePdfDrawingText({
+    text: 'STRUCTURAL PLAN',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'B1', confidence: 97, box: { left: 100, top: 100, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: 'B2', confidence: 97, box: { left: 110, top: 105, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 3, text: '300x600', confidence: 96, box: { left: 105, top: 130, width: 60, height: 15 } }
+    ]
+  });
+  const elements = result.metadata.spatialElementCandidates.filter(item =>
+    ['B1', 'B2'].includes(item.elementTagCandidate));
+  assert.equal(elements.length, 2);
+  assert.equal(elements.filter(item => item.dimensionCandidate).length, 1);
+  assert.equal(elements.filter(item => item.associationStatus === 'dimension_candidate_already_assigned_or_unresolved').length, 1);
+  assert.ok(elements.every(item => item.measurementEligible === false));
+});
