@@ -135,3 +135,26 @@ test('rejects impossible column and beam geometry', () => {
     longitudinalBars: [{ diameterMm: 16, count: 4, cutLengthMm: 5000 }]
   }), /slabThicknessMm/);
 });
+
+
+test('calculates concrete wall volume and double-face formwork after explicit opening deductions', () => {
+  const result = calculateConcreteWallTakeoff({
+    lengthMm: 5000, heightMm: 3000, thicknessMm: 200, coverMm: 40,
+    verticalBars: { diameterMm: 16, spacingMm: 200 },
+    horizontalBars: { diameterMm: 12, spacingMm: 200 },
+    openings: [{ mark: 'D1', widthMm: 1000, heightMm: 2100 }]
+  });
+  assert.equal(result.grossConcreteM3, 3);
+  assert.equal(result.openingDeductionsM3, 0.42);
+  assert.equal(result.netConcreteM3, 2.58);
+  assert.equal(result.grossFormworkBothFacesM2, 30);
+  assert.equal(result.netFormworkBothFacesM2, 25.8);
+  assert.equal(result.measurementEligible, false);
+});
+
+test('rejects wall opening deductions exceeding gross wall face area', () => {
+  assert.throws(() => calculateConcreteWallTakeoff({
+    lengthMm: 2000, heightMm: 2000, thicknessMm: 200, coverMm: 30,
+    openings: [{ widthMm: 2500, heightMm: 2000 }]
+  }), /cannot exceed/);
+});
