@@ -46,3 +46,29 @@ test('rejects missing, negative and inconsistent engineering inputs', () => {
   assert.throws(() => calculateRectangularConcrete({ lengthMm: 1000, widthMm: 1000, depthMm: 1000, voidsM3: [2] }), /cannot exceed/);
   assert.throws(() => calculateRebarScheduleWeight([{ diameterMm: 16, cutLengthMm: 0, count: 3 }]), /greater than zero/);
 });
+
+
+test('estimates rectangular slab reinforcement from explicit spacing, cover and layers', () => {
+  const result = calculateSlabReinforcementTakeoff({
+    slabLengthMm: 6000, slabWidthMm: 4000, coverMm: 40,
+    barsAlongLength: { diameterMm: 12, spacingMm: 150, layers: 2 },
+    barsAlongWidth: { diameterMm: 10, spacingMm: 200, layers: 1 }
+  });
+  assert.equal(result.rows[0].barsPerLayer, 28);
+  assert.equal(result.rows[0].cutLengthMm, 5920);
+  assert.equal(result.rows[0].totalBars, 56);
+  assert.equal(result.rows[1].barsPerLayer, 30);
+  assert.equal(result.rows[1].cutLengthMm, 3920);
+  assert.equal(result.totalBars, 86);
+  assert.equal(result.measurementEligible, false);
+});
+
+test('rejects slab reinforcement inputs with impossible cover or missing bar directions', () => {
+  assert.throws(() => calculateSlabReinforcementTakeoff({
+    slabLengthMm: 1000, slabWidthMm: 800, coverMm: 500,
+    barsAlongLength: { diameterMm: 12, spacingMm: 150 }
+  }), /cover/);
+  assert.throws(() => calculateSlabReinforcementTakeoff({
+    slabLengthMm: 6000, slabWidthMm: 4000, coverMm: 40
+  }), /at least one reinforcement direction/);
+});
