@@ -215,3 +215,24 @@ test('does not force an association when multiple dimension candidates are equal
   assert.equal(beam.dimensionCandidate, null);
   assert.equal(beam.measurementEligible, false);
 });
+
+
+test('extracts reinforcement count and bar diameter as non-approved candidates', () => {
+  const result = analyzePdfDrawingText({
+    text: 'STRUCTURAL REINFORCEMENT PLAN',
+    ocrPerformed: true,
+    ocrWords: [
+      { page: 1, block: 1, paragraph: 1, line: 1, text: 'B1', confidence: 97, box: { left: 100, top: 100, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 1, text: '4T20', confidence: 96, box: { left: 125, top: 100, width: 42, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: 'C1', confidence: 97, box: { left: 300, top: 100, width: 20, height: 15 } },
+      { page: 1, block: 1, paragraph: 1, line: 2, text: '8Ø16', confidence: 96, box: { left: 325, top: 100, width: 42, height: 15 } }
+    ]
+  });
+  const elements = result.metadata.spatialElementCandidates;
+  const beam = elements.find(item => item.elementTagCandidate === 'B1');
+  const column = elements.find(item => item.elementTagCandidate === 'C1');
+  assert.equal(beam.elementFamilyCandidate, 'beam');
+  assert.deepEqual(beam.reinforcementCandidates.map(item => [item.barCount, item.diameterMm]), [[4, 20]]);
+  assert.deepEqual(column.reinforcementCandidates.map(item => [item.barCount, item.diameterMm]), [[8, 16]]);
+  assert.ok(beam.reinforcementCandidates.every(item => item.totalSteelMassKg === null && item.measurementEligible === false));
+});
