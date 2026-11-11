@@ -410,6 +410,98 @@ function calculateConcreteWallTakeoff({
   };
 }
 
+
+function calculateConcreteStairTakeoff({
+  clearWidthMm, goingMm, riserMm, stepCount, waistThicknessMm,
+  landingLengthMm = 0, landingThicknessMm = waistThicknessMm
+} = {}) {
+  positive(clearWidthMm, 'clearWidthMm');
+  positive(goingMm, 'goingMm');
+  positive(riserMm, 'riserMm');
+  positive(waistThicknessMm, 'waistThicknessMm');
+  if (!Number.isInteger(stepCount) || stepCount <= 0) throw new TypeError('stepCount must be a positive integer');
+  nonNegative(landingLengthMm, 'landingLengthMm');
+  positive(landingThicknessMm, 'landingThicknessMm');
+  const totalRunMm = goingMm * stepCount;
+  const totalRiseMm = riserMm * stepCount;
+  const inclinedLengthMm = Math.sqrt(totalRunMm ** 2 + totalRiseMm ** 2);
+  const waistVolumeM3 = clearWidthMm / MM_PER_M * inclinedLengthMm / MM_PER_M * waistThicknessMm / MM_PER_M;
+  const stepVolumeM3 = clearWidthMm / MM_PER_M * (goingMm / MM_PER_M) * (riserMm / MM_PER_M) * stepCount / 2;
+  const landingVolumeM3 = landingLengthMm > 0
+    ? clearWidthMm / MM_PER_M * landingLengthMm / MM_PER_M * landingThicknessMm / MM_PER_M : 0;
+  const soffitAreaM2 = clearWidthMm / MM_PER_M * inclinedLengthMm / MM_PER_M;
+  const sideProfileAreaM2 = 2 * (
+    (totalRunMm / MM_PER_M) * (totalRiseMm / MM_PER_M) / 2 +
+    (totalRunMm / MM_PER_M) * (waistThicknessMm / MM_PER_M)
+  );
+  return {
+    method: 'straight_flight_stair_waist_plus_triangular_step_prisms',
+    ruleId: 'STAIR-CONCRETE-GEOMETRY',
+    ruleVersion: '1.0',
+    totalRunMm, totalRiseMm, inclinedLengthMm: round(inclinedLengthMm),
+    waistConcreteM3: round(waistVolumeM3),
+    stepConcreteM3: round(stepVolumeM3),
+    landingConcreteM3: round(landingVolumeM3),
+    totalConcreteM3: round(waistVolumeM3 + stepVolumeM3 + landingVolumeM3),
+    soffitFormworkM2: round(soffitAreaM2),
+    sideProfileFormworkM2: round(sideProfileAreaM2),
+    inputs: { clearWidthMm, goingMm, riserMm, stepCount, waistThicknessMm, landingLengthMm, landingThicknessMm },
+    limitations: [
+      'Straight single flight only; winders, spiral stairs, folded plates, beams, support ribs and complex landings are excluded.',
+      'Step concrete assumes triangular wedge volume per step above the waist slab; confirm the project measurement convention to avoid overlap or double counting.',
+      'Landing geometry is represented as a separate rectangular slab; landing supports and beams are excluded.',
+      'Reinforcement, nosing details, finishes, handrails, edge beams and construction joints are not included.',
+      'Verify dimensions and structural section against approved drawings before measurement approval.'
+    ],
+    measurementEligible: false
+  };
+}
+
+function calculateRetainingWallTakeoff({
+  stemLengthMm, stemHeightMm, stemThicknessMm,
+  baseWidthMm, baseThicknessMm, heelWidthMm = 0, toeWidthMm = 0,
+  footingLengthMm = stemLengthMm
+} = {}) {
+  positive(stemLengthMm, 'stemLengthMm');
+  positive(stemHeightMm, 'stemHeightMm');
+  positive(stemThicknessMm, 'stemThicknessMm');
+  positive(baseWidthMm, 'baseWidthMm');
+  positive(baseThicknessMm, 'baseThicknessMm');
+  positive(footingLengthMm, 'footingLengthMm');
+  nonNegative(heelWidthMm, 'heelWidthMm');
+  nonNegative(toeWidthMm, 'toeWidthMm');
+  if (heelWidthMm + toeWidthMm + stemThicknessMm > baseWidthMm + 1e-9) {
+    throw new RangeError('heel, toe and stem thickness cannot exceed base width');
+  }
+  if (stemThicknessMm > baseWidthMm) throw new RangeError('stem thickness cannot exceed base width');
+  const stemConcreteM3 = stemLengthMm / MM_PER_M * stemHeightMm / MM_PER_M * stemThicknessMm / MM_PER_M;
+  const baseConcreteM3 = footingLengthMm / MM_PER_M * baseWidthMm / MM_PER_M * baseThicknessMm / MM_PER_M;
+  const stemFacesM2 = 2 * stemLengthMm / MM_PER_M * stemHeightMm / MM_PER_M;
+  const stemEndsM2 = 2 * stemHeightMm / MM_PER_M * stemThicknessMm / MM_PER_M;
+  const baseEdgesM2 = 2 * (footingLengthMm + baseWidthMm) / MM_PER_M * baseThicknessMm / MM_PER_M;
+  return {
+    method: 'rectangular_retaining_wall_stem_and_base',
+    ruleId: 'RETAINING-WALL-CONCRETE-FORMWORK',
+    ruleVersion: '1.0',
+    stemConcreteM3: round(stemConcreteM3),
+    baseConcreteM3: round(baseConcreteM3),
+    totalConcreteM3: round(stemConcreteM3 + baseConcreteM3),
+    stemFaceFormworkM2: round(stemFacesM2),
+    stemEndFormworkM2: round(stemEndsM2),
+    baseEdgeFormworkM2: round(baseEdgesM2),
+    totalFormworkM2: round(stemFacesM2 + stemEndsM2 + baseEdgesM2),
+    inputs: { stemLengthMm, stemHeightMm, stemThicknessMm, baseWidthMm, baseThicknessMm, heelWidthMm, toeWidthMm, footingLengthMm },
+    limitations: [
+      'Rectangular stem and rectangular base only; battered stems, shear keys, counterforts, drainage layers and stepped bases are excluded.',
+      'Heel and toe dimensions are recorded for validation but no tapered or sloped geometry is inferred.',
+      'Formwork is a gross exposed-face estimate; soil-contact and blinding-contact faces must be deducted according to project measurement rules.',
+      'Reinforcement, waterstops, weep holes, drainage pipes, filters, waterproofing, backfill and excavation are excluded.',
+      'Verify stability design geometry, construction joints, cover and approved reinforcement details before measurement approval.'
+    ],
+    measurementEligible: false
+  };
+}
+
 module.exports = {
   calculateEarthworkAverageEndArea,
   calculatePrismoidalVolume,
@@ -419,5 +511,7 @@ module.exports = {
   calculateIsolatedFootingTakeoff,
   calculateColumnTakeoff,
   calculateBeamTakeoff,
-  calculateConcreteWallTakeoff
+  calculateConcreteWallTakeoff,
+  calculateConcreteStairTakeoff,
+  calculateRetainingWallTakeoff
 };
