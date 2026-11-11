@@ -122,9 +122,66 @@ function calculateRebarScheduleWeight(bars) {
   };
 }
 
+
+function calculateSlabReinforcementTakeoff({
+  slabLengthMm, slabWidthMm, coverMm, barsAlongLength, barsAlongWidth
+} = {}) {
+  positive(slabLengthMm, 'slabLengthMm');
+  positive(slabWidthMm, 'slabWidthMm');
+  nonNegative(coverMm, 'coverMm');
+  if (coverMm * 2 >= Math.min(slabLengthMm, slabWidthMm)) {
+    throw new RangeError('cover must be less than half of both slab dimensions');
+  }
+  const buildDirection = (config, direction, clearDistributionMm, clearCutLengthMm) => {
+    if (!config) return null;
+    positive(config.diameterMm, direction + ' diameterMm');
+    positive(config.spacingMm, direction + ' spacingMm');
+    const layers = config.layers === undefined ? 1 : config.layers;
+    if (!Number.isInteger(layers) || layers <= 0) throw new TypeError(direction + ' layers must be a positive integer');
+    const distributionCount = Math.ceil(clearDistributionMm / config.spacingMm) + 1;
+    const cutLengthMm = clearCutLengthMm;
+    const count = distributionCount * layers;
+    const totalLengthM = count * cutLengthMm / MM_PER_M;
+    const unitWeightKgPerM = config.diameterMm * config.diameterMm / 162;
+    return {
+      direction, diameterMm: config.diameterMm, spacingMm: config.spacingMm,
+      layers, barsPerLayer: distributionCount, totalBars: count,
+      cutLengthMm, totalLengthM: round(totalLengthM),
+      unitWeightKgPerM: round(unitWeightKgPerM),
+      theoreticalWeightKg: round(totalLengthM * unitWeightKgPerM),
+      status: 'geometric_estimate_excludes_hooks_laps_chairs_and_opening_trims'
+    };
+  };
+  const clearLength = slabLengthMm - 2 * coverMm;
+  const clearWidth = slabWidthMm - 2 * coverMm;
+  const rows = [
+    buildDirection(barsAlongLength, 'along_length', clearWidth, clearLength),
+    buildDirection(barsAlongWidth, 'along_width', clearLength, clearWidth)
+  ].filter(Boolean);
+  if (!rows.length) throw new TypeError('at least one reinforcement direction is required');
+  return {
+    method: 'rectangular_slab_uniform_spacing_geometric_estimate',
+    ruleId: 'SLAB-REINFORCEMENT-COUNT-LENGTH-WEIGHT',
+    ruleVersion: '1.0',
+    formula: 'Bars per layer = ceil(clear distribution dimension / spacing) + 1; cut length = slab dimension − 2 × cover; weight = total length × diameter²/162',
+    totalBars: rows.reduce((sum, row) => sum + row.totalBars, 0),
+    totalLengthM: round(rows.reduce((sum, row) => sum + row.totalLengthM, 0)),
+    theoreticalWeightKg: round(rows.reduce((sum, row) => sum + row.theoreticalWeightKg, 0)),
+    rows,
+    inputs: { slabLengthMm, slabWidthMm, coverMm, barsAlongLength, barsAlongWidth },
+    limitations: [
+      'Estimate applies only to a rectangular slab with uniform spacing and explicitly supplied directions and layers.',
+      'Does not infer top/bottom mats, support bars, additional strips, openings, trimming bars, hooks, bends, anchorage, laps, chairs or wastage.',
+      'Confirm edge bar positioning and spacing convention against the approved structural details and project specification before measurement approval.'
+    ],
+    measurementEligible: false
+  };
+}
+
 module.exports = {
   calculateEarthworkAverageEndArea,
   calculatePrismoidalVolume,
   calculateRectangularConcrete,
-  calculateRebarScheduleWeight
+  calculateRebarScheduleWeight,
+  calculateSlabReinforcementTakeoff
 };
