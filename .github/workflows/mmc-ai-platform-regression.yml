@@ -5,6 +5,7 @@ on:
       - feature/mmc-ai-drawing-reader-demo
     paths:
       - 'server/**'
+      - 'webpages/technical-proposal-kit_v5/mmc-ai/**'
       - 'Dockerfile'
       - '.github/workflows/mmc-ai-platform-regression.yml'
   pull_request:
