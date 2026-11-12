@@ -260,7 +260,8 @@ function takeoffDxf(text, options = {}) {
       requireCodes(e, [10, 20, 11, 21], 'LINE entity ' + index);
       const a = { x: first(e, 10), y: first(e, 20) }, b = { x: first(e, 11), y: first(e, 21) };
       assertFinite([a.x, a.y, b.x, b.y], 'LINE entity ' + index);
-      row.geometry = { type: 'LINE', start: a, end: b };\n      quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
+      row.geometry = { type: 'LINE', start: a, end: b };
+      quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
     } else if (e.type === 'LWPOLYLINE') {
       requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);
       const vertices = polylineVertices(e), closed = (first(e, 70) & 1) === 1;
