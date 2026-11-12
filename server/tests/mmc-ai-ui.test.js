@@ -148,3 +148,8 @@ test('supports drawing zoom pan and element inspection',()=>{
  assert.match(html,/selectDrawingItem/);
  assert.match(html,/Source geometry/);
 });
+
+test('synchronizes layer visibility between drawing canvas and takeoff table',()=>{
+ assert.match(html,/shape\.style\.display=toggle\.checked/);
+ assert.match(html,/row\.dataset\.nativeLayer===layer\.name/);
+});
