@@ -32,14 +32,21 @@ function streamObject(content, extra = '') {
 }
 
 function createTwoPageArchitecturalFixture() {
-  const first = streamObject('BT /F1 12 Tf 40 760 Td (MMC AI SYNTHETIC ACCEPTANCE PLAN) Tj ET');
-  const second = streamObject([
+  const first = streamObject([
     'q 1 w',
     '0 0 m 600 0 l 600 400 l 0 400 l h S',
-    '100 100 400 200 re S',
     'Q',
-    'BT /F1 10 Tf 40 20 Td (GROUND FLOOR - KNOWN RAW EXTENTS 600 x 400) Tj ET'
-  ].join('\n'));
+    'BT /F1 12 Tf 40 760 Td (MMC AI SYNTHETIC ACCEPTANCE PLAN) Tj',
+    '(GROUND FLOOR SLAB S1) Tj',
+    '(OVERALL DIMENSIONS 6000 mm x 4000 mm) Tj ET'
+  ].join('\\n'));
+  const second = streamObject([
+    'q 1 w',
+    '100 100 m 500 100 l 500 300 l 100 300 l h S',
+    'Q',
+    'BT /F1 10 Tf 40 760 Td (STRUCTURAL SECTION S1) Tj',
+    '(SLAB S1 THICKNESS 200 mm) Tj ET'
+  ].join('\\n'));
   return buildPdf([
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>',
