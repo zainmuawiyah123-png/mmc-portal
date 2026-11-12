@@ -535,6 +535,46 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
       output.append(title,summary,disciplines,titles,dims,refs,conflicts,ocr,limitations,unresolved);notify('Drawing text clues extracted; engineering quantities remain unverified.');
      }catch(err){notify(err.message);}finally{analyze.disabled=false;analyze.textContent='Analyze Drawing Text';}});
      actions.appendChild(analyze);
+     const vector=document.createElement('button');vector.type='button';vector.textContent='PDF Vector Geometry';vector.style.cssText='border:1px solid #9fc9e4;border-radius:7px;padding:7px 10px;background:#eaf5fc;color:#245d86;font-size:10px;cursor:pointer';
+     vector.addEventListener('click',async()=>{
+      const pageRaw=window.prompt('Enter the PDF page number to inspect','1');
+      if(pageRaw===null)return;
+      const pageNumber=Number(pageRaw);
+      if(!Number.isInteger(pageNumber)||pageNumber<1){notify('Enter a valid page number.');return;}
+      vector.disabled=true;vector.textContent='Extracting vectors...';
+      try{
+       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/extract/vector-geometry',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({pageNumber})});
+       const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'PDF vector extraction failed.');
+       const result=data.result||{},geometry=result.geometry||{},paths=geometry.paths||[],output=document.getElementById('takeoffResult');output.replaceChildren();
+       const heading=document.createElement('strong');heading.textContent='PDF Vector Geometry — Raw drawing evidence, not approved quantities';heading.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+       const summary=document.createElement('p');summary.textContent='Page '+result.pageNumber+' · Supported paths: '+(geometry.pathCount||0)+' · Unsupported paths: '+(geometry.unsupportedPathCount||0)+' · Status: '+result.status;
+       output.append(heading,summary);
+       if(paths.length){
+        const valid=paths.flatMap(path=>path.points||[]).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y));
+        if(valid.length){
+         const minX=Math.min(...valid.map(p=>p.x)),maxX=Math.max(...valid.map(p=>p.x)),minY=Math.min(...valid.map(p=>p.y)),maxY=Math.max(...valid.map(p=>p.y));
+         const pad=Math.max(maxX-minX,maxY-minY)*.04||1,svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+         svg.setAttribute('viewBox',[minX-pad,minY-pad,Math.max(maxX-minX,1)+2*pad,Math.max(maxY-minY,1)+2*pad].join(' '));
+         svg.setAttribute('width','100%');svg.setAttribute('height','340');svg.setAttribute('role','img');svg.setAttribute('aria-label','Extracted PDF vector paths');
+         svg.style.cssText='display:block;background:#f8fbfe;border:1px solid #cbd8e5;border-radius:8px;margin:10px 0';
+         for(const item of paths){
+          const pts=item.points||[];if(pts.length<2)continue;
+          const shape=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+          shape.setAttribute('points',pts.map(p=>p.x+','+p.y).join(' '));
+          shape.setAttribute('fill',item.closed?'rgba(40,118,199,.10)':'none');shape.setAttribute('stroke','#1686bd');shape.setAttribute('stroke-width','1.5');shape.setAttribute('vector-effect','non-scaling-stroke');
+          svg.appendChild(shape);
+         }
+         output.appendChild(svg);
+         const list=document.createElement('div');list.style.cssText='display:grid;gap:5px';
+         paths.slice(0,100).forEach((item,index)=>{const line=document.createElement('div');line.textContent='Path '+(index+1)+' · '+(item.closed?'Closed':'Open')+' · vertices '+item.vertexCount+' · raw length '+item.lengthUnits+' page units · '+(item.areaSquareUnits===null?'area not applicable':'raw area '+item.areaSquareUnits+' square page units');line.style.cssText='font-size:10px;color:#52677d;padding:5px;border-bottom:1px solid #e5ebf2';list.appendChild(line);});
+         output.appendChild(list);
+        }
+       }else{const empty=document.createElement('p');empty.textContent='No supported straight vector paths were found on this page. The page may be scanned, use curves, or contain unsupported transforms.';output.appendChild(empty);}
+       const limits=document.createElement('p');limits.textContent='No real-world scale has been applied. These are page-coordinate measurements only; no slab/wall classification or BOQ quantities have been inferred. Curves, nested transforms and clipping are not fully supported.';limits.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';output.appendChild(limits);
+       notify('PDF vector paths extracted for visual review.');
+      }catch(err){notify(err.message);}finally{vector.disabled=false;vector.textContent='PDF Vector Geometry';}
+     });
+     actions.appendChild(vector);
      actions.appendChild(extract);
     }
     if(d.file_ext==='.dxf'){
