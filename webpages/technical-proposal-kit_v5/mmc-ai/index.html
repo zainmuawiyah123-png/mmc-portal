@@ -629,21 +629,36 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
       output.append(title,detail,limitation);notify('PDF integrity preflight completed only.');
      }catch(err){notify(err.message);}finally{check.disabled=false;check.textContent='PDF Preflight';}});
      actions.appendChild(check);
-     const extract=document.createElement('button');extract.type='button';extract.textContent='Extract Text';extract.style.cssText='border:1px solid #d8cba8;border-radius:7px;padding:7px 10px;background:#10243d9eb;color:#8a641b;font-size:10px;cursor:pointer';
-     extract.addEventListener('click',async()=>{extract.disabled=true;extract.textContent='Extracting...';try{
-      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/extract/text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'Text extraction failed.');
-      const result=data.result,output=document.getElementById('takeoffResult');output.replaceChildren();
-      const title=document.createElement('strong');title.textContent='PDF Text Extraction — Preliminary Result';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
-      const summary=document.createElement('p');summary.textContent='Status: '+result.status+' · Pages: '+(result.pageCount??'Not specified')+' · Characters: '+result.characterCount;
-      const diag=result.diagnostics||{};const graphics=document.createElement('p');graphics.textContent='Drawing indicators: paths '+(diag.vectorPathOperators||0)+' · lines '+(diag.lineTo||0)+' · curves '+(diag.curveTo||0)+' · rectangles '+(diag.rectangles||0)+' · image calls '+(diag.imageXObjectCalls||0);graphics.style.cssText='font-size:11px;color:#52677d;line-height:1.8';
-      const body=document.createElement('pre');body.textContent=result.text||'No extractable text found. The drawing may be scanned and require OCR.';body.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto;background:#f7f9fb;padding:10px;border-radius:7px;font-size:11px;line-height:1.8';
-      const bounds=result.diagnostics?.rawCoordinateBounds;const boundsText=document.createElement('p');boundsText.textContent=bounds?'Raw PDF coordinate range: X '+bounds.minX+' to '+bounds.maxX+' · Y '+bounds.minY+' to '+bounds.maxY+' · points '+(result.diagnostics.coordinatePointCount||0):'No path coordinate range was detected in the supported PDF streams.';boundsText.style.cssText='font-size:11px;color:#52677d;line-height:1.8';
-      const limitation=document.createElement('p');limitation.textContent='Note: This is text extraction and preliminary path detection only. Coordinates are not real lengths or areas; page transforms and scale calibration are required before measurement.';
-      limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
-      output.append(title,summary,graphics,boundsText,body,limitation);notify('Preliminary PDF text extraction completed.');
-     }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='Extract Text';}});
+     const extract=document.createElement('button');extract.type='button';extract.textContent='Read Drawing (PDF)';extract.style.cssText='border:1px solid #d8cba8;border-radius:7px;padding:7px 10px;background:#10243d9eb;color:#8a641b;font-size:10px;cursor:pointer';
+     const renderDrawingRead=(payload)=>{
+      const output=document.getElementById('takeoffResult');output.replaceChildren();
+      const analysis=payload.result?.analysis||payload.analysis||{};
+      const metadata=analysis.metadata||{};
+      const heading=document.createElement('strong');heading.textContent='PDF Drawing Read — Saved Evidence';heading.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Status: '+(analysis.status||'saved')+' · Pages: '+(payload.result?.extractionSummary?.pageCount??metadata.extractedPageCount??'—')+' · OCR: '+(payload.result?.extractionSummary?.ocrPerformed?'Yes':'Not confirmed');
+      const scales=document.createElement('p');scales.textContent='Scale clues: '+((metadata.textualScaleCandidates||[]).join(', ')||'No explicit scale found');
+      const dimensions=[...(metadata.explicitDimensionCallouts||[]).map(x=>({page:'Text',raw:x.raw,kind:'Explicit dimension'})),...(metadata.ocrSpatialDimensionCandidates||[]).map(x=>({page:x.page,raw:x.raw,kind:x.status}))];
+      const dimTitle=document.createElement('strong');dimTitle.textContent='Detected dimension candidates ('+dimensions.length+')';dimTitle.style.cssText='display:block;margin:10px 0 5px';
+      const list=document.createElement('div');list.style.cssText='max-height:260px;overflow:auto;border:1px solid #dbe3ea;border-radius:7px;padding:8px';
+      if(!dimensions.length){const empty=document.createElement('p');empty.textContent='No explicit dimension strings were identified in this read. Scanned pages may require OCR.';list.appendChild(empty);}
+      dimensions.slice(0,250).forEach(item=>{const row=document.createElement('div');row.textContent='Page '+item.page+' · '+item.raw+' · '+item.kind;row.style.cssText='padding:4px 0;border-bottom:1px solid #edf1f5;font-size:11px';list.appendChild(row);});
+      const unresolved=document.createElement('p');unresolved.textContent='Engineering quantity status: NOT CALCULATED. These are text/dimension candidates only. No PDF geometry scale or excavation/concrete volume has been verified.';unresolved.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8;margin-top:9px';
+      const saved=document.createElement('p');saved.textContent='Saved analysis ID: '+(payload.analysisId||'available from latest saved record');saved.style.cssText='font-size:10px;color:#52677d';
+      output.append(heading,summary,scales,dimTitle,list,unresolved,saved);
+     };
+     extract.addEventListener('click',async()=>{extract.disabled=true;extract.textContent='Reading drawing...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'Drawing analysis failed.');
+      renderDrawingRead(data);notify('Drawing read saved. Quantity calculation is not yet available for this PDF.');
+     }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='Read Drawing (PDF)';}});
      actions.appendChild(extract);
+     const savedRead=document.createElement('button');savedRead.type='button';savedRead.textContent='Load Saved Read';savedRead.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     savedRead.addEventListener('click',async()=>{savedRead.disabled=true;try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analysis/latest',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'No saved drawing read.');
+      renderDrawingRead(data);notify('Saved drawing read loaded.');
+     }catch(err){notify(err.message);}finally{savedRead.disabled=false;}});
+     actions.appendChild(savedRead);
      const ocr=document.createElement('button');ocr.type='button';ocr.textContent='OCR (Arabic + English)';ocr.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
      ocr.addEventListener('click',async()=>{ocr.disabled=true;ocr.textContent='Checking OCR...';try{
       const statusResponse=await fetch('/api/mmc-ai/ocr/status',{method:'GET',credentials:'same-origin',cache:'no-store'});
