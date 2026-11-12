@@ -173,12 +173,7 @@ function createApp() {
     });
   });
 
-  app.use(express.static(WEB_ROOT, {
-    extensions: ['html'],
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-    }
-  }));
+
 
   // ملفات التنزيل (Excel/PDF) فقط من مجلد documents — بقية ملفاته داخلية ولا تُخدم أبداً
   const DOCS_ROOT = config.DOCS_ROOT || path.resolve(config.ROOT, '..', 'documents');
@@ -209,17 +204,21 @@ function createApp() {
   }
   app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
   app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
-  app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
+  // Never expose the administration workspace to anonymous or non-admin users.
+  app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/admin/');
+      if (req.user.role !== 'admin') return res.status(403).type('text').send('ليس لديك صلاحية الوصول إلى هذه الصفحة.');
+      return sendFromWeb('admin/index.html', res, next);
+    });
+  });
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
 
   // MMC AI is an independent workspace within MMC, not a tender portal role.
   app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res, next) => {
-    // Public preview is strictly visual-only: the page skips all project/API loading
-    // unless an authenticated member opens the normal workspace without preview=1.
-    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
-      return sendFromWeb('mmc-ai/index.html', res, next);
-    }
+    // MMC AI workspace is never public, including preview query-string requests.
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
       if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/mmc-ai/');
@@ -233,6 +232,16 @@ function createApp() {
     if (rel.endsWith('/')) rel += 'index.html';
     sendFromWeb(path.join('portal', rel), res, next);
   });
+
+  // Static files must be last: protected HTML routes above must run first.
+  // Otherwise express.static can serve /admin/index.html and /mmc-ai/index.html
+  // before their authentication/authorization handlers are reached.
+  app.use(express.static(WEB_ROOT, {
+    extensions: ['html'],
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    }
+  }));
 
   app.use(errorHandler);
   return app;
