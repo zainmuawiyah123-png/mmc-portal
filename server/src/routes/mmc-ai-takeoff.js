@@ -57,9 +57,11 @@ router.get('/projects/:projectId/takeoff/runs/:runId/layers',wrap(async(req,res)
  if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
  const items=db.prepare('SELECT entity_type,layer_name,quantity,unit,detail_json FROM ai_takeoff_items WHERE run_id=? ORDER BY entity_index').all(run.id)
   .map(item=>({...item,detail:JSON.parse(item.detail_json)}));
- const layers=summarizeTakeoffLayers(items);
+ const nativeLayers=summarizeTakeoffLayers(items);
+ const state=loadRunLayerState(db,run.id);
+ const layers=[...nativeLayers,...state.layers];
  res.setHeader('Cache-Control','no-store');
- res.json({runId:run.id,layers,notice:'أسماء الطبقات أصلية من DXF؛ التصنيف الهندسي غير مفترض، وكل النتائج تحتاج مراجعة.'});
+ res.json({runId:run.id,layers,assignments:state.assignments,notice:'أسماء الطبقات الأصلية محفوظة كما وردت في DXF؛ الطبقات المنشأة والتصنيفات تنظيمية ولا تغير هندسة المصدر.'});
 }));
 
 function loadRunLayerState(db,runId){
