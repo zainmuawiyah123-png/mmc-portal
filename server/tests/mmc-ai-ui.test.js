@@ -129,3 +129,12 @@ test('DXF takeoff UI supports creating user layers and assigning elements to lay
  assert.match(html,/Save layer/);
  assert.match(html,/User: /);
 });
+
+test('renders supported DXF geometry in the drawing preview',()=>{
+ assert.match(html,/Engineering Drawing Preview/);
+ assert.match(html,/DXF geometry preview/);
+ assert.match(html,/geometryItems/);
+ assert.match(html,/LWPOLYLINE/);
+ assert.match(html,/data-item-id/);
+ assert.match(html,/Select a row to highlight its source element/);
+});
