@@ -6,6 +6,7 @@ const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
+const {summarizeTakeoffLayers}=require('../lib/mmc-ai/drawing-layer-summary');
 const router=express.Router();
 router.use(A.requireAuth);
 function member(projectId,userId){
@@ -48,6 +49,16 @@ router.get('/projects/:projectId/takeoff/runs/:runId',wrap(async(req,res)=>{
  const items=db.prepare('SELECT id,entity_index,entity_type,layer_name,quantity,unit,detail_json,review_status FROM ai_takeoff_items WHERE run_id=? ORDER BY entity_index').all(run.id);
  res.setHeader('Cache-Control','no-store');
  res.json({run:{id:run.id,status:run.status,engine:run.engine,units:JSON.parse(run.units_json),summary:JSON.parse(run.summary_json),unsupported:JSON.parse(run.unsupported_json),created_at:run.created_at},items:items.map(x=>({...x,detail:JSON.parse(x.detail_json),detail_json:undefined}))});
+}));
+router.get('/projects/:projectId/takeoff/runs/:runId/layers',wrap(async(req,res)=>{
+ requireMember(req);
+ const db=getDB(),run=db.prepare('SELECT id FROM ai_takeoff_runs WHERE id=? AND project_id=?').get(req.params.runId,req.params.projectId);
+ if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
+ const items=db.prepare('SELECT entity_type,layer_name,quantity,unit,detail_json FROM ai_takeoff_items WHERE run_id=? ORDER BY entity_index').all(run.id)
+  .map(item=>({...item,detail:JSON.parse(item.detail_json)}));
+ const layers=summarizeTakeoffLayers(items);
+ res.setHeader('Cache-Control','no-store');
+ res.json({runId:run.id,layers,notice:'أسماء الطبقات أصلية من DXF؛ التصنيف الهندسي غير مفترض، وكل النتائج تحتاج مراجعة.'});
 }));
 router.patch('/projects/:projectId/takeoff/runs/:runId/review',wrap(async(req,res)=>{
  const m=requireMember(req);
