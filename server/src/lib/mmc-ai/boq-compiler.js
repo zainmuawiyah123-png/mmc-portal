@@ -51,6 +51,11 @@ function compileBoq(records, { includeStates = ['measured_ready_for_review', 'ap
       quantity: round(members.reduce((sum, item) => sum + item.quantity, 0)),
       sourceQuantityRecordIds: members.map(item => item.id),
       sourceCount: members.length,
+      // Carry the drawing/document and element lineage onto the BOQ draft row
+      // so reviewers can navigate from a quantity back to its measured evidence.
+      sourceReferences: members.flatMap(item => (item.sources || []).map(source => ({ ...source }))),
+      sourceElementRefs: [...new Set(members.flatMap(item => Array.isArray(item.elementRefs) ? item.elementRefs : []))],
+      derivations: members.map(item => ({ quantityRecordId: item.id, ...(item.derivation || {}) })),
       approvalState: members.every(item => item.reviewState === 'approved') ? 'approved' : 'draft_requires_review'
     });
   }
