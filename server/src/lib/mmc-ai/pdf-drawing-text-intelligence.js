@@ -60,7 +60,7 @@ function spatialOcrLines(words) {
 }
 const SPATIAL_ANNOTATION_RULES = [
   ['dimensions', /\b\d+(?:\.\d+)?\s*(?:mm|cm|m)\b|\b\d+\s*[x×]\s*\d+\b/i],
-  ['structural', /\b(?:C\d{1,3}|B\d{1,3}|BM\d{1,3}|S\d{1,3})\s*[-:]?\s*\d{2,4}\s*[x×]\s*\d{2,4}\b|\b\d+\s*[TØΦ]\s*\d{1,2}\b|\b(?:C|M)\s*\d{2,3}\b|خرسانة|تسليح|حديد\s*(?:التسليح)?|عمود|جسر|قاعدة/i],
+  ['structural', /\b(?:B|BM|C|COL|F|FOOTING|S|SL|W)-?\s*\d{1,4}[A-Z]?\b|\b(?:\d{1,3}\s*)?[TYØΦ]\s*\d{1,2}(?:\s*[@/]\s*\d{2,4})?\b|\b(?:C|M)\s*\d{2,3}\b|\b(?:B|BM|C|S)\d{1,3}\s*[-:]?\s*\d{2,4}\s*[x×]\s*\d{2,4}\b|خرسانة|تسليح|حديد\s*(?:التسليح)?|عمود|جسر|قاعدة/i],
   ['architectural', /\b(?:D|W|WD|SD)-?\d{1,3}\b|\b(?:TILE|CERAMIC|MARBLE|PAINT|PLASTER|FLOOR FINISH|WALL FINISH)\b|بلاط|سيراميك|رخام|دهان|قصارة|باب|شباك/i],
   ['electrical', /\b(?:DB|MDB|SMDB|LP|PP|ELP)-?\d{0,3}\b|\b(?:CABLE|CONDUIT|LIGHTING|SOCKET|OUTLET|EARTH)\b|كهرباء|كابل|إنارة|انارة|مقبس|تأريض/i],
   ['mechanical_hvac', /\b(?:AHU|FCU|FAHU|VAV|VRF|CHW|HVAC)-?\d{0,3}\b|\b(?:DUCT|DIFFUSER|GRILLE|DAMPER|EXHAUST FAN)\b|تكييف|تهوية|مجرى\s*هواء|مروحة/i],
