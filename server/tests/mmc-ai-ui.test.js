@@ -139,6 +139,16 @@ test('renders supported DXF geometry in the drawing preview',()=>{
  assert.match(html,/Select a row to highlight its source element/);
 });
 
+test('selected DXF element inspection exposes source document, takeoff run, and geometry coordinates',()=>{
+ assert.match(html,/Element ID/);
+ assert.match(html,/Native CAD layer/);
+ assert.match(html,/Source document/);
+ assert.match(html,/Takeoff run/);
+ assert.match(html,/Start \('/);
+ assert.match(html,/Center \('/);
+ assert.match(html,/Source coordinates are shown in drawing units/);
+});
+
 test('supports drawing zoom pan and element inspection',()=>{
  assert.match(html,/Zoom \+/);
  assert.match(html,/Zoom −/);
