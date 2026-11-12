@@ -148,3 +148,11 @@ test('reads generated two-page PDF acceptance fixture without external uploads',
  assert.equal(r.diagnostics.rawCoordinateBounds.maxX,600);
  assert.equal(r.diagnostics.rawCoordinateBounds.maxY,400);
 });
+
+test('applies PDF cm matrices and q/Q graphics-state save/restore to path evidence',()=>{
+ const r=extractPdfText(pdf('q 2 0 0 2 10 20 cm 0 0 m 10 5 l Q 100 100 m 110 105 l S'));
+ assert.deepEqual(r.diagnostics.rawCoordinateBounds,{minX:0,minY:0,maxX:110,maxY:105});
+ assert.deepEqual(r.diagnostics.transformedCoordinateBounds,{minX:10,minY:20,maxX:110,maxY:105});
+ assert.equal(r.diagnostics.transformedCoordinatePointCount,4);
+ assert.equal(r.diagnostics.transformationCoverage,'partial_path_points_q_Q_cm_only');
+});
