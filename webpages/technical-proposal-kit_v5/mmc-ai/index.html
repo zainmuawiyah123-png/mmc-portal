@@ -620,7 +620,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      const check=document.createElement('button');check.type='button';check.textContent='PDF Preflight';check.style.cssText='border:1px solid #c8d7e8;border-radius:7px;padding:7px 10px;background:#f0f5fb;color:#31536f;font-size:10px;cursor:pointer';
      check.addEventListener('click',async()=>{check.disabled=true;check.textContent='Inspecting...';try{
       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/preflight/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'PDF preflight failed.');
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'PDF preflight failed.');
       const report=data.report,output=document.getElementById('takeoffResult');output.replaceChildren();
       const title=document.createElement('strong');title.textContent='PDF Preflight Result — Not an Engineering Analysis';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
       const detail=document.createElement('p');detail.textContent='Version: '+report.version+' · Size: '+(report.bytes/1048576).toFixed(2)+' MB · Estimated pages: '+(report.pageCount??'Not specified')+' · Status: '+report.status;
@@ -632,7 +632,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      const extract=document.createElement('button');extract.type='button';extract.textContent='Extract Text';extract.style.cssText='border:1px solid #d8cba8;border-radius:7px;padding:7px 10px;background:#10243d9eb;color:#8a641b;font-size:10px;cursor:pointer';
      extract.addEventListener('click',async()=>{extract.disabled=true;extract.textContent='Extracting...';try{
       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/extract/text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Text extraction failed.');
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'Text extraction failed.');
       const result=data.result,output=document.getElementById('takeoffResult');output.replaceChildren();
       const title=document.createElement('strong');title.textContent='PDF Text Extraction — Preliminary Result';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
       const summary=document.createElement('p');summary.textContent='Status: '+result.status+' · Pages: '+(result.pageCount??'Not specified')+' · Characters: '+result.characterCount;
@@ -644,6 +644,32 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
       output.append(title,summary,graphics,boundsText,body,limitation);notify('Preliminary PDF text extraction completed.');
      }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='Extract Text';}});
      actions.appendChild(extract);
+     const ocr=document.createElement('button');ocr.type='button';ocr.textContent='OCR (Arabic + English)';ocr.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     ocr.addEventListener('click',async()=>{ocr.disabled=true;ocr.textContent='Checking OCR...';try{
+      const statusResponse=await fetch('/api/mmc-ai/ocr/status',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      const statusData=await statusResponse.json();
+      if(!statusResponse.ok||!statusData.runtime?.available){
+       const missing=(statusData.runtime?.missing||[]).join(', ')||'Arabic/English OCR runtime';
+       throw new Error('OCR غير جاهز على الخادم. الأدوات أو اللغات الناقصة: '+missing);
+      }
+      ocr.textContent='Running OCR...';
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/ocr/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({maxPages:20,dpi:200})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||data.error?.code||'OCR failed.');
+      const result=data.result,output=document.getElementById('takeoffResult');output.replaceChildren();
+      const title=document.createElement('strong');title.textContent='OCR Result — Preliminary Text Recognition';title.style.cssText='display:block;color:#17623e;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Engine: '+result.engine+' · Status: '+result.status+' · Pages: '+result.pagesProcessed+'/'+result.totalPages+' · Characters: '+result.characterCount+' · DPI: '+result.dpi;
+      const pages=document.createElement('div');pages.style.cssText='display:grid;gap:8px;margin-top:8px';
+      for(const page of (result.pages||[])){
+       const section=document.createElement('section');section.style.cssText='border:1px solid #d7e2dc;border-radius:7px;padding:9px;background:#f7faf8';
+       const heading=document.createElement('strong');heading.textContent='Page '+page.page+' · '+page.wordCount+' words · confidence '+(page.averageConfidence??'n/a');
+       const text=document.createElement('pre');text.textContent=page.text||'No text recognized on this page.';text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:11px;line-height:1.7;margin:7px 0 0';
+       section.append(heading,text);pages.appendChild(section);
+      }
+      const limitation=document.createElement('p');limitation.textContent='OCR recognizes visible text only. It does not interpret structural elements, verify dimensions, or calculate quantities. Engineering-critical values require manual verification.';
+      limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      output.append(title,summary,pages,limitation);notify('OCR completed: preliminary text recognition only.');
+     }catch(err){notify(err.message);}finally{ocr.disabled=false;ocr.textContent='OCR (Arabic + English)';}});
+     actions.appendChild(ocr);
     }
     if(d.file_ext==='.dxf'){
      const take=document.createElement('button');take.type='button';take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
