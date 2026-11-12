@@ -51,6 +51,20 @@ function parseBboxXhtml(source) {
   }
   return pages;
 }
+function normalizePageBox(box, widthPt, heightPt) {
+  if (!box || !Number.isFinite(widthPt) || !Number.isFinite(heightPt) || widthPt <= 0 || heightPt <= 0) return null;
+  const { xMin, yMin, xMax, yMax } = box;
+  if (![xMin, yMin, xMax, yMax].every(Number.isFinite) || xMax <= xMin || yMax <= yMin) return null;
+  return {
+    left: Number((xMin / widthPt).toFixed(8)),
+    top: Number((yMin / heightPt).toFixed(8)),
+    right: Number((xMax / widthPt).toFixed(8)),
+    bottom: Number((yMax / heightPt).toFixed(8)),
+    width: Number(((xMax - xMin) / widthPt).toFixed(8)),
+    height: Number(((yMax - yMin) / heightPt).toFixed(8)),
+    coordinateSpace: 'page_fraction_unclamped'
+  };
+}
 async function inspectPdfPageEvidence(input, options = {}) {
   const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || '');
   if (bytes.length < 5 || bytes.subarray(0,5).toString('ascii') !== '%PDF-') throw Object.assign(new Error('Invalid PDF header'),{code:'PDF_EVIDENCE_INVALID'});
@@ -77,7 +91,7 @@ async function inspectPdfPageEvidence(input, options = {}) {
         bboxWidthPt:bbox.widthPt??null, bboxHeightPt:bbox.heightPt??null,
         coordinateSpace:'pdftotext-bbox-page-space', nativeTextWordCount:bbox.words.length,
         nativeText:bbox.words.map(x=>x.text).join(' '),
-        nativeTextEvidence:bbox.words.slice(0,10000).map((x,j)=>({evidenceId:'p'+n+':w'+String(j+1).padStart(5,'0'),text:x.text,box:x.box,source:'pdftotext_bbox'})),
+        nativeTextEvidence:bbox.words.slice(0,10000).map((x,j)=>({evidenceId:'p'+n+':w'+String(j+1).padStart(5,'0'),text:x.text,box:x.box,normalizedBox:normalizePageBox(x.box,bbox.widthPt,bbox.heightPt),source:'pdftotext_bbox'})),
         evidenceStatus:bbox.words.length?'native_text_with_page_coordinates':'no_native_text_detected' };
     });
     return { engine:'mmc-pdf-page-evidence-poppler-v1', documentId, sourceSha256:sha256,
@@ -86,4 +100,4 @@ async function inspectPdfPageEvidence(input, options = {}) {
       limitations:['Page inventory and native text bounding boxes only; no engineering geometry or quantities are inferred.','Bounding boxes are in Poppler page space and require coordinate transformation before drawing overlays.','Scanned image text requires the separate OCR pipeline; no native text does not mean the page is blank.','Scale, dimensions, title blocks and drawing elements remain unverified candidates.'] };
   } finally { if(dir) await fs.rm(dir,{recursive:true,force:true}); }
 }
-module.exports = { inspectPdfPageEvidence, parsePdfInfo, parseBboxXhtml };
+module.exports = { inspectPdfPageEvidence, parsePdfInfo, parseBboxXhtml, normalizePageBox };
