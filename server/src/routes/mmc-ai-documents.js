@@ -10,6 +10,7 @@ const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const {preflightPdf}=require('../lib/mmc-ai/pdf-preflight');
 const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
+const {extractPdfTextPoppler}=require('../lib/mmc-ai/pdf-poppler-text');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -93,11 +94,21 @@ router.post('/projects/:projectId/documents/:documentId/extract/text',wrap(async
  if(!Buffer.isBuffer(bytes)||bytes.length!==Number(doc.size_bytes)) throw E.validation('فشل التحقق من حجم المستند المخزن.');
  const actualHash=crypto.createHash('sha256').update(bytes).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
  if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
- let result;try{result=extractPdfText(bytes);}catch(err){throw E.validation(err.message||'تعذر استخراج النص من PDF.');}
+ let result;
+ try{
+  const basic=extractPdfText(bytes);
+  try{
+   const poppler=await extractPdfTextPoppler(bytes);
+   result=poppler.status==='partial_text_extracted'?{...basic,...poppler,diagnostics:{...(basic.diagnostics||{}),...(poppler.diagnostics||{})}}:basic;
+  }catch(err){
+   if(!basic.text)throw err;
+   result={...basic,diagnostics:{...(basic.diagnostics||{}),popplerWarning:err.message}};
+  }
+ }catch(err){throw E.validation(err.message||'تعذر استخراج النص من PDF.');}
  db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
  VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_text_extraction_completed','document',doc.id,JSON.stringify({engine:result.engine,status:result.status,characterCount:result.characterCount,pageCount:result.pageCount}));
  res.setHeader('Cache-Control','no-store');
- res.json({documentId:doc.id,result,notice:'استخراج نصي أولي فقط؛ لا يمثل OCR أو تحليلاً هندسياً أو حصر كميات.'});
+ res.json({documentId:doc.id,result,notice:'استخراج نصي أولي فقط؛ لا يمثل OCR أو تحليلاً هندسياً أو حصر كميات. لا ينفّذ OCR ولا يثبت المقياس أو الأبعاد. استخدم حصر PDF التجريبي فقط إذا كانت صيغة الجدول مدعومة.'});
 }));
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();

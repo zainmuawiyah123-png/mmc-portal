@@ -93,6 +93,14 @@ test('PDF preflight and preliminary text extraction are separate actions',()=>{
  assert.match(html,/This check validates file integrity only/);
 });
 
+test('PDF structural takeoff is a separately labeled pilot and exposes source calculations and engineering review',()=>{
+ assert.match(html,/PDF Concrete \+ Rebar Takeoff \(Pilot\)/);
+ assert.match(html,/\/takeoff\/pdf/);
+ assert.match(html,/Preliminary PDF Takeoff — Pending Engineering Review/);
+ assert.match(html,/Calculation \/ source/);
+ assert.match(html,/Add to BOQ/);
+});
+
 test('complete project data register supports search, audit sections and JSON export',()=>{
  assert.match(html,/id="allProjectDataPanel"/);
  assert.match(html,/id="allProjectDataSearch"/);
