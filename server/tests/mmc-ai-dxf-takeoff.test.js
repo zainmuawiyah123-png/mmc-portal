@@ -181,3 +181,19 @@ test('preserves source geometry for drawing preview',()=>{
  assert.equal(result.rows[2].geometry.radius,0.5);
  assert.equal(result.rows[3].geometry.sweepDegrees,20);
 });
+
+test('keeps DXF preview coordinates in source drawing units for all preview entities',()=>{
+ const ent=[
+  '0','LINE','10','10','20','20','11','30','21','40',
+  '0','LWPOLYLINE','70','0','10','1','20','2','10','3','20','4',
+  '0','CIRCLE','10','5','20','6','40','2',
+  '0','ARC','10','7','20','8','40','3','50','90','51','180'
+ ].join('\n');
+ const rows=takeoffDxf(dxf(ent)).rows;
+ assert.deepEqual(rows[0].geometry.end,{x:30,y:40});
+ assert.deepEqual(rows[1].geometry.vertices,[{x:1,y:2},{x:3,y:4}]);
+ assert.deepEqual(rows[2].geometry.center,{x:5,y:6});
+ assert.deepEqual(rows[3].geometry.center,{x:7,y:8});
+ assert.equal(rows[3].geometry.startDegrees,90);
+ assert.equal(rows[3].geometry.sweepDegrees,90);
+});
