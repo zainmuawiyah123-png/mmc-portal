@@ -68,7 +68,7 @@ function createApp() {
     }
 
     const authorization = String(req.headers.authorization || '');
-    const match = /^Basic\\s+([A-Za-z0-9+/=]+)$/i.exec(authorization);
+    const match = /^Basic\s+([A-Za-z0-9+/=]+)$/i.exec(authorization);
     let suppliedUser = '';
     let suppliedPassword = '';
     if (match) {
