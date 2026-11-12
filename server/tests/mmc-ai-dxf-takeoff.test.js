@@ -182,6 +182,18 @@ test('preserves source geometry for drawing preview',()=>{
  assert.equal(result.rows[3].geometry.sweepDegrees,20);
 });
 
+
+test('geometry preview metadata remains separate from measured quantities',()=>{
+ const ent=[
+  '0','LINE','10','0','20','0','11','3','21','4',
+  '0','CIRCLE','10','0','20','0','40','2'
+ ].join('\\n');
+ const rows=takeoffDxf(dxf(ent)).rows;
+ assert.equal(rows[0].quantity,5);
+ assert.deepEqual(rows[0].geometry,{type:'LINE',start:{x:0,y:0},end:{x:3,y:4}});
+ assert.equal(rows[1].quantity,Math.PI*4);
+ assert.deepEqual(rows[1].geometry,{type:'CIRCLE',center:{x:0,y:0},radius:2});
+});
 test('keeps DXF preview coordinates in source drawing units for all preview entities',()=>{
  const ent=[
   '0','LINE','10','10','20','20','11','30','21','40',
