@@ -644,6 +644,26 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
        const detail=document.createElement('div');detail.textContent='Readable entities: '+summary.supportedEntities+' · Unsupported entities: '+summary.unsupportedEntities+' · Total length: '+Number(summary.totalLength_m||0).toFixed(3)+' m · Closed area: '+Number(summary.totalClosedArea_m2||0).toFixed(3)+' m²';
        detail.style.cssText='font-size:11px;line-height:1.8;color:#dce8f3';
        output.append(heading,detail);
+       const previewPanel=document.createElement('section');previewPanel.style.cssText='margin-top:14px;padding:12px;border:1px solid #29435d;border-radius:10px;background:#07182a';
+       const previewTitle=document.createElement('strong');previewTitle.textContent='Engineering Drawing Preview';previewTitle.style.cssText='display:block;color:#e6eef7;margin-bottom:8px';
+       const previewNote=document.createElement('p');previewNote.textContent='Geometry preview from supported DXF entities. Select a row to highlight its source element. Not a full CAD editor.';previewNote.style.cssText='font-size:10px;color:#91a8bd;margin:0 0 8px';
+       const drawingSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');drawingSvg.setAttribute('role','img');drawingSvg.setAttribute('aria-label','DXF geometry preview');drawingSvg.style.cssText='width:100%;height:360px;background:#0b2239;border:1px solid #29435d;border-radius:7px;display:block';
+       const geometryItems=(result.run.items||[]).filter(item=>item.geometry&&item.geometry.type);
+       const coordinates=[];for(const item of geometryItems){const g=item.geometry;if(g.type==='LINE')coordinates.push(g.start,g.end);else if(g.type==='LWPOLYLINE')coordinates.push(...g.vertices);else if(g.center){coordinates.push({x:g.center.x-g.radius,y:g.center.y-g.radius},{x:g.center.x+g.radius,y:g.center.y+g.radius});}}
+       if(coordinates.length){const xs=coordinates.map(p=>p.x),ys=coordinates.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),pad=Math.max(maxX-minX,maxY-minY)*.06||1;drawingSvg.setAttribute('viewBox',[minX-pad,-(maxY+pad),(maxX-minX)+2*pad,(maxY-minY)+2*pad].join(' '));}
+       else drawingSvg.setAttribute('viewBox','0 0 100 100');
+       const palette=['#55c2ff','#f5c451','#7dd3a7','#d49aff','#ff8b8b','#a9c5ff'];
+       const layerColor=name=>{let h=0;for(const ch of String(name||'0'))h=(h*31+ch.charCodeAt(0))>>>0;return palette[h%palette.length];};
+       const svgNode=(tag,attrs)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el;};
+       for(const item of geometryItems){const g=item.geometry,color=layerColor(item.layer);let shape=null;
+        if(g.type==='LINE')shape=svgNode('line',{x1:g.start.x,y1:-g.start.y,x2:g.end.x,y2:-g.end.y,stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});
+        else if(g.type==='LWPOLYLINE'&&g.vertices.length){const points=g.vertices.map(p=>p.x+','+-p.y).join(' ');shape=svgNode(g.closed?'polygon':'polyline',{points,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});}
+        else if(g.type==='CIRCLE')shape=svgNode('circle',{cx:g.center.x,cy:-g.center.y,r:g.radius,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});
+        else if(g.type==='ARC'){const start=g.startDegrees*Math.PI/180,end=(g.startDegrees+g.sweepDegrees)*Math.PI/180,x1=g.center.x+g.radius*Math.cos(start),y1=-(g.center.y+g.radius*Math.sin(start)),x2=g.center.x+g.radius*Math.cos(end),y2=-(g.center.y+g.radius*Math.sin(end));shape=svgNode('path',{d:'M '+x1+' '+y1+' A '+g.radius+' '+g.radius+' 0 '+(g.sweepDegrees>180?1:0)+' 0 '+x2+' '+y2,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});}
+        if(shape){shape.dataset.itemId=item.id;shape.style.cursor='pointer';shape.addEventListener('click',()=>{for(const node of drawingSvg.querySelectorAll('[data-item-id]'))node.style.opacity=node===shape?'1':'.22';for(const row of tbody.rows)row.style.background=row.dataset.itemId===item.id?'#244563':'';});drawingSvg.appendChild(shape);}
+       }
+       if(!geometryItems.length){const msg=svgNode('text',{x:5,y:50,fill:'#dce8f3','font-size':5});msg.textContent='No supported geometry available for preview';drawingSvg.appendChild(msg);}
+       previewPanel.append(previewTitle,previewNote,drawingSvg);output.appendChild(previewPanel);
        const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;margin-top:12px;font-size:10px;color:#dce8f3';
        const thead=document.createElement('thead'),trh=document.createElement('tr');
        for(const label of ['Entity','Layer','Quantity','Unit','Status']){const th=document.createElement('th');th.textContent=label;th.style.cssText='text-align:left;padding:8px;border-bottom:1px solid var(--line)';trh.appendChild(th);}thead.appendChild(trh);table.appendChild(thead);
