@@ -166,3 +166,46 @@ test('rejects non-numeric block circle center coordinates', () => {
   const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0'].join('\n');
   assert.throws(() => takeoffDxf(dxfWithBlock(block, insert)), /non-numeric geometry/i);
 });
+
+test('preserves source geometry for drawing preview',()=>{
+ const ent=[
+  '0','LINE','8','GRID-A','10','1','20','2','11','4','21','6',
+  '0','LWPOLYLINE','8','WALLS','70','1','10','0','20','0','10','5','20','0','10','5','20','3',
+  '0','CIRCLE','8','COLUMNS','10','2','20','3','40','0.5',
+  '0','ARC','8','DETAIL','10','0','20','0','40','2','50','350','51','10'
+ ].join('\n');
+ const result=takeoffDxf(dxf(ent));
+ assert.deepEqual(result.rows.map(x=>x.geometry.type),['LINE','LWPOLYLINE','CIRCLE','ARC']);
+ assert.deepEqual(result.rows[0].geometry.start,{x:1,y:2});
+ assert.equal(result.rows[1].geometry.closed,true);
+ assert.equal(result.rows[2].geometry.radius,0.5);
+ assert.equal(result.rows[3].geometry.sweepDegrees,20);
+});
+
+
+test('geometry preview metadata remains separate from measured quantities',()=>{
+ const ent=[
+  '0','LINE','10','0','20','0','11','3','21','4',
+  '0','CIRCLE','10','0','20','0','40','2'
+ ].join('\n');
+ const rows=takeoffDxf(dxf(ent)).rows;
+ assert.equal(rows[0].quantity,5);
+ assert.deepEqual(rows[0].geometry,{type:'LINE',start:{x:0,y:0},end:{x:3,y:4}});
+ assert.equal(rows[1].quantity,Math.PI*4);
+ assert.deepEqual(rows[1].geometry,{type:'CIRCLE',center:{x:0,y:0},radius:2});
+});
+test('keeps DXF preview coordinates in source drawing units for all preview entities',()=>{
+ const ent=[
+  '0','LINE','10','10','20','20','11','30','21','40',
+  '0','LWPOLYLINE','70','0','10','1','20','2','10','3','20','4',
+  '0','CIRCLE','10','5','20','6','40','2',
+  '0','ARC','10','7','20','8','40','3','50','90','51','180'
+ ].join('\n');
+ const rows=takeoffDxf(dxf(ent)).rows;
+ assert.deepEqual(rows[0].geometry.end,{x:30,y:40});
+ assert.deepEqual(rows[1].geometry.vertices,[{x:1,y:2},{x:3,y:4}]);
+ assert.deepEqual(rows[2].geometry.center,{x:5,y:6});
+ assert.deepEqual(rows[3].geometry.center,{x:7,y:8});
+ assert.equal(rows[3].geometry.startDegrees,90);
+ assert.equal(rows[3].geometry.sweepDegrees,90);
+});

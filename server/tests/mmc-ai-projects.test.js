@@ -54,6 +54,44 @@ test.before(async()=>{
 });
 test.after(async()=>{if(server)await new Promise(r=>server.close(r));closeDB();fs.rmSync(TMP,{recursive:true,force:true});});
 
+test('staging access gate fails closed and requires valid HTTP Basic credentials',async()=>{
+ const previous={required:process.env.STAGING_BASIC_AUTH_REQUIRED,user:process.env.STAGING_BASIC_AUTH_USER,password:process.env.STAGING_BASIC_AUTH_PASSWORD};
+ try{
+  process.env.STAGING_BASIC_AUTH_REQUIRED='true';
+  delete process.env.STAGING_BASIC_AUTH_USER;
+  delete process.env.STAGING_BASIC_AUTH_PASSWORD;
+  const locked=await fetch(base+'/api/health');
+  assert.equal(locked.status,503);
+  process.env.STAGING_BASIC_AUTH_USER='mmc-staging-test';
+  process.env.STAGING_BASIC_AUTH_PASSWORD='test-only-password-123';
+  const anonymous=await fetch(base+'/api/health');
+  assert.equal(anonymous.status,401);
+  assert.match(anonymous.headers.get('www-authenticate')||'',/Basic realm="MMC AI staging"/);
+  const invalid=await fetch(base+'/api/health',{headers:{Authorization:'Basic '+Buffer.from('mmc-staging-test:wrong-password').toString('base64')}});
+  assert.equal(invalid.status,401);
+  const authorized=await fetch(base+'/api/health',{headers:{Authorization:'Basic '+Buffer.from('mmc-staging-test:test-only-password-123').toString('base64')}});
+  assert.equal(authorized.status,200);
+ }finally{
+  if(previous.required===undefined)delete process.env.STAGING_BASIC_AUTH_REQUIRED;else process.env.STAGING_BASIC_AUTH_REQUIRED=previous.required;
+  if(previous.user===undefined)delete process.env.STAGING_BASIC_AUTH_USER;else process.env.STAGING_BASIC_AUTH_USER=previous.user;
+  if(previous.password===undefined)delete process.env.STAGING_BASIC_AUTH_PASSWORD;else process.env.STAGING_BASIC_AUTH_PASSWORD=previous.password;
+ }
+});
+
+test('MMC AI and administration HTML routes enforce authentication before static file serving',async()=>{
+ const anonymousMmc=await fetch(base+'/mmc-ai/index.html',{redirect:'manual'});
+ assert.equal(anonymousMmc.status,302);
+ assert.match(anonymousMmc.headers.get('location')||'',/login\.html/);
+ const anonymousAdmin=await fetch(base+'/admin/index.html',{redirect:'manual'});
+ assert.equal(anonymousAdmin.status,302);
+ assert.match(anonymousAdmin.headers.get('location')||'',/login\.html/);
+ await register('ai-page-security');
+ const memberMmc=await call('ai-page-security','GET','/mmc-ai/index.html');
+ assert.equal(memberMmc.status,200);
+ const memberAdmin=await call('ai-page-security','GET','/admin/index.html');
+ assert.equal(memberAdmin.status,403);
+});
+
 test('MMC AI project membership isolates projects and enforces viewer permissions',async()=>{
  const userA=await register('ai-owner'),userB=await register('ai-outsider'),userC=await register('ai-viewer');
  const created=await call('ai-owner','POST','/api/mmc-ai/projects',{name:'Project Alpha',country:'JO',currency:'JOD'});
@@ -131,6 +169,13 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(boqViewer.status,403);
  const boqList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/boq');
  assert.equal(boqList.status,200);assert.equal(boqList.data.items.length,1);assert.equal(boqList.data.summary.total,16.25);
+ const sourceRef=boqList.data.items[0].sourceReference;
+ assert.ok(sourceRef,'BOQ item should expose its linked takeoff source');
+ assert.equal(sourceRef.takeoffItemId,dxfRun.data.run.items[0].id);
+ assert.equal(sourceRef.entityType,'LINE');assert.equal(sourceRef.nativeCadLayer,'EARTHWORK');
+ assert.equal(sourceRef.runId,dxfRun.data.run.id);assert.equal(sourceRef.runStatus,'approved');
+ assert.equal(sourceRef.documentId,dxfUpload.data.document.id);assert.equal(sourceRef.documentName,'site-plan.dxf');
+ assert.equal(sourceRef.quantity,5);assert.equal(sourceRef.unit,'m');
  const boqQuantityChange=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{quantity:130});assert.equal(boqQuantityChange.status,422);
  const boqUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{rate:4});
  assert.equal(boqUpdate.status,200);assert.equal(boqUpdate.data.item.line_total,20);

@@ -66,6 +66,15 @@ test('BIM workspace supports issues, IFC and GLB uploads, inspection and preview
  assert.match(html,/id="bimViewerClose"/);
 });
 
+test('BOQ displays project-scoped drawing source traceability and measurement details',()=>{
+ assert.match(html,/<th>Source \/ Traceability<\/th>/);
+ assert.match(html,/item\.sourceReference/);
+ assert.match(html,/nativeCadLayer/);
+ assert.match(html,/takeoffItemId/);
+ assert.match(html,/Measurement details/);
+ assert.match(html,/Manual BOQ item — no drawing source linked/);
+});
+
 test('project schedule updates progress and refreshes executive indicators',()=>{
  assert.match(html,/percentComplete:value,status:status\.value/);
  assert.match(html,/loadExecutiveDashboard\(id\)/);
@@ -83,14 +92,15 @@ test('project assistant renders answers with their source records',()=>{
  assert.match(html,/Answer sources:/);
 });
 
-test('PDF preflight and preliminary text extraction are separate actions',()=>{
+test('PDF preflight and saved drawing-read actions are separate',()=>{
  assert.match(html,/preflight\/pdf/);
- assert.match(html,/extract\/text/);
+ assert.match(html,/analyze\/drawing-text/);
+ assert.match(html,/analysis\/latest/);
  assert.match(html,/PDF Preflight/);
- assert.match(html,/Extract Text/);
- assert.match(html,/Drawing indicators:/);
- assert.match(html,/Raw PDF coordinate range:/);
- assert.match(html,/This check validates file integrity only/);
+ assert.match(html,/Read Drawing \(PDF\)/);
+ assert.match(html,/Load Saved Read/);
+ assert.match(html,/Detected dimension candidates/);
+ assert.match(html,/Engineering quantity status: NOT CALCULATED/);
 });
 
 test('complete project data register supports search, audit sections and JSON export',()=>{
@@ -113,4 +123,69 @@ test('plans modal is beside the language switch and preserves approved subscript
  assert.match(html,/id="selectProPlan"/);
  assert.match(html,/\$30/);
  assert.match(html,/payment collection, account entitlement enforcement and automatic activation are not connected yet/i);
+});
+
+test('DXF takeoff viewer exposes native layer summaries and per-layer visibility filters',()=>{
+ assert.match(html,/Drawing Layers — Native DXF/);
+ assert.match(html,/takeoff\/runs\/'\+encodeURIComponent\(result\.run\.id\)\+'\/layers/);
+ assert.match(html,/toggle\.addEventListener\('change'/);
+ assert.match(html,/Engineering discipline is not guessed from layer names/);
+});
+
+test('DXF takeoff UI supports creating user layers and assigning elements to layers',()=>{
+ assert.match(html,/New layer name/);
+ assert.match(html,/Create Layer/);
+ assert.match(html,/takeoff\/runs\/'\+encodeURIComponent\(result\.run\.id\)\+'\/items\/'\+encodeURIComponent\(row\.dataset\.itemId\)\+'\/layer/);
+ assert.match(html,/Save layer/);
+ assert.match(html,/User: /);
+});
+
+test('renders supported DXF geometry in the drawing preview',()=>{
+ assert.match(html,/Engineering Drawing Preview/);
+ assert.match(html,/DXF geometry preview/);
+ assert.match(html,/geometryItems/);
+ assert.match(html,/LWPOLYLINE/);
+ assert.match(html,/data-item-id/);
+ assert.match(html,/Select a row to highlight its source element/);
+});
+
+test('selected DXF element inspection exposes source document, takeoff run, and geometry coordinates',()=>{
+ assert.match(html,/Element ID/);
+ assert.match(html,/Native CAD layer/);
+ assert.match(html,/Source document/);
+ assert.match(html,/Takeoff run/);
+ assert.match(html,/Start \('/);
+ assert.match(html,/Center \('/);
+ assert.match(html,/Source coordinates are shown in drawing units/);
+});
+
+test('supports drawing zoom pan and element inspection',()=>{
+ assert.match(html,/Zoom \+/);
+ assert.match(html,/Zoom −/);
+ assert.match(html,/Fit drawing/);
+ assert.match(html,/pointermove/);
+ assert.match(html,/wheel/);
+ assert.match(html,/selectDrawingItem/);
+ assert.match(html,/Source geometry/);
+});
+
+test('synchronizes native and user layer visibility with reassigned drawing elements and table rows',()=>{
+ assert.match(html,/const layerAssignments=new Map/);
+ assert.match(html,/effectiveLayerId/);
+ assert.match(html,/syncLayerVisibility/);
+ assert.match(html,/layerVisibility\.get\(effectiveLayerId/);
+ assert.match(html,/layerVisibility\.set\(layer\.id,toggle\.checked\)/);
+ assert.match(html,/allLayers=data\.layers\|\|allLayers/);
+ assert.match(html,/renderLayerCard\(created\)/);
+});;
+
+
+test('PDF extraction UI exposes nested API errors and provides a separate Arabic/English OCR action',()=>{
+ assert.match(html,/data\.error\?\.message\|\|data\.message\|\|/);
+ assert.match(html,/OCR \(Arabic \+ English\)/);
+ assert.match(html,/\/ocr\/status/);
+ assert.match(html,/\/ocr\/pdf/);
+ assert.match(html,/statusData\.runtime\?\.available/);
+ assert.match(html,/page\.averageConfidence/);
+ assert.match(html,/OCR recognizes visible text only/);
 });

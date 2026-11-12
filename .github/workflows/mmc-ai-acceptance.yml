@@ -3,8 +3,16 @@ on:
   push:
     branches:
       - feature/mmc-ai-construction-intelligence
+      - feature/mmc-ai-drawing-reader-demo
     paths:
       - 'server/**'
+      - 'Dockerfile'
+      - 'webpages/mmc-ai/**'
+      - '.github/workflows/mmc-ai-acceptance.yml'
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'Dockerfile'
       - 'webpages/mmc-ai/**'
       - '.github/workflows/mmc-ai-acceptance.yml'
   workflow_dispatch:
@@ -19,6 +27,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install OCR runtime and fixture dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara fonts-dejavu-core
+      - name: Setup Python 3.12 for scanned fixture generation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PDF fixture generator
+        run: python -m pip install --disable-pip-version-check Pillow
+      - name: Verify OCR runtime
+        run: |
+          pdfinfo -v
+          pdftoppm -v
+          tesseract --list-langs
+          python -c "from PIL import Image, ImageDraw, ImageFont"
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -27,13 +51,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - name: Install locked dependencies
         run: npm ci
-      - name: Run MMC AI acceptance suite
-        run: >-
-          node --test
-          tests/mmc-ai-ui.test.js
-          tests/mmc-ai-dxf-takeoff.test.js
-          tests/mmc-ai-projects.test.js
-          tests/mmc-ai-schedule-engine.test.js
-          tests/mmc-ai-ifc-inspector.test.js
-          tests/mmc-ai-pdf-preflight.test.js
-          tests/mmc-ai-pdf-text-extract.test.js
+      - name: Run complete MMC AI acceptance suite
+        run: npm run test:mmc-ai
+      - name: Build production Docker image with OCR packages
+        run: docker build -f ../Dockerfile -t mmc-ai-ocr-acceptance ..

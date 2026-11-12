@@ -260,6 +260,7 @@ function takeoffDxf(text, options = {}) {
       requireCodes(e, [10, 20, 11, 21], 'LINE entity ' + index);
       const a = { x: first(e, 10), y: first(e, 20) }, b = { x: first(e, 11), y: first(e, 21) };
       assertFinite([a.x, a.y, b.x, b.y], 'LINE entity ' + index);
+      row.geometry = { type: 'LINE', start: a, end: b };
       quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
     } else if (e.type === 'LWPOLYLINE') {
       requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);
@@ -267,6 +268,7 @@ function takeoffDxf(text, options = {}) {
       assertFinite(vertices.flatMap(v => [v.x, v.y, v.bulge ?? 0]), 'LWPOLYLINE entity ' + index);
       if (vertices.length < 2) { unsupported[e.type] = (unsupported[e.type] || 0) + 1; continue; }
       const m = polylineMetrics(vertices, closed);
+      row.geometry = { type: 'LWPOLYLINE', vertices: vertices.map(v => ({ x: v.x, y: v.y })), closed };
       row.closed = closed;
       row.length_m = m.perimeter * metresPerUnit;
       if (closed) row.area_m2 = m.area * metresPerUnit * metresPerUnit;
@@ -278,6 +280,7 @@ function takeoffDxf(text, options = {}) {
       assertFinite([...center, radius], 'CIRCLE entity ' + index);
       if (radius < 0) throw new Error('Invalid negative circle radius at entity ' + index);
       row.radius_m = radius * metresPerUnit;
+      row.geometry = { type: 'CIRCLE', center: { x: center[0], y: center[1] }, radius };
       row.circumference_m = 2 * Math.PI * row.radius_m;
       row.area_m2 = Math.PI * row.radius_m * row.radius_m;
       quantity = row.circumference_m; unit = 'm';
@@ -290,6 +293,7 @@ function takeoffDxf(text, options = {}) {
       let sweep = (end - start) % 360;
       if (sweep < 0) sweep += 360;
       row.radius_m = radius * metresPerUnit;
+      row.geometry = { type: 'ARC', center: { x: center[0], y: center[1] }, radius, startDegrees: start, sweepDegrees: sweep };
       quantity = radius * sweep * Math.PI / 180 * metresPerUnit; unit = 'm';
       row.sweep_degrees = sweep;
     } else {

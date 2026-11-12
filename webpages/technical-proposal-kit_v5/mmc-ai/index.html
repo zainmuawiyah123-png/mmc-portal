@@ -244,7 +244,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      <button id="boqAdd" type="button" class="btn primary">＋ Add Item</button>
     </div>
     <div id="boqSummary" class="note">Select a project to view Bill of Quantities.</div>
-    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="7" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
+    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Source / Traceability</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="8" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
     <p class="note">This project BOQ and cost estimate is separate from tender pricing in the Procurement Portal. Rates and quantities require review and approval by the responsible team.</p>
    </div></section>
   <section class="panel" id="schedulePanel" style="margin:18px 0"><div class="panelhead"><h2>Project Schedule & Critical Path</h2><span>SCHEDULE INTELLIGENCE · CPM</span></div><div style="padding:14px">
@@ -426,11 +426,25 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     for(const val of [item.item_code||'—',item.description,item.unit,item.quantity,item.rate, item.line_total.toFixed(3)]){
      const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);
     }
+    const sourceCell=document.createElement('td');sourceCell.style.cssText='padding:8px;border-bottom:1px solid #edf1f5;min-width:190px';
+    const src=item.sourceReference;
+    if(src){
+     const label=document.createElement('strong');label.textContent=(src.documentName||src.documentId)+' · '+(src.nativeCadLayer||'CAD layer');label.style.cssText='display:block;color:#31536f;font-size:11px';sourceCell.appendChild(label);
+     const meta=document.createElement('div');meta.textContent='Element '+src.takeoffItemId+' · '+src.entityType+' #'+src.entityIndex+' · '+src.quantity+' '+src.unit;meta.style.cssText='font-size:10px;color:#718096;margin-top:4px';sourceCell.appendChild(meta);
+     const status=document.createElement('div');status.textContent='Run '+src.runId+' · '+src.runStatus;status.style.cssText='font-size:10px;color:#718096;margin-top:3px';sourceCell.appendChild(status);
+     const m=src.measurement||{};
+     const trace=document.createElement('details');trace.style.cssText='margin-top:5px;font-size:10px';
+     const summaryNode=document.createElement('summary');summaryNode.textContent='Measurement details';summaryNode.style.cursor='pointer';trace.appendChild(summaryNode);
+     const detail=document.createElement('pre');detail.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0;color:#526579';
+     detail.textContent=[m.method&&('Method: '+m.method),m.ruleId&&('Rule: '+m.ruleId+(m.ruleVersion?' v'+m.ruleVersion:'')),m.formula&&('Formula: '+m.formula),m.inputs&&('Inputs: '+JSON.stringify(m.inputs)),m.geometry&&('Geometry: '+JSON.stringify(m.geometry))].filter(Boolean).join('\\n')||'No additional derivation details were stored for this source item.';
+     trace.appendChild(detail);sourceCell.appendChild(trace);
+    }else{sourceCell.textContent=item.source_takeoff_item_id?'Source record is no longer available in this project.':'Manual BOQ item — no drawing source linked.';}
+    tr.appendChild(sourceCell);
     const td=document.createElement('td'),del=document.createElement('button');del.type='button';del.textContent='Delete';del.style.cssText='border:1px solid #e6caca;border-radius:6px;padding:5px 8px;color:#9a4545;background:#10243d;cursor:pointer';
     del.addEventListener('click',async()=>{if(!confirm('Delete this BOQ item?'))return;const d=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/'+encodeURIComponent(item.id),{method:'DELETE',credentials:'same-origin'});const x=await d.json();if(!d.ok){notify(x.message||'Could not delete');return;}loadProjectBoq(id);});
     td.appendChild(del);tr.appendChild(td);body.appendChild(tr);
    }
-   if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='No BOQ items yet. Add the first item using the form above.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
+   if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='No BOQ items yet. Add the first item using the form above.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
  async function loadProjectSchedule(id){
@@ -606,7 +620,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      const check=document.createElement('button');check.type='button';check.textContent='PDF Preflight';check.style.cssText='border:1px solid #c8d7e8;border-radius:7px;padding:7px 10px;background:#f0f5fb;color:#31536f;font-size:10px;cursor:pointer';
      check.addEventListener('click',async()=>{check.disabled=true;check.textContent='Inspecting...';try{
       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/preflight/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'PDF preflight failed.');
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'PDF preflight failed.');
       const report=data.report,output=document.getElementById('takeoffResult');output.replaceChildren();
       const title=document.createElement('strong');title.textContent='PDF Preflight Result — Not an Engineering Analysis';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
       const detail=document.createElement('p');detail.textContent='Version: '+report.version+' · Size: '+(report.bytes/1048576).toFixed(2)+' MB · Estimated pages: '+(report.pageCount??'Not specified')+' · Status: '+report.status;
@@ -615,21 +629,62 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
       output.append(title,detail,limitation);notify('PDF integrity preflight completed only.');
      }catch(err){notify(err.message);}finally{check.disabled=false;check.textContent='PDF Preflight';}});
      actions.appendChild(check);
-     const extract=document.createElement('button');extract.type='button';extract.textContent='Extract Text';extract.style.cssText='border:1px solid #d8cba8;border-radius:7px;padding:7px 10px;background:#10243d9eb;color:#8a641b;font-size:10px;cursor:pointer';
-     extract.addEventListener('click',async()=>{extract.disabled=true;extract.textContent='Extracting...';try{
-      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/extract/text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Text extraction failed.');
-      const result=data.result,output=document.getElementById('takeoffResult');output.replaceChildren();
-      const title=document.createElement('strong');title.textContent='PDF Text Extraction — Preliminary Result';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
-      const summary=document.createElement('p');summary.textContent='Status: '+result.status+' · Pages: '+(result.pageCount??'Not specified')+' · Characters: '+result.characterCount;
-      const diag=result.diagnostics||{};const graphics=document.createElement('p');graphics.textContent='Drawing indicators: paths '+(diag.vectorPathOperators||0)+' · lines '+(diag.lineTo||0)+' · curves '+(diag.curveTo||0)+' · rectangles '+(diag.rectangles||0)+' · image calls '+(diag.imageXObjectCalls||0);graphics.style.cssText='font-size:11px;color:#52677d;line-height:1.8';
-      const body=document.createElement('pre');body.textContent=result.text||'No extractable text found. The drawing may be scanned and require OCR.';body.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto;background:#f7f9fb;padding:10px;border-radius:7px;font-size:11px;line-height:1.8';
-      const bounds=result.diagnostics?.rawCoordinateBounds;const boundsText=document.createElement('p');boundsText.textContent=bounds?'Raw PDF coordinate range: X '+bounds.minX+' to '+bounds.maxX+' · Y '+bounds.minY+' to '+bounds.maxY+' · points '+(result.diagnostics.coordinatePointCount||0):'No path coordinate range was detected in the supported PDF streams.';boundsText.style.cssText='font-size:11px;color:#52677d;line-height:1.8';
-      const limitation=document.createElement('p');limitation.textContent='Note: This is text extraction and preliminary path detection only. Coordinates are not real lengths or areas; page transforms and scale calibration are required before measurement.';
-      limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
-      output.append(title,summary,graphics,boundsText,body,limitation);notify('Preliminary PDF text extraction completed.');
-     }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='Extract Text';}});
+     const extract=document.createElement('button');extract.type='button';extract.textContent='Read Drawing (PDF)';extract.style.cssText='border:1px solid #d8cba8;border-radius:7px;padding:7px 10px;background:#10243d9eb;color:#8a641b;font-size:10px;cursor:pointer';
+     const renderDrawingRead=(payload)=>{
+      const output=document.getElementById('takeoffResult');output.replaceChildren();
+      const analysis=payload.result?.analysis||payload.analysis||{};
+      const metadata=analysis.metadata||{};
+      const heading=document.createElement('strong');heading.textContent='PDF Drawing Read — Saved Evidence';heading.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Status: '+(analysis.status||'saved')+' · Pages: '+(payload.result?.extractionSummary?.pageCount??metadata.extractedPageCount??'—')+' · OCR: '+(payload.result?.extractionSummary?.ocrPerformed?'Yes':'Not confirmed');
+      const scales=document.createElement('p');scales.textContent='Scale clues: '+((metadata.textualScaleCandidates||[]).join(', ')||'No explicit scale found');
+      const dimensions=[...(metadata.explicitDimensionCallouts||[]).map(x=>({page:'Text',raw:x.raw,kind:'Explicit dimension'})),...(metadata.ocrSpatialDimensionCandidates||[]).map(x=>({page:x.page,raw:x.raw,kind:x.status}))];
+      const dimTitle=document.createElement('strong');dimTitle.textContent='Detected dimension candidates ('+dimensions.length+')';dimTitle.style.cssText='display:block;margin:10px 0 5px';
+      const list=document.createElement('div');list.style.cssText='max-height:260px;overflow:auto;border:1px solid #dbe3ea;border-radius:7px;padding:8px';
+      if(!dimensions.length){const empty=document.createElement('p');empty.textContent='No explicit dimension strings were identified in this read. Scanned pages may require OCR.';list.appendChild(empty);}
+      dimensions.slice(0,250).forEach(item=>{const row=document.createElement('div');row.textContent='Page '+item.page+' · '+item.raw+' · '+item.kind;row.style.cssText='padding:4px 0;border-bottom:1px solid #edf1f5;font-size:11px';list.appendChild(row);});
+      const unresolved=document.createElement('p');unresolved.textContent='Engineering quantity status: NOT CALCULATED. These are text/dimension candidates only. No PDF geometry scale or excavation/concrete volume has been verified.';unresolved.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8;margin-top:9px';
+      const saved=document.createElement('p');saved.textContent='Saved analysis ID: '+(payload.analysisId||'available from latest saved record');saved.style.cssText='font-size:10px;color:#52677d';
+      output.append(heading,summary,scales,dimTitle,list,unresolved,saved);
+     };
+     extract.addEventListener('click',async()=>{extract.disabled=true;extract.textContent='Reading drawing...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'Drawing analysis failed.');
+      renderDrawingRead(data);notify('Drawing read saved. Quantity calculation is not yet available for this PDF.');
+     }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='Read Drawing (PDF)';}});
      actions.appendChild(extract);
+     const savedRead=document.createElement('button');savedRead.type='button';savedRead.textContent='Load Saved Read';savedRead.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     savedRead.addEventListener('click',async()=>{savedRead.disabled=true;try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analysis/latest',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'No saved drawing read.');
+      renderDrawingRead(data);notify('Saved drawing read loaded.');
+     }catch(err){notify(err.message);}finally{savedRead.disabled=false;}});
+     actions.appendChild(savedRead);
+     const ocr=document.createElement('button');ocr.type='button';ocr.textContent='OCR (Arabic + English)';ocr.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     ocr.addEventListener('click',async()=>{ocr.disabled=true;ocr.textContent='Checking OCR...';try{
+      const statusResponse=await fetch('/api/mmc-ai/ocr/status',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      const statusData=await statusResponse.json();
+      if(!statusResponse.ok||!statusData.runtime?.available){
+       const missing=(statusData.runtime?.missing||[]).join(', ')||'Arabic/English OCR runtime';
+       throw new Error('OCR غير جاهز على الخادم. الأدوات أو اللغات الناقصة: '+missing);
+      }
+      ocr.textContent='Running OCR...';
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/ocr/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({maxPages:20,dpi:200})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||data.error?.code||'OCR failed.');
+      const result=data.result,output=document.getElementById('takeoffResult');output.replaceChildren();
+      const title=document.createElement('strong');title.textContent='OCR Result — Preliminary Text Recognition';title.style.cssText='display:block;color:#17623e;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Engine: '+result.engine+' · Status: '+result.status+' · Pages: '+result.pagesProcessed+'/'+result.totalPages+' · Characters: '+result.characterCount+' · DPI: '+result.dpi;
+      const pages=document.createElement('div');pages.style.cssText='display:grid;gap:8px;margin-top:8px';
+      for(const page of (result.pages||[])){
+       const section=document.createElement('section');section.style.cssText='border:1px solid #d7e2dc;border-radius:7px;padding:9px;background:#f7faf8';
+       const heading=document.createElement('strong');heading.textContent='Page '+page.page+' · '+page.wordCount+' words · confidence '+(page.averageConfidence??'n/a');
+       const text=document.createElement('pre');text.textContent=page.text||'No text recognized on this page.';text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:11px;line-height:1.7;margin:7px 0 0';
+       section.append(heading,text);pages.appendChild(section);
+      }
+      const limitation=document.createElement('p');limitation.textContent='OCR recognizes visible text only. It does not interpret structural elements, verify dimensions, or calculate quantities. Engineering-critical values require manual verification.';
+      limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      output.append(title,summary,pages,limitation);notify('OCR completed: preliminary text recognition only.');
+     }catch(err){notify(err.message);}finally{ocr.disabled=false;ocr.textContent='OCR (Arabic + English)';}});
+     actions.appendChild(ocr);
     }
     if(d.file_ext==='.dxf'){
      const take=document.createElement('button');take.type='button';take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
@@ -644,11 +699,89 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
        const detail=document.createElement('div');detail.textContent='Readable entities: '+summary.supportedEntities+' · Unsupported entities: '+summary.unsupportedEntities+' · Total length: '+Number(summary.totalLength_m||0).toFixed(3)+' m · Closed area: '+Number(summary.totalClosedArea_m2||0).toFixed(3)+' m²';
        detail.style.cssText='font-size:11px;line-height:1.8;color:#dce8f3';
        output.append(heading,detail);
+       const previewPanel=document.createElement('section');previewPanel.style.cssText='margin-top:14px;padding:12px;border:1px solid #29435d;border-radius:10px;background:#07182a';
+       const previewTitle=document.createElement('strong');previewTitle.textContent='Engineering Drawing Preview';previewTitle.style.cssText='display:block;color:#e6eef7;margin-bottom:8px';
+       const previewNote=document.createElement('p');previewNote.textContent='Geometry preview from supported DXF entities. Select a row to highlight its source element. Not a full CAD editor.';previewNote.style.cssText='font-size:10px;color:#91a8bd;margin:0 0 8px';
+       const drawingSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');drawingSvg.setAttribute('role','img');drawingSvg.setAttribute('aria-label','DXF geometry preview');drawingSvg.style.cssText='width:100%;height:360px;background:#0b2239;border:1px solid #29435d;border-radius:7px;display:block';
+       const geometryItems=(result.run.items||[]).filter(item=>item.geometry&&item.geometry.type);
+       const coordinates=[];for(const item of geometryItems){const g=item.geometry;if(g.type==='LINE')coordinates.push(g.start,g.end);else if(g.type==='LWPOLYLINE')coordinates.push(...g.vertices);else if(g.center){coordinates.push({x:g.center.x-g.radius,y:g.center.y-g.radius},{x:g.center.x+g.radius,y:g.center.y+g.radius});}}
+       const xs=coordinates.map(p=>p.x),ys=coordinates.map(p=>p.y);
+       const minX=coordinates.length?Math.min(...xs):0,maxX=coordinates.length?Math.max(...xs):100,minY=coordinates.length?Math.min(...ys):0,maxY=coordinates.length?Math.max(...ys):100;
+       const pad=Math.max(maxX-minX,maxY-minY)*.06||1;
+       const initialViewBox=coordinates.length?[minX-pad,-(maxY+pad),(maxX-minX)+2*pad,(maxY-minY)+2*pad]:[0,0,100,100];
+       drawingSvg.setAttribute('viewBox',initialViewBox.join(' '));
+       const viewControls=document.createElement('div');viewControls.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin:8px 0';
+       const viewBoxState={x:initialViewBox[0],y:initialViewBox[1],w:initialViewBox[2],h:initialViewBox[3]};
+       const applyView=()=>drawingSvg.setAttribute('viewBox',[viewBoxState.x,viewBoxState.y,viewBoxState.w,viewBoxState.h].join(' '));
+       const viewButton=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:6px 10px;border:1px solid #42617e;border-radius:6px;background:#132e4b;color:#e6eef7;cursor:pointer';b.addEventListener('click',action);viewControls.appendChild(b);return b;};
+       viewButton('Zoom +',()=>{const cx=viewBoxState.x+viewBoxState.w/2,cy=viewBoxState.y+viewBoxState.h/2;viewBoxState.w*=.8;viewBoxState.h*=.8;viewBoxState.x=cx-viewBoxState.w/2;viewBoxState.y=cy-viewBoxState.h/2;applyView();});
+       viewButton('Zoom −',()=>{const cx=viewBoxState.x+viewBoxState.w/2,cy=viewBoxState.y+viewBoxState.h/2;viewBoxState.w*=1.25;viewBoxState.h*=1.25;viewBoxState.x=cx-viewBoxState.w/2;viewBoxState.y=cy-viewBoxState.h/2;applyView();});
+       viewButton('Fit drawing',()=>{viewBoxState.x=initialViewBox[0];viewBoxState.y=initialViewBox[1];viewBoxState.w=initialViewBox[2];viewBoxState.h=initialViewBox[3];applyView();});
+       let panStart=null;
+       drawingSvg.style.touchAction='none';
+       drawingSvg.addEventListener('pointerdown',event=>{if(event.button!==0)return;panStart={x:event.clientX,y:event.clientY,viewX:viewBoxState.x,viewY:viewBoxState.y};drawingSvg.setPointerCapture(event.pointerId);});
+       drawingSvg.addEventListener('pointermove',event=>{if(!panStart)return;const rect=drawingSvg.getBoundingClientRect();viewBoxState.x=panStart.viewX-(event.clientX-panStart.x)*viewBoxState.w/rect.width;viewBoxState.y=panStart.viewY-(event.clientY-panStart.y)*viewBoxState.h/rect.height;applyView();});
+       const stopPan=()=>{panStart=null;};drawingSvg.addEventListener('pointerup',stopPan);drawingSvg.addEventListener('pointercancel',stopPan);
+       drawingSvg.addEventListener('wheel',event=>{event.preventDefault();const factor=event.deltaY<0?.85:1.18,cx=viewBoxState.x+viewBoxState.w/2,cy=viewBoxState.y+viewBoxState.h/2;viewBoxState.w*=factor;viewBoxState.h*=factor;viewBoxState.x=cx-viewBoxState.w/2;viewBoxState.y=cy-viewBoxState.h/2;applyView();},{passive:false});
+       const selectedInfo=document.createElement('div');selectedInfo.setAttribute('aria-live','polite');selectedInfo.style.cssText='margin-top:8px;padding:9px;border:1px solid #29435d;border-radius:7px;color:#dce8f3;font-size:11px;line-height:1.8';selectedInfo.textContent='Select a drawing element or table row to inspect its source properties.';
+       const palette=['#55c2ff','#f5c451','#7dd3a7','#d49aff','#ff8b8b','#a9c5ff'];
+       const layerColor=name=>{let h=0;for(const ch of String(name||'0'))h=(h*31+ch.charCodeAt(0))>>>0;return palette[h%palette.length];};
+       const svgNode=(tag,attrs)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el;};
+       for(const item of geometryItems){const g=item.geometry,color=layerColor(item.layer);let shape=null;
+        if(g.type==='LINE')shape=svgNode('line',{x1:g.start.x,y1:-g.start.y,x2:g.end.x,y2:-g.end.y,stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});
+        else if(g.type==='LWPOLYLINE'&&g.vertices.length){const points=g.vertices.map(p=>p.x+','+-p.y).join(' ');shape=svgNode(g.closed?'polygon':'polyline',{points,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});}
+        else if(g.type==='CIRCLE')shape=svgNode('circle',{cx:g.center.x,cy:-g.center.y,r:g.radius,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});
+        else if(g.type==='ARC'){const start=g.startDegrees*Math.PI/180,end=(g.startDegrees+g.sweepDegrees)*Math.PI/180,x1=g.center.x+g.radius*Math.cos(start),y1=-(g.center.y+g.radius*Math.sin(start)),x2=g.center.x+g.radius*Math.cos(end),y2=-(g.center.y+g.radius*Math.sin(end));shape=svgNode('path',{d:'M '+x1+' '+y1+' A '+g.radius+' '+g.radius+' 0 '+(g.sweepDegrees>180?1:0)+' 0 '+x2+' '+y2,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});}
+        if(shape){shape.dataset.itemId=item.id;shape.style.cursor='pointer';shape.addEventListener('click',()=>selectDrawingItem(item,shape));drawingSvg.appendChild(shape);}
+       }
+       const selectDrawingItem=(item,shape)=>{for(const node of drawingSvg.querySelectorAll('[data-item-id]'))node.style.opacity=node===shape?'1':'.22';for(const row of tbody.rows)row.style.background=row.dataset.itemId===item.id?'#244563':'';selectedInfo.replaceChildren();const g=item.geometry||{};const sourceRows=[['Element ID',item.id],['Element type',item.entity],['Native CAD layer',item.layer],['Measured quantity',String(item.quantity)+' '+item.unit],['Entity index',String(item.entityIndex)],['Geometry type',g.type||'Not available'],['Source document',d.original_name||d.file_name||'Document #'+d.id],['Document ID',d.id],['Takeoff run',result.run.id],['Drawing units',result.run.units?.length||'Not confirmed']];for(const [label,value] of sourceRows){const line=document.createElement('div');line.textContent=label+': '+String(value??'—');selectedInfo.appendChild(line);}let geometryDetail=null;if(g.type==='LINE'){geometryDetail='Start ('+g.start.x+', '+g.start.y+') · End ('+g.end.x+', '+g.end.y+') · Length '+Math.hypot(g.end.x-g.start.x,g.end.y-g.start.y);}else if(g.type==='CIRCLE'){geometryDetail='Center ('+g.center.x+', '+g.center.y+') · Radius '+g.radius+' · Diameter '+(2*g.radius);}else if(g.type==='ARC'){geometryDetail='Center ('+g.center.x+', '+g.center.y+') · Radius '+g.radius+' · Start '+g.startDegrees+'° · Sweep '+g.sweepDegrees+'°';}else if(g.type==='LWPOLYLINE'){geometryDetail='Vertices '+(g.vertices?.length||0)+' · Closed '+(g.closed?'Yes':'No');}if(geometryDetail){const line=document.createElement('div');line.textContent='Source geometry: '+geometryDetail;selectedInfo.appendChild(line);}const note=document.createElement('div');note.textContent='Source coordinates are shown in drawing units; they are not converted to metres unless the drawing units and scale are verified.';note.style.cssText='margin-top:5px;color:#e9bd75';selectedInfo.appendChild(note);};
+       if(!geometryItems.length){const msg=svgNode('text',{x:5,y:50,fill:'#dce8f3','font-size':5});msg.textContent='No supported geometry available for preview';drawingSvg.appendChild(msg);}
+       for(const row of tbody.rows){row.style.cursor='pointer';row.addEventListener('click',()=>{const item=geometryItems.find(x=>x.id===row.dataset.itemId);if(!item)return;const shape=drawingSvg.querySelector('[data-item-id="'+item.id+'"]');if(shape)selectDrawingItem(item,shape);});}
+       previewPanel.append(previewTitle,previewNote,viewControls,drawingSvg,selectedInfo);output.appendChild(previewPanel);
        const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;margin-top:12px;font-size:10px;color:#dce8f3';
        const thead=document.createElement('thead'),trh=document.createElement('tr');
        for(const label of ['Entity','Layer','Quantity','Unit','Status']){const th=document.createElement('th');th.textContent=label;th.style.cssText='text-align:left;padding:8px;border-bottom:1px solid var(--line)';trh.appendChild(th);}thead.appendChild(trh);table.appendChild(thead);
        const tbody=document.createElement('tbody');
-       for(const item of (result.run.items||[])){const tr=document.createElement('tr');for(const val of [item.entity,item.layer,item.quantity,item.unit,'Pending Review']){const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}const actionCell=document.createElement('td'),addToBoq=document.createElement('button');addToBoq.type='button';addToBoq.textContent='Add to BOQ';addToBoq.style.cssText='border:1px solid #b9d6c8;border-radius:6px;padding:5px 7px;background:#eef8f2;color:#17623e;cursor:pointer;font-size:10px';addToBoq.addEventListener('click',()=>{selectedTakeoffSourceId=item.id;document.getElementById('boqDescription').value=item.entity+' — '+item.layer;document.getElementById('boqUnit').value=item.unit;document.getElementById('boqQuantity').value=item.quantity;document.getElementById('boqRate').focus();document.getElementById('boqPanel').scrollIntoView({behavior:'smooth',block:'center'});notify('Quantity transferred to BOQ. Enter the unit rate to add this item.');});actionCell.appendChild(addToBoq);tr.appendChild(actionCell);tbody.appendChild(tr);}table.appendChild(tbody);output.appendChild(table);
+       for(const item of (result.run.items||[])){const tr=document.createElement('tr');tr.dataset.itemId=item.id;tr.dataset.nativeLayer=item.layer||'0';for(const val of [item.entity,item.layer,item.quantity,item.unit,'Pending Review']){const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}const actionCell=document.createElement('td'),addToBoq=document.createElement('button');addToBoq.type='button';addToBoq.textContent='Add to BOQ';addToBoq.style.cssText='border:1px solid #b9d6c8;border-radius:6px;padding:5px 7px;background:#eef8f2;color:#17623e;cursor:pointer;font-size:10px';addToBoq.addEventListener('click',()=>{selectedTakeoffSourceId=item.id;document.getElementById('boqDescription').value=item.entity+' — '+item.layer;document.getElementById('boqUnit').value=item.unit;document.getElementById('boqQuantity').value=item.quantity;document.getElementById('boqRate').focus();document.getElementById('boqPanel').scrollIntoView({behavior:'smooth',block:'center'});notify('Quantity transferred to BOQ. Enter the unit rate to add this item.');});actionCell.appendChild(addToBoq);tr.appendChild(actionCell);tbody.appendChild(tr);}table.appendChild(tbody);output.appendChild(table);
+       const layerPanel=document.createElement('section');layerPanel.style.cssText='margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#0b1e33';
+       const layerTitle=document.createElement('strong');layerTitle.textContent='Drawing Layers — Native DXF';layerTitle.style.cssText='display:block;color:#e6eef7;margin-bottom:8px';
+       const layerNote=document.createElement('p');layerNote.textContent='Layer visibility is a viewer filter only. Engineering discipline is not guessed from layer names.';layerNote.style.cssText='font-size:10px;color:#91a8bd;margin:0 0 10px';
+       const layerList=document.createElement('div');layerList.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px';
+       const layerEditor=document.createElement('div');layerEditor.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:12px 0';
+       const newLayerName=document.createElement('input');newLayerName.placeholder='New layer name';newLayerName.maxLength=128;newLayerName.style.cssText='padding:8px;border:1px solid #42617e;border-radius:7px;background:#132e4b;color:#fff;min-width:180px';
+       const newLayerDiscipline=document.createElement('select');newLayerDiscipline.style.cssText='padding:8px;border:1px solid #42617e;border-radius:7px;background:#132e4b;color:#fff';
+       for(const option of [{value:'general',label:'General'},{value:'structural',label:'Structural'},{value:'architectural',label:'Architectural'},{value:'electrical',label:'Electrical'},{value:'mechanical_hvac',label:'Mechanical / HVAC'},{value:'plumbing_drainage',label:'Plumbing / Drainage'},{value:'fire_protection',label:'Fire Protection'},{value:'civil_earthworks',label:'Earthworks'}]){const o=document.createElement('option');o.value=option.value;o.textContent=option.label;newLayerDiscipline.appendChild(o);}
+       const addLayer=document.createElement('button');addLayer.type='button';addLayer.textContent='Create Layer';addLayer.style.cssText='padding:8px 12px;border:1px solid #6aa6cc;border-radius:7px;background:#1d5277;color:#fff;cursor:pointer';
+       layerEditor.append(newLayerName,newLayerDiscipline,addLayer);
+       layerPanel.append(layerTitle,layerNote,layerEditor,layerList);output.appendChild(layerPanel);
+       try{
+        const lr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/layers',{credentials:'same-origin'});
+        const ld=await lr.json();if(!lr.ok)throw new Error(ld.message||'Could not load drawing layers.');
+        let allLayers=ld.layers||[];
+        const layerAssignments=new Map((ld.assignments||[]).map(item=>[item.entityId,item.targetLayerId]));
+        const layerVisibility=new Map(allLayers.map(layer=>[layer.id,layer.visible!==false]));
+        const effectiveLayerId=(itemId,nativeName)=>layerAssignments.get(itemId)||('native:'+String(nativeName||'0').toLocaleLowerCase('en-US'));
+        const syncLayerVisibility=()=>{
+         for(const row of tbody.rows){const layerId=effectiveLayerId(row.dataset.itemId,row.dataset.nativeLayer);row.style.display=layerVisibility.get(layerId)===false?'none':'';}
+         for(const item of geometryItems){const shape=drawingSvg.querySelector('[data-item-id="'+item.id+'"]');if(shape)shape.style.display=layerVisibility.get(effectiveLayerId(item.id,item.layer))===false?'none':'';}
+        };
+        const renderLayerCard=layer=>{
+         const card=document.createElement('label');card.style.cssText='display:flex;align-items:center;gap:8px;padding:9px;border:1px solid #29435d;border-radius:8px;color:#dce8f3;font-size:10px';
+         const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=layerVisibility.get(layer.id)!==false;toggle.addEventListener('change',()=>{layerVisibility.set(layer.id,toggle.checked);syncLayerVisibility();});
+         const text=document.createElement('span');text.textContent=(layer.source==='user'?'User: ':'CAD: ')+layer.name+' · '+layer.entityCount+' entities · '+Number(layer.lengths_m||0).toFixed(3)+' m · '+Number(layer.areas_m2||0).toFixed(3)+' m²';
+         card.append(toggle,text);layerList.appendChild(card);
+        };
+        addLayer.addEventListener('click',async()=>{const name=newLayerName.value.trim();if(!name){notify('Enter a layer name.');return;}addLayer.disabled=true;try{const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/layers',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,classification:{discipline:newLayerDiscipline.value}})});const data=await response.json();if(!response.ok)throw new Error(data.message||'Could not create layer.');allLayers=data.layers||allLayers;const created=allLayers.find(layer=>layer.source==='user'&&layer.name===name);if(created){layerVisibility.set(created.id,created.visible!==false);renderLayerCard(created);for(const row of tbody.rows){const select=row.querySelector('select');if(select){const option=document.createElement('option');option.value=created.id;option.textContent='User: '+created.name;select.appendChild(option);}}}newLayerName.value='';notify('Layer created and available for assignment.');}catch(err){notify(err.message);}finally{addLayer.disabled=false;}});
+        for(const layer of allLayers)renderLayerCard(layer);
+        for(const row of tbody.rows){
+         const select=document.createElement('select');select.style.cssText='max-width:150px;padding:5px;border:1px solid #42617e;border-radius:6px;background:#132e4b;color:#fff;font-size:10px';
+         const original=document.createElement('option');original.value='native:'+String(row.dataset.nativeLayer).toLocaleLowerCase('en-US');original.textContent='CAD: '+row.dataset.nativeLayer;select.appendChild(original);
+         for(const layer of allLayers){const opt=document.createElement('option');opt.value=layer.id||('native:'+String(layer.name).toLocaleLowerCase('en-US'));opt.textContent=layer.source==='user'?'User: '+layer.name:'CAD: '+layer.name;select.appendChild(opt);}
+         const cell=document.createElement('td');cell.style.cssText='padding:6px;border-bottom:1px solid #edf1f5';cell.appendChild(select);
+         const save=document.createElement('button');save.type='button';save.textContent='Save layer';save.style.cssText='margin-left:5px;padding:5px 7px;font-size:10px';save.addEventListener('click',async()=>{save.disabled=true;try{const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/items/'+encodeURIComponent(row.dataset.itemId)+'/layer',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({targetLayerId:select.value})});const data=await response.json();if(!response.ok)throw new Error(data.message||'Could not assign layer.');notify('Element layer assignment saved.');}catch(err){notify(err.message);}finally{save.disabled=false;}});cell.appendChild(save);row.appendChild(cell);
+        }
+        if(!(ld.layers||[]).length)layerList.textContent='No supported native layers were found in this takeoff.';
+       }catch(layerError){layerList.textContent='Layer summary unavailable: '+layerError.message;}
        const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px';
        for(const choice of [{status:'approved',label:'Approve After Review'},{status:'rejected',label:'Reject Result'}]){
         const action=document.createElement('button');action.type='button';action.textContent=choice.label;action.style.cssText='border:1px solid var(--line);border-radius:7px;padding:8px 11px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';

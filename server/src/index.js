@@ -27,6 +27,7 @@ const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
 const mmcAiRoutes = require('./routes/mmc-ai');
 const mmcAiDocumentRoutes = require('./routes/mmc-ai-documents');
+const mmcAiOcrRoutes = require('./routes/mmc-ai-ocr');
 const mmcAiImageRoutes = require('./routes/mmc-ai-images');
 const mmcAiTakeoffRoutes = require('./routes/mmc-ai-takeoff');
 const mmcAiBoqRoutes = require('./routes/mmc-ai-boq');
@@ -53,6 +54,43 @@ function createApp() {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
     next();
+  });
+
+  // Optional fail-closed HTTP Basic Auth gate for public staging deployments.
+  // Enable with STAGING_BASIC_AUTH_REQUIRED=true and set a private username/password.
+  app.use((req, res, next) => {
+    if (process.env.STAGING_BASIC_AUTH_REQUIRED !== 'true') return next();
+    const expectedUser = String(process.env.STAGING_BASIC_AUTH_USER || '');
+    const expectedPassword = String(process.env.STAGING_BASIC_AUTH_PASSWORD || '');
+    if (!expectedUser || !expectedPassword) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(503).type('text').send('بيئة الاختبار مقفلة حتى يكتمل إعداد بيانات دخول الحماية.');
+    }
+
+    const authorization = String(req.headers.authorization || '');
+    const match = /^Basic\s+([A-Za-z0-9+/=]+)$/i.exec(authorization);
+    let suppliedUser = '';
+    let suppliedPassword = '';
+    if (match) {
+      try {
+        const decoded = Buffer.from(match[1], 'base64').toString('utf8');
+        const separator = decoded.indexOf(':');
+        if (separator >= 0) {
+          suppliedUser = decoded.slice(0, separator);
+          suppliedPassword = decoded.slice(separator + 1);
+        }
+      } catch (_) {}
+    }
+    const safeEqual = (actual, expected) => {
+      const a = Buffer.from(actual);
+      const b = Buffer.from(expected);
+      return a.length === b.length && require('crypto').timingSafeEqual(a, b);
+    };
+    if (safeEqual(suppliedUser, expectedUser) && safeEqual(suppliedPassword, expectedPassword)) return next();
+
+    res.setHeader('WWW-Authenticate', 'Basic realm="MMC AI staging", charset="UTF-8"');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(401).type('text').send('يلزم تسجيل الدخول إلى بيئة الاختبار.');
   });
 
   // CORS اختياري — فقط إن كانت الواجهة على أصل مختلف
@@ -111,6 +149,7 @@ function createApp() {
   app.use('/api/consulting', consultingRoutes);
   app.use('/api/mmc-ai', mmcAiRoutes);
   app.use('/api/mmc-ai', mmcAiDocumentRoutes);
+  app.use('/api/mmc-ai', mmcAiOcrRoutes);
   app.use('/api/mmc-ai', mmcAiImageRoutes);
   app.use('/api/mmc-ai', mmcAiTakeoffRoutes);
   app.use('/api/mmc-ai', mmcAiBoqRoutes);
@@ -171,12 +210,7 @@ function createApp() {
     });
   });
 
-  app.use(express.static(WEB_ROOT, {
-    extensions: ['html'],
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-    }
-  }));
+
 
   // ملفات التنزيل (Excel/PDF) فقط من مجلد documents — بقية ملفاته داخلية ولا تُخدم أبداً
   const DOCS_ROOT = config.DOCS_ROOT || path.resolve(config.ROOT, '..', 'documents');
@@ -207,17 +241,21 @@ function createApp() {
   }
   app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
   app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
-  app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
+  // Never expose the administration workspace to anonymous or non-admin users.
+  app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/admin/');
+      if (req.user.role !== 'admin') return res.status(403).type('text').send('ليس لديك صلاحية الوصول إلى هذه الصفحة.');
+      return sendFromWeb('admin/index.html', res, next);
+    });
+  });
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
 
   // MMC AI is an independent workspace within MMC, not a tender portal role.
   app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res, next) => {
-    // Public preview is strictly visual-only: the page skips all project/API loading
-    // unless an authenticated member opens the normal workspace without preview=1.
-    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
-      return sendFromWeb('mmc-ai/index.html', res, next);
-    }
+    // MMC AI workspace is never public, including preview query-string requests.
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
       if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/mmc-ai/');
@@ -231,6 +269,16 @@ function createApp() {
     if (rel.endsWith('/')) rel += 'index.html';
     sendFromWeb(path.join('portal', rel), res, next);
   });
+
+  // Static files must be last: protected HTML routes above must run first.
+  // Otherwise express.static can serve /admin/index.html and /mmc-ai/index.html
+  // before their authentication/authorization handlers are reached.
+  app.use(express.static(WEB_ROOT, {
+    extensions: ['html'],
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    }
+  }));
 
   app.use(errorHandler);
   return app;
