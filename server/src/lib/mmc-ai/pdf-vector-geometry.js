@@ -9,7 +9,7 @@
  * calibration is supplied. This is geometry evidence, not engineering meaning.
  */
 
-const TOKEN = /[a-zA-Z]|[-+]?(?:\d*\\.)?\d+(?:[eE][-+]?\d+)?/g;
+const TOKEN = /[a-zA-Z]|[-+]?(?:\d*\.)?\d+(?:[eE][-+]?\d+)?/g;
 const round = value => Number(value.toFixed(6));
 
 function tokenizePathData(data) {
