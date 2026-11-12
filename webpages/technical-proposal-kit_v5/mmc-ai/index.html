@@ -651,6 +651,25 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
       const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'Drawing analysis failed.');
       renderDrawingRead(data);notify('Drawing read saved. Quantity calculation is not yet available for this PDF.');
      }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='Read Drawing (PDF)';}});
+     const analyze=document.createElement('button');analyze.type='button';analyze.textContent='Analyze Drawing Text';analyze.style.cssText='border:1px solid #9fc9e4;border-radius:7px;padding:7px 10px;background:#eaf5fc;color:#245d86;font-size:10px;cursor:pointer';
+     analyze.addEventListener('click',async()=>{analyze.disabled=true;analyze.textContent='Analyzing...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({sheetOrPage:d.original_name})});
+      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Drawing text analysis failed.');
+      const analysis=data.analysis||{},meta=analysis.metadata||{},output=document.getElementById('takeoffResult');output.replaceChildren();
+      const title=document.createElement('strong');title.textContent='Drawing Text Intelligence — Evidence Review Only';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Status: '+(analysis.status||'unknown')+' · Evidence clues: '+(analysis.evidence?.evidenceCount??0)+' · Pages: '+(meta.extractedPageCount??'unknown')+' · OCR: '+(meta.ocrPerformed?'performed':'not performed');
+      const disciplines=document.createElement('p');disciplines.textContent='Discipline clues: '+((meta.disciplineClues||[]).join(', ')||'None detected')+' · Scale text: '+((meta.textualScaleCandidates||[]).join(', ')||'None detected');
+      const titles=document.createElement('p');titles.textContent='Drawing title candidates: '+((meta.titleCandidates||[]).join(' | ')||'None detected');
+      const dims=document.createElement('p');dims.textContent='Explicit dimension callouts: '+((meta.explicitDimensionCallouts||[]).map(x=>x.raw).join(' | ')||'None detected');
+      const refs=document.createElement('p');refs.textContent='Sheet / revision candidates: '+JSON.stringify({sheets:meta.textualSheetNumberCandidates||[],revisions:meta.textualRevisionCandidates||[],details:meta.detailAndSectionReferenceCandidates||[]});
+      const conflicts=document.createElement('p');conflicts.textContent='Register conflicts: '+((analysis.conflicts||[]).length?JSON.stringify(analysis.conflicts):'None detected');
+      const limitations=document.createElement('p');limitations.textContent='Important: these are text clues only. Scale is not applied, dimensions are not linked to drawing elements, and no quantities are calculated or approved.';
+      limitations.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      const unresolved=document.createElement('ul');for(const item of (analysis.unresolved||[])){const li=document.createElement('li');li.textContent=item;unresolved.appendChild(li);}
+      const ocr=document.createElement('p');ocr.textContent=data.ocr?.status==='runtime_unavailable'?'OCR runtime unavailable; native PDF text clues only.':data.ocr?.status==='failed'?'OCR failed: '+(data.ocr.message||'unknown error'):meta.ocrPerformed?'OCR confidence: '+(meta.ocrAverageConfidence??'not available')+' · words: '+(meta.ocrWordCount||0):'OCR was not needed for this extraction decision.';
+      output.append(title,summary,disciplines,titles,dims,refs,conflicts,ocr,limitations,unresolved);notify('Drawing text clues extracted; engineering quantities remain unverified.');
+     }catch(err){notify(err.message);}finally{analyze.disabled=false;analyze.textContent='Analyze Drawing Text';}});
+     actions.appendChild(analyze);
      actions.appendChild(extract);
      const savedRead=document.createElement('button');savedRead.type='button';savedRead.textContent='Load Saved Read';savedRead.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
      savedRead.addEventListener('click',async()=>{savedRead.disabled=true;try{
