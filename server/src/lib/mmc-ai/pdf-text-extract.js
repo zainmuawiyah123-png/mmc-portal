@@ -126,7 +126,7 @@ function extractPdfText(input){
  const chunks=[];
  const streamRe=/<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
  let match,decodedBytes=0,streamCount=0,unsupportedFilters=0;
- const diagnostics={vectorPathOperators:0,moveTo:0,lineTo:0,curveTo:0,rectangles:0,closePath:0,paintOperations:0,imageXObjectCalls:0,textShowingOperations:0,graphicsStateSaves:0,graphicsStateRestores:0,coordinateTransforms:0,lineWidthChanges:0,rawCoordinateBounds:null,coordinatePointCount:0,transformedCoordinateBounds:null,transformedCoordinatePointCount:0};
+ const diagnostics={vectorPathOperators:0,moveTo:0,lineTo:0,curveTo:0,rectangles:0,closePath:0,paintOperations:0,imageXObjectCalls:0,textShowingOperations:0,graphicsStateSaves:0,graphicsStateRestores:0,coordinateTransforms:0,lineWidthChanges:0,rawCoordinateBounds:null,coordinatePointCount:0,transformedCoordinateBounds:null,transformedCoordinatePointCount:0,transformationCoverage:'partial_path_points_q_Q_cm_only'};
  while((match=streamRe.exec(source))){
   const dict=match[1],raw=Buffer.from(match[2],'latin1');let data=raw;
   if(/\/FlateDecode\b/.test(dict)){try{data=zlib.inflateSync(raw,{maxOutputLength:MAX_OUTPUT});}catch{continue;}}
@@ -136,6 +136,7 @@ function extractPdfText(input){
   const content=data.toString('latin1');
   const metrics=inspectContentOperators(content);
   for(const key of Object.keys(diagnostics)){
+   if(key==='transformationCoverage')continue;
    if(key==='rawCoordinateBounds'||key==='transformedCoordinateBounds'){
     const b=metrics[key];
     if(b){const old=diagnostics[key];diagnostics[key]=old?{minX:Math.min(old.minX,b.minX),minY:Math.min(old.minY,b.minY),maxX:Math.max(old.maxX,b.maxX),maxY:Math.max(old.maxY,b.maxY)}:b;}
