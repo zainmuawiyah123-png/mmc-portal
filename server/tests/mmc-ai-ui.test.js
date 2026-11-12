@@ -114,3 +114,10 @@ test('plans modal is beside the language switch and preserves approved subscript
  assert.match(html,/\$30/);
  assert.match(html,/payment collection, account entitlement enforcement and automatic activation are not connected yet/i);
 });
+
+test('DXF takeoff viewer exposes native layer summaries and per-layer visibility filters',()=>{
+ assert.match(html,/Drawing Layers — Native DXF/);
+ assert.match(html,/takeoff\/runs\/'\+encodeURIComponent\(result\.run\.id\)\+'\/layers/);
+ assert.match(html,/toggle\.addEventListener\('change'/);
+ assert.match(html,/Engineering discipline is not guessed from layer names/);
+});
