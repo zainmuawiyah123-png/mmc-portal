@@ -138,3 +138,13 @@ test('renders supported DXF geometry in the drawing preview',()=>{
  assert.match(html,/data-item-id/);
  assert.match(html,/Select a row to highlight its source element/);
 });
+
+test('supports drawing zoom pan and element inspection',()=>{
+ assert.match(html,/Zoom \+/);
+ assert.match(html,/Zoom −/);
+ assert.match(html,/Fit drawing/);
+ assert.match(html,/pointermove/);
+ assert.match(html,/wheel/);
+ assert.match(html,/selectDrawingItem/);
+ assert.match(html,/Source geometry/);
+});
