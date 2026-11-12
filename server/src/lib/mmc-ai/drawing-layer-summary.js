@@ -21,7 +21,7 @@ function summarizeTakeoffLayers(items) {
     layers.set(key, row);
   }
   return [...layers.values()].sort((a,b)=>a.name.localeCompare(b.name)).map(row=>({
-    ...row, lengths_m: Number(row.lengths_m.toFixed(6)), areas_m2: Number(row.areas_m2.toFixed(6)),
+    ...row, id: 'native:' + row.name.toLocaleLowerCase('en-US'), lengths_m: Number(row.lengths_m.toFixed(6)), areas_m2: Number(row.areas_m2.toFixed(6)),
     source: 'native_dxf_layer', classification: null, reviewRequired: true
   }));
 }
