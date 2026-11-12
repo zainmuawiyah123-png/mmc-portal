@@ -69,5 +69,14 @@ test('combines synthetic structural and architectural takeoffs into a traceable 
   assert.equal(wallItem.unit, 'm');
   assert.equal(wallItem.sourceQuantityRecordIds.length, 5);
   assert.ok(boq.items.every(item => item.approvalState === 'draft_requires_review'));
+  for (const item of boq.items) {
+    assert.ok(item.sourceReferences.length > 0, 'BOQ row must retain source document and sheet/page');
+    assert.ok(item.sourceElementRefs.length > 0, 'BOQ row must retain drawing element references');
+    assert.ok(item.derivations.length > 0, 'BOQ row must retain measurement rule and formula');
+  }
+  assert.equal(structuralItem.sourceReferences[0].documentId, 'SYN-STR-01');
+  assert.ok(structuralItem.sourceElementRefs[0].includes('S-SLAB'));
+  assert.equal(wallItem.sourceReferences[0].documentId, 'SYN-ARC-01');
+  assert.equal(wallItem.derivations.length, 5);
   assert.equal(boq.duplicateWarnings.length, 0);
 });
