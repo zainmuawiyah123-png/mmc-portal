@@ -56,6 +56,43 @@ function createApp() {
     next();
   });
 
+  // Optional fail-closed HTTP Basic Auth gate for public staging deployments.
+  // Enable with STAGING_BASIC_AUTH_REQUIRED=true and set a private username/password.
+  app.use((req, res, next) => {
+    if (process.env.STAGING_BASIC_AUTH_REQUIRED !== 'true') return next();
+    const expectedUser = String(process.env.STAGING_BASIC_AUTH_USER || '');
+    const expectedPassword = String(process.env.STAGING_BASIC_AUTH_PASSWORD || '');
+    if (!expectedUser || !expectedPassword) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(503).type('text').send('بيئة الاختبار مقفلة حتى يكتمل إعداد بيانات دخول الحماية.');
+    }
+
+    const authorization = String(req.headers.authorization || '');
+    const match = /^Basic\\s+([A-Za-z0-9+/=]+)$/i.exec(authorization);
+    let suppliedUser = '';
+    let suppliedPassword = '';
+    if (match) {
+      try {
+        const decoded = Buffer.from(match[1], 'base64').toString('utf8');
+        const separator = decoded.indexOf(':');
+        if (separator >= 0) {
+          suppliedUser = decoded.slice(0, separator);
+          suppliedPassword = decoded.slice(separator + 1);
+        }
+      } catch (_) {}
+    }
+    const safeEqual = (actual, expected) => {
+      const a = Buffer.from(actual);
+      const b = Buffer.from(expected);
+      return a.length === b.length && require('crypto').timingSafeEqual(a, b);
+    };
+    if (safeEqual(suppliedUser, expectedUser) && safeEqual(suppliedPassword, expectedPassword)) return next();
+
+    res.setHeader('WWW-Authenticate', 'Basic realm="MMC AI staging", charset="UTF-8"');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(401).type('text').send('يلزم تسجيل الدخول إلى بيئة الاختبار.');
+  });
+
   // CORS اختياري — فقط إن كانت الواجهة على أصل مختلف
   if (config.CORS_ORIGIN) {
     app.use((req, res, next) => {
