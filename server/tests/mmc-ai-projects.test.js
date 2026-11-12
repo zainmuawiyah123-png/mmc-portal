@@ -54,6 +54,20 @@ test.before(async()=>{
 });
 test.after(async()=>{if(server)await new Promise(r=>server.close(r));closeDB();fs.rmSync(TMP,{recursive:true,force:true});});
 
+test('MMC AI and administration HTML routes enforce authentication before static file serving',async()=>{
+ const anonymousMmc=await fetch(base+'/mmc-ai/index.html',{redirect:'manual'});
+ assert.equal(anonymousMmc.status,302);
+ assert.match(anonymousMmc.headers.get('location')||'',/login\.html/);
+ const anonymousAdmin=await fetch(base+'/admin/index.html',{redirect:'manual'});
+ assert.equal(anonymousAdmin.status,302);
+ assert.match(anonymousAdmin.headers.get('location')||'',/login\.html/);
+ await register('ai-page-security');
+ const memberMmc=await call('ai-page-security','GET','/mmc-ai/index.html');
+ assert.equal(memberMmc.status,200);
+ const memberAdmin=await call('ai-page-security','GET','/admin/index.html');
+ assert.equal(memberAdmin.status,403);
+});
+
 test('MMC AI project membership isolates projects and enforces viewer permissions',async()=>{
  const userA=await register('ai-owner'),userB=await register('ai-outsider'),userC=await register('ai-viewer');
  const created=await call('ai-owner','POST','/api/mmc-ai/projects',{name:'Project Alpha',country:'JO',currency:'JOD'});
