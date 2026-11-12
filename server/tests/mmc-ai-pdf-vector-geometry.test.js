@@ -44,7 +44,7 @@ test('rejects malformed tokens and incomplete commands', () => {
 
 test('requires an explicit known dimension for scale calibration', () => {
   const calibration = calibrateSvgPage({
-    pointA: { x: 0, y: 0 }, pointB: { x: 60, y: 40 }, knownDistanceMm: 5000
+    pointA: { x: 0, y: 0 }, pointB: { x: 60, y: 0 }, knownDistanceMm: 3750
   });
   assert.equal(calibration.source, 'user_or_engineer_confirmed_dimension');
   assert.equal(calibration.mmPerSvgUnit, 62.5);
