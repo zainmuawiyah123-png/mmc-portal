@@ -166,3 +166,18 @@ test('rejects non-numeric block circle center coordinates', () => {
   const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0'].join('\n');
   assert.throws(() => takeoffDxf(dxfWithBlock(block, insert)), /non-numeric geometry/i);
 });
+
+test('preserves source geometry for drawing preview',()=>{
+ const ent=[
+  '0','LINE','8','GRID-A','10','1','20','2','11','4','21','6',
+  '0','LWPOLYLINE','8','WALLS','70','1','10','0','20','0','10','5','20','0','10','5','20','3',
+  '0','CIRCLE','8','COLUMNS','10','2','20','3','40','0.5',
+  '0','ARC','8','DETAIL','10','0','20','0','40','2','50','350','51','10'
+ ].join('\\n');
+ const result=takeoffDxf(dxf(ent));
+ assert.deepEqual(result.rows.map(x=>x.geometry.type),['LINE','LWPOLYLINE','CIRCLE','ARC']);
+ assert.deepEqual(result.rows[0].geometry.start,{x:1,y:2});
+ assert.equal(result.rows[1].geometry.closed,true);
+ assert.equal(result.rows[2].geometry.radius,0.5);
+ assert.equal(result.rows[3].geometry.sweepDegrees,20);
+});
