@@ -111,7 +111,7 @@ test('drawing text intelligence action calls the authenticated analysis API and 
  assert.match(html,/credentials:'same-origin'/);
  assert.match(html,/Drawing Text Intelligence — Evidence Review Only/);
  assert.match(html,/quantities are calculated or approved/);
- assert.match(html,/drawing elements and no quantities are calculated or approved/);
+ assert.match(html,/drawing elements, and no quantities are calculated or approved/);
 });
 
 test('complete project data register supports search, audit sections and JSON export',()=>{
