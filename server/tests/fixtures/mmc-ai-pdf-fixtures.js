@@ -34,7 +34,7 @@ function streamObject(content, extra = '') {
 function createTwoPageArchitecturalFixture() {
   const first = streamObject([
     'q 1 w',
-    '0 0 m 600 0 l 600 400 l 0 400 l h S',
+    '0 0 m 600 0 l 600 400 l 0 400 l h S',\n    '0 0 600 400 re S',
     'Q',
     'BT /F1 12 Tf 40 760 Td (MMC AI SYNTHETIC ACCEPTANCE PLAN) Tj',
     '(GROUND FLOOR SLAB S1) Tj',
@@ -42,7 +42,7 @@ function createTwoPageArchitecturalFixture() {
   ].join('\\n'));
   const second = streamObject([
     'q 1 w',
-    '100 100 m 500 100 l 500 300 l 100 300 l h S',
+    '100 100 m 500 100 l 500 300 l 100 300 l h S',\n    '100 100 400 200 re S',
     'Q',
     'BT /F1 10 Tf 40 760 Td (STRUCTURAL SECTION S1) Tj',
     '(SLAB S1 THICKNESS 200 mm) Tj ET'
