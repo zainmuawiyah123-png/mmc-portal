@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {reconstructPrismaticModel}=require('../src/lib/mmc-ai/pdf-2d-to-3d');
+const {reconstructPrismaticModel,detectRectangularFootprints}=require('../src/lib/mmc-ai/pdf-2d-to-3d');
 
 test('automatically extrudes four machine-detected footing footprints and calculates 8 m3',()=>{
  const candidates=Array.from({length:4},(_,i)=>({
@@ -35,4 +35,16 @@ test('rejects non-rectangular footprints rather than silently approximating them
  ]});
  assert.equal(result.solidCount,0);
  assert.equal(result.unresolved[0].reason,'footprint_not_supported_as_rectangle');
+});
+
+test('detects rectangular footprints automatically from extracted PDF vector paths without manual tracing',()=>{
+ const result=detectRectangularFootprints({paths:[
+  {closed:true,points:[{x:0,y:0},{x:100,y:0},{x:100,y:100},{x:0,y:100}]},
+  {closed:true,points:[{x:0,y:0},{x:100,y:0},{x:50,y:80}]},
+  {closed:false,points:[{x:0,y:0},{x:100,y:0}]}
+ ]});
+ assert.equal(result.detectedCount,1);
+ assert.equal(result.rejectedCount,2);
+ assert.equal(result.detected[0].classification,'unclassified_closed_rectangular_footprint');
+ assert.equal(result.detected[0].scaleStatus,'unknown_until_automatically_verified_from_drawing_dimensions');
 });
