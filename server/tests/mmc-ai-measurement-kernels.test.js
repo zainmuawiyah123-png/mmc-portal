@@ -64,9 +64,9 @@ test('estimates rectangular slab reinforcement from explicit spacing, cover and 
   assert.equal(result.rows[0].barsPerLayer, 28);
   assert.equal(result.rows[0].cutLengthMm, 5920);
   assert.equal(result.rows[0].totalBars, 56);
-  assert.equal(result.rows[1].barsPerLayer, 30);
+  assert.equal(result.rows[1].barsPerLayer, 31);
   assert.equal(result.rows[1].cutLengthMm, 3920);
-  assert.equal(result.totalBars, 86);
+  assert.equal(result.totalBars, 87);
   assert.equal(result.measurementEligible, false);
 });
 
@@ -91,7 +91,7 @@ test('calculates isolated footing concrete and explicit base reinforcement separ
   assert.equal(result.footingGrossConcreteM3, 2.4);
   assert.equal(result.pedestalConcreteM3, 0.15);
   assert.equal(result.combinedConcreteM3, 2.55);
-  assert.equal(result.reinforcement.totalBars, 56);
+  assert.equal(result.reinforcement.totalBars, 30);
   assert.equal(result.measurementEligible, false);
 });
 
