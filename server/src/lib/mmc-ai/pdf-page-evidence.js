@@ -51,18 +51,28 @@ function parseBboxXhtml(source) {
   }
   return pages;
 }
-function normalizePageBox(box, widthPt, heightPt) {
+function normalizePageBox(box, widthPt, heightPt, rotationDegrees = 0) {
   if (!box || !Number.isFinite(widthPt) || !Number.isFinite(heightPt) || widthPt <= 0 || heightPt <= 0) return null;
+  if (!Number.isFinite(rotationDegrees) || ![0, 90, 180, 270].includes(((rotationDegrees % 360) + 360) % 360)) return null;
   const { xMin, yMin, xMax, yMax } = box;
   if (![xMin, yMin, xMax, yMax].every(Number.isFinite) || xMax <= xMin || yMax <= yMin) return null;
+  const left = xMin / widthPt, top = yMin / heightPt;
+  const right = xMax / widthPt, bottom = yMax / heightPt;
+  const rotation = ((rotationDegrees % 360) + 360) % 360;
+  let display;
+  if (rotation === 90) display = { left: 1 - bottom, top: left, right: 1 - top, bottom: right };
+  else if (rotation === 180) display = { left: 1 - right, top: 1 - bottom, right: 1 - left, bottom: 1 - top };
+  else if (rotation === 270) display = { left: top, top: 1 - right, right: bottom, bottom: 1 - left };
+  else display = { left, top, right, bottom };
   return {
-    left: Number((xMin / widthPt).toFixed(8)),
-    top: Number((yMin / heightPt).toFixed(8)),
-    right: Number((xMax / widthPt).toFixed(8)),
-    bottom: Number((yMax / heightPt).toFixed(8)),
-    width: Number(((xMax - xMin) / widthPt).toFixed(8)),
-    height: Number(((yMax - yMin) / heightPt).toFixed(8)),
-    coordinateSpace: 'page_fraction_unclamped'
+    left: Number(display.left.toFixed(8)),
+    top: Number(display.top.toFixed(8)),
+    right: Number(display.right.toFixed(8)),
+    bottom: Number(display.bottom.toFixed(8)),
+    width: Number((display.right - display.left).toFixed(8)),
+    height: Number((display.bottom - display.top).toFixed(8)),
+    rotationDegrees: rotation,
+    coordinateSpace: 'display_page_fraction_unclamped'
   };
 }
 async function inspectPdfPageEvidence(input, options = {}) {
@@ -91,7 +101,7 @@ async function inspectPdfPageEvidence(input, options = {}) {
         bboxWidthPt:bbox.widthPt??null, bboxHeightPt:bbox.heightPt??null,
         coordinateSpace:'pdftotext-bbox-page-space', nativeTextWordCount:bbox.words.length,
         nativeText:bbox.words.map(x=>x.text).join(' '),
-        nativeTextEvidence:bbox.words.slice(0,10000).map((x,j)=>({evidenceId:'p'+n+':w'+String(j+1).padStart(5,'0'),text:x.text,box:x.box,normalizedBox:normalizePageBox(x.box,bbox.widthPt,bbox.heightPt),source:'pdftotext_bbox'})),
+        nativeTextEvidence:bbox.words.slice(0,10000).map((x,j)=>({evidenceId:'p'+n+':w'+String(j+1).padStart(5,'0'),text:x.text,box:x.box,normalizedBox:normalizePageBox(x.box,bbox.widthPt,bbox.heightPt,meta.rotationDegrees??0),source:'pdftotext_bbox'})),
         evidenceStatus:bbox.words.length?'native_text_with_page_coordinates':'no_native_text_detected' };
     });
     return { engine:'mmc-pdf-page-evidence-poppler-v1', documentId, sourceSha256:sha256,
