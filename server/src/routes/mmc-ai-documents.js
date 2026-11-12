@@ -124,9 +124,18 @@ router.post('/projects/:projectId/documents/:documentId/extract/vector-geometry'
  const actualHash=crypto.createHash('sha256').update(bytes).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
  if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
  const pageNumber=Number(req.body?.pageNumber||1);
+ const knownDistanceMm=req.body?.knownDistanceMm===undefined?null:Number(req.body.knownDistanceMm);
+ const calibrationPointA=req.body?.calibrationPointA??null;
+ const calibrationPointB=req.body?.calibrationPointB??null;
+ if(knownDistanceMm!==null){
+  if(!Number.isFinite(knownDistanceMm)||knownDistanceMm<=0||!calibrationPointA||!calibrationPointB||
+   !Number.isFinite(Number(calibrationPointA.x))||!Number.isFinite(Number(calibrationPointA.y))||
+   !Number.isFinite(Number(calibrationPointB.x))||!Number.isFinite(Number(calibrationPointB.y)))
+   throw E.validation('للمعايرة أدخل بُعداً حقيقياً موجباً ونقطتين واضحتين من صفحة الرسم.');
+ }
  let result;
  try{
-  result=await inspectPdfVectorPage(bytes,{pageNumber});
+  result=await inspectPdfVectorPage(bytes,{pageNumber,knownDistanceMm,calibrationPointA:calibrationPointA?{x:Number(calibrationPointA.x),y:Number(calibrationPointA.y)}:null,calibrationPointB:calibrationPointB?{x:Number(calibrationPointB.x),y:Number(calibrationPointB.y)}:null});
  }catch(error){
   if(error.code==='PDF_VECTOR_INVALID'||error.code==='PDF_VECTOR_TOO_LARGE'||error.code==='PDF_VECTOR_SVG_MISSING') throw E.validation(error.message);
   if(error.code==='ENOENT') throw E.validation('محرك تحويل PDF إلى SVG غير متوفر في بيئة التشغيل؛ يلزم تثبيت Poppler pdftocairo.');
