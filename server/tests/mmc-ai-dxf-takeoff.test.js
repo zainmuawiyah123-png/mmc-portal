@@ -173,7 +173,7 @@ test('preserves source geometry for drawing preview',()=>{
   '0','LWPOLYLINE','8','WALLS','70','1','10','0','20','0','10','5','20','0','10','5','20','3',
   '0','CIRCLE','8','COLUMNS','10','2','20','3','40','0.5',
   '0','ARC','8','DETAIL','10','0','20','0','40','2','50','350','51','10'
- ].join('\\n');
+ ].join('\n');
  const result=takeoffDxf(dxf(ent));
  assert.deepEqual(result.rows.map(x=>x.geometry.type),['LINE','LWPOLYLINE','CIRCLE','ARC']);
  assert.deepEqual(result.rows[0].geometry.start,{x:1,y:2});
