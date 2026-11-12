@@ -149,7 +149,12 @@ test('supports drawing zoom pan and element inspection',()=>{
  assert.match(html,/Source geometry/);
 });
 
-test('synchronizes layer visibility between drawing canvas and takeoff table',()=>{
- assert.match(html,/shape\.style\.display=toggle\.checked/);
- assert.match(html,/row\.dataset\.nativeLayer===layer\.name/);
-});
+test('synchronizes native and user layer visibility with reassigned drawing elements and table rows',()=>{
+ assert.match(html,/const layerAssignments=new Map/);
+ assert.match(html,/effectiveLayerId/);
+ assert.match(html,/syncLayerVisibility/);
+ assert.match(html,/layerVisibility\.get\(effectiveLayerId/);
+ assert.match(html,/layerVisibility\.set\(layer\.id,toggle\.checked\)/);
+ assert.match(html,/allLayers=data\.layers\|\|allLayers/);
+ assert.match(html,/renderLayerCard\(created\)/);
+});;
