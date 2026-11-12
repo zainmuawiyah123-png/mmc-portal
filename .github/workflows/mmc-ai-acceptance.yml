@@ -8,6 +8,7 @@ on:
       - 'server/**'
       - 'Dockerfile'
       - 'webpages/mmc-ai/**'
+      - 'webpages/technical-proposal-kit_v5/mmc-ai/**'
       - '.github/workflows/mmc-ai-acceptance.yml'
   pull_request:
     paths:
