@@ -43,6 +43,15 @@ router.get('/projects/:projectId/documents',wrap(async(req,res)=>{
  res.setHeader('Cache-Control','no-store');res.json({documents:rows});
 }));
 
+router.get('/projects/:projectId/documents/:documentId/analysis/latest',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ const row=getDB().prepare(`SELECT id,analysis_type,result_json,created_at FROM ai_document_analyses WHERE project_id=? AND document_id=? ORDER BY created_at DESC LIMIT 1`).get(req.params.projectId,req.params.documentId);
+ if(!row) throw E.notFound('لا توجد قراءة محفوظة لهذا المخطط بعد.');
+ res.setHeader('Cache-Control','no-store');
+ res.json({analysisId:row.id,analysisType:row.analysis_type,createdAt:row.created_at,result:JSON.parse(row.result_json)});
+}));
+
 router.get('/projects/:projectId/documents/:documentId/download',wrap(async(req,res)=>{
  const m=member(req.params.projectId,req.user.id);
  if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
@@ -127,10 +136,13 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
   }
  }
  const analysis=analyzePdfDrawingText(extraction,{documentId:doc.id,revision:req.body?.revision||null,sheetOrPage:req.body?.sheetOrPage||doc.original_name});
+ const analysisId=uid('aidan_');
+ const persisted={analysis,ocr,extractionSummary:{engine:extraction.engine||null,pageCount:extraction.pageCount??null,characterCount:extraction.characterCount??0,ocrPerformed:extraction.ocrPerformed===true}};
+ db.prepare(`INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)`).run(analysisId,doc.project_id,doc.id,req.user.id,'pdf_drawing_text',JSON.stringify(persisted));
  db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
   .run(uid('aial_'),doc.project_id,req.user.id,'pdf_drawing_text_analysis_completed','document',doc.id,JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed'}));
  res.setHeader('Cache-Control','no-store');
- res.json({documentId:doc.id,analysis,ocr,notice:'تم دمج النص المستخرج مع OCR عند الحاجة. النتائج النصية ليست قراءة هندسية كاملة أو اعتماداً للكميات.'});
+ res.json({analysisId,documentId:doc.id,analysis,ocr,notice:'تم حفظ قراءة النص والأبعاد المرشحة. هذه ليست كميات هندسية معتمدة؛ يلزم ربطها بهندسة الرسم ومقياسه.'});
 }));
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();
