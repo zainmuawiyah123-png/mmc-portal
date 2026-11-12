@@ -9,13 +9,13 @@
  * calibration is supplied. This is geometry evidence, not engineering meaning.
  */
 
-const TOKEN = /[a-zA-Z]|[-+]?(?:\\d*\\.)?\\d+(?:[eE][-+]?\\d+)?/g;
+const TOKEN = /[a-zA-Z]|[-+]?(?:\d*\\.)?\d+(?:[eE][-+]?\d+)?/g;
 const round = value => Number(value.toFixed(6));
 
 function tokenizePathData(data) {
   if (typeof data !== 'string' || !data.trim()) throw new TypeError('SVG path data is required');
   const tokens = data.match(TOKEN) || [];
-  const residue = data.replace(TOKEN, '').replace(/[\\s,]/g, '');
+  const residue = data.replace(TOKEN, '').replace(/[\s,]/g, '');
   if (residue) throw new TypeError('SVG path contains invalid tokens');
   return tokens;
 }
