@@ -90,4 +90,29 @@ function reconstructPrismaticModel({ candidates, mmPerDrawingUnit, minimumConfid
     approvalEligible:false
   };
 }
-module.exports={polygonArea,normalizeRectangle,reconstructPrismaticModel};
+
+function detectRectangularFootprints(vectorGeometry, { tolerance = 1e-5 } = {}) {
+  if (!vectorGeometry || !Array.isArray(vectorGeometry.paths)) throw new TypeError('extracted PDF vector geometry is required');
+  const detected=[],rejected=[];
+  vectorGeometry.paths.forEach((path,index)=>{
+    if(!path.closed){rejected.push({pathIndex:index,reason:'open_path'});return;}
+    const rect=normalizeRectangle(path.points,tolerance);
+    if(!rect){rejected.push({pathIndex:index,reason:'not_a_supported_rectangle'});return;}
+    detected.push({
+      id:'pdf-vector-path-'+index,
+      pathIndex:index,
+      closed:true,
+      coordinateSpace:'pdf_svg_page_units',
+      points:rect.points,
+      rawAreaSquareUnits:round(rect.area),
+      rawEdgeLengths:[round(rect.width),round(rect.length)].sort((a,b)=>b-a),
+      source:'automatically_detected_pdf_vector_path',
+      classification:'unclassified_closed_rectangular_footprint',
+      scaleStatus:'unknown_until_automatically_verified_from_drawing_dimensions',
+      heightStatus:'unknown_until_cross_sheet_section_evidence_is_resolved'
+    });
+  });
+  return {engine:'mmc-pdf-automatic-footprint-detection-v1',detectedCount:detected.length,rejectedCount:rejected.length,detected,rejected,limitations:['Closed rectangles are geometric candidates only, not proof of footings, columns, slabs or walls.','No manual tracing is required; unsupported shapes are retained as rejected evidence.','No metric dimensions or 3D volume are emitted until drawing scale and height are verified automatically from source sheets.']};
+}
+
+module.exports={polygonArea,normalizeRectangle,detectRectangularFootprints,reconstructPrismaticModel};
