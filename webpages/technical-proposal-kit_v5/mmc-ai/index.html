@@ -649,6 +649,22 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
        for(const label of ['Entity','Layer','Quantity','Unit','Status']){const th=document.createElement('th');th.textContent=label;th.style.cssText='text-align:left;padding:8px;border-bottom:1px solid var(--line)';trh.appendChild(th);}thead.appendChild(trh);table.appendChild(thead);
        const tbody=document.createElement('tbody');
        for(const item of (result.run.items||[])){const tr=document.createElement('tr');for(const val of [item.entity,item.layer,item.quantity,item.unit,'Pending Review']){const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}const actionCell=document.createElement('td'),addToBoq=document.createElement('button');addToBoq.type='button';addToBoq.textContent='Add to BOQ';addToBoq.style.cssText='border:1px solid #b9d6c8;border-radius:6px;padding:5px 7px;background:#eef8f2;color:#17623e;cursor:pointer;font-size:10px';addToBoq.addEventListener('click',()=>{selectedTakeoffSourceId=item.id;document.getElementById('boqDescription').value=item.entity+' — '+item.layer;document.getElementById('boqUnit').value=item.unit;document.getElementById('boqQuantity').value=item.quantity;document.getElementById('boqRate').focus();document.getElementById('boqPanel').scrollIntoView({behavior:'smooth',block:'center'});notify('Quantity transferred to BOQ. Enter the unit rate to add this item.');});actionCell.appendChild(addToBoq);tr.appendChild(actionCell);tbody.appendChild(tr);}table.appendChild(tbody);output.appendChild(table);
+       const layerPanel=document.createElement('section');layerPanel.style.cssText='margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#0b1e33';
+       const layerTitle=document.createElement('strong');layerTitle.textContent='Drawing Layers — Native DXF';layerTitle.style.cssText='display:block;color:#e6eef7;margin-bottom:8px';
+       const layerNote=document.createElement('p');layerNote.textContent='Layer visibility is a viewer filter only. Engineering discipline is not guessed from layer names.';layerNote.style.cssText='font-size:10px;color:#91a8bd;margin:0 0 10px';
+       const layerList=document.createElement('div');layerList.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px';
+       layerPanel.append(layerTitle,layerNote,layerList);output.appendChild(layerPanel);
+       try{
+        const lr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/layers',{credentials:'same-origin'});
+        const ld=await lr.json();if(!lr.ok)throw new Error(ld.message||'Could not load drawing layers.');
+        for(const layer of (ld.layers||[])){
+         const card=document.createElement('label');card.style.cssText='display:flex;align-items:center;gap:8px;padding:9px;border:1px solid #29435d;border-radius:8px;color:#dce8f3;font-size:10px';
+         const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=true;toggle.addEventListener('change',()=>{for(const row of tbody.rows){if(row.cells[1]?.textContent===layer.name)row.style.display=toggle.checked?'':'none';}});
+         const text=document.createElement('span');text.textContent=layer.name+' · '+layer.entityCount+' entities · '+layer.lengths_m.toFixed(3)+' m · '+layer.areas_m2.toFixed(3)+' m²';
+         card.append(toggle,text);layerList.appendChild(card);
+        }
+        if(!(ld.layers||[]).length)layerList.textContent='No supported native layers were found in this takeoff.';
+       }catch(layerError){layerList.textContent='Layer summary unavailable: '+layerError.message;}
        const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px';
        for(const choice of [{status:'approved',label:'Approve After Review'},{status:'rejected',label:'Reject Result'}]){
         const action=document.createElement('button');action.type='button';action.textContent=choice.label;action.style.cssText='border:1px solid var(--line);border-radius:7px;padding:8px 11px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
