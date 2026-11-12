@@ -60,7 +60,7 @@ function spatialOcrLines(words) {
 }
 const SPATIAL_ANNOTATION_RULES = [
   ['dimensions', /\b\d+(?:\.\d+)?\s*(?:mm|cm|m)\b|\b\d+\s*[x×]\s*\d+\b/i],
-  ['structural', /\b(?:B|BM|C|COL|F|FOOTING|S|SL|W)-?\s*\d{1,4}[A-Z]?\b|\b(?:\d{1,3}\s*)?[TYØΦ]\s*\d{1,2}(?:\s*[@/]\s*\d{2,4})?\b|\b(?:C|M)\s*\d{2,3}\b|\b(?:B|BM|C|S)\d{1,3}\s*[-:]?\s*\d{2,4}\s*[x×]\s*\d{2,4}\b|خرسانة|تسليح|حديد\s*(?:التسليح)?|عمود|جسر|قاعدة/i],
+  ['structural', /\b(?:B|BM|C|COL|F|FOOTING|S|SL|W)-?\s*\d{1,4}[A-Z]?\b|(?:^|[^A-Za-z0-9])(?:\d{1,3}\s*)?[TYØΦ]\s*\d{1,2}(?:\s*[@/\-]\s*\d{2,4})?\b|\b(?:C|M)\s*\d{2,3}\b|\b(?:B|BM|C|S)\d{1,3}\s*[-:]?\s*\d{2,4}\s*[x×]\s*\d{2,4}\b|خرسانة|تسليح|حديد\s*(?:التسليح)?|عمود|جسر|قاعدة/i],
   ['architectural', /\b(?:D|W|WD|SD)-?\d{1,3}\b|\b(?:TILE|CERAMIC|MARBLE|PAINT|PLASTER|FLOOR FINISH|WALL FINISH)\b|بلاط|سيراميك|رخام|دهان|قصارة|باب|شباك/i],
   ['electrical', /\b(?:DB|MDB|SMDB|LP|PP|ELP)-?\d{0,3}\b|\b(?:CABLE|CONDUIT|LIGHTING|SOCKET|OUTLET|EARTH)\b|كهرباء|كابل|إنارة|انارة|مقبس|تأريض/i],
   ['mechanical_hvac', /\b(?:AHU|FCU|FAHU|VAV|VRF|CHW|HVAC)-?\d{0,3}\b|\b(?:DUCT|DIFFUSER|GRILLE|DAMPER|EXHAUST FAN)\b|تكييف|تهوية|مجرى\s*هواء|مروحة/i],
@@ -225,6 +225,10 @@ function buildSpatialElementCandidates(lines, dimensions, options = {}) {
   const annotations = classifySpatialOcrAnnotations(lines);
   const candidates = annotations.map((annotation, index) => {
     const tag = extractElementTag(annotation.raw);
+    const reinforcementCandidates = extractReinforcementCallouts(annotation.raw);
+    // Dimension-only OCR annotations are evidence, not elements; exclude them
+    // so a callout cannot consume its own association before a beam or column.
+    if (!tag && !reinforcementCandidates.length) return null;
     const nearby = dimensions
       .map((dimension, dimensionIndex) => ({
         dimension, dimensionIndex,
@@ -237,10 +241,10 @@ function buildSpatialElementCandidates(lines, dimensions, options = {}) {
       Math.abs(nearby[1].distancePx - nearby[0].distancePx) < 20);
     return {
       index, annotation, tag,
-      reinforcementCandidates: extractReinforcementCallouts(annotation.raw),
+      reinforcementCandidates,
       nearby, ambiguous
     };
-  });
+  }).filter(Boolean);
 
   // Resolve globally rather than independently per label: a single dimension
   // callout must never be silently counted against multiple drawing elements.
