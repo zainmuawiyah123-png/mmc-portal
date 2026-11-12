@@ -79,6 +79,8 @@ router.post('/projects/:projectId/takeoff/runs/:runId/layers',wrap(async(req,res
  const db=getDB(),run=db.prepare('SELECT id FROM ai_takeoff_runs WHERE id=? AND project_id=?').get(req.params.runId,req.params.projectId);
  if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
  const state=loadRunLayerState(db,run.id);
+ const nativeNames=db.prepare('SELECT DISTINCT layer_name FROM ai_takeoff_items WHERE run_id=?').all(run.id).map(x=>String(x.layer_name||'0').toLocaleLowerCase('en-US'));
+ if(nativeNames.includes(String(req.body?.name||'').trim().toLocaleLowerCase('en-US')))throw E.validation('اسم الطبقة موجود ضمن طبقات CAD الأصلية.');
  try{state.layers=createUserLayer(state.layers,req.body||{});}catch(err){throw E.validation(err.message);}
  saveRunLayerState(db,req.params.projectId,run.id,req.user.id,state,'takeoff_layer_created');
  res.status(201).json({layers:state.layers});
