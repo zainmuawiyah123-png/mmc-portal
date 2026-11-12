@@ -1,6 +1,10 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const {spawnSync}=require('node:child_process');
+const {inspectPdfPageEvidence}=require('../src/lib/mmc-ai/pdf-page-evidence');
+const {createTwoPageArchitecturalFixture}=require('./fixtures/mmc-ai-pdf-fixtures');
+const hasPoppler=spawnSync('pdfinfo',['-v'],{stdio:'ignore'}).status===0;
 const {parsePdfInfo,parseBboxXhtml,normalizePageBox}=require('../src/lib/mmc-ai/pdf-page-evidence');
 test('parses page count, dimensions, rotation and page boxes',()=>{
  const x=parsePdfInfo(['Pages: 2','Page 1 size: 595.28 x 841.89 pts (A4)','Page 1 rot: 0','Page 1 MediaBox: 0 0 595.28 841.89','Page 1 CropBox: 10 10 585.28 831.89','Page 2 size: 841.89 x 595.28 pts (A4)','Page 2 rot: 90'].join('\n'));
@@ -49,4 +53,26 @@ test('rotates page-relative text evidence for 90, 180 and 270 degree PDF pages',
 });
 test('rejects unsupported PDF rotation values',()=>{
  assert.equal(normalizePageBox({xMin:1,yMin:1,xMax:2,yMax:2},100,100,45),null);
+});
+
+test('runs Poppler end-to-end against a generated two-page engineering PDF', {skip:!hasPoppler}, async()=>{
+ const result=await inspectPdfPageEvidence(createTwoPageArchitecturalFixture(),{documentId:'acceptance-fixture'});
+ assert.equal(result.totalPageCount,2);
+ assert.equal(result.pagesProcessed,2);
+ assert.equal(result.pages[0].nativeTextWordCount>0,true);
+ assert.match(result.pages[0].nativeText,/MMC AI SYNTHETIC ACCEPTANCE PLAN/);
+ assert.match(result.pages[1].nativeText,/GROUND FLOOR/);
+ const word=result.pages[0].nativeTextEvidence.find(x=>x.text==='MMC');
+ assert.ok(word);
+ assert.ok(word.normalizedBox);
+ assert.equal(word.normalizedBox.rotationDegrees,0);
+ assert.equal(word.normalizedBox.coordinateSpace,'display_page_fraction_unclamped');
+ assert.ok(Number.isFinite(word.normalizedBox.left));
+ assert.equal(result.pages[0].evidenceStatus,'native_text_with_page_coordinates');
+});
+test('honors the configured page processing limit in Poppler inspection', {skip:!hasPoppler}, async()=>{
+ const result=await inspectPdfPageEvidence(createTwoPageArchitecturalFixture(),{maxPages:1});
+ assert.equal(result.totalPageCount,2);
+ assert.equal(result.pagesProcessed,1);
+ assert.equal(result.truncatedAtPageLimit,true);
 });
