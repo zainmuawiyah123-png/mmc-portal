@@ -308,8 +308,8 @@ function calculateBeamTakeoff({
   positive(widthMm, 'widthMm');
   positive(overallDepthMm, 'overallDepthMm');
   nonNegative(slabThicknessMm, 'slabThicknessMm');
-  nonNegative(coverMm, 'coverMm');
   if (slabThicknessMm >= overallDepthMm) throw new RangeError('slabThicknessMm must be less than overallDepthMm');
+  nonNegative(coverMm, 'coverMm');
   if (coverMm * 2 >= Math.min(widthMm, overallDepthMm)) throw new RangeError('cover must be less than half of beam width and depth');
   if (!Array.isArray(longitudinalBars) || longitudinalBars.length === 0) throw new TypeError('longitudinalBars schedule is required');
   const beamConcreteM3 = lengthMm / MM_PER_M * widthMm / MM_PER_M * (overallDepthMm - slabThicknessMm) / MM_PER_M;
