@@ -121,3 +121,11 @@ test('DXF takeoff viewer exposes native layer summaries and per-layer visibility
  assert.match(html,/toggle\.addEventListener\('change'/);
  assert.match(html,/Engineering discipline is not guessed from layer names/);
 });
+
+test('DXF takeoff UI supports creating user layers and assigning elements to layers',()=>{
+ assert.match(html,/New layer name/);
+ assert.match(html,/Create Layer/);
+ assert.match(html,/takeoff\/runs\/'\+encodeURIComponent\(result\.run\.id\)\+'\/items\/'\+encodeURIComponent\(row\.dataset\.itemId\)\+'\/layer/);
+ assert.match(html,/Save layer/);
+ assert.match(html,/User: /);
+});
