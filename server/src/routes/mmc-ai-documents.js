@@ -11,6 +11,7 @@ const storage=require('../lib/storage');
 const {preflightPdf}=require('../lib/mmc-ai/pdf-preflight');
 const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
 const {inspectPdfVectorPage}=require('../lib/mmc-ai/pdf-pdf-vector-extract');
+const {detectRectangularFootprints}=require('../lib/mmc-ai/pdf-2d-to-3d');
 const {analyzePdfDrawingText}=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
 const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
 const router=express.Router();
@@ -148,6 +149,36 @@ router.post('/projects/:projectId/documents/:documentId/extract/vector-geometry'
   .run(uid('aial_'),doc.project_id,req.user.id,'pdf_vector_geometry_extracted','document',doc.id,JSON.stringify({pageNumber,pathCount:result.geometry.pathCount,unsupportedPathCount:result.geometry.unsupportedPathCount,status:result.status}));
  res.setHeader('Cache-Control','no-store');
  res.json({analysisId,documentId:doc.id,result,notice:result.notice});
+}));
+router.post('/projects/:projectId/documents/:documentId/extract/3d-candidates',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc) throw E.notFound('المستند غير موجود.');
+ if(doc.file_ext!=='.pdf') throw E.validation('استخراج مرشحات 3D متاح لملفات PDF فقط.');
+ const store=storage.getStorage();
+ if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+ const bytes=await store.get(doc.storage_key);
+ if(!Buffer.isBuffer(bytes)||bytes.length!==Number(doc.size_bytes)) throw E.validation('فشل التحقق من حجم المستند المخزن.');
+ const actualHash=crypto.createHash('sha256').update(bytes).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
+ if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
+ const pageNumber=Number(req.body?.pageNumber||1);
+ let vectorResult;
+ try{vectorResult=await inspectPdfVectorPage(bytes,{pageNumber});}
+ catch(error){
+  if(error.code==='PDF_VECTOR_INVALID'||error.code==='PDF_VECTOR_TOO_LARGE'||error.code==='PDF_VECTOR_SVG_MISSING') throw E.validation(error.message);
+  if(error.code==='ENOENT') throw E.validation('محرك تحويل PDF إلى SVG غير متوفر في بيئة التشغيل؛ يلزم تثبيت Poppler pdftocairo.');
+  throw error;
+ }
+ const candidates=detectRectangularFootprints(vectorResult.geometry);
+ const result={engine:'mmc-ai-automatic-2d-to-3d-candidate-pipeline-v1',documentId:doc.id,pageNumber,sourceEngine:vectorResult.engine,...candidates,modelCreated:false,reason:'لا يتم إنشاء مجسم أو حساب حجم قبل التحقق الآلي من المقياس والارتفاعات وربط المساقط بالقطاعات؛ لا يُسمح بالإدخال اليدوي أو التخمين.',approvalEligible:false};
+ const analysisId=uid('aidan_');
+ db.prepare('INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)')
+  .run(analysisId,doc.project_id,doc.id,req.user.id,'pdf_3d_candidates',JSON.stringify(result));
+ db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
+  .run(uid('aial_'),doc.project_id,req.user.id,'pdf_3d_candidates_extracted','document',doc.id,JSON.stringify({pageNumber,detectedCount:result.detectedCount,rejectedCount:result.rejectedCount}));
+ res.setHeader('Cache-Control','no-store');
+ res.json({analysisId,documentId:doc.id,result});
 }));
 router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wrap(async(req,res)=>{
  const m=member(req.params.projectId,req.user.id);
