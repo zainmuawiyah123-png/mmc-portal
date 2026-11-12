@@ -177,3 +177,14 @@ test('synchronizes native and user layer visibility with reassigned drawing elem
  assert.match(html,/allLayers=data\.layers\|\|allLayers/);
  assert.match(html,/renderLayerCard\(created\)/);
 });;
+
+
+test('PDF extraction UI exposes nested API errors and provides a separate Arabic/English OCR action',()=>{
+ assert.match(html,/data\.error\?\.message\|\|data\.message\|\|/);
+ assert.match(html,/OCR \(Arabic \+ English\)/);
+ assert.match(html,/\/ocr\/status/);
+ assert.match(html,/\/ocr\/pdf/);
+ assert.match(html,/statusData\.runtime\?\.available/);
+ assert.match(html,/page\.averageConfidence/);
+ assert.match(html,/OCR recognizes visible text only/);
+});
