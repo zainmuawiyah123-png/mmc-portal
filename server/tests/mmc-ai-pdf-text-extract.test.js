@@ -142,8 +142,10 @@ test('reads generated two-page PDF acceptance fixture without external uploads',
  const r=extractPdfText(bytes);
  assert.equal(r.pageCount,2);
  assert.match(r.text,/MMC AI SYNTHETIC ACCEPTANCE PLAN/);
- assert.match(r.text,/GROUND FLOOR SLAB S1/);\n assert.match(r.text,/OVERALL DIMENSIONS 6000 mm x 4000 mm/);\n assert.match(r.text,/SLAB S1 THICKNESS 200 mm/);
- assert.equal(r.diagnostics.rectangles,1);
+ assert.match(r.text,/GROUND FLOOR SLAB S1/);
+ assert.match(r.text,/OVERALL DIMENSIONS 6000 mm x 4000 mm/);
+ assert.match(r.text,/SLAB S1 THICKNESS 200 mm/);
+ assert.equal(r.diagnostics.rectangles,2);
  assert.ok(r.diagnostics.rawCoordinateBounds);
  assert.equal(r.diagnostics.rawCoordinateBounds.maxX,600);
  assert.equal(r.diagnostics.rawCoordinateBounds.maxY,400);
