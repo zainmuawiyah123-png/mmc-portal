@@ -92,14 +92,15 @@ test('project assistant renders answers with their source records',()=>{
  assert.match(html,/Answer sources:/);
 });
 
-test('PDF preflight and preliminary text extraction are separate actions',()=>{
+test('PDF preflight and saved drawing-read actions are separate',()=>{
  assert.match(html,/preflight\/pdf/);
- assert.match(html,/extract\/text/);
+ assert.match(html,/analyze\/drawing-text/);
+ assert.match(html,/analysis\/latest/);
  assert.match(html,/PDF Preflight/);
- assert.match(html,/Extract Text/);
- assert.match(html,/Drawing indicators:/);
- assert.match(html,/Raw PDF coordinate range:/);
- assert.match(html,/This check validates file integrity only/);
+ assert.match(html,/Read Drawing \(PDF\)/);
+ assert.match(html,/Load Saved Read/);
+ assert.match(html,/Detected dimension candidates/);
+ assert.match(html,/Engineering quantity status: NOT CALCULATED/);
 });
 
 test('complete project data register supports search, audit sections and JSON export',()=>{
