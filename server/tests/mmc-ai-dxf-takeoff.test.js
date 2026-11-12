@@ -187,7 +187,7 @@ test('geometry preview metadata remains separate from measured quantities',()=>{
  const ent=[
   '0','LINE','10','0','20','0','11','3','21','4',
   '0','CIRCLE','10','0','20','0','40','2'
- ].join('\\n');
+ ].join('\n');
  const rows=takeoffDxf(dxf(ent)).rows;
  assert.equal(rows[0].quantity,5);
  assert.deepEqual(rows[0].geometry,{type:'LINE',start:{x:0,y:0},end:{x:3,y:4}});
