@@ -7,6 +7,7 @@ const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
 const {summarizeTakeoffLayers}=require('../lib/mmc-ai/drawing-layer-summary');
+const {createUserLayer,updateLayer,deleteUserLayer,assignEntityLayer}=require('../lib/mmc-ai/drawing-layer-manager');
 const router=express.Router();
 router.use(A.requireAuth);
 function member(projectId,userId){
@@ -59,6 +60,59 @@ router.get('/projects/:projectId/takeoff/runs/:runId/layers',wrap(async(req,res)
  const layers=summarizeTakeoffLayers(items);
  res.setHeader('Cache-Control','no-store');
  res.json({runId:run.id,layers,notice:'أسماء الطبقات أصلية من DXF؛ التصنيف الهندسي غير مفترض، وكل النتائج تحتاج مراجعة.'});
+}));
+
+function loadRunLayerState(db,runId){
+ const run=db.prepare('SELECT summary_json FROM ai_takeoff_runs WHERE id=?').get(runId);
+ const summary=JSON.parse(run.summary_json||'{}');
+ return {summary,layers:Array.isArray(summary.mmcLayerOverlay)?summary.mmcLayerOverlay:[],assignments:Array.isArray(summary.mmcLayerAssignments)?summary.mmcLayerAssignments:[]};
+}
+function saveRunLayerState(db,projectId,runId,userId,state,action){
+ db.prepare('UPDATE ai_takeoff_runs SET summary_json=? WHERE id=?').run(JSON.stringify({...state.summary,mmcLayerOverlay:state.layers,mmcLayerAssignments:state.assignments}),runId);
+ db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
+ .run(uid('aial_'),projectId,userId,action,'takeoff_run',runId,JSON.stringify({userLayers:state.layers.length,assignments:state.assignments.length}));
+}
+router.post('/projects/:projectId/takeoff/runs/:runId/layers',wrap(async(req,res)=>{
+ const m=requireMember(req);if(!['owner','project_manager','engineer','quantity_surveyor'].includes(m.role))throw E.forbidden('لا تملك صلاحية إنشاء طبقات.');
+ const db=getDB(),run=db.prepare('SELECT id FROM ai_takeoff_runs WHERE id=? AND project_id=?').get(req.params.runId,req.params.projectId);
+ if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
+ const state=loadRunLayerState(db,run.id);
+ try{state.layers=createUserLayer(state.layers,req.body||{});}catch(err){throw E.validation(err.message);}
+ saveRunLayerState(db,req.params.projectId,run.id,req.user.id,state,'takeoff_layer_created');
+ res.status(201).json({layers:state.layers});
+}));
+router.patch('/projects/:projectId/takeoff/runs/:runId/layers/:layerId',wrap(async(req,res)=>{
+ const m=requireMember(req);if(!['owner','project_manager','engineer','quantity_surveyor'].includes(m.role))throw E.forbidden('لا تملك صلاحية تعديل الطبقات.');
+ const db=getDB(),run=db.prepare('SELECT id FROM ai_takeoff_runs WHERE id=? AND project_id=?').get(req.params.runId,req.params.projectId);
+ if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
+ const state=loadRunLayerState(db,run.id);
+ try{state.layers=updateLayer(state.layers,req.params.layerId,req.body||{});}catch(err){throw E.validation(err.message);}
+ saveRunLayerState(db,req.params.projectId,run.id,req.user.id,state,'takeoff_layer_updated');
+ res.json({layers:state.layers});
+}));
+router.delete('/projects/:projectId/takeoff/runs/:runId/layers/:layerId',wrap(async(req,res)=>{
+ const m=requireMember(req);if(!['owner','project_manager','engineer','quantity_surveyor'].includes(m.role))throw E.forbidden('لا تملك صلاحية حذف الطبقات.');
+ const db=getDB(),run=db.prepare('SELECT id FROM ai_takeoff_runs WHERE id=? AND project_id=?').get(req.params.runId,req.params.projectId);
+ if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
+ const state=loadRunLayerState(db,run.id);
+ try{state.layers=deleteUserLayer(state.layers,req.params.layerId);}catch(err){throw E.validation(err.message);}
+ state.assignments=state.assignments.filter(x=>x.targetLayerId!==req.params.layerId);
+ saveRunLayerState(db,req.params.projectId,run.id,req.user.id,state,'takeoff_layer_deleted');
+ res.json({layers:state.layers});
+}));
+router.patch('/projects/:projectId/takeoff/runs/:runId/items/:itemId/layer',wrap(async(req,res)=>{
+ const m=requireMember(req);if(!['owner','project_manager','engineer','quantity_surveyor'].includes(m.role))throw E.forbidden('لا تملك صلاحية تصنيف العناصر.');
+ const db=getDB(),run=db.prepare('SELECT id FROM ai_takeoff_runs WHERE id=? AND project_id=?').get(req.params.runId,req.params.projectId);
+ if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
+ const item=db.prepare('SELECT id FROM ai_takeoff_items WHERE id=? AND run_id=?').get(req.params.itemId,run.id);
+ if(!item)throw E.notFound('العنصر غير موجود.');
+ const target=String(req.body?.targetLayerId||'');
+ const state=loadRunLayerState(db,run.id);
+ const validNative=db.prepare('SELECT 1 FROM ai_takeoff_items WHERE run_id=? AND lower(layer_name)=lower(?) LIMIT 1').get(run.id,target.replace(/^native:/,''));
+ if(!state.layers.some(x=>x.id===target)&&!validNative)throw E.validation('الطبقة المستهدفة غير موجودة.');
+ state.assignments=assignEntityLayer(state.assignments,item.id,target);
+ saveRunLayerState(db,req.params.projectId,run.id,req.user.id,state,'takeoff_item_layer_assigned');
+ res.json({assignments:state.assignments,notice:'التصنيف محفوظ كطبقة تنظيمية ولا يغير طبقة CAD الأصلية أو هندسة المصدر.'});
 }));
 router.patch('/projects/:projectId/takeoff/runs/:runId/review',wrap(async(req,res)=>{
  const m=requireMember(req);
