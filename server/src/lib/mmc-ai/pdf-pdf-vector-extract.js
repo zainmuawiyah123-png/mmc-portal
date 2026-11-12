@@ -112,7 +112,7 @@ async function inspectPdfVectorPage(input, { pageNumber = 1, knownDistanceMm = n
       timeout: 30000, maxBuffer: 1024 * 1024
     });
     const files = await fs.readdir(dir);
-    const svgName = files.find(name => name === 'page' || /^page(?:-\\d+)?\\.svg$/.test(name));
+    const svgName = files.find(name => name === 'page' || /^page(?:-\d+)?\.svg$/.test(name));
     if (!svgName) throw Object.assign(new Error('Poppler did not produce an SVG page'), { code: 'PDF_VECTOR_SVG_MISSING' });
     const svg = await fs.readFile(path.join(dir, svgName), 'utf8');
     const geometry = parseSvgVectorPaths(svg);
