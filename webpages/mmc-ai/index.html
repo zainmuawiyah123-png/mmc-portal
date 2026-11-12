@@ -575,6 +575,25 @@ table th{background:#162d45!important;color:#a9c0d5!important}table td{backgroun
       }catch(err){notify(err.message);}finally{vector.disabled=false;vector.textContent='PDF Vector Geometry';}
      });
      actions.appendChild(vector);
+     const auto3d=document.createElement('button');auto3d.type='button';auto3d.textContent='Automatic 3D Candidates';auto3d.style.cssText='border:1px solid #c8b8e8;border-radius:7px;padding:7px 10px;background:#f4effb;color:#62438b;font-size:10px;cursor:pointer';
+     auto3d.addEventListener('click',async()=>{
+      const pageRaw=window.prompt('Enter the PDF page number for automatic 3D candidate detection','1');
+      if(pageRaw===null)return;
+      const pageNumber=Number(pageRaw);if(!Number.isInteger(pageNumber)||pageNumber<1){notify('Enter a valid page number.');return;}
+      auto3d.disabled=true;auto3d.textContent='Detecting candidates...';
+      try{
+       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/extract/3d-candidates',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({pageNumber})});
+       const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Automatic 3D candidate detection failed.');
+       const result=data.result||{},output=document.getElementById('takeoffResult');output.replaceChildren();
+       const heading=document.createElement('strong');heading.textContent='Automatic 2D analysis → 3D candidate detection';heading.style.cssText='display:block;color:#62438b;margin-bottom:8px';
+       const summary=document.createElement('p');summary.textContent='Page '+result.pageNumber+' · Rectangular footprint candidates: '+result.detectedCount+' · Rejected paths: '+result.rejectedCount+' · 3D solids created: 0';
+       const notice=document.createElement('p');notice.textContent=result.reason||'Candidates are geometric evidence only; scale, element type and height are not yet verified.';
+       notice.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+       const list=document.createElement('div');for(const item of (result.detected||[]).slice(0,100)){const row=document.createElement('div');row.textContent=item.id+' · raw footprint area '+item.rawAreaSquareUnits+' page units² · '+item.classification+' · scale unknown · height unknown';row.style.cssText='font-size:10px;padding:5px;border-bottom:1px solid #e5ebf2';list.appendChild(row);}
+       output.append(heading,summary,notice,list);notify('Automatic candidates extracted. No manual quantities or guessed 3D solids were created.');
+      }catch(err){notify(err.message);}finally{auto3d.disabled=false;auto3d.textContent='Automatic 3D Candidates';}
+     });
+     actions.appendChild(auto3d);
      actions.appendChild(extract);
     }
     if(d.file_ext==='.dxf'){
