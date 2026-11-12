@@ -131,6 +131,13 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(boqViewer.status,403);
  const boqList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/boq');
  assert.equal(boqList.status,200);assert.equal(boqList.data.items.length,1);assert.equal(boqList.data.summary.total,16.25);
+ const sourceRef=boqList.data.items[0].sourceReference;
+ assert.ok(sourceRef,'BOQ item should expose its linked takeoff source');
+ assert.equal(sourceRef.takeoffItemId,dxfRun.data.run.items[0].id);
+ assert.equal(sourceRef.entityType,'LINE');assert.equal(sourceRef.nativeCadLayer,'EARTHWORK');
+ assert.equal(sourceRef.runId,dxfRun.data.run.id);assert.equal(sourceRef.runStatus,'approved');
+ assert.equal(sourceRef.documentId,dxfUpload.data.document.id);assert.equal(sourceRef.documentName,'site-plan.dxf');
+ assert.equal(sourceRef.quantity,5);assert.equal(sourceRef.unit,'m');
  const boqQuantityChange=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{quantity:130});assert.equal(boqQuantityChange.status,422);
  const boqUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{rate:4});
  assert.equal(boqUpdate.status,200);assert.equal(boqUpdate.data.item.line_total,20);
