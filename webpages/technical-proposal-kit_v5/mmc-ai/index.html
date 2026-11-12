@@ -244,7 +244,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      <button id="boqAdd" type="button" class="btn primary">＋ Add Item</button>
     </div>
     <div id="boqSummary" class="note">Select a project to view Bill of Quantities.</div>
-    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="7" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
+    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Source / Traceability</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="7" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
     <p class="note">This project BOQ and cost estimate is separate from tender pricing in the Procurement Portal. Rates and quantities require review and approval by the responsible team.</p>
    </div></section>
   <section class="panel" id="schedulePanel" style="margin:18px 0"><div class="panelhead"><h2>Project Schedule & Critical Path</h2><span>SCHEDULE INTELLIGENCE · CPM</span></div><div style="padding:14px">
@@ -426,11 +426,25 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     for(const val of [item.item_code||'—',item.description,item.unit,item.quantity,item.rate, item.line_total.toFixed(3)]){
      const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);
     }
+    const sourceCell=document.createElement('td');sourceCell.style.cssText='padding:8px;border-bottom:1px solid #edf1f5;min-width:190px';
+    const src=item.sourceReference;
+    if(src){
+     const label=document.createElement('strong');label.textContent=(src.documentName||src.documentId)+' · '+(src.nativeCadLayer||'CAD layer');label.style.cssText='display:block;color:#31536f;font-size:11px';sourceCell.appendChild(label);
+     const meta=document.createElement('div');meta.textContent='Element '+src.takeoffItemId+' · '+src.entityType+' #'+src.entityIndex+' · '+src.quantity+' '+src.unit;meta.style.cssText='font-size:10px;color:#718096;margin-top:4px';sourceCell.appendChild(meta);
+     const status=document.createElement('div');status.textContent='Run '+src.runId+' · '+src.runStatus;status.style.cssText='font-size:10px;color:#718096;margin-top:3px';sourceCell.appendChild(status);
+     const m=src.measurement||{};
+     const trace=document.createElement('details');trace.style.cssText='margin-top:5px;font-size:10px';
+     const summaryNode=document.createElement('summary');summaryNode.textContent='Measurement details';summaryNode.style.cursor='pointer';trace.appendChild(summaryNode);
+     const detail=document.createElement('pre');detail.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0;color:#526579';
+     detail.textContent=[m.method&&('Method: '+m.method),m.ruleId&&('Rule: '+m.ruleId+(m.ruleVersion?' v'+m.ruleVersion:'')),m.formula&&('Formula: '+m.formula),m.inputs&&('Inputs: '+JSON.stringify(m.inputs)),m.geometry&&('Geometry: '+JSON.stringify(m.geometry))].filter(Boolean).join('\\n')||'No additional derivation details were stored for this source item.';
+     trace.appendChild(detail);sourceCell.appendChild(trace);
+    }else{sourceCell.textContent=item.source_takeoff_item_id?'Source record is no longer available in this project.':'Manual BOQ item — no drawing source linked.';}
+    tr.appendChild(sourceCell);
     const td=document.createElement('td'),del=document.createElement('button');del.type='button';del.textContent='Delete';del.style.cssText='border:1px solid #e6caca;border-radius:6px;padding:5px 8px;color:#9a4545;background:#10243d;cursor:pointer';
     del.addEventListener('click',async()=>{if(!confirm('Delete this BOQ item?'))return;const d=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/'+encodeURIComponent(item.id),{method:'DELETE',credentials:'same-origin'});const x=await d.json();if(!d.ok){notify(x.message||'Could not delete');return;}loadProjectBoq(id);});
     td.appendChild(del);tr.appendChild(td);body.appendChild(tr);
    }
-   if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='No BOQ items yet. Add the first item using the form above.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
+   if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='No BOQ items yet. Add the first item using the form above.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
  async function loadProjectSchedule(id){
