@@ -96,7 +96,8 @@ router.delete('/projects/:projectId/takeoff/runs/:runId/layers/:layerId',wrap(as
  if(!run)throw E.notFound('نتيجة الحصر غير موجودة.');
  const state=loadRunLayerState(db,run.id);
  try{state.layers=deleteUserLayer(state.layers,req.params.layerId);}catch(err){throw E.validation(err.message);}
- state.assignments=state.assignments.filter(x=>x.targetLayerId!==req.params.layerId);
+ if(state.assignments.some(x=>x.targetLayerId===req.params.layerId))throw E.validation('انقل العناصر المسندة إلى طبقة أخرى قبل حذف هذه الطبقة.');
+
  saveRunLayerState(db,req.params.projectId,run.id,req.user.id,state,'takeoff_layer_deleted');
  res.json({layers:state.layers});
 }));
