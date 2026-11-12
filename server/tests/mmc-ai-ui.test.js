@@ -66,6 +66,15 @@ test('BIM workspace supports issues, IFC and GLB uploads, inspection and preview
  assert.match(html,/id="bimViewerClose"/);
 });
 
+test('BOQ displays project-scoped drawing source traceability and measurement details',()=>{
+ assert.match(html,/<th>Source \/ Traceability<\/th>/);
+ assert.match(html,/item\.sourceReference/);
+ assert.match(html,/nativeCadLayer/);
+ assert.match(html,/takeoffItemId/);
+ assert.match(html,/Measurement details/);
+ assert.match(html,/Manual BOQ item — no drawing source linked/);
+});
+
 test('project schedule updates progress and refreshes executive indicators',()=>{
  assert.match(html,/percentComplete:value,status:status\.value/);
  assert.match(html,/loadExecutiveDashboard\(id\)/);
