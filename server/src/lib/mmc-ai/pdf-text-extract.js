@@ -98,7 +98,7 @@ function inspectContentOperators(src){
  const add=(x,y)=>{if(Number.isFinite(x)&&Number.isFinite(y)){points.push([x,y]);transformedPoints.push(transform(x,y));}};
  const concat=(m)=>{const [a,b,c,d,e,f]=m,[A,B,C,D,E,F]=ctm;ctm=[a*A+c*B,b*A+d*B,a*C+c*D,b*C+d*D,a*E+c*F+e,b*E+d*F+f];};
  for(const token of tokens){
-  if(/^[-+]?(?:\\d+\\.?\\d*|\\.\\d+)$/.test(token)){numbers.push(Number(token));continue;}
+  if(/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(token)){numbers.push(Number(token));continue;}
   if(!operators.has(token))continue;
   counts[token]=(counts[token]||0)+1;
   const take=n=>numbers.splice(Math.max(0,numbers.length-n),n);
