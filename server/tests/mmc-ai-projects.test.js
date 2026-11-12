@@ -54,6 +54,30 @@ test.before(async()=>{
 });
 test.after(async()=>{if(server)await new Promise(r=>server.close(r));closeDB();fs.rmSync(TMP,{recursive:true,force:true});});
 
+test('staging access gate fails closed and requires valid HTTP Basic credentials',async()=>{
+ const previous={required:process.env.STAGING_BASIC_AUTH_REQUIRED,user:process.env.STAGING_BASIC_AUTH_USER,password:process.env.STAGING_BASIC_AUTH_PASSWORD};
+ try{
+  process.env.STAGING_BASIC_AUTH_REQUIRED='true';
+  delete process.env.STAGING_BASIC_AUTH_USER;
+  delete process.env.STAGING_BASIC_AUTH_PASSWORD;
+  const locked=await fetch(base+'/api/health');
+  assert.equal(locked.status,503);
+  process.env.STAGING_BASIC_AUTH_USER='mmc-staging-test';
+  process.env.STAGING_BASIC_AUTH_PASSWORD='test-only-password-123';
+  const anonymous=await fetch(base+'/api/health');
+  assert.equal(anonymous.status,401);
+  assert.match(anonymous.headers.get('www-authenticate')||'',/Basic realm="MMC AI staging"/);
+  const invalid=await fetch(base+'/api/health',{headers:{Authorization:'Basic '+Buffer.from('mmc-staging-test:wrong-password').toString('base64')}});
+  assert.equal(invalid.status,401);
+  const authorized=await fetch(base+'/api/health',{headers:{Authorization:'Basic '+Buffer.from('mmc-staging-test:test-only-password-123').toString('base64')}});
+  assert.equal(authorized.status,200);
+ }finally{
+  if(previous.required===undefined)delete process.env.STAGING_BASIC_AUTH_REQUIRED;else process.env.STAGING_BASIC_AUTH_REQUIRED=previous.required;
+  if(previous.user===undefined)delete process.env.STAGING_BASIC_AUTH_USER;else process.env.STAGING_BASIC_AUTH_USER=previous.user;
+  if(previous.password===undefined)delete process.env.STAGING_BASIC_AUTH_PASSWORD;else process.env.STAGING_BASIC_AUTH_PASSWORD=previous.password;
+ }
+});
+
 test('MMC AI and administration HTML routes enforce authentication before static file serving',async()=>{
  const anonymousMmc=await fetch(base+'/mmc-ai/index.html',{redirect:'manual'});
  assert.equal(anonymousMmc.status,302);
