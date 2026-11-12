@@ -17,17 +17,36 @@ test('decodes XML entities',()=>{
 });
 
 test('normalizes native PDF text boxes to page-relative fractions without clamping',()=>{
- const box=normalizePageBox({xMin:60,yMin:80,xMax:180,yMax:200},600,800);
- assert.deepEqual(box,{left:0.1,top:0.1,right:0.3,bottom:0.25,width:0.2,height:0.15,coordinateSpace:'page_fraction_unclamped'});
+ const box=normalizePageBox({xMin:60,yMin:80,xMax:180,yMax:200},600,800,0);
+ assert.deepEqual(box,{left:0.1,top:0.1,right:0.3,bottom:0.25,width:0.2,height:0.15,rotationDegrees:0,coordinateSpace:'display_page_fraction_unclamped'});
 });
 test('rejects invalid page dimensions and degenerate text boxes during normalization',()=>{
- assert.equal(normalizePageBox({xMin:1,yMin:1,xMax:2,yMax:2},0,100),null);
- assert.equal(normalizePageBox({xMin:1,yMin:1,xMax:1,yMax:2},100,100),null);
- assert.equal(normalizePageBox(null,100,100),null);
+ assert.equal(normalizePageBox({xMin:1,yMin:1,xMax:2,yMax:2},0,100,0),null);
+ assert.equal(normalizePageBox({xMin:1,yMin:1,xMax:1,yMax:2},100,100,0),null);
+ assert.equal(normalizePageBox(null,100,100,0),null);
 });
 test('preserves out-of-page fractions for explicit clipping decisions by the viewer',()=>{
- const box=normalizePageBox({xMin:-5,yMin:10,xMax:105,yMax:30},100,100);
+ const box=normalizePageBox({xMin:-5,yMin:10,xMax:105,yMax:30},100,100,0);
  assert.equal(box.left,-0.05);
  assert.equal(box.right,1.05);
- assert.equal(box.coordinateSpace,'page_fraction_unclamped');
+ assert.equal(box.coordinateSpace,'display_page_fraction_unclamped');
+});
+
+test('rotates page-relative text evidence for 90, 180 and 270 degree PDF pages',()=>{
+ const source={xMin:10,yMin:20,xMax:30,yMax:40};
+ assert.deepEqual(normalizePageBox(source,100,200,90),{
+  left:0.8,top:0.1,right:0.9,bottom:0.3,width:0.1,height:0.2,
+  rotationDegrees:90,coordinateSpace:'display_page_fraction_unclamped'
+ });
+ assert.deepEqual(normalizePageBox(source,100,200,180),{
+  left:0.7,top:0.8,right:0.9,bottom:0.9,width:0.2,height:0.1,
+  rotationDegrees:180,coordinateSpace:'display_page_fraction_unclamped'
+ });
+ assert.deepEqual(normalizePageBox(source,100,200,270),{
+  left:0.1,top:0.7,right:0.2,bottom:0.9,width:0.1,height:0.2,
+  rotationDegrees:270,coordinateSpace:'display_page_fraction_unclamped'
+ });
+});
+test('rejects unsupported PDF rotation values',()=>{
+ assert.equal(normalizePageBox({xMin:1,yMin:1,xMax:2,yMax:2},100,100,45),null);
 });
