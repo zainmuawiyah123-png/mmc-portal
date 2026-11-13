@@ -31,7 +31,6 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
   console.error('[mmc-ai][dxf-takeoff][failed]',JSON.stringify({projectId:doc.project_id,documentId:doc.id,fileName:doc.original_name||doc.file_name||null,error:error.message}));
   throw error;
  }
- console.info('[mmc-ai][dxf-takeoff][completed]',JSON.stringify({projectId:doc.project_id,documentId:doc.id,engine:result.engine,readableEntities:result.summary.supportedEntities,unsupportedEntities:result.summary.unsupportedEntities,unsupportedTypes:result.unsupported,runStatus:'needs_review'}));
  const runId=uid('aitake_'),savedRows=[];
  db.transaction(()=>{
   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
@@ -42,6 +41,7 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
    VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'dxf_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,items:result.rows.length}));
  })();
+ console.info('[mmc-ai][dxf-takeoff][completed]',JSON.stringify({projectId:doc.project_id,documentId:doc.id,runId,engine:result.engine,readableEntities:result.summary.supportedEntities,unsupportedEntities:result.summary.unsupportedEntities,unsupportedTypes:result.unsupported,runStatus:'needs_review',savedItems:savedRows.length}));
  res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
 }));
 router.get('/projects/:projectId/takeoff/runs',wrap(async(req,res)=>{
