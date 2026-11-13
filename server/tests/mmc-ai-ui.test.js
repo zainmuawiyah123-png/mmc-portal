@@ -200,3 +200,12 @@ test('PDF extraction UI exposes nested API errors and provides a separate Arabic
  assert.match(html,/page\.averageConfidence/);
  assert.match(html,/OCR recognizes visible text only/);
 });
+
+
+test('DXF upload automatically starts the existing authenticated takeoff action',()=>{
+ assert.match(html,/take\.dataset\.action='dxf-takeoff'/);
+ assert.match(html,/take\.dataset\.documentId=String\(d\.id\)/);
+ assert.match(html,/box\.textContent='DXF saved\. Starting automatic geometric takeoff\.\.\.'/);
+ assert.match(html,/takeoffButton\.click\(\)/);
+ assert.match(html,/\/takeoff\/dxf/);
+});
