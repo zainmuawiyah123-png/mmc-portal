@@ -24,7 +24,14 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
  if(!(await store.exists(doc.storage_key)))throw E.notFound('ملف المخطط غير موجود في التخزين.');
  const raw=await store.get(doc.storage_key);
  if(!Buffer.isBuffer(raw))throw E.validation('تعذر قراءة ملف DXF من التخزين.');
- const result=takeoffDxf(raw.toString('utf8'));
+ let result;
+ try {
+  result=takeoffDxf(raw.toString('utf8'));
+ } catch(error) {
+  console.error('[mmc-ai][dxf-takeoff][failed]',JSON.stringify({projectId:doc.project_id,documentId:doc.id,fileName:doc.original_name||doc.file_name||null,error:error.message}));
+  throw error;
+ }
+ console.info('[mmc-ai][dxf-takeoff][completed]',JSON.stringify({projectId:doc.project_id,documentId:doc.id,engine:result.engine,readableEntities:result.summary.supportedEntities,unsupportedEntities:result.summary.unsupportedEntities,unsupportedTypes:result.unsupported,runStatus:'needs_review'}));
  const runId=uid('aitake_'),savedRows=[];
  db.transaction(()=>{
   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
