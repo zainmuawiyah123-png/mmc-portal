@@ -604,13 +604,14 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin'});
    if(!r.ok)throw new Error('Could not load project documents.');
    const docs=(await r.json()).documents||[];
+   let savedRuns=[];try{const runsResponse=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs',{credentials:'same-origin',cache:'no-store'});if(runsResponse.ok)savedRuns=(await runsResponse.json()).runs||[];}catch(_runsError){}
    if(!docs.length){const p=document.createElement('p');p.className='note';p.textContent='No documents uploaded for this project.';host.appendChild(p);return;}
    const list=document.createElement('div');list.style.cssText='display:grid;gap:8px';
    for(const d of docs){
     const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#10243d';
     const meta=document.createElement('div');meta.style.cssText='min-width:0';
     const name=document.createElement('div');name.textContent=d.original_name;name.style.cssText='font-size:11px;font-weight:600;color:#dce8f3;overflow-wrap:anywhere';
-    const sub=document.createElement('div');sub.textContent=d.file_ext.toUpperCase()+' · '+(d.size_bytes/1048576).toFixed(2)+' MB · Received; analysis not started';sub.dataset.documentStatus='received';sub.style.cssText='font-size:10px;color:#8996a4;margin-top:4px';
+    const sub=document.createElement('div');const latestRun=savedRuns.find(run=>String(run.document_id)===String(d.id));if(latestRun){const runSummary=latestRun.summary||{};const statusLabel=latestRun.status==='approved'?'Engineering review approved':latestRun.status==='rejected'?'Engineering review rejected':'Analysis completed · Pending engineering review';sub.textContent=d.file_ext.toUpperCase()+' · '+statusLabel+' · '+(runSummary.supportedEntities??0)+' readable · '+(runSummary.unsupportedEntities??0)+' unsupported';sub.dataset.documentStatus=latestRun.status||'completed';}else{sub.textContent=d.file_ext.toUpperCase()+' · '+(d.size_bytes/1048576).toFixed(2)+' MB · Received; analysis not started';sub.dataset.documentStatus='received';}sub.style.cssText='font-size:10px;color:#8996a4;margin-top:4px';
     meta.append(name,sub);
     const btn=document.createElement('button');btn.type='button';btn.textContent='Download';btn.style.cssText='border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
     btn.addEventListener('click',()=>{window.location.href='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/download';});
