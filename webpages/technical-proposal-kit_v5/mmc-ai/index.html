@@ -589,7 +589,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const name=window.prompt('Enter the new project name:');if(!name||name.trim().length<3)return;
   try{
    const r=await fetch('/api/mmc-ai/projects',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name.trim(),country:'JO',currency:'JOD'})});
-   const data=await r.json();if(!r.ok)throw new Error(data.message||'Could not create project.');
+   const data=await r.json();if(!r.ok)throw new Error(data.error?.message||data.message||('Could not create project (HTTP '+r.status+').'));if(!data.project)throw new Error('The server returned success without a project record.');
    await loadProjects(data.project.project_id||data.project.id);notify('Project created. You can now upload a site photo.');
   }catch(err){notify(err.message);}
  });
