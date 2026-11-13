@@ -706,7 +706,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      actions.appendChild(ocr);
     }
     if(d.file_ext==='.dxf'){
-     const take=document.createElement('button');take.type='button';take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     const take=document.createElement('button');take.type='button';take.dataset.action='dxf-takeoff';take.dataset.documentId=String(d.id);take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
      take.addEventListener('click',async()=>{
       take.disabled=true;take.textContent='Running takeoff...';
       try{
@@ -829,8 +829,16 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   try{
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
    const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
-   box.textContent='Document saved successfully. Engineering analysis has not started yet.';
+   box.textContent='Document saved successfully.';
    await loadProjectDocuments(id);
+   if(String(file.name||'').toLowerCase().endsWith('.dxf')){
+    const takeoffButton=Array.from(document.querySelectorAll('#projectDocuments button[data-action="dxf-takeoff"]')).find(button=>button.dataset.documentId===String(data.document?.id||''));
+    if(!takeoffButton)throw new Error('DXF was saved, but the automatic takeoff action could not be initialized.');
+    box.textContent='DXF saved. Starting automatic geometric takeoff...';
+    takeoffButton.click();
+   }else if(String(file.name||'').toLowerCase().endsWith('.pdf')){
+    box.textContent='PDF saved. Text and drawing-evidence reading remain separate from verified quantity measurement.';
+   }
   }catch(err){box.textContent=err.message;}finally{e.target.value='';}
  });
  document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{
