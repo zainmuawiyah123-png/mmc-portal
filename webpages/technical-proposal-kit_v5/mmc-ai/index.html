@@ -610,7 +610,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#10243d';
     const meta=document.createElement('div');meta.style.cssText='min-width:0';
     const name=document.createElement('div');name.textContent=d.original_name;name.style.cssText='font-size:11px;font-weight:600;color:#dce8f3;overflow-wrap:anywhere';
-    const sub=document.createElement('div');sub.textContent=d.file_ext.toUpperCase()+' · '+(d.size_bytes/1048576).toFixed(2)+' MB · Received; analysis not started';sub.style.cssText='font-size:10px;color:#8996a4;margin-top:4px';
+    const sub=document.createElement('div');sub.textContent=d.file_ext.toUpperCase()+' · '+(d.size_bytes/1048576).toFixed(2)+' MB · Received; analysis not started';sub.dataset.documentStatus='received';sub.style.cssText='font-size:10px;color:#8996a4;margin-top:4px';
     meta.append(name,sub);
     const btn=document.createElement('button');btn.type='button';btn.textContent='Download';btn.style.cssText='border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
     btn.addEventListener('click',()=>{window.location.href='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/download';});
@@ -708,12 +708,12 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     if(d.file_ext==='.dxf'){
      const take=document.createElement('button');take.type='button';take.dataset.action='dxf-takeoff';take.dataset.documentId=String(d.id);take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
      take.addEventListener('click',async()=>{
-      take.disabled=true;take.textContent='Running takeoff...';
+      take.disabled=true;take.textContent='Running takeoff...';sub.textContent=d.file_ext.toUpperCase()+' · Analysis running…';sub.dataset.documentStatus='running';const output=document.getElementById('takeoffResult');output.replaceChildren();const progress=document.createElement('p');progress.className='note';progress.textContent='DXF geometry analysis is running. No quantities are verified until engineering review.';output.appendChild(progress);
       try{
        const run=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/takeoff/dxf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-       const result=await run.json();if(!run.ok)throw new Error(result.message||result.error||'Could not run takeoff.');
-       const summary=result.run.summary||{};
-       const output=document.getElementById('takeoffResult');output.replaceChildren();
+       const result=await run.json();if(!run.ok){const apiError=result.error;const message=(apiError&&typeof apiError==='object'&&apiError.message)||result.message||(typeof apiError==='string'?apiError:null)||'Could not run takeoff (HTTP '+run.status+').';const error=new Error(message);error.code=apiError&&typeof apiError==='object'?apiError.code:null;error.status=run.status;error.details=apiError&&typeof apiError==='object'?apiError.details:null;throw error;}
+       const summary=result.run.summary||{};sub.textContent=d.file_ext.toUpperCase()+' · Analysis completed · '+(summary.supportedEntities??0)+' readable · '+(summary.unsupportedEntities??0)+' unsupported · Pending engineering review';sub.dataset.documentStatus='completed';
+       output.replaceChildren();
        const heading=document.createElement('strong');heading.textContent='Preliminary Result — Pending Engineering Review';heading.style.cssText='display:block;color:#a15a0b;margin-bottom:6px';
        const detail=document.createElement('div');detail.textContent='Readable entities: '+summary.supportedEntities+' · Unsupported entities: '+summary.unsupportedEntities+' · Total length: '+Number(summary.totalLength_m||0).toFixed(3)+' m · Closed area: '+Number(summary.totalClosedArea_m2||0).toFixed(3)+' m²';
        detail.style.cssText='font-size:11px;line-height:1.8;color:#dce8f3';
@@ -809,7 +809,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
        }
        output.appendChild(controls);
        notify('Takeoff saved as a draft requiring engineer review.');
-      }catch(err){notify(err.message);}finally{take.disabled=false;take.textContent='DXF Takeoff';}
+      }catch(err){sub.textContent=d.file_ext.toUpperCase()+' · Analysis failed · '+err.message;sub.dataset.documentStatus='failed';const errorPanel=document.getElementById('takeoffResult');errorPanel.replaceChildren();const errorTitle=document.createElement('strong');errorTitle.textContent='DXF analysis failed';errorTitle.style.cssText='display:block;color:#ff9b9b;margin-bottom:7px';const errorText=document.createElement('p');errorText.textContent=err.message+(err.code?' · '+err.code:'')+(err.status?' · HTTP '+err.status:'');errorText.style.cssText='font-size:11px;line-height:1.8;color:#ffd4d4;overflow-wrap:anywhere';errorPanel.append(errorTitle,errorText);if(err.details){const details=document.createElement('pre');details.textContent=typeof err.details==='string'?err.details:JSON.stringify(err.details,null,2);details.style.cssText='white-space:pre-wrap;font-size:10px;color:#e6eef7';errorPanel.appendChild(details);}notify('DXF analysis failed: '+err.message);}finally{take.disabled=false;take.textContent='Retry DXF Takeoff';}
      });
      actions.appendChild(take);
     }
