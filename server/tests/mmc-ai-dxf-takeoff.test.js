@@ -209,3 +209,45 @@ test('keeps DXF preview coordinates in source drawing units for all preview enti
  assert.equal(rows[3].geometry.startDegrees,90);
  assert.equal(rows[3].geometry.sweepDegrees,90);
 });
+
+
+test('reassembles legacy 2D POLYLINE VERTEX SEQEND and measures closed area', () => {
+  const ent = [
+    '0','POLYLINE','8','SLAB','66','1','70','1','10','0','20','0',
+    '0','VERTEX','10','0','20','0',
+    '0','VERTEX','10','4','20','0',
+    '0','VERTEX','10','4','20','3',
+    '0','VERTEX','10','0','20','3',
+    '0','SEQEND'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].entity, 'LWPOLYLINE');
+  assert.equal(result.rows[0].length_m, 14);
+  assert.equal(result.rows[0].area_m2, 12);
+  assert.equal(result.summary.unsupportedEntities, 0);
+});
+
+test('preserves legacy POLYLINE bulge geometry', () => {
+  const ent = [
+    '0','POLYLINE','8','CURVE','70','1',
+    '0','VERTEX','10','0','20','0','42','1',
+    '0','VERTEX','10','2','20','0',
+    '0','SEQEND'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.ok(Math.abs(result.rows[0].length_m - (Math.PI + 2)) < 1e-10);
+  assert.ok(Math.abs(result.rows[0].area_m2 - (Math.PI / 2)) < 1e-10);
+});
+
+test('does not interpret 3D POLYLINE as a 2D takeoff', () => {
+  const ent = [
+    '0','POLYLINE','8','3D','70','8',
+    '0','VERTEX','10','0','20','0','30','0',
+    '0','VERTEX','10','4','20','0','30','2',
+    '0','SEQEND'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.rows.length, 0);
+  assert.equal(result.unsupported.POLYLINE_3D_MESH_OR_FITTED_UNSUPPORTED, 1);
+});
