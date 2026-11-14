@@ -9,6 +9,7 @@ const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
 const {summarizeTakeoffLayers}=require('../lib/mmc-ai/drawing-layer-summary');
 const {createUserLayer,updateLayer,deleteUserLayer,assignEntityLayer}=require('../lib/mmc-ai/drawing-layer-manager');
 const router=express.Router();
+const activeTakeoffDocuments=new Set();
 router.use(A.requireAuth);
 function member(projectId,userId){
  return getDB().prepare(`SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?`).get(projectId,userId)||null;
@@ -20,6 +21,10 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
  const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
  if(!doc)throw E.notFound('المستند غير موجود.');
  if(doc.file_ext!=='.dxf')throw E.validation('النواة الحالية تقرأ DXF النصي فقط. ملفات PDF وDWG والصور لم تدخل محرك الحصر بعد.');
+ const lockKey=req.params.projectId+':'+doc.id;
+ if(activeTakeoffDocuments.has(lockKey))return res.status(409).json({error:{code:'TAKEOFF_ALREADY_RUNNING',message:'تحليل هذا المخطط قيد التنفيذ بالفعل. انتظر النتيجة الحالية بدلاً من تشغيل نسخة مكررة.'}});
+ activeTakeoffDocuments.add(lockKey);
+ try {
  const store=storage.getStorage();
  if(!(await store.exists(doc.storage_key)))throw E.notFound('ملف المخطط غير موجود في التخزين.');
  const raw=await store.get(doc.storage_key);
@@ -43,6 +48,7 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
  })();
  console.info('[mmc-ai][dxf-takeoff][completed]',JSON.stringify({projectId:doc.project_id,documentId:doc.id,runId,engine:result.engine,readableEntities:result.summary.supportedEntities,unsupportedEntities:result.summary.unsupportedEntities,unsupportedTypes:result.unsupported,runStatus:'needs_review',savedItems:savedRows.length}));
  res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
+ } finally { activeTakeoffDocuments.delete(lockKey); }
 }));
 router.get('/projects/:projectId/takeoff/runs',wrap(async(req,res)=>{
  requireMember(req);
