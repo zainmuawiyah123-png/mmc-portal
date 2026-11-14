@@ -38,6 +38,10 @@
 /* Preview adjustment: shift the featured Reel upward to prioritise the event footage over the sky */
 .art>iframe{top:-34px;height:calc(100% + 34px)}
 @media(max-width:560px){.art>iframe{top:-24px;height:calc(100% + 24px)}}
+
+/* Fill the hero frame with a larger crop of the embedded Reel */
+.art>iframe{transform:scale(1.22);transform-origin:center center;width:100%;height:100%;inset:0}
+@media(max-width:560px){.art>iframe{transform:scale(1.18);width:100%;height:100%;inset:0}}
 </style></head>
 <body><div class="top"><div class="wrap"><span data-en="Independent construction & procurement ecosystem" data-ar="منظومة مستقلة للإنشاءات والمشتريات">Independent construction & procurement ecosystem</span><a href="mailto:m.madadha@mrc-jordan.com">m.madadha@mrc-jordan.com</a></div></div>
 <header class="nav"><div class="wrap navin"><a class="brand" href="#home"><span class="mark">MMC</span><span>MMC<small>CONSTRUCTION & PROCUREMENT</small></span></a><nav class="links"><a href="#about" data-en="About" data-ar="عن المنصة">About</a><a href="#ecosystem" data-en="Our Ecosystem" data-ar="منظومتنا">Our Ecosystem</a><a href="#sectors" data-en="Who We Serve" data-ar="من نخدم">Who We Serve</a><a href="#contact" data-en="Contact" data-ar="تواصل معنا">Contact</a></nav><div><button class="lang" id="lang">العربية</button></div></div></header>
