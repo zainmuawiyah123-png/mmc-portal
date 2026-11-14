@@ -219,7 +219,7 @@ test('reassembles legacy 2D POLYLINE VERTEX SEQEND and measures closed area', ()
     '0','VERTEX','10','4','20','3',
     '0','VERTEX','10','0','20','3',
     '0','SEQEND'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.equal(result.rows.length, 1);
   assert.equal(result.rows[0].entity, 'LWPOLYLINE');
@@ -234,7 +234,7 @@ test('preserves legacy POLYLINE bulge geometry', () => {
     '0','VERTEX','10','0','20','0','42','1',
     '0','VERTEX','10','2','20','0',
     '0','SEQEND'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.ok(Math.abs(result.rows[0].length_m - (Math.PI + 2)) < 1e-10);
   assert.ok(Math.abs(result.rows[0].area_m2 - (Math.PI / 2)) < 1e-10);
@@ -246,7 +246,7 @@ test('does not interpret 3D POLYLINE as a 2D takeoff', () => {
     '0','VERTEX','10','0','20','0','30','0',
     '0','VERTEX','10','4','20','0','30','2',
     '0','SEQEND'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.equal(result.rows.length, 0);
   assert.equal(result.unsupported.POLYLINE_3D_MESH_OR_FITTED_UNSUPPORTED, 1);
