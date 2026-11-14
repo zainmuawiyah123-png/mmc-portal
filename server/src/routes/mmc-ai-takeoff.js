@@ -1,6 +1,7 @@
 'use strict';
 /** Deterministic DXF takeoff API. Every output is stored as proposed and requires human review. */
 const express=require('express');
+const crypto=require('node:crypto');
 const {getDB,uid}=require('../db');
 const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
@@ -29,6 +30,17 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
  if(!(await store.exists(doc.storage_key)))throw E.notFound('ملف المخطط غير موجود في التخزين.');
  const raw=await store.get(doc.storage_key);
  if(!Buffer.isBuffer(raw))throw E.validation('تعذر قراءة ملف DXF من التخزين.');
+ const sourceSha256=crypto.createHash('sha256').update(raw).digest('hex');
+ if(req.query.force!=='1'){
+  const previous=db.prepare('SELECT * FROM ai_takeoff_runs WHERE document_id=? ORDER BY created_at DESC LIMIT 1').get(doc.id);
+  if(previous){
+   const previousSummary=JSON.parse(previous.summary_json||'{}');
+   if(previousSummary.sourceSha256===sourceSha256){
+    const previousItems=db.prepare('SELECT id,entity_index,entity_type,layer_name,quantity,unit,detail_json,review_status FROM ai_takeoff_items WHERE run_id=? ORDER BY entity_index').all(previous.id);
+    return res.status(200).json({run:{id:previous.id,project_id:previous.project_id,document_id:previous.document_id,engine:previous.engine,status:previous.status,units:JSON.parse(previous.units_json),summary:previousSummary,unsupported:JSON.parse(previous.unsupported_json),items:previousItems.map(x=>({...x,detail:JSON.parse(x.detail_json),detail_json:undefined}))},reused:true});
+   }
+  }
+ }
  let result;
  try {
   result=takeoffDxf(raw.toString('utf8'));
@@ -39,7 +51,7 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
  const runId=uid('aitake_'),savedRows=[];
  db.transaction(()=>{
   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
-   VALUES(?,?,?,?,?,'needs_review',?,?,?)`).run(runId,doc.project_id,doc.id,req.user.id,result.engine,JSON.stringify(result.units),JSON.stringify(result.summary),JSON.stringify(result.unsupported));
+   VALUES(?,?,?,?,?,'needs_review',?,?,?)`).run(runId,doc.project_id,doc.id,req.user.id,result.engine,JSON.stringify(result.units),JSON.stringify({...result.summary,sourceSha256}),JSON.stringify(result.unsupported));
   const add=db.prepare(`INSERT INTO ai_takeoff_items(id,run_id,entity_index,entity_type,layer_name,quantity,unit,detail_json)
    VALUES(?,?,?,?,?,?,?,?)`);
   for(const row of result.rows){const itemId=uid('aitem_');add.run(itemId,runId,row.entityIndex,row.entity,row.layer||'0',row.quantity,row.unit,JSON.stringify(row));savedRows.push({...row,id:itemId,review_status:'needs_review'});}
