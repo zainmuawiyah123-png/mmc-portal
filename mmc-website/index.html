@@ -25,6 +25,15 @@
 
 /* Force the photo to be the first visible element in each portal card */
 .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card{display:flex !important;flex-direction:column !important;overflow:hidden;min-height:355px;padding:0 0 22px}.card .portal-photo{display:block !important;visibility:visible !important;opacity:1 !important;position:static !important;order:0 !important;width:100% !important;height:180px !important;min-height:180px;object-fit:cover;margin:0 0 18px !important}.card .ico{margin:0 22px 12px}.card h3,.card p,.card a{margin-left:22px;margin-right:22px}.card p{flex:1;font-size:13.5px;line-height:1.85}@media(max-width:850px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.cards{grid-template-columns:1fr}.card{min-height:0}.card .portal-photo{height:190px !important;min-height:190px}}
+
+/* Keep the hero labels discreet so they do not cover the featured video */
+.art .float{padding:7px 10px;border-radius:6px;opacity:.9}
+.art .float b{font-size:13px;line-height:1.1}
+.art .float span{font-size:9px}
+.art .f1{right:9px;top:9px}
+.art .f2{left:9px;bottom:9px}
+@media(max-width:560px){.art .float{padding:6px 8px}.art .float b{font-size:11px}.art .float span{font-size:8px}}
+
 </style></head>
 <body><div class="top"><div class="wrap"><span data-en="Independent construction & procurement ecosystem" data-ar="منظومة مستقلة للإنشاءات والمشتريات">Independent construction & procurement ecosystem</span><a href="mailto:m.madadha@mrc-jordan.com">m.madadha@mrc-jordan.com</a></div></div>
 <header class="nav"><div class="wrap navin"><a class="brand" href="#home"><span class="mark">MMC</span><span>MMC<small>CONSTRUCTION & PROCUREMENT</small></span></a><nav class="links"><a href="#about" data-en="About" data-ar="عن المنصة">About</a><a href="#ecosystem" data-en="Our Ecosystem" data-ar="منظومتنا">Our Ecosystem</a><a href="#sectors" data-en="Who We Serve" data-ar="من نخدم">Who We Serve</a><a href="#contact" data-en="Contact" data-ar="تواصل معنا">Contact</a></nav><div><button class="lang" id="lang">العربية</button></div></div></header>
