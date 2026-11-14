@@ -593,7 +593,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    await loadProjects(data.project.project_id||data.project.id);notify('Project created. You can now upload a site photo.');
   }catch(err){notify(err.message);}
  });
- const publicPreview=new URLSearchParams(window.location.search).get('preview')==='1';
+ const publicPreview=!window.location.pathname.startsWith('/mmc-ai/workspace');
  if(publicPreview){
   document.body.classList.add('public-preview');
   const banner=document.createElement('div');
