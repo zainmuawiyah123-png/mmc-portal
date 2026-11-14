@@ -98,7 +98,7 @@ function normalizeClassicPolylines(entities) {
       vertices.push({ x, y, bulge });
     }
 
-    const unsupportedMode = (flags & (2 | 4 | 8 | 16 | 64)) !== 0;
+    const unsupportedMode = (flags & (2 | 4 | 8 | 16 | 32 | 64)) !== 0;
     if (unsupportedMode || malformed || !foundEnd || vertices.length < 2) {
       mark(unsupportedMode ? 'POLYLINE_3D_MESH_OR_FITTED_UNSUPPORTED' : 'POLYLINE_INVALID_OR_INCOMPLETE');
       continue;
