@@ -253,20 +253,18 @@ function createApp() {
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
 
-  // MMC AI is an independent workspace within MMC, not a tender portal role.
+  // MMC AI public landing preview. Private project workspace is separately authenticated.
   app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res, next) => {
-    // Public preview is visual-only. Project data and every API remain protected by authentication.
-    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
-      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-      return sendFromWeb('mmc-ai/index.html', res, next);
-    }
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    return sendFromWeb('mmc-ai/index.html', res, next);
+  });
+  app.get(['/mmc-ai/workspace', '/mmc-ai/workspace/'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/mmc-ai/');
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/mmc-ai/workspace/');
       return sendFromWeb('mmc-ai/index.html', res, next);
     });
   });
-
 
   app.get(/^\/portal(\/.*)?$/, (req, res, next) => {
     let rel = req.path.replace(/^\/portal\/?/, '') || 'pt-9f3c7a1e5b2d/login.html';
