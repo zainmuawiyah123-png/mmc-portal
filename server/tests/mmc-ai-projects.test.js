@@ -133,6 +133,16 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const structuralUpload=await upload('ai-owner',projectId,'S-101-foundations.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'structural'});
  assert.equal(structuralUpload.status,201,JSON.stringify(structuralUpload.data));
  assert.equal(structuralUpload.data.document.discipline,'structural');
+ const initialPackages=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/drawing-packages');
+ assert.equal(initialPackages.status,200);assert.equal(initialPackages.data.packages.length,5);
+ assert.equal(initialPackages.data.packages.find(p=>p.discipline==='structural').status,'incomplete');
+ const savedPackage=await call('ai-owner','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/structural',{applicability:'required',expectedSheets:['S-101','S-102']});
+ assert.equal(savedPackage.status,200);
+ const structuralPackage=savedPackage.data.packages.find(p=>p.discipline==='structural');
+ assert.deepEqual(structuralPackage.expectedSheets,['S-101','S-102']);
+ assert.deepEqual(structuralPackage.missingSheets,['S-101','S-102']);
+ const forbiddenPackage=await call('ai-viewer','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/structural',{expectedSheets:['S-101']});
+ assert.equal(forbiddenPackage.status,403);
  const invalidDiscipline=await upload('ai-owner',projectId,'invalid-discipline.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'unknown-trade'});
  assert.equal(invalidDiscipline.status,422);
  const pdfPreflight=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/preflight/pdf',{});
@@ -261,6 +271,9 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(pdfTakeoff.status,422);
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
  assert.equal(docs.status,200);assert.equal(docs.data.documents.length,3);assert.ok(docs.data.documents.some(d=>d.id===structuralUpload.data.document.id&&d.discipline==='structural'));
+ assert.equal(docs.data.documents.find(d=>d.id===structuralUpload.data.document.id).sheet_number,null);
+ const invalidPackage=await call('ai-owner','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/not-a-discipline',{expectedSheets:[]});
+ assert.equal(invalidPackage.status,422);
  const docId=goodPdf.data.document.id;
  const ownerDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents/'+docId+'/download',{headers:{Cookie:jar['ai-owner']}});
  assert.equal(ownerDownload.status,200);
