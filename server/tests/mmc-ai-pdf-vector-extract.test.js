@@ -15,8 +15,21 @@ test('parses vector paths and applies the page coordinate matrix', () => {
   assert.deepEqual(result.paths[0].points[0], { x: 0, y: 792 });
 });
 
-test('rejects unsupported SVG transform forms', () => {
-  assert.throws(() => parseSvgMatrix('translate(10 20)'), /Unsupported SVG transform/);
+test('supports common SVG transforms and composes them in order', () => {
+  assert.deepEqual(parseSvgMatrix('translate(10 20) scale(2)'), [2, 0, 0, 2, 10, 20]);
+  assert.deepEqual(parseSvgMatrix('matrix(1 0 0 1 5 6)'), [1, 0, 0, 1, 5, 6]);
+});
+
+test('applies nested group transforms and excludes paths inside defs', () => {
+  const svg = '<svg><defs><path d="M0 0 L99 0 L99 99 Z"/></defs><g transform="translate(10 20)"><g transform="scale(2)"><path d="M0 0 L5 0 L5 4 L0 4 Z"/></g></g></svg>';
+  const result = parseSvgVectorPaths(svg);
+  assert.equal(result.pathCount, 1);
+  assert.equal(result.paths[0].areaSquareUnits, 160);
+  assert.deepEqual(result.paths[0].points[0], { x: 10, y: 20 });
+});
+
+test('rejects malformed SVG transform syntax', () => {
+  assert.throws(() => parseSvgMatrix('translate(10 20) broken'), /Unsupported|malformed/);
 });
 
 test('converts a real synthetic PDF page into vector geometry using Poppler', { skip: !hasPoppler }, async () => {
