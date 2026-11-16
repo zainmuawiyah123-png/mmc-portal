@@ -50,11 +50,13 @@ test('detects rectangular footprints automatically from extracted PDF vector pat
 });
 
 
+const { spawnSync } = require('node:child_process');
+const hasPoppler = spawnSync('pdftocairo', ['-v'], { stdio: 'ignore' }).status === 0;
 const { createTwoPageArchitecturalFixture } = require('./fixtures/mmc-ai-pdf-fixtures');
 const { extractPdfText } = require('../src/lib/mmc-ai/pdf-text-extract');
 const { inspectPdfVectorPage } = require('../src/lib/mmc-ai/pdf-pdf-vector-extract');
 
-test('multi-sheet PDF evidence links slab plan geometry to printed dimensions and section thickness', async t => {
+test('multi-sheet PDF evidence links slab plan geometry to printed dimensions and section thickness', { skip: !hasPoppler }, async t => {
  const bytes=createTwoPageArchitecturalFixture();
  const textEvidence=extractPdfText(bytes);
  assert.match(textEvidence.text,/OVERALL DIMENSIONS 6000 mm x 4000 mm/);
