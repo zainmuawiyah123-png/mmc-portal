@@ -543,7 +543,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('Could not open the selected project.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadDrawingPackages(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('Could not load project photos.');
   const images=(await list.json()).images||[];
@@ -872,7 +872,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      }catch(err){notify(err.message);}finally{save.disabled=false;}
     });
     const details=document.createElement('small');details.style.color='#9aaabd';
-    details.textContent='Received: '+(pkg.receivedSheets||[]).join(', ')+' · Missing: '+(pkg.missingSheets||[]).join(', ')+' · Unnumbered files: '+(pkg.unnumberedDocuments||[]).length+' · Duplicate sheet numbers: '+(pkg.duplicateSheetNumbers||[]).length;
+    details.textContent='Received: '+(pkg.receivedSheets||[]).join(', ')+' · Missing: '+(pkg.missingSheets||[]).join(', ')+' · Unnumbered files: '+(pkg.unnumberedDocuments||[]).length+' · Duplicate sheet/revision entries: '+(pkg.duplicateSheetNumbers||[]).length+' · Revision conflicts: '+(pkg.revisionConflicts||[]).length;
     row.append(expected,applicable,save,details);host.append(row);
    }
   }catch(err){host.textContent=err.message;}
