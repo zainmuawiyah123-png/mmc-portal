@@ -1,6 +1,6 @@
 'use strict';
 
-const TOKEN = /[a-zA-Z]|[-+]?(?:\\d*\\.)?\\d+(?:[eE][-+]?\\d+)?/g;
+const TOKEN = /[a-zA-Z]|[-+]?(?:(?:\\d+\\.\\d*)|(?:\\.\\d+)|(?:\\d+))(?:[eE][-+]?\\d+)?/g;
 const round = value => Number(value.toFixed(6));
 const CURVE_STEPS = 24;
 const ARC_STEPS_PER_TURN = 96;
