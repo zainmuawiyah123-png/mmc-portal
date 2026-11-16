@@ -90,6 +90,25 @@ function transformGeometry(geometry, matrix) {
   return { ...geometry, paths, pathCount: paths.length };
 }
 
+function parseSvgRootDimensions(svg) {
+  if (typeof svg !== 'string') throw new TypeError('SVG source is required');
+  const root = svg.match(/<svg\b[^>]*>/i)?.[0];
+  if (!root) throw new TypeError('SVG root element is missing');
+  const attrs = readAttributes(root);
+  const parseLength = value => {
+    if (typeof value !== 'string') return null;
+    const match = value.trim().match(/^([+]?(?:\d*\.)?\d+(?:[eE][+-]?\d+)?)(?:px|pt|pc|mm|cm|in)?$/i);
+    if (!match) return null;
+    const number = Number(match[1]);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  };
+  const values = typeof attrs.viewBox === 'string' ? attrs.viewBox.trim().split(/[\s,]+/).map(Number) : [];
+  const valid = values.length === 4 && values.every(Number.isFinite) && values[2] > 0 && values[3] > 0;
+  return { width: parseLength(attrs.width), height: parseLength(attrs.height),
+    viewBox: valid ? values : null, viewBoxStatus: valid ? 'valid' : attrs.viewBox ? 'invalid' : 'missing',
+    preserveAspectRatio: attrs.preserveAspectRatio || null };
+}
+
 function parseSvgVectorPaths(svg) {
   if (typeof svg !== 'string' || !/<svg\b/i.test(svg)) throw new TypeError('Invalid SVG page output');
   const withoutDefs = svg.replace(/<defs\b[^>]*>[\s\S]*?<\/defs>/gi, '');
@@ -163,8 +182,8 @@ async function inspectPdfVectorPage(input, { pageNumber = 1, knownDistanceMm = n
     if (!svgName) throw Object.assign(new Error('Poppler did not produce an SVG page'), { code: 'PDF_VECTOR_SVG_MISSING' });
     const svg = await fs.readFile(path.join(dir, svgName), 'utf8');
     const geometry = parseSvgVectorPaths(svg);
-    const dimensions = svg.match(/<svg\b[^>]*\bwidth="([^"]+)"[^>]*\bheight="([^"]+)"[^>]*\bviewBox="([^"]+)"/i);
-    const viewBox = dimensions?.[3].trim().split(/[ ,]+/).map(Number) || null;
+    const rootDimensions = parseSvgRootDimensions(svg);
+    const viewBox = rootDimensions.viewBox;
     let calibrated = null;
     if (knownDistanceMm !== null) {
       if (!calibrationPointA || !calibrationPointB) throw new TypeError('Two explicit calibration points are required with knownDistanceMm');
@@ -173,7 +192,7 @@ async function inspectPdfVectorPage(input, { pageNumber = 1, knownDistanceMm = n
       calibrated = { calibration, measurements: applySvgCalibration(geometry, calibration) };
     }
     return {
-      engine: 'mmc-pdf-poppler-svg-vector-v3', pageNumber, svgViewBox: viewBox, geometry, calibrated,
+      engine: 'mmc-pdf-poppler-svg-vector-v4', pageNumber, svgViewBox: viewBox, svgDimensions: rootDimensions, geometry, calibrated,
       status: geometry.pathCount ? 'vector_geometry_extracted_requires_engineering_review' : 'no_supported_vector_paths_found',
       notice: 'تم استخراج مسارات متجهة. لا تُعد كميات تعاقدية قبل التحقق من المقياس والتصنيف والمراجعة الهندسية.',
       source: { converter: 'pdftocairo -svg', pageNumber }, approvalEligible: false
@@ -183,4 +202,4 @@ async function inspectPdfVectorPage(input, { pageNumber = 1, knownDistanceMm = n
   }
 }
 
-module.exports = { readAttributes, parseSvgMatrix, multiplyMatrices, transformGeometry, parseSvgVectorPaths, inspectPdfVectorPage };
+module.exports = { readAttributes, parseSvgRootDimensions, parseSvgMatrix, multiplyMatrices, transformGeometry, parseSvgVectorPaths, inspectPdfVectorPage };
