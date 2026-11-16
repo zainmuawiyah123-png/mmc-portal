@@ -1,6 +1,6 @@
 'use strict';
 
-const TOKEN = /[a-zA-Z]|[-+]?(?:(?:\\d+\\.\\d*)|(?:\\.\\d+)|(?:\\d+))(?:[eE][-+]?\\d+)?/g;
+const TOKEN = /[a-zA-Z]|[-+]?(?:(?:\d+\.\d*)|(?:\.\d+)|(?:\d+))(?:[eE][-+]?\d+)?/g;
 const round = value => Number(value.toFixed(6));
 const CURVE_STEPS = 24;
 const ARC_STEPS_PER_TURN = 96;
@@ -8,7 +8,7 @@ const ARC_STEPS_PER_TURN = 96;
 function tokenizePathData(data) {
   if (typeof data !== 'string' || !data.trim()) throw new TypeError('SVG path data is required');
   const tokens = data.match(TOKEN) || [];
-  const residue = data.replace(TOKEN, '').replace(/[\\s,]/g, '');
+  const residue = data.replace(TOKEN, '').replace(/[\s,]/g, '');
   if (residue) throw new TypeError('SVG path contains invalid tokens');
   return tokens;
 }
