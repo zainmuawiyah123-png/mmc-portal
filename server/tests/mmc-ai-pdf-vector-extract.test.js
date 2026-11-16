@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
-const { inspectPdfVectorPage, parseSvgVectorPaths, parseSvgMatrix } = require('../src/lib/mmc-ai/pdf-pdf-vector-extract');
+const { parseSvgRootDimensions, inspectPdfVectorPage, parseSvgVectorPaths, parseSvgMatrix } = require('../src/lib/mmc-ai/pdf-pdf-vector-extract');
 const { createTwoPageArchitecturalFixture } = require('./fixtures/mmc-ai-pdf-fixtures');
 const hasPoppler = spawnSync('pdftocairo', ['-v'], { stdio: 'ignore' }).status === 0;
 
@@ -36,6 +36,18 @@ test('extracts sampled Bezier and arc paths through the PDF SVG adapter', () => 
   assert.ok(result.paths[1].lengthUnits > 15.6 && result.paths[1].lengthUnits < 15.8);
   assert.equal(result.unsupportedPathCount, 0);
   assert.match(result.limitations[0], /approximations/);
+});
+
+test('reads SVG viewBox and dimensions regardless of root attribute order', () => {
+  const parsed = parseSvgRootDimensions('<svg viewBox="0, 0, 1000, 500" height="500pt" preserveAspectRatio="none" width="1000pt">');
+  assert.deepEqual(parsed.viewBox, [0, 0, 1000, 500]);
+  assert.equal(parsed.width, 1000);
+  assert.equal(parsed.height, 500);
+  assert.equal(parsed.viewBoxStatus, 'valid');
+  assert.equal(parsed.preserveAspectRatio, 'none');
+  const invalid = parseSvgRootDimensions('<svg viewBox="0 0 -1 20">');
+  assert.equal(invalid.viewBox, null);
+  assert.equal(invalid.viewBoxStatus, 'invalid');
 });
 
 test('rejects malformed SVG transform syntax', () => {
