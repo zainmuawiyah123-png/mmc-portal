@@ -28,8 +28,8 @@ async function call(user,method,url,body){
  return {status:r.status,data};
 }
 const uniq=()=>Math.random().toString(36).slice(2,10);
-async function upload(user,projectId,name,bytes){
- const form=new FormData();form.append('file',new Blob([bytes]),name);
+async function upload(user,projectId,name,bytes,fields={}){
+ const form=new FormData();form.append('file',new Blob([bytes]),name);for(const [k,v] of Object.entries(fields))form.append(k,String(v));
  const r=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents',{method:'POST',headers:{...(jar[user]?{Cookie:jar[user]}:{})},body:form});
  const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();
  return {status:r.status,data};
@@ -129,6 +129,12 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(goodPdf.status,201,JSON.stringify(goodPdf.data));
 
  assert.equal(goodPdf.data.document.file_ext,'.pdf');
+ assert.equal(goodPdf.data.document.discipline,'unclassified');
+ const structuralUpload=await upload('ai-owner',projectId,'S-101-foundations.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'structural'});
+ assert.equal(structuralUpload.status,201,JSON.stringify(structuralUpload.data));
+ assert.equal(structuralUpload.data.document.discipline,'structural');
+ const invalidDiscipline=await upload('ai-owner',projectId,'invalid-discipline.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'unknown-trade'});
+ assert.equal(invalidDiscipline.status,422);
  const pdfPreflight=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/preflight/pdf',{});
  assert.equal(pdfPreflight.status,200,JSON.stringify(pdfPreflight.data));
  assert.equal(pdfPreflight.data.report.status,'preflight_passed');
@@ -254,7 +260,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const pdfTakeoff=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/takeoff/dxf',{});
  assert.equal(pdfTakeoff.status,422);
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
- assert.equal(docs.status,200);assert.equal(docs.data.documents.length,2);
+ assert.equal(docs.status,200);assert.equal(docs.data.documents.length,3);assert.ok(docs.data.documents.some(d=>d.id===structuralUpload.data.document.id&&d.discipline==='structural'));
  const docId=goodPdf.data.document.id;
  const ownerDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents/'+docId+'/download',{headers:{Cookie:jar['ai-owner']}});
  assert.equal(ownerDownload.status,200);
