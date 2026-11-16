@@ -213,6 +213,7 @@ test('DXF upload automatically starts the existing authenticated takeoff action'
  assert.match(html,/take\.dataset\.action='dxf-takeoff'/);
  assert.match(html,/take\.dataset\.documentId=String\(d\.id\)/);
  assert.match(html,/box\.textContent='DXF saved\. Starting automatic geometric takeoff\.\.\.'/);
- assert.match(html,/action\.click\(\)/);\n assert.match(html,/data-action="dxf-takeoff"/);
+ assert.match(html,/action\.click\(\)/);
+ assert.match(html,/data-action="dxf-takeoff"/);
  assert.match(html,/\/takeoff\/dxf/);
 });
