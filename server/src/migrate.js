@@ -1338,6 +1338,13 @@ function upgradeMmcAiProjects(db) {
   `);
 }
 
+/** Additive, repeatable discipline classification for MMC AI project drawings. */
+function upgradeMmcAiDocumentDisciplines(db) {
+  const columns = new Set(db.prepare('PRAGMA table_info(ai_documents)').all().map((c) => c.name));
+  if (!columns.has('discipline')) db.exec("ALTER TABLE ai_documents ADD COLUMN discipline TEXT NOT NULL DEFAULT 'unclassified'");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_ai_documents_project_discipline ON ai_documents(project_id,discipline,created_at DESC)");
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1379,6 +1386,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
+  upgradeMmcAiDocumentDisciplines(db);
 
   return db;
 }
