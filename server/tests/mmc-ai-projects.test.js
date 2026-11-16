@@ -78,10 +78,10 @@ test('staging access gate fails closed and requires valid HTTP Basic credentials
  }
 });
 
-test('MMC AI and administration HTML routes enforce authentication before static file serving',async()=>{
- const anonymousMmc=await fetch(base+'/mmc-ai/index.html',{redirect:'manual'});
+test('MMC AI workspace and administration HTML routes enforce authentication before static file serving',async()=>{
+ const anonymousMmc=await fetch(base+'/mmc-ai/workspace/',{redirect:'manual'});
  assert.equal(anonymousMmc.status,302);
- assert.match(anonymousMmc.headers.get('location')||'',/login\.html/);
+ assert.match(anonymousMmc.headers.get('location')||'',/login\.html\?next=\/mmc-ai\/workspace\//);
  const anonymousAdmin=await fetch(base+'/admin/index.html',{redirect:'manual'});
  assert.equal(anonymousAdmin.status,302);
  assert.match(anonymousAdmin.headers.get('location')||'',/login\.html/);
