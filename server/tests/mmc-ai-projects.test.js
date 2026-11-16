@@ -130,9 +130,9 @@ test('MMC AI project membership isolates projects and enforces viewer permission
 
  assert.equal(goodPdf.data.document.file_ext,'.pdf');
  assert.equal(goodPdf.data.document.discipline,'unclassified');
- const structuralUpload=await upload('ai-owner',projectId,'S-101-foundations.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'structural'});
+ const structuralUpload=await upload('ai-owner',projectId,'S-101-foundations.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'structural',sheetNumber:'S-101',revision:'A',drawingTitle:'Foundation Layout'});
  assert.equal(structuralUpload.status,201,JSON.stringify(structuralUpload.data));
- assert.equal(structuralUpload.data.document.discipline,'structural');
+ assert.equal(structuralUpload.data.document.discipline,'structural');assert.equal(structuralUpload.data.document.sheet_number,'S-101');assert.equal(structuralUpload.data.document.revision,'A');
  const initialPackages=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/drawing-packages');
  assert.equal(initialPackages.status,200);assert.equal(initialPackages.data.packages.length,5);
  assert.equal(initialPackages.data.packages.find(p=>p.discipline==='structural').status,'incomplete');
@@ -140,7 +140,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(savedPackage.status,200);
  const structuralPackage=savedPackage.data.packages.find(p=>p.discipline==='structural');
  assert.deepEqual(structuralPackage.expectedSheets,['S-101','S-102']);
- assert.deepEqual(structuralPackage.missingSheets,['S-101','S-102']);
+ assert.deepEqual(structuralPackage.missingSheets,['S-102']);assert.deepEqual(structuralPackage.receivedSheets,['S-101']);
  const forbiddenPackage=await call('ai-viewer','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/structural',{expectedSheets:['S-101']});
  assert.equal(forbiddenPackage.status,403);
  const invalidDiscipline=await upload('ai-owner',projectId,'invalid-discipline.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'unknown-trade'});
