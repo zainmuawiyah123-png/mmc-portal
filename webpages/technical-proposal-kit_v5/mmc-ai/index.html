@@ -310,7 +310,19 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   </div></section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>Quantity Takeoff Register</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Unit</th><th>Quantity</th><th>Status</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">No verified quantities yet. Results will appear here when the measurement engine and engineering verification are enabled.</td></tr></tbody></table></div></section>
-   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
+   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>UPLOAD BY ENGINEERING DISCIPLINE</span></div><div class="uploadbox">
+   <p class="note" style="margin-top:0">اختر خانة التخصص المناسبة. يمكنك رفع عدة لوحات وملفات لكل تخصص؛ سيحفظ النظام التصنيف مع كل ملف.</p>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
+    <label class="drop"><div class="cloud">▦</div><strong>المخططات الإنشائية · Structural</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><input class="discipline-upload" data-discipline="structural" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple></label>
+    <label class="drop"><div class="cloud">⌂</div><strong>المخططات المعمارية · Architectural</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><input class="discipline-upload" data-discipline="architectural" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple></label>
+    <label class="drop"><div class="cloud">ϟ</div><strong>المخططات الكهربائية · Electrical</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><input class="discipline-upload" data-discipline="electrical" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple></label>
+    <label class="drop"><div class="cloud">⚙</div><strong>المخططات الميكانيكية · Mechanical</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><input class="discipline-upload" data-discipline="mechanical" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple></label>
+    <label class="drop"><div class="cloud">♧</div><strong>الصحي ومكافحة الحريق · Plumbing & Fire</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><input class="discipline-upload" data-discipline="plumbing_fire" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple></label>
+   </div>
+   <div class="filemsg" id="filemsg" style="display:block">لم يتم رفع ملفات بعد. اختر التخصص ثم الملفات.</div>
+   <div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div>
+   <p class="note">الصيغ المقبولة حالياً PDF وDXF وPNG وJPG. لا نعرض DWG كصيغة مدعومة حتى إضافة تحويل موثوق. الرفع والحفظ لا يعنيان أن الحصر الآلي لهذا التخصص أصبح جاهزاً.</p>
+  </div></section>
   </div>
 
 <section id="plans" aria-labelledby="plansTitle">
@@ -829,28 +841,23 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   }catch(e){const p=document.createElement('p');p.className='note';p.textContent=e.message;host.appendChild(p);}
  }
  const originalSelectProject=selectProject;
- document.getElementById('drawingFile').addEventListener('change',async e=>{
-  const file=e.target.files&&e.target.files[0];if(!file)return;
-  const box=document.getElementById('filemsg');box.style.display='block';
-  if(!activeProject){box.textContent='Select a project before uploading a document.';e.target.value='';return;}
-  if(file.size>25*1024*1024){box.textContent='File exceeds the 25 MB limit.';e.target.value='';return;}
-  const id=activeProject.project_id||activeProject.id,fd=new FormData();fd.append('file',file);
-  box.textContent='Uploading '+file.name+' to the secure project workspace...';
-  try{
-   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
-   const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
-   box.textContent='Document saved successfully.';
-   await loadProjectDocuments(id);
-   if(String(file.name||'').toLowerCase().endsWith('.dxf')){
-    const takeoffButton=Array.from(document.querySelectorAll('#projectDocuments button[data-action="dxf-takeoff"]')).find(button=>button.dataset.documentId===String(data.document?.id||''));
-    if(!takeoffButton)throw new Error('DXF was saved, but the automatic takeoff action could not be initialized.');
-    box.textContent='DXF saved. Starting automatic geometric takeoff...';
-    takeoffButton.click();
-   }else if(String(file.name||'').toLowerCase().endsWith('.pdf')){
-    box.textContent='PDF saved. Text and drawing-evidence reading remain separate from verified quantity measurement.';
-   }
-  }catch(err){box.textContent=err.message;}finally{e.target.value='';}
- });
+ document.querySelectorAll('.discipline-upload').forEach(input=>input.addEventListener('change',async e=>{
+  const files=[...(e.target.files||[])];if(!files.length)return;
+  const box=document.getElementById('filemsg');
+  if(!activeProject){box.textContent='Select a project before uploading documents.';e.target.value='';return;}
+  const id=activeProject.project_id||activeProject.id,discipline=input.dataset.discipline;
+  for(const file of files){
+   if(file.size>25*1024*1024){box.textContent=file.name+': file exceeds the 25 MB limit; skipped.';continue;}
+   const fd=new FormData();fd.append('file',file);fd.append('discipline',discipline);
+   box.textContent='Uploading '+file.name+' · '+discipline+'...';
+   try{
+    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
+    const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
+    box.textContent='Saved '+file.name+' under '+discipline+'. Automated engineering analysis has not started.';
+   }catch(err){box.textContent=file.name+': '+err.message;}
+  }
+  await loadProjectDocuments(id);e.target.value='';
+ }));
  document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{
   e.preventDefault();
   const key=(a.getAttribute('href')||'').slice(1);
