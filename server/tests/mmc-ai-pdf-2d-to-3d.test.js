@@ -59,8 +59,8 @@ test('multi-sheet PDF evidence links slab plan geometry to printed dimensions an
  const textEvidence=extractPdfText(bytes);
  assert.match(textEvidence.text,/OVERALL DIMENSIONS 6000 mm x 4000 mm/);
  assert.match(textEvidence.text,/SLAB S1 THICKNESS 200 mm/);
- const dimension=textEvidence.text.match(/OVERALL DIMENSIONS\\s+(\\d+)\\s*mm\\s*[x×]\\s*(\\d+)\\s*mm/i);
- const section=textEvidence.text.match(/SLAB\\s+S1\\s+THICKNESS\\s+(\\d+)\\s*mm/i);
+ const dimension=textEvidence.text.match(/OVERALL DIMENSIONS\s+(\d+)\s*mm\s*[x×]\s*(\d+)\s*mm/i);
+ const section=textEvidence.text.match(/SLAB\s+S1\s+THICKNESS\s+(\d+)\s*mm/i);
  assert.ok(dimension,'printed plan dimensions must be extracted from the PDF');
  assert.ok(section,'section thickness must be extracted from the PDF');
  const plan=await inspectPdfVectorPage(bytes,{pageNumber:1});
