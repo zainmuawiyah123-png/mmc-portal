@@ -48,12 +48,16 @@ function packageSummary(db,projectId){
   const selected=docs.filter(d=>d.discipline===discipline);
   const received=new Set(selected.map(d=>d.sheet_number).filter(Boolean));
   const missing=expected.filter(s=>!received.has(s));
-  const duplicateSheets=Object.entries(selected.filter(d=>d.sheet_number).reduce((a,d)=>{(a[d.sheet_number]??=[]).push(d);return a;},{})).filter(([,items])=>items.length>1).map(([sheetNumber,items])=>({sheetNumber,documents:items.map(d=>({id:d.id,revision:d.revision,filename:d.original_name}))}));
-  const unnumbered=selected.filter(d=>!d.sheet_number).map(d=>({id:d.id,filename:d.original_name}));
   const revisions=selected.filter(d=>d.sheet_number).reduce((a,d)=>{(a[d.sheet_number]??=[]).push(d);return a;},{});
+  const duplicateSheets=Object.entries(revisions).flatMap(([sheetNumber,items])=>{
+   const byRevision=items.reduce((a,d)=>{const key=d.revision||'(no revision)';(a[key]??=[]).push(d);return a;},{});
+   return Object.entries(byRevision).filter(([,same])=>same.length>1).map(([revision,same])=>({sheetNumber,revision,documents:same.map(d=>({id:d.id,filename:d.original_name}))}));
+  });
+  const unnumbered=selected.filter(d=>!d.sheet_number).map(d=>({id:d.id,filename:d.original_name}));
   const revisionSets=Object.entries(revisions).map(([sheetNumber,items])=>({sheetNumber,revisions:[...new Set(items.map(d=>d.revision).filter(Boolean))]}));
-  const status=pkg.applicability==='not_required'?'not_required':(!selected.length?'awaiting_upload':(missing.length||unnumbered.length||duplicateSheets.length?'incomplete':'ready_for_review'));
-  return {discipline,applicability:pkg.applicability,expectedSheets:expected,receivedSheets:[...received].sort(),missingSheets:missing,unnumberedDocuments:unnumbered,duplicateSheetNumbers:duplicateSheets,revisionSets,documents:selected,status,updatedAt:pkg.updated_at};
+  const revisionConflicts=revisionSets.filter(x=>x.revisions.length>1);
+  const status=pkg.applicability==='not_required'?'not_required':(!selected.length?'awaiting_upload':(missing.length||unnumbered.length||duplicateSheets.length||revisionConflicts.length?'incomplete':'ready_for_review'));
+  return {discipline,applicability:pkg.applicability,expectedSheets:expected,receivedSheets:[...received].sort(),missingSheets:missing,unnumberedDocuments:unnumbered,duplicateSheetNumbers:duplicateSheets,revisionConflicts,revisionSets,documents:selected,status,updatedAt:pkg.updated_at};
  });
 }
 router.get('/projects/:projectId/documents',wrap(async(req,res)=>{
