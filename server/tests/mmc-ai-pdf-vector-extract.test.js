@@ -60,9 +60,11 @@ test('converts a real synthetic PDF page into vector geometry using Poppler', { 
   assert.equal(result.status, 'vector_geometry_extracted_requires_engineering_review');
   assert.ok(result.geometry.pathCount >= 2);
   const areas = result.geometry.paths.filter(path => path.closed).map(path => path.areaSquareUnits).sort((a,b)=>a-b);
-  assert.ok(areas.includes(80000), 'fixture detail outline should be present');
-  assert.ok(areas.includes(240000), 'fixture overall plan outline should be present');
+  assert.ok(areas.includes(80000), 'second-page section detail outline should be present');
   assert.equal(result.approvalEligible, false);
+  const plan = await inspectPdfVectorPage(createTwoPageArchitecturalFixture(), { pageNumber: 1 });
+  const planAreas = plan.geometry.paths.filter(path => path.closed).map(path => path.areaSquareUnits);
+  assert.ok(planAreas.includes(240000), 'first-page overall plan outline should be present');
 });
 
 test('calibrates a synthetic PDF vector page only when explicit points and known dimension are supplied', { skip: !hasPoppler }, async () => {
@@ -74,6 +76,13 @@ test('calibrates a synthetic PDF vector page only when explicit points and known
   });
   assert.ok(result.calibrated);
   const areas = result.calibrated.measurements.paths.map(path => path.areaM2).filter(Number.isFinite).sort((a,b)=>a-b);
-  assert.ok(areas.includes(8), 'calibrated detail area should be present');
-  assert.ok(areas.includes(24), 'calibrated overall plan area should be present');
+  assert.ok(areas.includes(8), 'second-page calibrated section detail area should be present');
+  const plan = await inspectPdfVectorPage(createTwoPageArchitecturalFixture(), {
+    pageNumber: 1,
+    knownDistanceMm: 6000,
+    calibrationPointA: { x: 0, y: 792 },
+    calibrationPointB: { x: 600, y: 792 }
+  });
+  const planAreas = plan.calibrated.measurements.paths.map(path => path.areaM2).filter(Number.isFinite);
+  assert.ok(planAreas.includes(24), 'first-page calibrated overall plan area should be present');
 });
