@@ -320,7 +320,11 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     <label class="drop"><div class="cloud">♧</div><strong>الصحي ومكافحة الحريق · Plumbing & Fire</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><input class="discipline-upload" data-discipline="plumbing_fire" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple></label>
    </div>
    <div class="filemsg" id="filemsg" style="display:block">لم يتم رفع ملفات بعد. اختر التخصص ثم الملفات.</div>
-   <div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div>
+   <div class="panel" style="margin-top:14px;padding:12px;background:#0d1d31">
+     <strong style="color:#dce8f3">Drawing Package Register / سجل اكتمال اللوحات</strong>
+     <p class="note">سجل أرقام اللوحات المتوقعة لكل تخصص. لا يعتبر التخصص مكتملاً لمجرد رفع ملف؛ يجب تسجيل رقم كل لوحة وإصدارها ومراجعة النواقص.</p>
+     <div id="drawingPackageRegister" style="display:grid;gap:8px"><p class="note">Select a project to review drawing packages.</p></div>
+    </div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div>
    <p class="note">الصيغ المقبولة حالياً PDF وDXF وPNG وJPG. لا نعرض DWG كصيغة مدعومة حتى إضافة تحويل موثوق. الرفع والحفظ لا يعنيان أن الحصر الآلي لهذا التخصص أصبح جاهزاً.</p>
   </div></section>
   </div>
@@ -842,6 +846,37 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   }catch(e){const p=document.createElement('p');p.className='note';p.textContent=e.message;host.appendChild(p);}
  }
  const originalSelectProject=selectProject;
+ async function loadDrawingPackages(id){
+  const host=document.getElementById('drawingPackageRegister');host.replaceChildren();
+  if(!id){host.textContent='Select a project first.';return;}
+  const labels={structural:'إنشائي / Structural',architectural:'معماري / Architectural',electrical:'كهرباء / Electrical',mechanical:'ميكانيكا / Mechanical',plumbing_fire:'صحي ومكافحة حريق / Plumbing & Fire'};
+  try{
+   const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/drawing-packages',{credentials:'same-origin',cache:'no-store'});
+   const data=await response.json();if(!response.ok)throw new Error(data.message||'Could not load package register.');
+   for(const pkg of data.packages||[]){
+    const row=document.createElement('div');row.style.cssText='display:grid;gap:6px;border:1px solid var(--line);border-radius:8px;padding:9px;background:#10243d';
+    const head=document.createElement('div');head.style.cssText='display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap';
+    const title=document.createElement('strong');title.textContent=labels[pkg.discipline]||pkg.discipline;title.style.color='#dce8f3';
+    const status=document.createElement('small');const statusText={awaiting_upload:'بانتظار رفع اللوحات',incomplete:'غير مكتمل — توجد نواقص',ready_for_review:'الملفات مسجلة — بانتظار المراجعة الهندسية',not_required:'غير مطلوب لهذا المشروع'};status.textContent=statusText[pkg.status]||pkg.status;status.style.color=pkg.status==='ready_for_review'?'#8fc6a0':'#d9b878';
+    head.append(title,status);row.append(head);
+    const expected=document.createElement('input');expected.type='text';expected.value=(pkg.expectedSheets||[]).join(', ');expected.placeholder='Expected sheet numbers, comma separated (e.g. S-001, S-101)';
+    expected.style.cssText='width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:#f8fafc;color:#20364d';
+    const applicable=document.createElement('select');applicable.innerHTML='<option value="required">Required / مطلوب</option><option value="not_required">Not required / غير مطلوب</option>';applicable.value=pkg.applicability;applicable.style.cssText='padding:7px;border:1px solid var(--line);border-radius:6px';
+    const save=document.createElement('button');save.type='button';save.textContent='Save package requirements';save.className='btn';save.style.cssText='padding:7px 10px;font-size:10px';
+    save.addEventListener('click',async()=>{
+     save.disabled=true;try{
+      const expectedSheets=expected.value.split(',').map(x=>x.trim()).filter(Boolean);
+      const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/drawing-packages/'+pkg.discipline,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({applicability:applicable.value,expectedSheets})});
+      const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not save package requirements.');
+      await loadDrawingPackages(id);notify('Drawing package requirements saved.');
+     }catch(err){notify(err.message);}finally{save.disabled=false;}
+    });
+    const details=document.createElement('small');details.style.color='#9aaabd';
+    details.textContent='Received: '+(pkg.receivedSheets||[]).join(', ')+' · Missing: '+(pkg.missingSheets||[]).join(', ')+' · Unnumbered files: '+(pkg.unnumberedDocuments||[]).length+' · Duplicate sheet numbers: '+(pkg.duplicateSheetNumbers||[]).length;
+    row.append(expected,applicable,save,details);host.append(row);
+   }
+  }catch(err){host.textContent=err.message;}
+ }
  document.querySelectorAll('.discipline-upload').forEach(input=>input.addEventListener('change',async e=>{
   const files=[...(e.target.files||[])];if(!files.length)return;
   const box=document.getElementById('filemsg');
@@ -849,15 +884,18 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const id=activeProject.project_id||activeProject.id,discipline=input.dataset.discipline;
   for(const file of files){
    if(file.size>25*1024*1024){box.textContent=file.name+': file exceeds the 25 MB limit; skipped.';continue;}
-   const fd=new FormData();fd.append('file',file);fd.append('discipline',discipline);
+   const sheetNumber=window.prompt('Sheet number for '+file.name+' (leave blank if unknown):')||'';
+   const revision=window.prompt('Revision for '+file.name+' (leave blank if unknown):')||'';
+   const drawingTitle=window.prompt('Drawing title for '+file.name+' (optional):')||'';
+   const fd=new FormData();fd.append('file',file);fd.append('discipline',discipline);fd.append('sheetNumber',sheetNumber);fd.append('revision',revision);fd.append('drawingTitle',drawingTitle);
    box.textContent='Uploading '+file.name+' · '+discipline+'...';
    try{
     const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
     const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
-    box.textContent='Saved '+file.name+' under '+discipline+'. Automated engineering analysis has not started.';
+    box.textContent='Saved '+file.name+' under '+discipline+'. Drawing registration saved; engineering analysis is not yet complete.';
    }catch(err){box.textContent=file.name+': '+err.message;}
   }
-  await loadProjectDocuments(id);e.target.value='';
+  await loadProjectDocuments(id);await loadDrawingPackages(id);e.target.value='';
  }));
  document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{
   e.preventDefault();
