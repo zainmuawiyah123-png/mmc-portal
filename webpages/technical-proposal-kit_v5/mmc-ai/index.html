@@ -895,7 +895,16 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     box.textContent='Saved '+file.name+' under '+discipline+'. Drawing registration saved; engineering analysis is not yet complete.';
    }catch(err){box.textContent=file.name+': '+err.message;}
   }
-  await loadProjectDocuments(id);await loadDrawingPackages(id);e.target.value='';
+  await loadProjectDocuments(id);await loadDrawingPackages(id);
+  if(files.some(file=>file.name.toLowerCase().endsWith('.dxf'))){
+   box.textContent='DXF saved. Starting automatic geometric takeoff...';
+   const uploaded=(await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin',cache:'no-store'})).ok?await (await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin',cache:'no-store'})).json():{documents:[]};
+   for(const file of files.filter(x=>x.name.toLowerCase().endsWith('.dxf'))){
+    const doc=(uploaded.documents||[]).find(x=>x.original_name===file.name&&x.discipline===discipline);
+    if(doc){const action=document.querySelector('[data-action="dxf-takeoff"][data-document-id="'+String(doc.id)+'"]');if(action)action.click();}
+   }
+  }
+  e.target.value='';
  }));
  document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{
   e.preventDefault();
