@@ -92,11 +92,12 @@ function transformGeometry(geometry, matrix) {
 
 function parseSvgVectorPaths(svg) {
   if (typeof svg !== 'string' || !/<svg\b/i.test(svg)) throw new TypeError('Invalid SVG page output');
+  const withoutDefs = svg.replace(/<defs\b[^>]*>[\s\S]*?<\/defs>/gi, '');
   const paths = [];
   const stack = [{ matrix: [...IDENTITY], tag: 'svg' }];
-  const tokenRe = /<\/?(?:g|path|defs|svg)\b[^>]*>/gi;
+  const tokenRe = /<\/?(?:g|path|svg)\b[^>]*>/gi;
   let match, unsupported = 0, groupCount = 0;
-  while ((match = tokenRe.exec(svg))) {
+  while ((match = tokenRe.exec(withoutDefs))) {
     const tag = match[0];
     const closing = /^<\//.test(tag);
     const name = tag.match(/^<\/?([a-z]+)/i)?.[1]?.toLowerCase();
