@@ -17,7 +17,7 @@ const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
-const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:1},fileFilter(req,file,cb){
+const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:4},fileFilter(req,file,cb){
  const ext=path.extname(file.originalname||'').toLowerCase();
  if(!EXT_MIME[ext]) return cb(E.validation('يدعم الرفع PDF وDXF وPNG وJPG وGLB ثلاثي الأبعاد.'));
  cb(null,true);
@@ -37,12 +37,55 @@ function validContent(file,ext){
  return false;
 }
 router.use(A.requireAuth);
+const DISCIPLINES=['structural','architectural','electrical','mechanical','plumbing_fire'];
+function cleanText(value,max=80){const s=String(value??'').trim();return s?s.slice(0,max):null;}
+function packageSummary(db,projectId){
+ const packages=db.prepare('SELECT * FROM ai_discipline_packages WHERE project_id=? ORDER BY discipline').all(projectId);
+ const docs=db.prepare("SELECT id,discipline,sheet_number,revision,drawing_title,original_name,processing_status FROM ai_documents WHERE project_id=?").all(projectId);
+ return DISCIPLINES.map(discipline=>{
+  const pkg=packages.find(x=>x.discipline===discipline)||{discipline,applicability:'required',expected_sheets_json:'[]',updated_at:null};
+  let expected=[];try{expected=JSON.parse(pkg.expected_sheets_json||'[]')}catch(_){}
+  const selected=docs.filter(d=>d.discipline===discipline);
+  const received=new Set(selected.map(d=>d.sheet_number).filter(Boolean));
+  const missing=expected.filter(s=>!received.has(s));
+  const duplicateSheets=Object.entries(selected.filter(d=>d.sheet_number).reduce((a,d)=>{(a[d.sheet_number]??=[]).push(d);return a;},{})).filter(([,items])=>items.length>1).map(([sheetNumber,items])=>({sheetNumber,documents:items.map(d=>({id:d.id,revision:d.revision,filename:d.original_name}))}));
+  const unnumbered=selected.filter(d=>!d.sheet_number).map(d=>({id:d.id,filename:d.original_name}));
+  const revisions=selected.filter(d=>d.sheet_number).reduce((a,d)=>{(a[d.sheet_number]??=[]).push(d);return a;},{});
+  const revisionSets=Object.entries(revisions).map(([sheetNumber,items])=>({sheetNumber,revisions:[...new Set(items.map(d=>d.revision).filter(Boolean))]}));
+  const status=pkg.applicability==='not_required'?'not_required':(missing.length||unnumbered.length||duplicateSheets.length?'incomplete':'ready_for_review');
+  return {discipline,applicability:pkg.applicability,expectedSheets:expected,receivedSheets:[...received].sort(),missingSheets:missing,unnumberedDocuments:unnumbered,duplicateSheetNumbers:duplicateSheets,revisionSets,documents:selected,status,updatedAt:pkg.updated_at};
+ });
+}
 router.get('/projects/:projectId/documents',wrap(async(req,res)=>{
  const m=member(req.params.projectId,req.user.id);
  if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
- const rows=getDB().prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,discipline,processing_status,created_at
+ const rows=getDB().prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,discipline,sheet_number,revision,drawing_title,processing_status,created_at
  FROM ai_documents WHERE project_id=? ORDER BY discipline,created_at DESC`).all(req.params.projectId);
  res.setHeader('Cache-Control','no-store');res.json({documents:rows});
+}));
+router.get('/projects/:projectId/drawing-packages',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ res.setHeader('Cache-Control','no-store');
+ res.json({packages:packageSummary(getDB(),req.params.projectId)});
+}));
+router.put('/projects/:projectId/drawing-packages/:discipline',wrap(async(req,res)=>{
+ const projectId=req.params.projectId,discipline=String(req.params.discipline||'');
+ const m=member(projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ if(!canUpload(m.role)) throw E.forbidden('لا تملك صلاحية تعديل سجل المخططات.');
+ if(!DISCIPLINES.includes(discipline)) throw E.validation('تخصص المخطط غير صالح.');
+ const applicability=req.body?.applicability==='not_required'?'not_required':'required';
+ const raw=req.body?.expectedSheets;
+ if(raw!==undefined&&!Array.isArray(raw)) throw E.validation('قائمة أرقام اللوحات يجب أن تكون قائمة.');
+ const expected=[...new Set((raw||[]).map(x=>cleanText(x,40)).filter(Boolean))].slice(0,500);
+ const db=getDB();
+ db.prepare(`INSERT INTO ai_discipline_packages(project_id,discipline,applicability,expected_sheets_json,updated_by,updated_at)
+ VALUES(?,?,?,?,?,unixepoch()) ON CONFLICT(project_id,discipline) DO UPDATE SET
+ applicability=excluded.applicability,expected_sheets_json=excluded.expected_sheets_json,updated_by=excluded.updated_by,updated_at=unixepoch()`)
+ .run(projectId,discipline,applicability,JSON.stringify(expected),req.user.id);
+ res.setHeader('Cache-Control','no-store');
+ res.json({packages:packageSummary(db,projectId)});
 }));
 
 router.get('/projects/:projectId/documents/:documentId/analysis/latest',wrap(async(req,res)=>{
@@ -224,16 +267,18 @@ router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(re
  const allowedDisciplines=new Set(['structural','architectural','electrical','mechanical','plumbing_fire','unclassified']);
  const discipline=String(req.body?.discipline||'unclassified').trim().toLowerCase();
  if(!allowedDisciplines.has(discipline)) throw E.validation('تخصص المخطط غير صالح. اختر تخصصاً من القائمة.');
+ const sheetNumber=cleanText(req.body?.sheetNumber,40),revision=cleanText(req.body?.revision,40),drawingTitle=cleanText(req.body?.drawingTitle,160);
+ if(discipline==='unclassified'&&(sheetNumber||revision||drawingTitle)) throw E.validation('اختر تخصصاً قبل إضافة بيانات اللوحة.');
  if(file.size<1||!validContent(file,ext)) throw E.validation('محتوى الملف لا يطابق نوعه المعلن؛ لم يتم حفظه.');
  const id=uid('aidoc_'),stored=crypto.randomBytes(18).toString('hex')+ext;
  const key=['mmc-ai','projects',projectId,'documents',stored].join('/');
  const checksum=crypto.createHash('sha256').update(file.buffer).digest('hex');
  await storage.getStorage().put(key,file.buffer,{mime:EXT_MIME[ext],originalName:path.basename(file.originalname).slice(0,180)});
  try{
-  db.prepare(`INSERT INTO ai_documents(id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,storage_key,discipline)
-   VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id,projectId,req.user.id,path.basename(file.originalname).slice(0,180),ext,EXT_MIME[ext],file.size,checksum,key,discipline);
+  db.prepare(`INSERT INTO ai_documents(id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,storage_key,discipline,sheet_number,revision,drawing_title)
+   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,projectId,req.user.id,path.basename(file.originalname).slice(0,180),ext,EXT_MIME[ext],file.size,checksum,key,discipline,sheetNumber,revision,drawingTitle);
  }catch(err){await storage.getStorage().delete(key).catch(()=>{});throw err;}
- const doc=db.prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,discipline,processing_status,created_at
+ const doc=db.prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,discipline,sheet_number,revision,drawing_title,processing_status,created_at
  FROM ai_documents WHERE id=?`).get(id);
  res.status(201).json({document:doc});
 }));
