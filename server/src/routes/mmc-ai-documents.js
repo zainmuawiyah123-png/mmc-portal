@@ -17,7 +17,7 @@ const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
-const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:0},fileFilter(req,file,cb){
+const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:1},fileFilter(req,file,cb){
  const ext=path.extname(file.originalname||'').toLowerCase();
  if(!EXT_MIME[ext]) return cb(E.validation('يدعم الرفع PDF وDXF وPNG وJPG وGLB ثلاثي الأبعاد.'));
  cb(null,true);
@@ -40,8 +40,8 @@ router.use(A.requireAuth);
 router.get('/projects/:projectId/documents',wrap(async(req,res)=>{
  const m=member(req.params.projectId,req.user.id);
  if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
- const rows=getDB().prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,processing_status,created_at
- FROM ai_documents WHERE project_id=? ORDER BY created_at DESC`).all(req.params.projectId);
+ const rows=getDB().prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,discipline,processing_status,created_at
+ FROM ai_documents WHERE project_id=? ORDER BY discipline,created_at DESC`).all(req.params.projectId);
  res.setHeader('Cache-Control','no-store');res.json({documents:rows});
 }));
 
@@ -221,16 +221,19 @@ router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(re
  if(!canUpload(m.role)) throw E.forbidden('لا تملك صلاحية رفع الملفات إلى هذا المشروع.');
  if(!req.file) throw E.validation('اختر ملفاً للرفع.');
  const file=req.file,ext=path.extname(file.originalname||'').toLowerCase();
+ const allowedDisciplines=new Set(['structural','architectural','electrical','mechanical','plumbing_fire','unclassified']);
+ const discipline=String(req.body?.discipline||'unclassified').trim().toLowerCase();
+ if(!allowedDisciplines.has(discipline)) throw E.validation('تخصص المخطط غير صالح. اختر تخصصاً من القائمة.');
  if(file.size<1||!validContent(file,ext)) throw E.validation('محتوى الملف لا يطابق نوعه المعلن؛ لم يتم حفظه.');
  const id=uid('aidoc_'),stored=crypto.randomBytes(18).toString('hex')+ext;
  const key=['mmc-ai','projects',projectId,'documents',stored].join('/');
  const checksum=crypto.createHash('sha256').update(file.buffer).digest('hex');
  await storage.getStorage().put(key,file.buffer,{mime:EXT_MIME[ext],originalName:path.basename(file.originalname).slice(0,180)});
  try{
-  db.prepare(`INSERT INTO ai_documents(id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,storage_key)
-   VALUES(?,?,?,?,?,?,?,?,?)`).run(id,projectId,req.user.id,path.basename(file.originalname).slice(0,180),ext,EXT_MIME[ext],file.size,checksum,key);
+  db.prepare(`INSERT INTO ai_documents(id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,storage_key,discipline)
+   VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id,projectId,req.user.id,path.basename(file.originalname).slice(0,180),ext,EXT_MIME[ext],file.size,checksum,key,discipline);
  }catch(err){await storage.getStorage().delete(key).catch(()=>{});throw err;}
- const doc=db.prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,processing_status,created_at
+ const doc=db.prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,discipline,processing_status,created_at
  FROM ai_documents WHERE id=?`).get(id);
  res.status(201).json({document:doc});
 }));
