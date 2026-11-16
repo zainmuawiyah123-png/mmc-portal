@@ -132,13 +132,13 @@ function parseSvgVectorPaths(svg) {
     }
   }
   return {
-    engine: 'mmc-pdf-poppler-svg-v2',
+    engine: 'mmc-pdf-poppler-svg-v3',
     pathCount: paths.length,
     paths,
     groupTransformCount: groupCount,
     unsupportedPathCount: unsupported,
     limitations: [
-      'Straight SVG path segments M/L/H/V/Z are measured; curves and arcs remain unsupported and are reported.',
+      'SVG line, Bezier and elliptical-arc commands are flattened to sampled polylines; reported lengths and areas are approximations with declared sampling density.',
       'Nested group transforms and matrix, translate, scale, rotate, skewX and skewY transforms are applied.',
       'Text glyph outlines in SVG definitions, clipping, stroke widths and compound fill rules are not measured.',
       'Vector paths are geometric evidence only; no automatic wall, slab, footing or BOQ classification is claimed.',
@@ -173,7 +173,7 @@ async function inspectPdfVectorPage(input, { pageNumber = 1, knownDistanceMm = n
       calibrated = { calibration, measurements: applySvgCalibration(geometry, calibration) };
     }
     return {
-      engine: 'mmc-pdf-poppler-svg-vector-v2', pageNumber, svgViewBox: viewBox, geometry, calibrated,
+      engine: 'mmc-pdf-poppler-svg-vector-v3', pageNumber, svgViewBox: viewBox, geometry, calibrated,
       status: geometry.pathCount ? 'vector_geometry_extracted_requires_engineering_review' : 'no_supported_vector_paths_found',
       notice: 'تم استخراج مسارات متجهة. لا تُعد كميات تعاقدية قبل التحقق من المقياس والتصنيف والمراجعة الهندسية.',
       source: { converter: 'pdftocairo -svg', pageNumber }, approvalEligible: false
