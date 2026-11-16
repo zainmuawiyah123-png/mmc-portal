@@ -881,7 +881,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const files=[...(e.target.files||[])];if(!files.length)return;
   const box=document.getElementById('filemsg');
   if(!activeProject){box.textContent='Select a project before uploading documents.';e.target.value='';return;}
-  const id=activeProject.project_id||activeProject.id,discipline=input.dataset.discipline;
+  const id=activeProject.project_id||activeProject.id,discipline=input.dataset.discipline,uploadedDocumentIds=[];
   for(const file of files){
    if(file.size>25*1024*1024){box.textContent=file.name+': file exceeds the 25 MB limit; skipped.';continue;}
    const sheetNumber=window.prompt('Sheet number for '+file.name+' (leave blank if unknown):')||'';
@@ -892,16 +892,16 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    try{
     const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
     const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
-    box.textContent='Saved '+file.name+' under '+discipline+'. Drawing registration saved; engineering analysis is not yet complete.';
+    uploadedDocumentIds.push(data.document.id);box.textContent='Saved '+file.name+' under '+discipline+'. Drawing registration saved; engineering analysis is not yet complete.';
    }catch(err){box.textContent=file.name+': '+err.message;}
   }
   await loadProjectDocuments(id);await loadDrawingPackages(id);
-  if(files.some(file=>file.name.toLowerCase().endsWith('.dxf'))){
-   box.textContent='DXF saved. Starting automatic geometric takeoff...';
-   const uploaded=(await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin',cache:'no-store'})).ok?await (await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin',cache:'no-store'})).json():{documents:[]};
-   for(const file of files.filter(x=>x.name.toLowerCase().endsWith('.dxf'))){
-    const doc=(uploaded.documents||[]).find(x=>x.original_name===file.name&&x.discipline===discipline);
-    if(doc){const action=document.querySelector('[data-action="dxf-takeoff"][data-document-id="'+String(doc.id)+'"]');if(action)action.click();}
+  const uploadedDocs=await (await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin',cache:'no-store'})).json();
+  for(const documentId of uploadedDocumentIds){
+   const doc=(uploadedDocs.documents||[]).find(x=>String(x.id)===String(documentId));
+   if(doc&&doc.file_ext==='.dxf'){
+    box.textContent='DXF saved. Starting automatic geometric takeoff...';
+    const action=document.querySelector('[data-action="dxf-takeoff"][data-document-id="'+String(doc.id)+'"]');if(action)action.click();
    }
   }
   e.target.value='';
