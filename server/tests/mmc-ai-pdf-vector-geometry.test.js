@@ -32,9 +32,30 @@ test('keeps separate subpaths separate', () => {
   assert.equal(result.paths[1].closed, false);
 });
 
-test('rejects curves and arcs rather than silently approximating them', () => {
-  assert.throws(() => measureSvgPathData('M0 0 C1 2 3 4 5 6'), /Unsupported SVG path command/);
-  assert.throws(() => measureSvgPathData('M0 0 A5 5 0 0 1 10 10'), /Unsupported SVG path command/);
+test('flattens cubic and quadratic Bezier curves with declared sampling', () => {
+  const cubic = measureSvgPathData('M0 0 C0 10 10 10 10 0');
+  assert.equal(cubic.pathCount, 1);
+  assert.equal(cubic.paths[0].points.length, 25);
+  assert.ok(cubic.paths[0].lengthUnits > 19.9 && cubic.paths[0].lengthUnits < 20.1);
+  assert.equal(cubic.curveApproximation.curveSteps, 24);
+  const quadratic = measureSvgPathData('M0 0 Q5 10 10 0');
+  assert.equal(quadratic.paths[0].points.length, 25);
+  assert.ok(quadratic.paths[0].lengthUnits > 14 && quadratic.paths[0].lengthUnits < 15);
+});
+
+test('supports smooth curves and elliptical arcs without claiming exact analytic geometry', () => {
+  const smooth = measureSvgPathData('M0 0 C0 10 10 10 10 0 S20 -10 20 0');
+  assert.equal(smooth.pathCount, 1);
+  assert.ok(smooth.paths[0].lengthUnits > 39);
+  const arc = measureSvgPathData('M10 0 A10 10 0 0 1 0 10');
+  assert.equal(arc.pathCount, 1);
+  assert.ok(arc.paths[0].lengthUnits > 15.6 && arc.paths[0].lengthUnits < 15.8);
+  assert.ok(arc.curveApproximation.arcStepsPerTurn >= 24);
+});
+
+test('rejects malformed arc flags and unreasonable approximation settings', () => {
+  assert.throws(() => measureSvgPathData('M0 0 A5 5 0 2 1 10 10'), /flags/);
+  assert.throws(() => measureSvgPathData('M0 0 Q1 2 3 4', { curveSteps: 2 }), /curveSteps/);
 });
 
 test('rejects malformed tokens and incomplete commands', () => {
