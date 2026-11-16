@@ -52,7 +52,7 @@ function packageSummary(db,projectId){
   const unnumbered=selected.filter(d=>!d.sheet_number).map(d=>({id:d.id,filename:d.original_name}));
   const revisions=selected.filter(d=>d.sheet_number).reduce((a,d)=>{(a[d.sheet_number]??=[]).push(d);return a;},{});
   const revisionSets=Object.entries(revisions).map(([sheetNumber,items])=>({sheetNumber,revisions:[...new Set(items.map(d=>d.revision).filter(Boolean))]}));
-  const status=pkg.applicability==='not_required'?'not_required':(missing.length||unnumbered.length||duplicateSheets.length?'incomplete':'ready_for_review');
+  const status=pkg.applicability==='not_required'?'not_required':(!selected.length?'awaiting_upload':(missing.length||unnumbered.length||duplicateSheets.length?'incomplete':'ready_for_review'));
   return {discipline,applicability:pkg.applicability,expectedSheets:expected,receivedSheets:[...received].sort(),missingSheets:missing,unnumberedDocuments:unnumbered,duplicateSheetNumbers:duplicateSheets,revisionSets,documents:selected,status,updatedAt:pkg.updated_at};
  });
 }
