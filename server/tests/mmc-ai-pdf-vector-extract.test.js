@@ -24,7 +24,7 @@ test('applies nested group transforms and excludes paths inside defs', () => {
   const svg = '<svg><defs><path d="M0 0 L99 0 L99 99 Z"/></defs><g transform="translate(10 20)"><g transform="scale(2)"><path d="M0 0 L5 0 L5 4 L0 4 Z"/></g></g></svg>';
   const result = parseSvgVectorPaths(svg);
   assert.equal(result.pathCount, 1);
-  assert.equal(result.paths[0].areaSquareUnits, 160);
+  assert.equal(result.paths[0].areaSquareUnits, 80);
   assert.deepEqual(result.paths[0].points[0], { x: 10, y: 20 });
 });
 
