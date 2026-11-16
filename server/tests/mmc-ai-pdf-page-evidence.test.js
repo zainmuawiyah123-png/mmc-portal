@@ -61,7 +61,8 @@ test('runs Poppler end-to-end against a generated two-page engineering PDF', {sk
  assert.equal(result.pagesProcessed,2);
  assert.equal(result.pages[0].nativeTextWordCount>0,true);
  assert.match(result.pages[0].nativeText,/MMC AI SYNTHETIC ACCEPTANCE PLAN/);
- assert.match(result.pages[1].nativeText,/GROUND FLOOR/);
+ assert.match(result.pages[0].nativeText,/GROUND FLOOR/);
+  assert.match(result.pages[1].nativeText,/STRUCTURAL SECTION/);
  const word=result.pages[0].nativeTextEvidence.find(x=>x.text==='MMC');
  assert.ok(word);
  assert.ok(word.normalizedBox);
