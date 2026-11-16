@@ -91,7 +91,7 @@ function measureSvgPathData(data, options = {}) {
   };
 
   while(i<tokens.length){
-    if(isCommand(tokens[i])){command=tokens[i++];previousControl=null;previousCurve=null;}
+    if(isCommand(tokens[i])){command=tokens[i++];if(!/[sStT]/.test(command)){previousControl=null;previousCurve=null;}}
     if(!command)throw new TypeError('SVG path must begin with a command');
     const relative=command===command.toLowerCase(), op=command.toUpperCase();
     if(!'MLHVZCSQTA'.includes(op))throw new TypeError('Unsupported SVG path command: '+command);
