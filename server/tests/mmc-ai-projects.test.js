@@ -271,7 +271,7 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(pdfTakeoff.status,422);
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
  assert.equal(docs.status,200);assert.equal(docs.data.documents.length,3);assert.ok(docs.data.documents.some(d=>d.id===structuralUpload.data.document.id&&d.discipline==='structural'));
- assert.equal(docs.data.documents.find(d=>d.id===structuralUpload.data.document.id).sheet_number,null);
+ assert.equal(docs.data.documents.find(d=>d.id===structuralUpload.data.document.id).sheet_number,'S-101');
  const invalidPackage=await call('ai-owner','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/not-a-discipline',{expectedSheets:[]});
  assert.equal(invalidPackage.status,422);
  const docId=goodPdf.data.document.id;
