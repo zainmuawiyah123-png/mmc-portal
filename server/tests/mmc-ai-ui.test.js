@@ -25,7 +25,7 @@ test('MMC AI page exposes Arabic and English language switching',()=>{
 });
 
 test('project documents upload to the selected project through the authenticated API',()=>{
- assert.match(html,/id="drawingFile"/);
+ assert.match(html,/data-discipline="structural"/);\n assert.match(html,/data-discipline="architectural"/);\n assert.match(html,/data-discipline="electrical"/);\n assert.match(html,/data-discipline="mechanical"/);\n assert.match(html,/data-discipline="plumbing_fire"/);\n assert.match(html,/class="discipline-upload"[^>]*multiple/);\n assert.match(html,/drawingPackageRegister/);\n assert.match(html,/drawing-packages/);
  assert.match(html,/loadProjectDocuments/);
  assert.match(html,/\/documents/);
  assert.match(html,/credentials:'same-origin'/);
