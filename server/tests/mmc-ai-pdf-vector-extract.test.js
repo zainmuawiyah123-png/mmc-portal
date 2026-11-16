@@ -28,6 +28,16 @@ test('applies nested group transforms and excludes paths inside defs', () => {
   assert.deepEqual(result.paths[0].points[0], { x: 10, y: 20 });
 });
 
+test('extracts sampled Bezier and arc paths through the PDF SVG adapter', () => {
+  const svg = '<svg><path d="M0 0 C0 10 10 10 10 0"/><path d="M20 0 A10 10 0 0 1 10 10"/></svg>';
+  const result = parseSvgVectorPaths(svg);
+  assert.equal(result.pathCount, 2);
+  assert.ok(result.paths[0].points.length > 2);
+  assert.ok(result.paths[1].lengthUnits > 15.6 && result.paths[1].lengthUnits < 15.8);
+  assert.equal(result.unsupportedPathCount, 0);
+  assert.match(result.limitations[0], /approximations/);
+});
+
 test('rejects malformed SVG transform syntax', () => {
   assert.throws(() => parseSvgMatrix('translate(10 20) broken'), /Unsupported|malformed/);
 });
