@@ -58,6 +58,13 @@ test('rejects malformed arc flags and unreasonable approximation settings', () =
   assert.throws(() => measureSvgPathData('M0 0 Q1 2 3 4', { curveSteps: 2 }), /curveSteps/);
 });
 
+test('accepts SVG decimal coordinates with leading or trailing decimal points', () => {
+  const result = measureSvgPathData('M.5 1. L10. 1.0 L10. 5. Z');
+  assert.equal(result.pathCount, 1);
+  assert.ok(result.paths[0].areaSquareUnits > 17);
+  assert.ok(result.paths[0].areaSquareUnits < 18);
+});
+
 test('rejects malformed tokens and incomplete commands', () => {
   assert.throws(() => tokenizePathData('M0 0 @ 2'), /invalid tokens/);
   assert.throws(() => measureSvgPathData('M0'), /incomplete coordinates|no coordinates/);
