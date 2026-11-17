@@ -41,7 +41,9 @@ test('anonymous portal entry URLs serve the original portal screens without redi
 });
 test('write and submission operations remain protected for anonymous visitors',async()=>{
  for(const [url,method] of [['/api/procurement/tenders','POST'],['/api/consulting/requests','POST'],['/api/procurement/tenders/example/submit','POST'],['/api/public/procurement/tenders','POST'],['/api/project-finance/awards','POST'],['/api/project-finance/awards','GET'],['/api/committee/my-assignments','GET'],['/api/opportunities/feed','GET'],['/api/opportunities/admin','GET']]){
-  const r=await fetch(base+url,{method,headers:{'Content-Type':'application/json'},body:'{}',redirect:'manual'});
+  const options={method,headers:{'Content-Type':'application/json'},redirect:'manual'};
+  if(!['GET','HEAD'].includes(method)) options.body='{}';
+  const r=await fetch(base+url,options);
   assert.ok([401,403,404].includes(r.status),'unexpected anonymous write response '+method+' '+url+': '+r.status);
  }
 });
