@@ -66,6 +66,29 @@ function parseBboxLayout(xhtml) {
   return pages;
 }
 
+function parseSvgPageFrame(svg) {
+  const root = String(svg || '').match(/<svg\\b[^>]*>/i)?.[0];
+  if (!root) return null;
+  const attr = name => {
+    const match = root.match(new RegExp('\\\\b' + name + '="([^"]+)"'));
+    return match ? match[1] : null;
+  };
+  const parseLength = value => {
+    const match = String(value || '').match(/^\\s*([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)(?:pt|px|mm|cm|in)?\\s*$/i);
+    return match ? Number(match[1]) : null;
+  };
+  const viewBoxRaw = attr('viewBox');
+  const viewBox = viewBoxRaw ? viewBoxRaw.trim().split(/[\\s,]+/).map(Number) : [];
+  if (viewBox.length !== 4 || !viewBox.every(Number.isFinite) || viewBox[2] <= 0 || viewBox[3] <= 0) return null;
+  const width = parseLength(attr('width'));
+  const height = parseLength(attr('height'));
+  return {
+    width: viewBox[2], height: viewBox[3], viewBox,
+    physicalWidth: width, physicalHeight: height,
+    coordinateSystem: 'Poppler SVG page viewBox; top-left origin; aligned to pdftocairo vector geometry'
+  };
+}
+
 async function extractPdfTextSpatial(input, options = {}) {
   const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || '');
   if (bytes.length < 5 || bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
@@ -85,17 +108,44 @@ async function extractPdfTextSpatial(input, options = {}) {
     ], { timeout: 20000, killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024 });
     const pages = parseBboxLayout(result.stdout);
     const current = pages[0] || null;
+    let vectorFrame = null;
+    try {
+      const svgPrefix = path.join(directory, 'aligned-page');
+      await run('pdftocairo', ['-f', String(page), '-l', String(page), '-svg', pdfPath, svgPrefix], {
+        timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 1024 * 1024
+      });
+      const svg = await fs.readFile(svgPrefix, 'utf8');
+      vectorFrame = parseSvgPageFrame(svg);
+    } catch (_) {
+      // Keep the raw Poppler text boxes available when SVG frame extraction is unavailable.
+    }
+    if (current && vectorFrame) {
+      const [originX, originY] = vectorFrame.viewBox;
+      current.sourcePageSize = { width: current.width, height: current.height };
+      current.words = current.words.map(word => ({
+        ...word,
+        box: {
+          xMin: word.box.xMin - originX, yMin: word.box.yMin - originY,
+          xMax: word.box.xMax - originX, yMax: word.box.yMax - originY
+        }
+      }));
+      current.width = vectorFrame.width;
+      current.height = vectorFrame.height;
+      current.coordinateSystem = vectorFrame.coordinateSystem;
+      current.frameAlignment = 'aligned_to_pdftocairo_svg_viewBox';
+    }
     return {
-      engine: 'poppler-pdftotext-bbox-layout-v1',
+      engine: 'poppler-pdftotext-bbox-layout+svg-frame-v2',
       status: current && current.wordCount ? 'spatial_text_extracted' : 'no_spatial_text_found',
       pageNumber: page,
       pageCountReturned: pages.length,
+      vectorFrame,
       page: current,
       limitations: [
-        'Word boxes are extracted from Poppler text layout and are not yet transformed into the SVG vector coordinate frame.',
-        'This does not interpret dimensions, symbols, drawing scales, or engineering element types.',
+        'Text boxes use Poppler bbox positions aligned to the pdftocairo SVG viewBox when that frame is available.',
+        'This frame alignment does not interpret dimensions, symbols, drawing scales, or engineering element types.',
         'Image-only text requires OCR and is not included in this native text result.',
-        'All boxes are page points, not calibrated real-world dimensions.'
+        'All boxes remain page points, not calibrated real-world dimensions.'
       ]
     };
   } catch (error) {
@@ -108,4 +158,4 @@ async function extractPdfTextSpatial(input, options = {}) {
   }
 }
 
-module.exports = { decodeXml, parseBboxLayout, extractPdfTextSpatial };
+module.exports = { decodeXml, parseBboxLayout, parseSvgPageFrame, extractPdfTextSpatial };
