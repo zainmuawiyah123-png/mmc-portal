@@ -58,6 +58,7 @@ async function sendOne(id) {
     return true;
   } catch (e) {
     db.prepare("UPDATE email_outbox SET status='failed', error=? WHERE id=?").run(String(e.message || e).slice(0, 300), id);
+    console.error('[mail] SMTP send failed:', JSON.stringify({ code: e.code || null, command: e.command || null, responseCode: e.responseCode || null, message: String(e.message || e).slice(0, 300) }));
     return false;
   }
 }
