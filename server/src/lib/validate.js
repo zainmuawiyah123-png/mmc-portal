@@ -13,8 +13,7 @@ const registerSchema = z.object({
   name,
   email,
   password,
-  company: z.union([z.string().trim().max(160), z.null()]).optional()
-    .transform((v) => (v === undefined || v === null || v === '' ? null : v)),
+  company: z.string().trim().min(2, 'اسم الشركة أو المكتب مطلوب.').max(160),
   role: z.enum(['contractor', 'buyer', 'consultant']).default('contractor'),
   country: z.enum(['JO', 'SA', 'AE']).default('JO')
 });
