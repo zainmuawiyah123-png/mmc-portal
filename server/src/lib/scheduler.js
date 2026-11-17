@@ -200,7 +200,7 @@ function startScheduler() {
     }
   }
   if (config.OPPORTUNITY_SYNC_ENABLED) {
-    addJob('opportunity-sync-cycle',config.OPPORTUNITY_SYNC_CRON,()=>{
+    addJob('opportunity-sync',config.OPPORTUNITY_SYNC_CRON,()=>{
       console.log('[scheduler] بدء دورة مزامنة العطاءات (بريطانيا ثم بقية المصادر)...');
       runOpportunitySyncCycle().catch(e=>console.error('[scheduler] دورة مزامنة العطاءات:',e.message));
     });
