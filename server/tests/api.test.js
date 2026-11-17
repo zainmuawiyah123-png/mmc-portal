@@ -45,7 +45,9 @@ async function call(name, method, p, { body, form, headers } = {}) {
   const res = await fetch(base + p, { method, headers: h, body: payload, redirect: 'manual' });
 
   // التقاط كوكي الجلسة
-  const setCookie = res.headers.getSetCookie ? res.headers.getSetCookie() : [];
+  const setCookie = res.headers.getSetCookie
+    ? res.headers.getSetCookie()
+    : [res.headers.get('set-cookie')].filter(Boolean);
   for (const c of setCookie) {
     const first = c.split(';')[0];
     if (first.startsWith('tpkit_session=')) {
@@ -70,7 +72,14 @@ async function call(name, method, p, { body, form, headers } = {}) {
       const login = await call(name, 'POST', '/api/auth/login', {
         body: { email: body.email, password: body.password }
       });
-      return { status: res.status, data: { ...data, user: login.data.user }, headers: res.headers };
+      if (login.status !== 200) {
+        throw new Error('Test fixture could not establish a session after OTP verification: ' + JSON.stringify(login.data));
+      }
+      const me = await call(name, 'GET', '/api/auth/me');
+      if (me.status !== 200) {
+        throw new Error('Test fixture login did not persist its session cookie: ' + JSON.stringify(me.data));
+      }
+      return { status: res.status, data: { ...data, user: me.data.user }, headers: res.headers };
     }
   }
 
