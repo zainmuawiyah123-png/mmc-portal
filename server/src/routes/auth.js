@@ -97,15 +97,14 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
   });
   tx();
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
-  try {
-    await issueOtp(db, user);
-  } catch (err) {
-    // Keep the pending account so a transient SMTP failure can be retried via resend.
-    throw err;
-  }
+  let mailSent = false;
+  try { await issueOtp(db, user); mailSent = true; }
+  catch (err) { console.error('[auth] OTP delivery failed:', err.message); }
   res.status(201).json({
-    verificationRequired: true, email: user.email,
-    message: 'أرسلنا رمز التحقق إلى بريد العمل. أكّد البريد أولاً، ثم ينتقل الحساب إلى مراجعة MMC.'
+    verificationRequired: true, mailSent, email: user.email,
+    message: mailSent
+      ? 'أرسلنا رمز التحقق إلى بريد العمل. أكّد البريد أولاً، ثم ينتقل الحساب إلى مراجعة MMC.'
+      : 'تم حفظ طلبك، لكن تعذّر إرسال الرمز حالياً. استخدم إعادة إرسال الرمز بعد قليل.'
   });
 }));
 
