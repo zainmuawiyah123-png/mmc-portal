@@ -14,6 +14,7 @@ const { migrate } = require('./migrate');
 const { errorHandler } = require('./lib/errors');
 
 const authRoutes = require('./routes/auth');
+const publicBrowseRoutes = require('./routes/public-browse');
 const { router: tenderRoutes } = require('./routes/tenders');
 const fileRoutes = require('./routes/files');
 const accountRoutes = require('./routes/account');
@@ -70,6 +71,8 @@ function createApp() {
   const WEB_ROOT_HEALTH = config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5');
 
   /* ---------------- API ---------------- */
+  // Strictly read-only, sanitized public listings; protected routers remain unchanged.
+  app.use('/api/public', publicBrowseRoutes);
   app.get('/api/health', (req, res) => {
     const db = require('./db').getDB();
     const users = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
