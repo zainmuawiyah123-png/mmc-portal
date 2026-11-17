@@ -140,7 +140,22 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
   try{const r=await fetch('/api/consulting/firms/me/documents',{method:'POST',credentials:'same-origin',body:data});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر رفع الوثائق');msg.textContent=d.message||'تم رفع الوثائق.';form.reset();await loadFirmDocuments();}catch(err){showError(err);}
  });
  $('#firmForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),data={};for(const [k,v] of f.entries())data[k]=String(v).trim();data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}catch(err){showError(err);}});
- load().catch(showError);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
+ async function publicLoad(){
+  $('#user').textContent='وضع المشاهدة العامة';
+  $('#logout').hidden=true;
+  $('#message').textContent='يمكنك تصفح الفرص المنشورة وأقسام بوابة المكاتب الاستشارية. تتطلب إدارة المكتب وتقديم العروض والوثائق والعقود تسجيل الدخول ببريد العمل.';
+  ['existing','register','firmTenderMarket','firmTenderProposalsMine','firmTenders','firmSubcontracts','firmTeam','firmReports','myProposals','myContracts'].forEach(id=>{const e=document.getElementById(id);if(e){e.hidden=false;e.innerHTML='<h2>'+({existing:'ملف المكتب والاشتراك',register:'تسجيل المكتب',firmTenderMarket:'سوق عطاءات المكاتب',firmTenderProposalsMine:'العروض المقدمة إلى المكاتب',firmTenders:'عطاءاتي الاستشارية وإدارة العروض',firmSubcontracts:'التعاقدات الاستشارية الفرعية',firmTeam:'فريق المكتب وصلاحياته',firmReports:'تقارير أداء المكتب',myProposals:'عروضي الفنية والمالية',myContracts:'العقود ومتابعة التنفيذ'}[id]||id)+'</h2><p class="muted">هذه الوظائف متاحة بعد تسجيل الدخول ببريد العمل والتحقق من صلاحية المكتب.</p><a class="btn amber" href="/portal/pt-9f3c7a1e5b2d/login.html">تسجيل الدخول / إنشاء حساب</a>';}}});
+  $('#market').hidden=false;
+  try{
+   const r=await fetch('/api/public/consulting/requests',{credentials:'same-origin'}),d=await r.json();
+   if(!r.ok)throw new Error(d.error?.message||'تعذر تحميل الفرص');
+   const box=$('#requests');box.replaceChildren();
+   if(!d.requests?.length)box.append(node('p','لا توجد طلبات استشارية منشورة حالياً.','muted'));
+   d.requests.forEach(x=>{const card=node('article',undefined,'request');card.append(node('h3',(x.reference||'')+' · '+x.title));card.append(node('p',[x.country,x.location,disciplineLabel(x.discipline)].filter(Boolean).join(' · ')));card.append(node('p',x.description||''));if(x.scope?.length)card.append(node('p','نطاق العمل: '+x.scope.join('، ')));card.append(node('p','آخر موعد: '+(x.closing_at?new Date(x.closing_at*1000).toLocaleDateString('ar-JO'):'غير محدد')+' · '+(x.currency||'')+' '+(x.budget_min??'—')+' – '+(x.budget_max??'—')));const a=node('a','تسجيل الدخول لتقديم عرض','btn amber');a.href='/portal/pt-9f3c7a1e5b2d/login.html';card.append(a);box.append(card);});
+   $('#statOpen').textContent=String(d.count||0);$('#statProposals').textContent='—';$('#statContracts').textContent='—';
+  }catch(e){showError(e);}
+ }
+ load().catch(publicLoad);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
 })();
 </script>
 </body></html>
