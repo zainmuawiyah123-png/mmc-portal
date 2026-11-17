@@ -190,7 +190,8 @@ function startScheduler() {
       runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
     });
     // أول مزامنة بعد الإقلاع بقليل حتى لا تبقى قائمة العطاءات فارغة حتى أول موعد مجدول
-    setTimeout(()=>runUKOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة بريطانيا الأولية:',e.message)),25000).unref();\n    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),45000).unref();
+    setTimeout(()=>runUKOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة بريطانيا الأولية:',e.message)),25000).unref();
+    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),45000).unref();
     console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }
   if (config.SCHEDULER_ENABLED) {
