@@ -36,6 +36,75 @@ function validContent(file,ext){
  if(ext==='.glb')return b.length>=20&&b.subarray(0,4).toString('ascii')==='glTF'&&b.readUInt32LE(4)===2&&b.readUInt32LE(8)===b.length;
  return false;
 }
+
+/* Anonymous, stateless drawing-analysis preview. Uploaded bytes are processed in memory
+   and parser-owned temporary directories are removed by the engines. No project IDs,
+   database writes, shared storage, or persistent file records are accepted here. */
+const demoUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1,fields:0}});
+const demoAttempts=new Map();
+function demoRateLimit(req,res,next){
+ const now=Date.now(),key=String(req.ip||req.socket?.remoteAddress||'unknown');
+ const prior=demoAttempts.get(key)||{start:now,count:0};
+ if(now-prior.start>10*60*1000){prior.start=now;prior.count=0;}
+ prior.count++;
+ demoAttempts.set(key,prior);
+ if(demoAttempts.size>5000){for(const [k,v] of demoAttempts)if(now-v.start>10*60*1000)demoAttempts.delete(k);}
+ if(prior.count>8){res.setHeader('Retry-After','600');return res.status(429).json({error:{message:'تم بلوغ حد التجربة المؤقتة. حاول بعد عشر دقائق.'}});}
+ next();
+}
+router.post('/demo/analyze',demoRateLimit,(req,res,next)=>{
+ demoUpload.single('drawing')(req,res,async uploadError=>{
+  try{
+   if(uploadError) return res.status(uploadError.code==='LIMIT_FILE_SIZE'?413:400).json({error:{message:uploadError.code==='LIMIT_FILE_SIZE'?'الحد الأقصى لحجم الملف 25 ميغابايت.':'تعذر استقبال الملف.'}});
+   const file=req.file;
+   if(!file)return res.status(400).json({error:{message:'اختر ملف مخطط أولاً.'}});
+   const ext=path.extname(file.originalname||'').toLowerCase();
+   const mime=EXT_MIME[ext];
+   if(!['.pdf','.dxf','.png','.jpg','.jpeg'].includes(ext)||!validContent(file,ext))
+    return res.status(415).json({error:{message:'نوع الملف أو محتواه غير صالح. الصيغ المدعومة PDF وASCII DXF وPNG وJPG.'}});
+   let result;
+   if(ext==='.dxf'){
+    const textContent=file.buffer.toString('utf8').replace(/^\uFEFF/,'');
+    if(textContent.includes('\u0000'))return res.status(415).json({error:{message:'ملف DXF ثنائي أو DWG غير مدعوم؛ ارفع DXF نصياً (ASCII).'}});
+    const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
+    try{
+     const measured=takeoffDxf(textContent);
+     result={analysisType:'dxf_geometry_measurement',status:'geometry_measured_needs_classification_and_review',
+      sourceFormat:'DXF',engine:measured.engine,units:measured.units,summary:measured.summary,
+      byLayer:measured.byLayer,unsupported:measured.unsupported,rows:measured.rows.slice(0,5000),
+      truncatedRows:measured.rows.length>5000,quantitiesAreContractuallyVerified:false,bimModelCreated:false,
+      limitations:[...measured.limitations,'القياسات هندسية حسب وحدات DXF المعلنة فقط؛ لا يوجد تصنيف تلقائي للعناصر الإنشائية أو المعمارية أو MEP.','لا يتم تحويل أطوال/مساحات الرسم مباشرة إلى BOQ دون تعريف العناصر وربطها بالمواصفات.']};
+    }catch(error){
+     result={analysisType:'dxf_geometry_measurement',status:'measurement_blocked',sourceFormat:'DXF',
+      reason:error.message,quantities:[],bimModelCreated:false,
+      requiredInformation:['تحديد وحدة الرسم الصحيحة أو تصدير DXF مع INSUNITS موثوق.'],
+      limitations:['لن يتم افتراض المقياس أو تخمين الوحدات أو إصدار كميات غير موثوقة.']};
+    }
+   }else{
+    const {ocrPdf,ocrImage}=require('../lib/mmc-ai/ocr-engine');
+    const ocr=ext==='.pdf'?await ocrPdf(file.buffer,{maxPages:10,dpi:160}):await ocrImage(file.buffer,{mime:ext==='.png'?'image/png':'image/jpeg',dpi:180});
+    result={analysisType:'drawing_text_recognition',status:ocr.status,sourceFormat:ext.slice(1).toUpperCase(),
+     engine:ocr.engine,languageModel:ocr.languageModel,pagesProcessed:ocr.pagesProcessed,totalPages:ocr.totalPages,
+     truncatedAtPageLimit:ocr.truncatedAtPageLimit,characterCount:ocr.characterCount,
+     pages:ocr.pages.map(page=>({page:page.page,wordCount:page.wordCount,averageConfidence:page.averageConfidence,
+      text:page.text.slice(0,12000),words:page.words.slice(0,1500)})),
+     geometryExtracted:false,quantities:[],bimModelCreated:false,
+     limitations:[...ocr.limitations,'هذه مرحلة تعرف بصري على النصوص ومواقع الكلمات فقط؛ لا تستخرج هندسة CAD أو كميات أو نموذج BIM.']};
+   }
+   res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+   res.setHeader('X-Content-Type-Options','nosniff');
+   res.json({ok:true,filename:path.basename(file.originalname||'drawing'),sizeBytes:file.size,
+    persisted:false,projectCreated:false,result,
+    notice:'تمت معالجة الملف لهذه الجلسة فقط. لم يتم حفظ الملف أو إنشاء مشروع أو اعتماد كميات.'});
+  }catch(error){
+   const code=error.code||'DEMO_ANALYSIS_FAILED';
+   const status=code==='OCR_BUSY'?503:(code.includes('INVALID')||code.includes('TOO_LARGE')?422:500);
+   res.setHeader('Cache-Control','no-store');
+   res.status(status).json({error:{code,message:error.message||'تعذر تحليل الملف.',details:error.details||null}});
+  }
+ });
+});
+
 router.use(A.requireAuth);
 const DISCIPLINES=['structural','architectural','electrical','mechanical','plumbing_fire'];
 function cleanText(value,max=80){const s=String(value??'').trim();return s?s.slice(0,max):null;}
