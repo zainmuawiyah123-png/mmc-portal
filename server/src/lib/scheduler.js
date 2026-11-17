@@ -99,12 +99,7 @@ function persistOpportunitySync(source, startedAt, result) {
 
 async function runOpportunitySyncJob() {
   const started=Date.now(), results={};
-  const runSource=async(name,fn)=>{
-    const sourceStarted=Date.now();
-    try { results[name]={ok:true,...await fn()}; }
-    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
-    persistOpportunitySync(name,sourceStarted,results[name]);
-  };
+  const runSource=async(name,fn)=>{\n    const sourceStarted=Date.now();\n    console.log('[scheduler] بدء المصدر '+name);\n    try { results[name]={ok:true,...await fn()}; }\n    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }\n    persistOpportunitySync(name,sourceStarted,results[name]);\n    console.log('[scheduler] انتهاء المصدر '+name+' '+(results[name].ok?'OK':'ERROR')+' '+JSON.stringify(results[name])+' '+(Date.now()-sourceStarted)+'ms');\n  };
   await runSource('gam',()=>require('./jordan-public-sources-sync').syncGAM());
   await runSource('austender',()=>require('./austender-sync').syncAusTender());
   // VendorPanel is a separate Australian public marketplace feed; keep it alongside AusTender.
@@ -115,10 +110,6 @@ async function runOpportunitySyncJob() {
   await runSource('nepco',()=>require('./nepco-sync').syncNEPCO());
   await runSource('jpmc',()=>require('./jpmc-curated-sync').syncJPMCCurated());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
-  await runSource('findatender',()=>require('./uk-public-procurement-sync').syncFindATender({days:45,maxPages:20}));
-  await runSource('contractsfinder',()=>require('./uk-public-procurement-sync').syncContractsFinder({days:30,maxPages:5}));
-  await runSource('pcs',()=>require('./uk-public-procurement-sync').syncPublicContractsScotland({months:2}));
-  await runSource('sell2wales',()=>require('./uk-public-procurement-sync').syncSell2Wales({months:2}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
   const ms=Date.now()-started;
@@ -126,6 +117,26 @@ async function runOpportunitySyncJob() {
   const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
   record({at:new Date().toISOString(),job:'opportunity-sync',ok:failed.length===0,ms,message:summary});
   return {ok:failed.length===0,partial:failed.length>0,failed,results,ms};
+}
+
+async function runUKOpportunitySyncJob() {
+  const started=Date.now(), results={};
+  const runSource=async(name,fn)=>{
+    const sourceStarted=Date.now();
+    console.log('[scheduler] بدء مصدر بريطانيا '+name);
+    try { results[name]={ok:true,...await fn()}; }
+    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
+    persistOpportunitySync(name,sourceStarted,results[name]);
+    console.log('[scheduler] نتيجة بريطانيا '+name+' '+(results[name].ok?'OK':'ERROR')+' '+JSON.stringify(results[name])+' '+(Date.now()-sourceStarted)+'ms');
+  };
+  await runSource('findatender',()=>require('./uk-public-procurement-sync').syncFindATender({days:45,maxPages:20}));
+  await runSource('contractsfinder',()=>require('./uk-public-procurement-sync').syncContractsFinder({days:30,maxPages:5}));
+  await runSource('pcs',()=>require('./uk-public-procurement-sync').syncPublicContractsScotland({months:2}));
+  await runSource('sell2wales',()=>require('./uk-public-procurement-sync').syncSell2Wales({months:2}));
+  const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+  const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):('ERROR '+v.error))).join(' | ');
+  record({at:new Date().toISOString(),job:'uk-opportunity-sync',ok:failed.length===0,ms:Date.now()-started,message:summary});
+  return {ok:failed.length===0,partial:failed.length>0,failed,results,ms:Date.now()-started};
 }
 
 function startScheduler() {
@@ -163,12 +174,16 @@ function startScheduler() {
     }
   }
   if (config.OPPORTUNITY_SYNC_ENABLED) {
+    addJob('uk-opportunity-sync',config.OPPORTUNITY_SYNC_CRON,()=>{
+      console.log('[scheduler] بدء مزامنة مصادر بريطانيا المستقلة...');
+      runUKOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة بريطانيا:',e.message));
+    });
     addJob('opportunity-sync',config.OPPORTUNITY_SYNC_CRON,()=>{
       console.log('[scheduler] بدء مزامنة مصادر العطاءات...');
       runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
     });
     // أول مزامنة بعد الإقلاع بقليل حتى لا تبقى قائمة العطاءات فارغة حتى أول موعد مجدول
-    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),20000).unref();
+    setTimeout(()=>runUKOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة بريطانيا الأولية:',e.message)),25000).unref();\n    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),45000).unref();
     console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }
   if (config.SCHEDULER_ENABLED) {
@@ -196,4 +211,4 @@ function schedulerStatus() {
     active: _jobs.length > 0, running: _jobs.length, lastRun: _lastRun };
 }
 
-module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob, persistOpportunitySync };
+module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob, runUKOpportunitySyncJob, persistOpportunitySync };
