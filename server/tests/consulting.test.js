@@ -7,6 +7,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const TMP=fs.mkdtempSync(path.join(os.tmpdir(),'mmc-consulting-test-'));
 process.env.NODE_ENV='test';
+process.env.MAIL_HOST='json'; // isolated in-memory mail transport for OTP tests
 process.env.DB_PATH=path.join(TMP,'test.db');
 process.env.UPLOAD_DIR=path.join(TMP,'uploads');
 process.env.JWT_SECRET='consulting-test-secret-not-production';
