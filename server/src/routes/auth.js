@@ -30,14 +30,12 @@ function issueOtp(db, user) {
   db.prepare(`INSERT INTO email_verifications (user_id,email,code_hash,expires_at,attempts,last_sent_at,verified_at)
     VALUES (?,?,?,?,0,?,NULL) ON CONFLICT(user_id) DO UPDATE SET email=excluded.email,code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0,last_sent_at=excluded.last_sent_at,verified_at=NULL`)
     .run(user.id, user.email, otpHash(user.id, code), now + OTP_TTL_SECONDS, now);
-  const id = mailer.notify(user.email, 'رمز تأكيد البريد الإلكتروني - MMC',
-    'رمز تأكيد بريدك الإلكتروني في MMC هو: ' + code + '\\n\\nصلاحية الرمز 10 دقائق. لا تشارك هذا الرمز مع أي شخص.');
-  if (!id || !mailer.enabled()) throw E.server('خدمة البريد الإلكتروني غير مفعّلة على الخادم. لم يتم إرسال رمز التحقق.');
-  // Try immediately; the background queue remains a fallback if the SMTP provider is temporarily unavailable.
-  return mailer.sendOne(id).then((sent) => {
-    if (!sent) throw E.server('تعذّر إرسال رمز التحقق. تحقق من إعدادات البريد ثم أعد المحاولة.');
-    return true;
-  });
+  return mailer.notifyNow(user.email, 'رمز تأكيد البريد الإلكتروني - MMC',
+    'رمز تأكيد بريدك الإلكتروني في MMC هو: ' + code + '\\n\\nصلاحية الرمز 10 دقائق. لا تشارك هذا الرمز مع أي شخص.')
+    .then((result) => {
+      if (!result.sent) throw E.server('تعذّر إرسال رمز التحقق. تحقق من إعدادات البريد ثم أعد المحاولة.');
+      return true;
+    });
 }
 
 const router = express.Router();
