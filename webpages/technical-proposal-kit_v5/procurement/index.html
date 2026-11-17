@@ -12,7 +12,7 @@ function publicLoad(){
  publicMode=true;
  document.getElementById('verifyCard').style.display='none';
  document.getElementById('planbar').style.display='none';
- document.querySelector('.split').children[0].style.display='none';
+ var createCard=document.querySelector('.split').children[0];createCard.querySelectorAll('input,select,textarea,button').forEach(function(el){el.disabled=true;});var gate=document.createElement('div');gate.className='note';gate.innerHTML=T('للمعاينة فقط: إنشاء العطاء ونشره وإدارة التوثيق يتطلب تسجيل الدخول ببريد العمل. ','Preview only: creating and publishing tenders requires work-email sign-in. ')+'<a href="../portal/pt-9f3c7a1e5b2d/login.html">'+T('تسجيل الدخول','Sign in')+'</a>';createCard.insertBefore(gate,createCard.firstChild);
  document.querySelector('[data-user-name]').textContent=T('وضع المشاهدة العامة','Public browse');
  document.getElementById('logout').style.display='none';
  API.request('GET','/public/procurement/tenders').then(d=>{
