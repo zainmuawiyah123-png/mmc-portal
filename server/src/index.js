@@ -136,20 +136,11 @@ function createApp() {
   if (!fs.existsSync(WEB_ROOT)) {
     console.warn('  ⚠ WEB_ROOT غير موجود: ' + WEB_ROOT + ' — الواجهة لن تُخدم. اضبط WEB_ROOT.');
   }
-  // صفحة دورة المشروع تحتوي بيانات مالية؛ لا تُقدَّم كملف ثابت قبل التحقق من الجلسة.
-  // يسمح للمقاول والجهة المشترية فقط، بينما تبقى صلاحيات كل عملية مفروضة في API.
+  // المعاينة العامة لدورة الترسية والفواتير متاحة دون تسجيل دخول.
+  // لا تعرض الصفحة العامة بيانات مالية خاصة؛ وتظل جميع عمليات القراءة/الكتابة الحساسة
+  // محمية بصلاحيات API المستقلة، لذلك لا يمنح فتح الواجهة أي صلاحية تنفيذية.
   app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
-    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
-      return sendFromWeb('mmc-ai/index.html', res, next);
-    }
-    const A = require('./lib/auth');
-    A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
-      if (!['buyer', 'contractor'].includes(req.user.role)) {
-        return res.status(403).type('text').send('ليس لديك صلاحية الوصول إلى هذه الصفحة.');
-      }
-      return sendFromWeb('project-finance/index.html', res, next);
-    });
+    return sendFromWeb('project-finance/index.html', res, next);
   });
 
   // Independent consulting-firm portal entry. Keep it separate from the evaluator workspace at /consultant/.
