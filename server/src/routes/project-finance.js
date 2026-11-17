@@ -23,6 +23,7 @@ const amount = (v, field) => {
 };
 function member(req) {
   if (req.user.role !== 'buyer') throw E.forbidden('هذا الإجراء متاح لأعضاء الجهة المشترية فقط.');
+  if (!O.canPublish(req.user)) throw E.forbidden('يجب اعتماد وتوثيق الجهة رسمياً قبل تنفيذ إجراءات الترسية وأوامر الشراء والفواتير.');
   const m = O.ensureOrg(req.user);
   if (!m) throw E.forbidden();
   return m;
