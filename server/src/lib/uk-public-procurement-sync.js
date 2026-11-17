@@ -122,8 +122,9 @@ async function getJson(url, { attempts=5, timeoutMs=60000 }={}) {
         const error=new Error('UK public feed returned HTTP '+response.status);
         if(!retryable||attempt===maxAttempts)throw error;
         const retryHeader=response.headers.get('retry-after');
-        const retrySeconds=retryHeader&&/^\\d+$/.test(retryHeader)?Number(retryHeader):0;
-        const waitMs=retrySeconds>0?Math.min(60000,retrySeconds*1000):Math.min(45000,3000*Math.pow(2,attempt-1));
+        const retrySeconds=retryHeader&&/^\d+$/.test(retryHeader)?Number(retryHeader):0;
+        const retryDateMs=retryHeader&&!retrySeconds?Date.parse(retryHeader):NaN;
+        const waitMs=retrySeconds>0?Math.min(60000,retrySeconds*1000):Number.isFinite(retryDateMs)?Math.min(60000,Math.max(1000,retryDateMs-Date.now())):Math.min(45000,3000*Math.pow(2,attempt-1));
         await new Promise(resolve=>setTimeout(resolve,waitMs));
         continue;
       }
