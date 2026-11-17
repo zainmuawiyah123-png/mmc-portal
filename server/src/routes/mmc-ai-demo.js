@@ -6,6 +6,7 @@ const path=require('path');
 const {ocrPdf,ocrImage}=require('../lib/mmc-ai/ocr-engine');
 const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
 const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
+const {extractPdfTextSpatial}=require('../lib/mmc-ai/pdf-text-spatial-extract');
 const {inspectPdfVectorPage}=require('../lib/mmc-ai/pdf-pdf-vector-extract');
 const {analyzePdfDrawingText}=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
 const {clusterVectorPaths}=require('../lib/mmc-ai/pdf-vector-clustering');
@@ -82,9 +83,10 @@ router.post('/demo/analyze',(req,res)=>{
      result={analysisType:'dxf_geometry_measurement',status:'geometry_measured_needs_classification_and_review',sourceFormat:'DXF',engine:m.engine,units:m.units,summary:m.summary,byLayer:m.byLayer,unsupported:m.unsupported,rows:m.rows.slice(0,5000),truncatedRows:m.rows.length>5000,quantitiesAreContractuallyVerified:false,bimModelCreated:false,limitations:[...(m.limitations||[]),'القياسات حسب وحدات DXF فقط؛ لا يوجد تصنيف تلقائي للعناصر الإنشائية أو المعمارية أو MEP.','لا يتم إصدار BOQ دون تصنيف العناصر ومراجعة المهندس.']};
     }catch(e){result={analysisType:'dxf_geometry_measurement',status:'measurement_blocked',sourceFormat:'DXF',reason:e.message,quantities:[],bimModelCreated:false,requiredInformation:['تحديد وحدة الرسم الصحيحة أو تصدير DXF مع INSUNITS موثوق.'],limitations:['لن يتم افتراض المقياس أو تخمين الوحدات.']};}
    }else if(ext==='.pdf'){
-    let nativeText=null,vector=null,ocr=null,textIntelligence=null;
+    let nativeText=null,vector=null,ocr=null,textIntelligence=null,spatialText=null;
     const diagnostics=[];
     try{nativeText=extractPdfText(f.buffer);}catch(e){diagnostics.push({stage:'native_pdf_text',error:e.message});}
+    try{spatialText=await extractPdfTextSpatial(f.buffer,{pageNumber:1});}catch(e){diagnostics.push({stage:'spatial_pdf_text',error:e.message});}
     try{vector=await inspectPdfVectorPage(f.buffer,{pageNumber:1});}catch(e){diagnostics.push({stage:'pdf_vector_geometry',error:e.message});}
     const nativeChars=nativeText?.characterCount||0;
     // OCR is a fallback for raster-only or textless PDFs; vector geometry is reported separately.
@@ -107,6 +109,7 @@ router.post('/demo/analyze',(req,res)=>{
       engine:'mmc-pdf-native-text+poppler-svg-vector-v1',
       pageCount:nativeText?.pageCount||ocr?.totalPages||null,
       nativeText:{status:nativeText?.status||'unavailable',characterCount:nativeChars,text:(nativeText?.text||'').slice(0,20000),diagnostics:nativeText?.diagnostics||null,unsupportedFilters:nativeText?.unsupportedFilters??null},
+      spatialText:{status:spatialText?.status||'unavailable',engine:spatialText?.engine||null,pageNumber:spatialText?.pageNumber||1,page:spatialText?.page||null,limitations:spatialText?.limitations||[],diagnostics:spatialText?.diagnostics||[]},
       drawingTextIntelligence:textIntelligence?{status:textIntelligence.status,metadata:textIntelligence.metadata,conflicts:textIntelligence.conflicts,unresolved:textIntelligence.unresolved}:null,
       vectorGeometry:{status:vector?.status||'unavailable',pageNumber:1,viewBox:vector?.svgViewBox||null,svgDimensions:vector?.svgDimensions||null,pathCount:paths.length,closedPathCount:paths.filter(path=>path.closed).length,openPathCount:paths.filter(path=>!path.closed).length,unsupportedPathCount:vector?.geometry?.unsupportedPathCount??null,spatialOverview,spatialClusters,paths:paths.slice(0,3000),limitations:vector?.geometry?.limitations||[]},
       ocrFallback:ocr?{status:ocr.status,pagesProcessed:ocr.pagesProcessed,characterCount:ocr.characterCount,pages:ocr.pages.map(page=>({page:page.page,wordCount:page.wordCount,text:page.text.slice(0,10000),averageConfidence:page.averageConfidence,status:page.status}))}:null,
