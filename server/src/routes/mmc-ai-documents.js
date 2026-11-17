@@ -261,6 +261,46 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  res.setHeader('Cache-Control','no-store');
  res.json({analysisId,documentId:doc.id,analysis,ocr,notice:'تم حفظ قراءة النص والأبعاد المرشحة. هذه ليست كميات هندسية معتمدة؛ يلزم ربطها بهندسة الرسم ومقياسه.'});
 }));
+
+async function automaticPdfReading(bytes,doc){
+ const extraction=extractPdfText(bytes);
+ let ocr=null,combined=extraction;
+ const shouldOcr=extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
+ if(shouldOcr){
+  try{
+   ocr=await ocrPdf(bytes,{maxPages:20,dpi:180});
+   const recognized=ocr.pages.map(page=>'[OCR PAGE '+page.page+']\\n'+page.text).join('\\n');
+   combined={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\\n'),
+    characterCount:extraction.characterCount+recognized.length,ocrPerformed:true,ocrPageCount:ocr.pagesProcessed,
+    ocrAverageConfidence:ocr.pages.filter(p=>Number.isFinite(p.averageConfidence)).length?
+     Number((ocr.pages.reduce((sum,p)=>sum+(p.averageConfidence||0),0)/ocr.pages.filter(p=>Number.isFinite(p.averageConfidence)).length).toFixed(2)):null,
+    ocrWords:ocr.pages.flatMap(page=>page.words.map(word=>({page:page.page,block:word.block,paragraph:word.paragraph,line:word.line,text:word.text,confidence:word.confidence,box:word.box}))).slice(0,20000)};
+  }catch(error){ocr={status:error.code==='OCR_RUNTIME_UNAVAILABLE'?'runtime_unavailable':'failed',code:error.code||'OCR_FAILED',message:error.message};}
+ }
+ const textAnalysis=analyzePdfDrawingText(combined,{documentId:doc.id,sheetOrPage:doc.original_name});
+ const pageCount=Math.max(1,Math.min(20,Number(extraction.pageCount)||1));
+ const vectorPages=[],vectorFailures=[];
+ for(let pageNumber=1;pageNumber<=pageCount;pageNumber++){
+  try{
+   const vector=await inspectPdfVectorPage(bytes,{pageNumber});
+   const footprints=detectRectangularFootprints(vector.geometry);
+   vectorPages.push({pageNumber,status:vector.status,pathCount:vector.geometry.pathCount,
+    unsupportedPathCount:vector.geometry.unsupportedPathCount??0,
+    detectedFootprints:footprints.detected.slice(0,1000),detectedCount:footprints.detectedCount,rejectedCount:footprints.rejectedCount});
+  }catch(error){vectorFailures.push({pageNumber,code:error.code||'VECTOR_ANALYSIS_FAILED',message:error.message});}
+ }
+ const detectedCount=vectorPages.reduce((sum,p)=>sum+p.detectedCount,0);
+ return {engine:'mmc-ai-automatic-pdf-reading-v1',documentId:doc.id,
+  status:vectorPages.length||textAnalysis.evidence.evidenceCount?'reading_evidence_collected_requires_engineering_resolution':'insufficient_reading_evidence',
+  pageCount:extraction.pageCount??null,pagesVectorProcessed:vectorPages.length,truncatedAtPageLimit:(Number(extraction.pageCount)||0)>20,
+  extractionSummary:{engine:extraction.engine,status:extraction.status,characterCount:extraction.characterCount,
+   imageXObjectCalls:extraction.diagnostics?.imageXObjectCalls??0,vectorPathOperators:extraction.diagnostics?.vectorPathOperators??0},
+  textAnalysis,ocr,vectorPages,vectorFailures,detectedFootprintCount:detectedCount,
+  quantities:[],threeDModelCreated:false,approvalEligible:false,
+  unresolved:['المسارات والأشكال المكتشفة أدلة هندسية مرشحة وليست عناصر إنشائية مصنفة.','لم يُثبت مقياس الرسم تلقائياً؛ لذلك لم تُحوّل وحدات الصفحة إلى أمتار.','لم تُربط المساقط بالقطاعات والتفاصيل للتحقق من الارتفاعات.','لم تصدر كميات أو أحجام ثلاثية الأبعاد لتجنب التخمين.',
+   ...(Number(extraction.pageCount)>20?['اقتصر التحليل الهندسي على أول 20 صفحة في هذه المرحلة.']:[])]};
+}
+
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
  const projectId=req.params.projectId,db=getDB();
  const m=member(projectId,req.user.id);
@@ -284,6 +324,19 @@ router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(re
  }catch(err){await storage.getStorage().delete(key).catch(()=>{});throw err;}
  const doc=db.prepare(`SELECT id,project_id,uploaded_by,original_name,file_ext,mime_type,size_bytes,sha256,discipline,sheet_number,revision,drawing_title,processing_status,created_at
  FROM ai_documents WHERE id=?`).get(id);
- res.status(201).json({document:doc});
+
+ let automaticAnalysis=null,automaticAnalysisError=null;
+ if(ext==='.pdf'){
+  try{
+   automaticAnalysis=await automaticPdfReading(file.buffer,doc);
+   const analysisId=uid('aidan_');
+   db.prepare('INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)')
+    .run(analysisId,doc.project_id,doc.id,req.user.id,'pdf_automatic_reading',JSON.stringify(automaticAnalysis));
+   db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
+    .run(uid('aial_'),doc.project_id,req.user.id,'pdf_automatic_reading_completed','document',doc.id,
+     JSON.stringify({status:automaticAnalysis.status,pagesVectorProcessed:automaticAnalysis.pagesVectorProcessed,detectedFootprintCount:automaticAnalysis.detectedFootprintCount,ocrStatus:automaticAnalysis.ocr?.status||'not_needed'}));
+  }catch(error){automaticAnalysisError={code:error.code||'AUTOMATIC_READING_FAILED',message:error.message};}
+ }
+ res.status(201).json({document:doc,automaticAnalysis,automaticAnalysisError});
 }));
 module.exports=router;
