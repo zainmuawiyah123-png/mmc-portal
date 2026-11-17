@@ -21,6 +21,14 @@ function summarizeVectorLayout(paths,viewBox){
  const cols=6,rows=6,cells=Array.from({length:rows*cols},(_,i)=>({row:Math.floor(i/cols)+1,column:i%cols+1,total:0,closed:0,open:0}));
  for(const p of paths){const b=p.bounds;if(!b)continue;const x=Math.max(0,Math.min(cols-1,Math.floor((((b.minX+b.maxX)/2-vb.minX)/(vb.maxX-vb.minX))*cols)));const y=Math.max(0,Math.min(rows-1,Math.floor((((b.minY+b.maxY)/2-vb.minY)/(vb.maxY-vb.minY))*rows)));const cell=cells[y*cols+x];cell.total++;if(p.closed)cell.closed++;else cell.open++;}
  const occupied=cells.filter(x=>x.total).sort((a,b)=>b.total-a.total);
+ const pageWidth=vb.maxX-vb.minX,pageHeight=vb.maxY-vb.minY,edgeX=pageWidth*0.015,edgeY=pageHeight*0.015;
+ const edgeCandidates=[],interiorCandidates=[];
+ for(let i=0;i<paths.length;i++){
+  const b=paths[i].bounds;if(!b)continue;
+  const onEdge=b.minX<=vb.minX+edgeX||b.maxX>=vb.maxX-edgeX||b.minY<=vb.minY+edgeY||b.maxY>=vb.maxY-edgeY;
+  const item={pathIndex:i+1,closed:!!paths[i].closed,vertexCount:paths[i].vertexCount,bounds:b};
+  (onEdge?edgeCandidates:interiorCandidates).push(item);
+ }
  const largest=bounds.map((b,i)=>({pathIndex:i+1,bounds:b,width:b.maxX-b.minX,height:b.maxY-b.minY,closed:!!paths[i].closed,vertexCount:paths[i].vertexCount})).sort((a,b)=>(b.width*b.height)-(a.width*a.height)).slice(0,12);
  const profile={closed:0,open:0,triangles:0,quadrilaterals:0,polygons5Plus:0,rectilinearCandidates:0,roundShapeCandidates:0};
  const sizeFrequency=new Map();
@@ -44,7 +52,7 @@ function summarizeVectorLayout(paths,viewBox){
   const b=p.bounds;if(b){const w=(b.maxX-b.minX).toFixed(3),h=(b.maxY-b.minY).toFixed(3),key=[w,h].sort().join('×');sizeFrequency.set(key,(sizeFrequency.get(key)||0)+1);}
  }
  const repeatedBoundingBoxSizes=[...sizeFrequency].filter(([,count])=>count>=3).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([size,count])=>({pageUnits:size,count}));
- return {status:'spatial_distribution_only_not_semantic_classification',coordinateSystem:'PDF/SVG page units; not millimetres or metres',overallBounds,gridSize:{rows,columns:cols},occupiedCells:occupied.length,occupiedCellSummaries:occupied.slice(0,12),shapeProfile:profile,repeatedBoundingBoxSizes,largestBoundingBoxes:largest,notice:'Shape counts are geometric pattern candidates only. They do not identify walls, slabs, footings, openings, rebar, title blocks or disciplines.'};
+ return {status:'spatial_distribution_only_not_semantic_classification',coordinateSystem:'PDF/SVG page units; not millimetres or metres',overallBounds,pageBounds:vb,gridSize:{rows,columns:cols},occupiedCells:occupied.length,occupiedCellSummaries:occupied.slice(0,12),edgeBandAnalysis:{edgeBandPercent:1.5,edgeBandPathCount:edgeCandidates.length,interiorPathCount:interiorCandidates.length,edgeBandExamples:edgeCandidates.slice(0,20),notice:'Edge-band candidates may be page frames, crop marks, border decorations or drawing content; they are flagged for review, not deleted.'},shapeProfile:profile,repeatedBoundingBoxSizes,largestBoundingBoxes:largest,notice:'Shape counts are geometric pattern candidates only. They do not identify walls, slabs, footings, openings, rebar, title blocks or disciplines.'};
 }
 function valid(file,ext){
  const b=file.buffer;
