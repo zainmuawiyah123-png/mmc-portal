@@ -47,7 +47,7 @@ function extractToken(req) {
 
 function loadUser(id) {
   return getDB().prepare(
-    'SELECT id, email, name, company, role, country, plan_key, plan_started_at, created_at, last_login_at FROM users WHERE id = ?'
+    'SELECT id, email, name, company, role, country, plan_key, plan_started_at, created_at, last_login_at, account_status FROM users WHERE id = ?'
   ).get(id);
 }
 
@@ -59,6 +59,7 @@ function requireAuth(req, res, next) {
     const payload = verifyToken(token);
     const user = loadUser(payload.sub);
     if (!user) return next(E.unauthorized('الجلسة لم تعد صالحة. سجّل الدخول من جديد.'));
+    if ((user.account_status || 'active') !== 'active') return next(E.forbidden(user.account_status === 'pending' ? 'حسابك قيد مراجعة MMC.' : 'هذا الحساب غير مفعّل.'));
     req.user = user;
     req.token = token;
     next();
