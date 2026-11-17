@@ -310,8 +310,7 @@ function start() {
   });
 
   const shutdown = (sig) => {
-    console.log('
-[' + sig + '] إيقاف الخادم...');
+    console.log('\\n[' + sig + '] إيقاف الخادم...');
     server.close(() => {
       try { require('./db').closeDB(); } catch (_) {}
       process.exit(0);
