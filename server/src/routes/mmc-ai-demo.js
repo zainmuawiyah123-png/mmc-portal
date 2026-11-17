@@ -8,6 +8,7 @@ const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
 const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
 const {inspectPdfVectorPage}=require('../lib/mmc-ai/pdf-pdf-vector-extract');
 const {analyzePdfDrawingText}=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
+const {clusterVectorPaths}=require('../lib/mmc-ai/pdf-vector-clustering');
 const router=express.Router();
 const MAX=25*1024*1024;
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX,files:1,fields:0}});
@@ -98,6 +99,7 @@ router.post('/demo/analyze',(req,res)=>{
       return {pathIndex:index+1,closed:path.closed,vertexCount:path.vertexCount,points:path.points.map(point=>({x:point.x,y:point.y})),lengthPageUnits:path.lengthUnits,areaPageUnits2:path.areaSquareUnits,bounds:xs.length?{minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)}:null};
     });
     const spatialOverview=summarizeVectorLayout(paths,vector?.svgViewBox);
+    const spatialClusters=clusterVectorPaths(paths,{pageBounds:spatialOverview.pageBounds||spatialOverview.overallBounds});
     result={
       analysisType:'pdf_native_text_and_vector_geometry',
       status:(nativeChars>0||paths.length>0)?'pdf_evidence_extracted_requires_engineering_review':(ocr?.status||'pdf_no_readable_evidence'),
@@ -106,7 +108,7 @@ router.post('/demo/analyze',(req,res)=>{
       pageCount:nativeText?.pageCount||ocr?.totalPages||null,
       nativeText:{status:nativeText?.status||'unavailable',characterCount:nativeChars,text:(nativeText?.text||'').slice(0,20000),diagnostics:nativeText?.diagnostics||null,unsupportedFilters:nativeText?.unsupportedFilters??null},
       drawingTextIntelligence:textIntelligence?{status:textIntelligence.status,metadata:textIntelligence.metadata,conflicts:textIntelligence.conflicts,unresolved:textIntelligence.unresolved}:null,
-      vectorGeometry:{status:vector?.status||'unavailable',pageNumber:1,viewBox:vector?.svgViewBox||null,svgDimensions:vector?.svgDimensions||null,pathCount:paths.length,closedPathCount:paths.filter(path=>path.closed).length,openPathCount:paths.filter(path=>!path.closed).length,unsupportedPathCount:vector?.geometry?.unsupportedPathCount??null,spatialOverview,paths:paths.slice(0,3000),limitations:vector?.geometry?.limitations||[]},
+      vectorGeometry:{status:vector?.status||'unavailable',pageNumber:1,viewBox:vector?.svgViewBox||null,svgDimensions:vector?.svgDimensions||null,pathCount:paths.length,closedPathCount:paths.filter(path=>path.closed).length,openPathCount:paths.filter(path=>!path.closed).length,unsupportedPathCount:vector?.geometry?.unsupportedPathCount??null,spatialOverview,spatialClusters,paths:paths.slice(0,3000),limitations:vector?.geometry?.limitations||[]},
       ocrFallback:ocr?{status:ocr.status,pagesProcessed:ocr.pagesProcessed,characterCount:ocr.characterCount,pages:ocr.pages.map(page=>({page:page.page,wordCount:page.wordCount,text:page.text.slice(0,10000),averageConfidence:page.averageConfidence,status:page.status}))}:null,
       diagnostics,geometryExtracted:paths.length>0,scaleCalibrated:false,quantities:[],bimModelCreated:false,quantitiesAreContractuallyVerified:false,
       limitations:[...(nativeText?.limitations||[]),...(vector?.geometry?.limitations||[]),'تم تحليل الصفحة الأولى فقط في المعاينة.','إحداثيات ومساحات المسارات بوحدات صفحة PDF الخام وليست أمتاراً أو كميات تنفيذية.','لا يتم تصنيف المسارات تلقائياً إلى قواعد أو جدران أو بلاطات أو عناصر MEP.','المقياس يحتاج إلى بعد معلوم ومؤكد من اللوحة أو اعتماد المهندس قبل التحويل إلى قياسات فعلية.']
