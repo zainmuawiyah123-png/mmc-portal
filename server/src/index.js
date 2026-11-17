@@ -177,7 +177,7 @@ function createApp() {
   app.get(['/mmc-ai/workspace', '/mmc-ai/workspace/'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=' + encodeURIComponent('/mmc-ai/workspace'));
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=' + '/mmc-ai/workspace/');
       res.setHeader('Cache-Control', 'private, no-store');
       return sendFromWeb('mmc-ai/index.html', res, next);
     });
