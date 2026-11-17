@@ -112,7 +112,7 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
 router.post('/verify-email', wrap(async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const code = String(req.body?.code || '').trim();
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || !/^\\d{6}$/.test(code)) throw E.validation('أدخل البريد ورمز التحقق المكوّن من 6 أرقام.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{6}$/.test(code)) throw E.validation('أدخل البريد ورمز التحقق المكوّن من 6 أرقام.');
   const db = getDB();
   const user = db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
   if (!user) throw E.notFound('طلب التسجيل غير موجود.');
