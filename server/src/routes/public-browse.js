@@ -39,6 +39,34 @@ router.get('/procurement/tenders', (req,res) => {
   })),count:rows.length});
 });
 
+
+router.get('/procurement/tenders/:id', (req,res) => {
+  const db=getDB();
+  const t=db.prepare(`
+    SELECT id,name,name_en,reference,authority,closing,country,notes,notes_en,
+           technical_weight,financial_weight,technical_threshold
+    FROM tenders
+    WHERE id=? AND procurement_status='published'
+      AND (closing IS NULL OR closing='' OR substr(closing,1,10)>=?)
+  `).get(req.params.id,ammanToday());
+  if(!t) return res.status(404).json({error:{code:'NOT_FOUND',message:'العطاء غير متاح للعرض العام.'}});
+  const requirements=db.prepare(`
+    SELECT id,title,title_en,description,description_en,weight,mandatory,sort_order
+    FROM tender_requirements WHERE tender_id=? ORDER BY sort_order
+  `).all(t.id);
+  res.setHeader('Cache-Control','public, max-age=60');
+  res.json({tender:{
+    id:t.id,name:t.name,nameEn:t.name_en||null,reference:t.reference,
+    authority:t.authority||null,closing:t.closing||null,country:t.country||'JO',
+    notes:t.notes||null,notesEn:t.notes_en||null,
+    technicalWeight:t.technical_weight,financialWeight:t.financial_weight,
+    technicalThreshold:t.technical_threshold,
+    requirements:requirements.map(x=>({id:x.id,title:x.title,titleEn:x.title_en||null,
+      description:x.description||null,descriptionEn:x.description_en||null,
+      weight:x.weight,mandatory:!!x.mandatory}))
+  }});
+});
+
 router.get('/contractor/opportunities', (req,res) => {
   const db=getDB();
   const q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
