@@ -57,6 +57,28 @@ async function call(name, method, p, { body, form, headers } = {}) {
 
   const ct = res.headers.get('content-type') || '';
   const data = ct.includes('application/json') ? await res.json() : await res.text();
+
+  // Integration fixtures represent a user who completed the real OTP flow.
+  // Activate only the isolated test database record, then obtain its normal session via login.
+  if (p === '/api/auth/register' && res.status === 201 && data?.user?.id) {
+    const db = getDB();
+    const now = Math.floor(Date.now() / 1000);
+    db.prepare('UPDATE email_verifications SET verified_at = ? WHERE user_id = ?').run(now, data.user.id);
+    db.prepare("UPDATE users SET account_status = 'active' WHERE id = ?").run(data.user.id);
+    const email = data.user.email;
+    const loginResponse = await fetch(base + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: body.password }),
+      redirect: 'manual'
+    });
+    const loginCookies = loginResponse.headers.getSetCookie ? loginResponse.headers.getSetCookie() : [];
+    for (const c of loginCookies) {
+      const first = c.split(';')[0];
+      if (first.startsWith('tpkit_session=')) cookies[name] = first;
+    }
+  }
+
   return { status: res.status, data, headers: res.headers };
 }
 
@@ -105,10 +127,10 @@ test('01 — /api/health يستجيب', async () => {
   assert.ok(r.data.scheduler, 'يجب أن يعرض /api/health حالة الجدولة');
 });
 
-test('01A — صفحة دورة المالية لا تُعرض دون جلسة', async () => {
+test('01A — صفحة دورة المالية العامة متاحة دون جلسة', async () => {
   const r = await call('anon', 'GET', '/project-finance/index.html');
-  assert.strictEqual(r.status, 302);
-  assert.match(r.headers.get('location') || '', /login\.html/);
+  assert.strictEqual(r.status, 200);
+  assert.match(r.data, /MMC Project Finance Workflow/);
 });
 
 test('02 — تسجيل مستخدم جديد يعيد 201 ويضبط الكوكي', async () => {
