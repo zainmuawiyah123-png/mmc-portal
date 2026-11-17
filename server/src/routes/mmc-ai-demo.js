@@ -45,7 +45,7 @@ router.post('/demo/analyze',(req,res)=>{
     try{vector=await inspectPdfVectorPage(f.buffer,{pageNumber:1});}catch(e){diagnostics.push({stage:'pdf_vector_geometry',error:e.message});}
     const nativeChars=nativeText?.characterCount||0;
     // OCR is a fallback for raster-only or textless PDFs; vector geometry is reported separately.
-    if(nativeChars===0 && !(vector?.geometry?.pathCount>0)){
+    if(nativeChars===0){
       try{ocr=await ocrPdf(f.buffer,{maxPages:1,dpi:140});}catch(e){diagnostics.push({stage:'pdf_ocr_fallback',error:e.message});}
     }
     if(nativeText){
