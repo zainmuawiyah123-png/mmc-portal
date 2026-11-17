@@ -73,11 +73,11 @@ function isNew(o){return o.importedAt&&(Date.now()/1000-o.importedAt)<3*86400}
 function qs(extra){var p=['limit='+PAGE,'offset='+off,'status='+S.state,'sort='+S.sort];if(S.q)p.push('q='+encodeURIComponent(S.q));if(S.source)p.push('source='+S.source);if(S.country)p.push('country='+S.country);if(S.closing)p.push('closing='+S.closing);if(S.saved)p.push('saved=1');return p.join('&')}
 function skel(){$('#grid').innerHTML='<div class="mk-skel"></div><div class="mk-skel"></div><div class="mk-skel"></div><div class="mk-skel"></div>'}
 function load(append){if(busy)return;busy=true;if(!append){off=0;skel()}
- var path=role==='guest'?'/public/contractor/opportunities?limit='+PAGE+'&offset='+off+'&q='+encodeURIComponent(S.q)+'&country='+encodeURIComponent(S.country):'/opportunities/feed?'+qs();
+ var path=role==='guest'?'/public/contractor/opportunities?limit='+PAGE+'&offset='+off+'&q='+encodeURIComponent(S.q)+'&country='+encodeURIComponent(S.country)+'&status='+encodeURIComponent(S.state)+'&source='+encodeURIComponent(S.source)+'&sector='+encodeURIComponent(S.sector||''):'/opportunities/feed?'+qs();
  API.request('GET',path).then(function(d){busy=false;meta=d;total=d.total==null?d.count:d.total;items=append?items.concat(d.opportunities):d.opportunities;note('');drawStats();drawControls();drawGrid();drawMeta()}).catch(function(e){busy=false;$('#grid').innerHTML='';note(e.message,'warn')})}
 function drawStats(){var s=meta.stats||{};var def=[['open',T('مفتوحة الآن','Open now'),s.open,'',function(){reset()}],['soon',T('تغلق خلال 7 أيام','Closing in 7 days'),s.closingSoon,'warn',function(){S.closing='7';S.sort='closing';S.saved=false;S.state='open';sync();load()}],['new',T('جديدة هذا الأسبوع','New this week'),s.newThisWeek,'good',function(){S.sort='new';S.closing='';S.saved=false;S.state='open';sync();load()}],['saved',T('المحفوظة','Saved'),s.saved,'',function(){S.saved=!S.saved;sync();load()}]];
  $('#stats').innerHTML=def.map(function(x,i){return '<button type="button" class="mk-stat '+x[3]+((x[0]==='saved'&&S.saved)||(x[0]==='soon'&&S.closing==='7')||(x[0]==='new'&&S.sort==='new')?' on':'')+'" data-i="'+i+'"><b>'+(x[2]==null?'—':x[2])+'</b><span>'+x[1]+'</span></button>'}).join('');
- document.querySelectorAll('.mk-stat').forEach(function(b){b.onclick=def[Number(b.dataset.i)][4]})}
+ if(role==='guest')def.pop(); document.querySelectorAll('.mk-stat').forEach(function(b){b.onclick=def[Number(b.dataset.i)][4]})}
 function drawControls(){var bc=meta.openByCountry||{},bs=meta.openBySource||{};var cs=$('#country'),cur=S.country;
  var order=['JO','SA','KW','OM','BH','AE','QA','IQ','INT'],keys=order.concat(Object.keys(bc).filter(function(k){return order.indexOf(k)<0}));
  cs.innerHTML='<option value="">'+T('كل الدول','All countries')+'</option>'+keys.map(function(k){return '<option value="'+esc(k)+'">'+cn(k)+' ('+(bc[k]||0)+')</option>'}).join('');cs.value=cur;
@@ -106,7 +106,7 @@ $('#q').oninput=function(){clearTimeout(timer);timer=setTimeout(function(){S.q=$
 ['country','closing','sort','state'].forEach(function(k){$('#'+k).onchange=function(){S[k]=$('#'+k).value;load()}});
 $('#reset').onclick=reset;$('#more').onclick=function(){off+=PAGE;load(true)};
 $('#logout').onclick=function(){API.logout().then(function(){location.href='../portal/pt-9f3c7a1e5b2d/login.html'})};
-function publicLoad(){role='guest';S.saved=false;$('#logout').hide();$('#back').attr('href','../bid/index.html');note(T('وضع المشاهدة العامة: يمكنك تصفح العطاءات وتفاصيلها. تسجيل الدخول مطلوب لحفظ الفرص أو تجهيز العروض أو تقديمها.','Public browse: view tenders and details. Sign in is required to save opportunities or prepare and submit bids.'),'');sync();load()}
+function publicLoad(){role='guest';S.saved=false;$('#logout').hidden=true;$('#back').href='../bid/index.html';note(T('وضع المشاهدة العامة: يمكنك تصفح العطاءات وتفاصيلها. تسجيل الدخول مطلوب لحفظ الفرص أو تجهيز العروض أو تقديمها.','Public browse: view tenders and details. Sign in is required to save opportunities or prepare and submit bids.'),'');sync();load()}
  API.me().then(function(d){role=d.user.role;if(['contractor','consultant','admin'].indexOf(role)<0){publicLoad();return}
  if(role==='consultant')$('#back').href='../consultant/index.html';if(location.hash==='#saved')S.saved=true;sync();load()}).catch(publicLoad);
 })();</script></body></html>
