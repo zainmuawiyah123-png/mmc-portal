@@ -22,7 +22,29 @@ function summarizeVectorLayout(paths,viewBox){
  for(const p of paths){const b=p.bounds;if(!b)continue;const x=Math.max(0,Math.min(cols-1,Math.floor((((b.minX+b.maxX)/2-vb.minX)/(vb.maxX-vb.minX))*cols)));const y=Math.max(0,Math.min(rows-1,Math.floor((((b.minY+b.maxY)/2-vb.minY)/(vb.maxY-vb.minY))*rows)));const cell=cells[y*cols+x];cell.total++;if(p.closed)cell.closed++;else cell.open++;}
  const occupied=cells.filter(x=>x.total).sort((a,b)=>b.total-a.total);
  const largest=bounds.map((b,i)=>({pathIndex:i+1,bounds:b,width:b.maxX-b.minX,height:b.maxY-b.minY,closed:!!paths[i].closed,vertexCount:paths[i].vertexCount})).sort((a,b)=>(b.width*b.height)-(a.width*a.height)).slice(0,12);
- return {status:'spatial_distribution_only_not_semantic_classification',coordinateSystem:'PDF/SVG page units; not millimetres or metres',overallBounds,gridSize:{rows,columns:cols},occupiedCells:occupied.length,occupiedCellSummaries:occupied.slice(0,12),largestBoundingBoxes:largest,notice:'Grid cells locate path concentration only. They do not identify walls, slabs, title blocks, dimensions or disciplines.'};
+ const profile={closed:0,open:0,triangles:0,quadrilaterals:0,polygons5Plus:0,rectilinearCandidates:0,roundShapeCandidates:0};
+ const sizeFrequency=new Map();
+ for(const p of paths){
+  if(p.closed)profile.closed++;else profile.open++;
+  const pts=p.points||[],n=pts.length;
+  if(p.closed&&n>=3){
+   if(n===3)profile.triangles++;else if(n===4)profile.quadrilaterals++;else profile.polygons5Plus++;
+   let right=0,valid=0;
+   for(let i=0;i<n;i++){
+    const prev=pts[(i+n-1)%n],cur=pts[i],next=pts[(i+1)%n];
+    const ax=prev.x-cur.x,ay=prev.y-cur.y,bx=next.x-cur.x,by=next.y-cur.y;
+    const denom=Math.hypot(ax,ay)*Math.hypot(bx,by);
+    if(denom>0){valid++;if(Math.abs((ax*bx+ay*by)/denom)<0.12)right++;}
+   }
+   const b=p.bounds,w=b.maxX-b.minX,h=b.maxY-b.minY,aspect=Math.max(w,h)/Math.max(1e-9,Math.min(w,h));
+   const compactness=p.areaPageUnits2>0?4*Math.PI*p.areaPageUnits2/(p.lengthPageUnits*p.lengthPageUnits):0;
+   if(valid>=3&&n<=10&&right/valid>=0.8)profile.rectilinearCandidates++;
+   if(aspect<=1.18&&compactness>=0.78&&compactness<=1.15)profile.roundShapeCandidates++;
+  }
+  const b=p.bounds;if(b){const w=(b.maxX-b.minX).toFixed(3),h=(b.maxY-b.minY).toFixed(3),key=[w,h].sort().join('×');sizeFrequency.set(key,(sizeFrequency.get(key)||0)+1);}
+ }
+ const repeatedBoundingBoxSizes=[...sizeFrequency].filter(([,count])=>count>=3).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([size,count])=>({pageUnits:size,count}));
+ return {status:'spatial_distribution_only_not_semantic_classification',coordinateSystem:'PDF/SVG page units; not millimetres or metres',overallBounds,gridSize:{rows,columns:cols},occupiedCells:occupied.length,occupiedCellSummaries:occupied.slice(0,12),shapeProfile:profile,repeatedBoundingBoxSizes,largestBoundingBoxes:largest,notice:'Shape counts are geometric pattern candidates only. They do not identify walls, slabs, footings, openings, rebar, title blocks or disciplines.'};
 }
 function valid(file,ext){
  const b=file.buffer;
