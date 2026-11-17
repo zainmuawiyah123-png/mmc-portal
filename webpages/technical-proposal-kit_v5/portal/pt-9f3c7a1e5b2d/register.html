@@ -159,6 +159,7 @@
     var bad=false;
 
     if(name.length<2){ fieldErr('nameErr',T('أدخل الاسم (حرفان على الأقل).','Enter your name (at least 2 characters).')); bad=true; }
+    if(company.length<2){ fieldErr('companyErr',T('أدخل اسم الشركة أو المكتب.','Enter your company or office name.')); bad=true; }
     if(!email){ fieldErr('emailErr',T('أدخل البريد الإلكتروني.','Enter your email.')); bad=true; }
     else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ fieldErr('emailErr',T('صيغة البريد غير صحيحة.','Invalid email format.')); bad=true; }
     if(p1.length<8){ fieldErr('passErr',T('كلمة المرور 8 أحرف على الأقل.','Password must be at least 8 characters.')); bad=true; }
