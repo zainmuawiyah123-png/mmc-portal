@@ -67,3 +67,11 @@ Every extracted item and quantity must be one of: measured and ready for review;
 - Distinguish gross, net, deducted openings, waste, laps, and overlaps explicitly.
 - Preserve the source file and immutable evidence; all derived artifacts must be reproducible from source plus engine/rule version.
 - Keep engineering review status visible and do not imply design approval.
+
+## Development progress — 2026-11-17
+
+- Added a direct PNG/JPEG OCR adapter using the existing Tesseract runtime. It validates file signatures against MIME type, preserves word bounding boxes and confidence, enforces the existing 25 MB limit and OCR concurrency guard, and returns an explicit OCR-only result.
+- Connected PNG/JPG uploads to automatic OCR and persists the result plus audit-log event. OCR text candidates are explicitly not promoted to geometry, BIM, or quantities.
+- Added OCR tests for invalid image bytes and a generated engineering-plan PNG fixture. These tests are committed but have not yet been executed in the Render staging runtime.
+- The repository Dockerfile already installs Poppler, Tesseract, and English/Arabic language data; no additional paid service or dependency was introduced.
+- Still outstanding: execute tests, verify OCR runtime on staging, extract raster geometry, calibrate image scale from drawing evidence, associate dimensions with geometry, and produce traceable BIM/quantity records. No Render deployment or production release has been performed as part of these commits.
