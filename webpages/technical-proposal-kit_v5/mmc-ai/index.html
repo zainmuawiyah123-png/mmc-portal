@@ -733,6 +733,30 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      }catch(err){notify(err.message);}finally{ocr.disabled=false;ocr.textContent='OCR (Arabic + English)';}});
      actions.appendChild(ocr);
     }
+    if(d.file_ext==='.pdf'){
+     const take=document.createElement('button');take.type='button';take.dataset.action='pdf-structural-takeoff';take.dataset.documentId=String(d.id);take.textContent='PDF Structural Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     take.addEventListener('click',async()=>{
+      take.disabled=true;take.textContent='Reading PDF & calculating…';sub.textContent='PDF · Structural schedule analysis running…';sub.dataset.documentStatus='running';
+      const output=document.getElementById('takeoffResult');output.replaceChildren();const progress=document.createElement('p');progress.className='note';progress.textContent='Reading explicit structural schedule dimensions and reinforcement marks. Quantities remain pending engineering review.';output.appendChild(progress);
+      try{
+       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/takeoff/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+       const data=await response.json();if(!response.ok){const apiError=data.error;throw new Error((apiError&&typeof apiError==='object'&&apiError.message)||data.message||(typeof apiError==='string'?apiError:null)||'PDF takeoff failed (HTTP '+response.status+').');}
+       const run=data.run||{},summary=run.summary||{},items=run.items||[];
+       sub.textContent='PDF · '+items.length+' quantities calculated · Pending engineering review';sub.dataset.documentStatus='completed';output.replaceChildren();
+       const heading=document.createElement('strong');heading.textContent='Structural Takeoff — Pending Engineering Review';heading.style.cssText='display:block;color:#a15a0b;margin-bottom:8px';
+       const totals=document.createElement('p');totals.textContent='Concrete: '+Number(summary.concrete_m3||0).toFixed(3)+' m³ · Reinforcement: '+Number(summary.rebar_kg||0).toFixed(2)+' kg';totals.style.cssText='font-size:12px;line-height:1.8;color:#dce8f3';
+       const table=document.createElement('div');table.style.cssText='display:grid;gap:6px;margin-top:8px';
+       for(const item of items){const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:8px;border:1px solid #29435d;border-radius:7px;background:#0b2239;color:#e6eef7;font-size:11px';
+        const name=document.createElement('div');name.textContent=item.layer||item.entity||'Takeoff item';const detail=document.createElement('small');detail.textContent=(item.detail?.formula||'')+' · Source page '+(item.detail?.sourcePage||'—');detail.style.cssText='display:block;color:#91a8bd;margin-top:4px;line-height:1.6';name.appendChild(detail);
+        const qty=document.createElement('strong');qty.textContent=Number(item.quantity).toLocaleString(undefined,{maximumFractionDigits:3})+' '+item.unit;qty.style.cssText='white-space:nowrap;color:#a9d7bf';row.append(name,qty);table.appendChild(row);
+       }
+       const note=document.createElement('p');note.textContent='The result is limited to readable PDFs with the supported F1/C1/B1/S1 structural schedule and bar schedule format. Scanned PDFs and other drawing layouts are not yet supported by this calculation route. No assumptions or waste allowances are added.';note.style.cssText='font-size:10px;color:#f0c78b;line-height:1.8;margin-top:9px';
+       output.append(heading,totals,table,note);notify('PDF structural takeoff completed — pending engineering review.');
+      }catch(err){sub.textContent='PDF · Takeoff not completed';sub.dataset.documentStatus='needs_input';output.replaceChildren();const error=document.createElement('p');error.className='note';error.textContent=err.message;output.appendChild(error);notify(err.message);}
+      finally{take.disabled=false;take.textContent='PDF Structural Takeoff';}
+     });
+     actions.appendChild(take);
+    }
     if(d.file_ext==='.dxf'){
      const take=document.createElement('button');take.type='button';take.dataset.action='dxf-takeoff';take.dataset.documentId=String(d.id);take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
      take.addEventListener('click',async()=>{
