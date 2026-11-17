@@ -37,6 +37,16 @@ function notify(to, subject, text) {
   } catch (e) { console.error('[mail] تعذر تسجيل الرسالة:', e.message); return null; }
 }
 
+/** Adds a message and waits for the first SMTP attempt (used for security codes). */
+async function notifyNow(to, subject, text) {
+  const addr = clean(to, 254);
+  if (!EMAIL_RE.test(addr) || !enabled()) return { id: null, sent: false };
+  const id = uid('mail_');
+  getDB().prepare(`INSERT INTO email_outbox (id,to_email,subject,body,status) VALUES (?,?,?,?,?)`)
+    .run(id, addr, clean(subject, 200), String(text || '').slice(0, 8000), 'pending');
+  return { id, sent: await sendOne(id) };
+}
+
 async function sendOne(id) {
   const db = getDB();
   const row = db.prepare("SELECT * FROM email_outbox WHERE id=? AND status IN ('pending','failed') AND attempts<5").get(id);
@@ -66,4 +76,4 @@ const userEmail = (userId) => (getDB().prepare('SELECT email FROM users WHERE id
 /** إشعار لمستخدم بمعرّفه */
 function notifyUser(userId, subject, text) { const e = userEmail(userId); return e ? notify(e, subject, text) : null; }
 
-module.exports = { notify, notifyUser, flush, sendOne, enabled, link, EMAIL_RE };
+module.exports = { notify, notifyNow, notifyUser, flush, sendOne, enabled, link, EMAIL_RE };
