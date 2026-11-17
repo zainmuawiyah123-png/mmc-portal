@@ -16,8 +16,8 @@
       <div class="auth-head">
         <div class="mark">M</div>
         <h1><span data-ar="إنشاء حساب جديد" data-en="Create your account">إنشاء حساب جديد</span></h1>
-        <p><span data-ar="تبدأ على الباقة التجريبية المجانية: عطاء واحد و25 م.ب من الملفات — بدون بطاقة."
-              data-en="You start on the free trial: one tender and 25 MB of files — no card required.">تبدأ على الباقة التجريبية المجانية: عطاء واحد و25 م.ب من الملفات — بدون بطاقة.</span></p>
+        <p><span data-ar="التسجيل يتطلب بيانات شركة أو مكتب عمل. يُفعّل الحساب بعد مراجعة MMC، ويمكن مشاهدة البوابات دون تسجيل."
+              data-en="Register with your company or professional office details. MMC activates accounts after review; public portal previews remain open.">تبدأ على الباقة التجريبية المجانية: عطاء واحد و25 م.ب من الملفات — بدون بطاقة.</span></p>
       </div>
 
       <div class="auth-body">
@@ -32,7 +32,7 @@
           </div>
 
           <div class="field">
-            <label for="company"><span data-ar="اسم الشركة (اختياري)" data-en="Company (optional)">اسم الشركة (اختياري)</span></label>
+            <label for="company"><span data-ar="اسم الشركة أو المكتب (إلزامي)" data-en="Company or office (required)">اسم الشركة (اختياري)</span></label>
             <input type="text" id="company" name="company" autocomplete="organization" maxlength="160"
                    placeholder="مكتب المقاولات">
             <div class="err-msg" id="companyErr"></div>
@@ -138,9 +138,9 @@
   var roleSelect=document.getElementById('role');
   var intro=document.querySelector('.auth-head p span');
   function updateRoleIntro(){
-    if(roleSelect.value==='buyer') intro.textContent=T('بوابة المشتريات الأساسية مجانية بالكامل دون اشتراك أو مدة تجريبية.','Core procurement access is permanently free, with no subscription or trial period.');
-    else if(roleSelect.value==='consultant') intro.textContent=T('أنشئ ملف المكتب الاستشاري وابدأ باستخدام الخدمات المتاحة للمكاتب.','Create your consultancy profile and access the services available to consulting offices.');
-    else intro.textContent=T('تبدأ على الباقة المجانية الأساسية. يمكنك تفعيل الأدوات الاحترافية حسب الباقة المتاحة.','Start with the free basic plan. Professional tools are available according to your selected plan.');
+    if(roleSelect.value==='buyer') intro.textContent=T('بوابة المشتريات الأساسية مجانية للجهات الرسمية بعد مراجعة وتوثيق الجهة.','Core procurement access is free for official entities after verification.');
+    else if(roleSelect.value==='consultant') intro.textContent=T('يُراجع الحساب والملف القانوني للمكتب قبل تفعيل خدمات السوق. الباقة الاحترافية 20 دولاراً شهرياً عند إتاحتها.','The account and legal firm profile are reviewed before marketplace access. Professional plan: USD 20/month when enabled.');
+    else intro.textContent=T('سيُراجع حساب الشركة قبل التفعيل. المقاول يحصل على عطاء أول مجاني، ثم تتطلب العمليات المدفوعة اشتراكاً فعالاً.','Company accounts are reviewed before activation. Contractors receive one free tender, then paid operations require an active subscription.');
   }
   roleSelect.addEventListener('change',updateRoleIntro);
   if(params.get('role')==='buyer'){roleSelect.value='buyer';} else if(params.get('role')==='consultant'){roleSelect.value='consultant';}
@@ -168,9 +168,9 @@
     btn.disabled=true;
     btn.innerHTML='<span class="spinner"></span>'+T('جارٍ إنشاء الحساب…','Creating account…');
 
-    API.register({name:name, email:email, password:p1, company:company||undefined, role:role, country:country}).then(function(res){
-      showAlert(T('تم إنشاء الحساب. جارٍ التحويل إلى لوحة التحكم…','Account created. Redirecting to your dashboard…'),'ok');
-      var dest=(res.user&&res.user.role==='buyer')?'/consulting/requester/':(res.user&&res.user.role==='consultant'?'/consulting/':'index.html');setTimeout(function(){ location.replace(dest); }, 500);
+    API.register({name:name, email:email, password:p1, company:company, role:role, country:country}).then(function(res){
+      showAlert(T('تم استلام طلب التسجيل بنجاح. حسابك الآن قيد مراجعة MMC، ولن تحتاج إلى إعادة التسجيل. ستتمكن من الدخول بعد اعتماد الحساب. يمكنك مشاهدة البوابات دون تسجيل.','Registration received. Your account is pending MMC review. You do not need to register again; sign-in will be enabled after approval. Public portal previews remain available.'),'ok');
+      btn.disabled=true; btn.innerHTML=T('تم استلام الطلب','Request received');
     }).catch(function(err){
       btn.disabled=false; btn.innerHTML=defaultLabel;
       if(err.code==='CONFLICT'){
