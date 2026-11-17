@@ -13,7 +13,7 @@ const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
 const {inspectPdfVectorPage}=require('../lib/mmc-ai/pdf-pdf-vector-extract');
 const {detectRectangularFootprints}=require('../lib/mmc-ai/pdf-2d-to-3d');
 const {analyzePdfDrawingText}=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
-const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
+const {ocrPdf,ocrImage}=require('../lib/mmc-ai/ocr-engine');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -336,6 +336,28 @@ router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(re
     .run(uid('aial_'),doc.project_id,req.user.id,'pdf_automatic_reading_completed','document',doc.id,
      JSON.stringify({status:automaticAnalysis.status,pagesVectorProcessed:automaticAnalysis.pagesVectorProcessed,detectedFootprintCount:automaticAnalysis.detectedFootprintCount,ocrStatus:automaticAnalysis.ocr?.status||'not_needed'}));
   }catch(error){automaticAnalysisError={code:error.code||'AUTOMATIC_READING_FAILED',message:error.message};}
+
+ } else if(ext==='.png'||ext==='.jpg'||ext==='.jpeg'){
+  try{
+   const mime=ext==='.png'?'image/png':'image/jpeg';
+   const ocr=await ocrImage(file.buffer,{mime,dpi:200});
+   const recognized=ocr.pages.map(page=>'[IMAGE PAGE '+page.page+']\\n'+page.text).join('\\n');
+   const extraction={engine:ocr.engine,text:recognized,characterCount:recognized.length,ocrPerformed:true,
+    ocrPageCount:ocr.pagesProcessed,ocrAverageConfidence:ocr.pages[0]?.averageConfidence??null,
+    ocrWords:ocr.pages.flatMap(page=>page.words.map(word=>({page:1,block:word.block,paragraph:word.paragraph,line:word.line,text:word.text,confidence:word.confidence,box:word.box}))).slice(0,20000)};
+   const textAnalysis=analyzePdfDrawingText(extraction,{documentId:doc.id,sheetOrPage:doc.original_name});
+   automaticAnalysis={engine:'mmc-ai-automatic-image-reading-v1',documentId:doc.id,
+    status:ocr.status==='ocr_text_extracted'?'image_text_evidence_collected_requires_geometric_interpretation':'insufficient_image_text_evidence',
+    sourceFormat:ext.slice(1).toUpperCase(),ocr,textAnalysis,scaleCalibrated:false,geometryExtracted:false,
+    quantities:[],threeDModelCreated:false,approvalEligible:false,
+    unresolved:['تم استخراج النصوص ومواقع الكلمات من الصورة فقط.','لم تُستخرج هندسة العناصر أو يُعاير مقياس الرسم من الصورة بعد.','لم تُنشأ عناصر BIM أو كميات؛ لن يتم تخمينها.']};
+   const analysisId=uid('aidan_');
+   db.prepare('INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)')
+    .run(analysisId,doc.project_id,doc.id,req.user.id,'image_automatic_reading',JSON.stringify(automaticAnalysis));
+   db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
+    .run(uid('aial_'),doc.project_id,req.user.id,'image_automatic_reading_completed','document',doc.id,
+     JSON.stringify({status:automaticAnalysis.status,ocrStatus:ocr.status,wordCount:ocr.pages[0]?.wordCount||0}));
+  }catch(error){automaticAnalysisError={code:error.code||'AUTOMATIC_IMAGE_READING_FAILED',message:error.message,details:error.details||null};}
  }
  res.status(201).json({document:doc,automaticAnalysis,automaticAnalysisError});
 }));
