@@ -146,14 +146,9 @@ function createApp() {
 
   // Independent consulting-firm portal entry. Keep it separate from the evaluator workspace at /consultant/.
   app.get(['/consulting', '/consulting/', '/consulting/index.html'], (req, res, next) => {
-    const A = require('./lib/auth');
-    A.requireAuth(req, res, (err) => {
-      if (err) return sendFromWeb('consulting/index.html', res, next);
-      if (req.user.role !== 'consultant') {
-        return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/register.html?role=consultant&switch=1');
-      }
-      return sendFromWeb('consulting/index.html', res, next);
-    });
+    // Public landing and directory are viewable without an account; all private firm actions
+    // remain protected by the consulting API's authentication, role and tenant checks.
+    return sendFromWeb('consulting/index.html', res, next);
   });
 
   // Separate requester workspace for the consultancy marketplace; not the procurement portal.
