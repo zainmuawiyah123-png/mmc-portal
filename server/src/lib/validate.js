@@ -7,11 +7,12 @@ const { E } = require('./errors');
 
 const email = z.string().trim().toLowerCase().email('البريد الإلكتروني غير صالح.');
 const password = z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.').max(200, 'كلمة المرور طويلة جداً.');
+const workEmail = email.refine((value) => !['gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','hotmail.com','outlook.com','live.com','icloud.com','me.com','aol.com','proton.me','protonmail.com','yandex.com','mail.ru'].includes(value.split('@').pop()), 'استخدم البريد الرسمي للشركة أو المكتب، وليس بريداً شخصياً.');
 const name = z.string().trim().min(2, 'الاسم قصير جداً.').max(120, 'الاسم طويل جداً.');
 
 const registerSchema = z.object({
   name,
-  email,
+  email: workEmail,
   password,
   company: z.string().trim().min(2, 'اسم الشركة أو المكتب مطلوب.').max(160),
   role: z.enum(['contractor', 'buyer', 'consultant']).default('contractor'),
