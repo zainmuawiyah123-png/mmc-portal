@@ -172,6 +172,17 @@ function createApp() {
   if (!fs.existsSync(WEB_ROOT)) {
     console.warn('  ⚠ WEB_ROOT غير موجود: ' + WEB_ROOT + ' — الواجهة لن تُخدم. اضبط WEB_ROOT.');
   }
+  // MMC AI authenticated workspace. The static /mmc-ai/index.html path is the public read-only preview only.
+  // The workspace route is deliberately separate so the UI does not disable controls for authenticated users.
+  app.get(['/mmc-ai/workspace', '/mmc-ai/workspace/'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=' + encodeURIComponent('/mmc-ai/workspace'));
+      res.setHeader('Cache-Control', 'private, no-store');
+      return sendFromWeb('mmc-ai/index.html', res, next);
+    });
+  });
+
   // صفحة دورة المشروع تحتوي بيانات مالية؛ لا تُقدَّم كملف ثابت قبل التحقق من الجلسة.
   // يسمح للمقاول والجهة المشترية فقط، بينما تبقى صلاحيات كل عملية مفروضة في API.
   app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
