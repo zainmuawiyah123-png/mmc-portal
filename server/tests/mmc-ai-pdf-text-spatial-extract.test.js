@@ -30,4 +30,6 @@ test('reads rotated SVG page viewBox as the spatial text alignment frame', () =>
   assert.deepEqual(frame.viewBox, [0, 0, 2384, 1684]);
   assert.equal(frame.width, 2384);
   assert.equal(frame.height, 1684);
+  assert.equal(frame.physicalWidth, 2384);
+  assert.equal(frame.physicalHeight, 1684);
 });
