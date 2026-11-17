@@ -7,6 +7,7 @@ const path=require('node:path');
 const crypto=require('node:crypto');
 const TMP=fs.mkdtempSync(path.join(os.tmpdir(),'mmc-ai-pdf-takeoff-'));
 process.env.NODE_ENV='test';
+process.env.MAIL_HOST='json'; // isolated test-only transport for OTP delivery
 process.env.DB_PATH=path.join(TMP,'test.db');
 process.env.REQUIRE_ORG_VERIFICATION='false';
 process.env.UPLOAD_DIR=path.join(TMP,'uploads');
@@ -14,7 +15,7 @@ process.env.JWT_SECRET='mmc-ai-pdf-takeoff-test-secret';
 process.env.BCRYPT_ROUNDS='4';
 const {migrate}=require('../src/migrate');
 const {createApp}=require('../src/index');
-const {closeDB}=require('../src/db');
+const {closeDB,getDB}=require('../src/db');
 const {extractPdfTextPoppler}=require('../src/lib/mmc-ai/pdf-poppler-text');
 const {parseStructuralScheduleText}=require('../src/lib/mmc-ai/pdf-structural-takeoff');
 const fixturePath=path.join(__dirname,'fixtures/MMC_AI_Structural_Takeoff_Test.pdf');
@@ -26,15 +27,29 @@ async function call(user,method,url,body){
  const headers={...(jar[user]?{Cookie:jar[user]}:{})};let payload;
  if(body!==undefined){headers['Content-Type']='application/json';payload=JSON.stringify(body);}
  const response=await fetch(base+url,{method,headers,body:payload,redirect:'manual'});
- for(const cookie of (response.headers.getSetCookie?response.headers.getSetCookie():[])){
+ for(const cookie of (response.headers.getSetCookie?response.headers.getSetCookie():[response.headers.get('set-cookie')].filter(Boolean))){
   const first=cookie.split(';')[0];if(first.startsWith('tpkit_session='))jar[user]=first;
  }
  const data=(response.headers.get('content-type')||'').includes('application/json')?await response.json():await response.text();
  return {status:response.status,data};
 }
 async function register(name){
- const response=await call(name,'POST','/api/auth/register',{name,email:name+'-'+nonce()+'@test.local',password:'Password123',company:name});
- assert.equal(response.status,201,JSON.stringify(response.data));return response.data.user.id;
+ const email=name+'-'+nonce()+'@test.local';
+ const password='Password123';
+ const response=await call(name,'POST','/api/auth/register',{name,email,password,company:name});
+ assert.equal(response.status,201,JSON.stringify(response.data));
+ // Isolated fixture only: simulate the emailed OTP being accepted and admin approval,
+ // then obtain the session through the real login endpoint.
+ const user=getDB().prepare('SELECT id FROM users WHERE email=?').get(email);
+ assert.ok(user,'registered test user must exist');
+ const now=Math.floor(Date.now()/1000);
+ getDB().prepare('UPDATE email_verifications SET verified_at=? WHERE user_id=?').run(now,user.id);
+ getDB().prepare("UPDATE users SET account_status='active' WHERE id=?").run(user.id);
+ const login=await call(name,'POST','/api/auth/login',{email,password});
+ assert.equal(login.status,200,JSON.stringify(login.data));
+ const me=await call(name,'GET','/api/auth/me');
+ assert.equal(me.status,200,JSON.stringify(me.data));
+ return me.data.user.id;
 }
 async function upload(user,projectId,name,bytes){
  const form=new FormData();form.append('file',new Blob([bytes]),name);
