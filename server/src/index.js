@@ -156,7 +156,7 @@ function createApp() {
   app.get(['/consulting', '/consulting/', '/consulting/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/');
+      if (err) return sendFromWeb('public-browse/consultant.html', res, next);
       if (req.user.role !== 'consultant') {
         return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/register.html?role=consultant&switch=1');
       }
@@ -208,8 +208,20 @@ function createApp() {
     res.setHeader('Expires', '0');
     return res.sendFile(target, (err) => { if (err) next(err); });
   }
-  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
-  app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
+  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return sendFromWeb('public-browse/procurement.html', res, next);
+      return sendFromWeb('procurement/index.html', res, next);
+    });
+  });
+  app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return sendFromWeb('public-browse/contractor.html', res, next);
+      return sendFromWeb('bid/index.html', res, next);
+    });
+  });
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
