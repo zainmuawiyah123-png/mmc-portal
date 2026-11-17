@@ -58,24 +58,19 @@ async function call(name, method, p, { body, form, headers } = {}) {
   const ct = res.headers.get('content-type') || '';
   const data = ct.includes('application/json') ? await res.json() : await res.text();
 
-  // Integration fixtures represent a user who completed the real OTP flow.
-  // Activate only the isolated test database record, then obtain its normal session via login.
-  if (p === '/api/auth/register' && res.status === 201 && data?.user?.id) {
+  // Simulate completion of the OTP step in the isolated test database.
+  // The test then obtains a session through the normal login endpoint.
+  if (p === '/api/auth/register' && res.status === 201 && body?.email) {
     const db = getDB();
-    const now = Math.floor(Date.now() / 1000);
-    db.prepare('UPDATE email_verifications SET verified_at = ? WHERE user_id = ?').run(now, data.user.id);
-    db.prepare("UPDATE users SET account_status = 'active' WHERE id = ?").run(data.user.id);
-    const email = data.user.email;
-    const loginResponse = await fetch(base + '/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: body.password }),
-      redirect: 'manual'
-    });
-    const loginCookies = loginResponse.headers.getSetCookie ? loginResponse.headers.getSetCookie() : [];
-    for (const c of loginCookies) {
-      const first = c.split(';')[0];
-      if (first.startsWith('tpkit_session=')) cookies[name] = first;
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(body.email);
+    if (user) {
+      const now = Math.floor(Date.now() / 1000);
+      db.prepare('UPDATE email_verifications SET verified_at = ? WHERE user_id = ?').run(now, user.id);
+      db.prepare("UPDATE users SET account_status = 'active' WHERE id = ?").run(user.id);
+      const login = await call(name, 'POST', '/api/auth/login', {
+        body: { email: body.email, password: body.password }
+      });
+      return { status: res.status, data: { ...data, user: login.data.user }, headers: res.headers };
     }
   }
 
