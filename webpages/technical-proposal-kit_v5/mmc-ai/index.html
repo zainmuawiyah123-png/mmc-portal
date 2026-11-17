@@ -1140,4 +1140,25 @@ document.querySelectorAll('.sidebar .nav a').forEach(a=>{a.addEventListener('mou
  if(lang){const observer=new MutationObserver(()=>{title.textContent=document.documentElement.lang==='ar'?'الباقات والأسعار':'Plans & Pricing';close.textContent=document.documentElement.lang==='ar'?'✕ إغلاق':'✕ Close';});observer.observe(lang,{childList:true,characterData:true,subtree:true});}
 })();
 </script>
+
+<style id="mmc-dashboard-clean-layout">
+/* Keep the Dashboard focused on the welcome and control-center panels. */
+#projectShowcase, #projectGallery { display: none !important; }
+body.mmc-projects-view #projectShowcase,
+body.mmc-projects-view #projectGallery { display: block !important; }
+</style>
+<script id="mmc-project-gallery-navigation">
+(()=> {
+ const projectLinks=[...document.querySelectorAll('.nav a[href="#projects"]')];
+ const setView=()=>{
+   const projects=location.hash==='#projects';
+   document.body.classList.toggle('mmc-projects-view',projects);
+ };
+ projectLinks.forEach(link=>link.addEventListener('click',()=> {
+   document.body.classList.add('mmc-projects-view');
+ }));
+ window.addEventListener('hashchange',setView);
+ setView();
+})();
+</script>
 </body></html>
