@@ -5,6 +5,7 @@ const express = require('express');
 const { getDB } = require('../db');
 const router = express.Router();
 const clean = (v, n=120) => String(v == null ? '' : v).trim().slice(0,n);
+const { isAllowedPublicDocumentUrl } = require('../lib/public-tender-documents');
 const ammanToday = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
 
 router.get('/procurement/tenders', (req,res) => {
@@ -72,16 +73,21 @@ router.get('/procurement/tenders/:id', (req,res) => {
 router.get('/contractor/opportunities', (req,res) => {
   const db=getDB();
   const q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
+  const status=clean(req.query.status,20), source=clean(req.query.source,80), sector=clean(req.query.sector,80);
+  const clauses=["status IN ('open','closed')"], values=[];
+  if(status==='open'||status==='closed'){clauses.push('status=?');values.push(status);}
+  if(country){clauses.push('country=?');values.push(country);}
+  if(source){clauses.push('source_key=?');values.push(source);}
+  if(sector){clauses.push('sector=?');values.push(sector);}
+  if(q){clauses.push('(title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)');const like='%'+q+'%';values.push(like,like,like,like);}
+  const where=clauses.join(' AND ');
   const rows=db.prepare(`
     SELECT id,title,authority,country,sector,tender_number,summary,published_at,closing_at,
            source_url,application_url,status,language,source_key,imported_at
-    FROM tender_opportunities
-    WHERE status IN ('open','closed')
-      AND (?='' OR title LIKE ? OR authority LIKE ? OR tender_number LIKE ? OR summary LIKE ?)
-      AND (?='' OR country=?)
+    FROM tender_opportunities WHERE ${where}
     ORDER BY CASE WHEN status='open' THEN 0 ELSE 1 END, COALESCE(closing_at,'9999-12-31') ASC, imported_at DESC
     LIMIT 250
-  `).all(q,'%'+q+'%','%'+q+'%','%'+q+'%','%'+q+'%',country,country);
+  `).all(...values);
   const today=ammanToday();
   res.setHeader('Cache-Control','public, max-age=60');
   res.json({opportunities:rows.map(r=>({
@@ -151,7 +157,7 @@ router.get('/contractor/opportunities/:id', (req,res) => {
     WHERE opportunity_id=? ORDER BY created_at,id
   `).all(row.id).map(doc=>({
     id:doc.id,label:doc.label,availability:doc.availability,
-    sourceUrl:doc.availability==='public-source-link' && /^https:\/\//i.test(String(doc.document_url||'')) ? doc.document_url : null
+    documentUrl:doc.availability==='public-source-link' && isAllowedPublicDocumentUrl(row.source_key,doc.document_url) ? doc.document_url : null
   }));
   res.setHeader('Cache-Control','public, max-age=30');
   res.json({
