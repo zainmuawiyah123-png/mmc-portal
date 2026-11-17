@@ -22,3 +22,12 @@ test('preserves page dimensions and word bounding boxes from Poppler bbox layout
 test('returns an empty page list for malformed or empty bbox output', () => {
   assert.deepEqual(parseBboxLayout(''), []);
 });
+
+
+test('reads rotated SVG page viewBox as the spatial text alignment frame', () => {
+  const { parseSvgPageFrame } = require('../src/lib/mmc-ai/pdf-text-spatial-extract');
+  const frame = parseSvgPageFrame('<svg width="2384pt" height="1684pt" viewBox="0 0 2384 1684">');
+  assert.deepEqual(frame.viewBox, [0, 0, 2384, 1684]);
+  assert.equal(frame.width, 2384);
+  assert.equal(frame.height, 1684);
+});
