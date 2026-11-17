@@ -29,7 +29,7 @@ function parseBboxLayout(xhtml) {
   while ((pageMatch = pageRe.exec(String(xhtml || '')))) {
     const attrs = pageMatch[1];
     const numberAttr = name => {
-      const match = attrs.match(new RegExp('\\b' + name + '="([-+0-9.eE]+)"'));
+      const match = attrs.match(new RegExp('\b' + name + '="([-+0-9.eE]+)"'));
       return match ? Number(match[1]) : null;
     };
     const words = [];
@@ -37,7 +37,7 @@ function parseBboxLayout(xhtml) {
     let wordMatch;
     while ((wordMatch = wordRe.exec(pageMatch[2])) && words.length < MAX_WORDS) {
       const get = name => {
-        const match = wordMatch[1].match(new RegExp('\\b' + name + '="([-+0-9.eE]+)"'));
+        const match = wordMatch[1].match(new RegExp('\b' + name + '="([-+0-9.eE]+)"'));
         return match ? Number(match[1]) : null;
       };
       const box = { xMin: get('xMin'), yMin: get('yMin'), xMax: get('xMax'), yMax: get('yMax') };
@@ -67,18 +67,18 @@ function parseBboxLayout(xhtml) {
 }
 
 function parseSvgPageFrame(svg) {
-  const root = String(svg || '').match(/<svg\\b[^>]*>/i)?.[0];
+  const root = String(svg || '').match(/<svg\b[^>]*>/i)?.[0];
   if (!root) return null;
   const attr = name => {
-    const match = root.match(new RegExp('\\\\b' + name + '="([^"]+)"'));
+    const match = root.match(new RegExp('\\\b' + name + '="([^"]+)"'));
     return match ? match[1] : null;
   };
   const parseLength = value => {
-    const match = String(value || '').match(/^\\s*([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)(?:pt|px|mm|cm|in)?\\s*$/i);
+    const match = String(value || '').match(/^\s*([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)(?:pt|px|mm|cm|in)?\s*$/i);
     return match ? Number(match[1]) : null;
   };
   const viewBoxRaw = attr('viewBox');
-  const viewBox = viewBoxRaw ? viewBoxRaw.trim().split(/[\\s,]+/).map(Number) : [];
+  const viewBox = viewBoxRaw ? viewBoxRaw.trim().split(/[\s,]+/).map(Number) : [];
   if (viewBox.length !== 4 || !viewBox.every(Number.isFinite) || viewBox[2] <= 0 || viewBox[3] <= 0) return null;
   const width = parseLength(attr('width'));
   const height = parseLength(attr('height'));
