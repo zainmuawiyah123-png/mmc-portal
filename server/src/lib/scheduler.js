@@ -146,6 +146,25 @@ async function runUKOpportunitySyncJob() {
   return {ok:failed.length===0,partial:failed.length>0,failed,results,ms:Date.now()-started};
 }
 
+// Run both tender-source groups as one serialized cycle. This prevents the UK and
+// general feeds from competing for the same SQLite database at the same cron tick.
+let opportunityCycleRunning = false;
+async function runOpportunitySyncCycle() {
+  if (opportunityCycleRunning) {
+    console.log('[scheduler] تخطي دورة المزامنة: توجد دورة أخرى قيد التنفيذ.');
+    return { ok: false, skipped: true, reason: 'already-running' };
+  }
+  opportunityCycleRunning = true;
+  try {
+    const uk = await runUKOpportunitySyncJob();
+    const general = await runOpportunitySyncJob();
+    const failed = [...(uk.failed || []).map((x) => 'uk:' + x), ...(general.failed || [])];
+    return { ok: failed.length === 0, partial: failed.length > 0, failed, uk, general };
+  } finally {
+    opportunityCycleRunning = false;
+  }
+}
+
 function startScheduler() {
   if (!config.SCHEDULER_ENABLED && !config.OPPORTUNITY_SYNC_ENABLED) {
     console.log('[scheduler] معطّل (SCHEDULER_ENABLED=false)');
@@ -181,18 +200,13 @@ function startScheduler() {
     }
   }
   if (config.OPPORTUNITY_SYNC_ENABLED) {
-    addJob('uk-opportunity-sync',config.OPPORTUNITY_SYNC_CRON,()=>{
-      console.log('[scheduler] بدء مزامنة مصادر بريطانيا المستقلة...');
-      runUKOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة بريطانيا:',e.message));
+    addJob('opportunity-sync-cycle',config.OPPORTUNITY_SYNC_CRON,()=>{
+      console.log('[scheduler] بدء دورة مزامنة العطاءات (بريطانيا ثم بقية المصادر)...');
+      runOpportunitySyncCycle().catch(e=>console.error('[scheduler] دورة مزامنة العطاءات:',e.message));
     });
-    addJob('opportunity-sync',config.OPPORTUNITY_SYNC_CRON,()=>{
-      console.log('[scheduler] بدء مزامنة مصادر العطاءات...');
-      runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
-    });
-    // أول مزامنة بعد الإقلاع بقليل حتى لا تبقى قائمة العطاءات فارغة حتى أول موعد مجدول
-    setTimeout(()=>runUKOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة بريطانيا الأولية:',e.message)),25000).unref();
-    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),45000).unref();
-    console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
+    // تشغيل أولي واحد ومتسلسل بعد الإقلاع؛ يمنع تداخل مجموعتي المصادر.
+    setTimeout(()=>runOpportunitySyncCycle().catch(e=>console.error('[scheduler] دورة المزامنة الأولية:',e.message)),25000).unref();
+    console.log('[scheduler] ✓ دورة مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }
   if (config.SCHEDULER_ENABLED) {
     console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
@@ -219,4 +233,4 @@ function schedulerStatus() {
     active: _jobs.length > 0, running: _jobs.length, lastRun: _lastRun };
 }
 
-module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob, runUKOpportunitySyncJob, persistOpportunitySync };
+module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob, runUKOpportunitySyncJob, runOpportunitySyncCycle, persistOpportunitySync };
