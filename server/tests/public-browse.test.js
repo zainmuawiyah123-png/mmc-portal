@@ -45,7 +45,7 @@ test('write and submission operations remain protected for anonymous visitors',a
 });
 test('original portal screens include explicit public browse behavior',async()=>{
  const p=await get('/procurement/'),b=await get('/bid/'),s=await get('/consulting/');
- assert.match(p.data,/publicLoad/);assert.match(p.data,/public\\/procurement\\/tenders/);
- assert.match(b.data,/publicLoad/);assert.match(b.data,/public\\/contractor\\/opportunities/);
- assert.match(s.data,/publicLoad/);assert.match(s.data,/public\\/consulting\\/requests/);
+ assert.match(p.data,/publicLoad/);assert.match(p.data,/public\/procurement\\/tenders/);
+ assert.match(b.data,/publicLoad/);assert.match(b.data,/public\/contractor\\/opportunities/);
+ assert.match(s.data,/publicLoad/);assert.match(s.data,/public\/consulting\\/requests/);
 });
