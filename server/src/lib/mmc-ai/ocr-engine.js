@@ -21,13 +21,13 @@ function parsePdfPageCount(pdfInfo) {
 
 async function runTesseractWithFallback(imagePath, options = {}) {
   const language = options.language || 'eng+ara';
-  const modes = options.psmModes || [6, 3, 11, 12];
+  const modes = options.psmModes || [11, 6];
   const failures = [];
   for (const psm of modes) {
     try {
       const result = await run('tesseract', [
         imagePath, 'stdout', '-l', language, '--psm', String(psm), 'tsv'
-      ], { timeout: 90000, maxBuffer: 12 * 1024 * 1024 });
+      ], { timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 12 * 1024 * 1024 });
       return { stdout: result.stdout || '', psm, fallbackUsed: psm !== modes[0], warnings: failures };
     } catch (error) {
       const stdout = String(error.stdout || '');
@@ -127,8 +127,8 @@ async function ocrPdf(input, options = {}) {
   if (bytes.length > MAX_PDF_BYTES) {
     throw Object.assign(new Error('PDF exceeds OCR size limit'), { code: 'OCR_PDF_TOO_LARGE' });
   }
-  const maxPages = Math.min(50, Math.max(1, Number(options.maxPages) || DEFAULT_MAX_PAGES));
-  const dpi = Math.min(300, Math.max(120, Number(options.dpi) || DEFAULT_DPI));
+  const maxPages = Math.min(3, Math.max(1, Number(options.maxPages) || DEFAULT_MAX_PAGES));
+  const dpi = Math.min(180, Math.max(120, Number(options.dpi) || 140));
   const runtime = await inspectOcrRuntime();
   if (!runtime.available) {
     throw Object.assign(
@@ -154,8 +154,8 @@ async function ocrPdf(input, options = {}) {
     }
     const pagesToProcess = Math.min(totalPages, maxPages);
     await run('pdftoppm', [
-      '-f', '1', '-l', String(pagesToProcess), '-r', String(dpi), '-png', pdfPath, prefix
-    ], { timeout: 120000, maxBuffer: 4 * 1024 * 1024 });
+      '-f', '1', '-l', String(pagesToProcess), '-r', String(dpi), '-scale-to', '2600', '-png', pdfPath, prefix
+    ], { timeout: 60000, killSignal: 'SIGKILL', maxBuffer: 4 * 1024 * 1024 });
 
     const names = (await fs.readdir(directory))
       .filter(name => /^page-\d+\.png$/i.test(name))
@@ -169,7 +169,7 @@ async function ocrPdf(input, options = {}) {
       const imagePath = path.join(directory, names[index]);
       let attempt;
       try {
-        attempt = await runTesseractWithFallback(imagePath, { psmModes: [6, 3, 11, 12] });
+        attempt = await runTesseractWithFallback(imagePath, { psmModes: [11, 6] });
       } catch (error) {
         pages.push({
           page: index + 1, text: '', wordCount: 0, averageConfidence: null, words: [],
@@ -258,7 +258,7 @@ async function ocrImage(input, options = {}) {
     const imagePath = path.join(directory, 'source' + extension);
     await fs.writeFile(imagePath, bytes, { flag: 'wx', mode: 0o600 });
     const dpi = Math.min(300, Math.max(120, Number(options.dpi) || DEFAULT_DPI));
-    const attempt = await runTesseractWithFallback(imagePath, { psmModes: [6, 3, 11, 12] });
+    const attempt = await runTesseractWithFallback(imagePath, { psmModes: [11, 6] });
     const parsed = parseTesseractTsv(attempt.stdout);
     const page = {
       page: 1,
