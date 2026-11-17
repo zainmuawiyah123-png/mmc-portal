@@ -1330,6 +1330,23 @@ function upgradeMmcAiProjects(db) {
   `);
 }
 
+/** Email ownership verification for newly registered accounts. Existing accounts remain unaffected. */
+function upgradeEmailVerification(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_sent_at INTEGER NOT NULL,
+      verified_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1371,6 +1388,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
+  upgradeEmailVerification(db);
 
   return db;
 }
