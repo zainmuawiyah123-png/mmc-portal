@@ -565,7 +565,7 @@ test('50 — توكن مُلفَّق يُرفض 401', async () => {
    ========================================================== */
 test('51 — إنشاء عطاء بحقول اختيارية = null (كما يرسلها المتصفح)', async () => {
   const email = 'nulltest' + uniq() + '@test.com';
-  await call('nul', 'POST', '/api/auth/register', { body: { name: 'اختبار null', email, password: 'Password123', company: null } });
+  await call('nul', 'POST', '/api/auth/register', { body: { name: 'اختبار null', email, password: 'Password123' } });
   const r = await call('nul', 'POST', '/api/tenders', {
     body: { name: 'عطاء بحقول فارغة', authority: null, closing: null, notes: null }
   });
@@ -595,13 +595,13 @@ test('53 — تسجيل بحقل شركة = null', async () => {
   const r = await call('nul2', 'POST', '/api/auth/register', {
     body: { name: 'بلا شركة', email: 'noco' + uniq() + '@test.com', password: 'Password123', company: null }
   });
-  assert.strictEqual(r.status, 201, JSON.stringify(r.data));
-  assert.strictEqual(r.data.user.company, null);
+  assert.strictEqual(r.status, 422, JSON.stringify(r.data));
+  assert.strictEqual(r.data.error.code, 'VALIDATION');
 });
 
 test('54 — سلسلة كاملة كما تفعل الواجهة: إنشاء ثم رفع ثم حذف', async () => {
   const email = 'ui' + uniq() + '@test.com';
-  await call('ui', 'POST', '/api/auth/register', { body: { name: 'محاكاة الواجهة', email, password: 'Password123', company: null } });
+  await call('ui', 'POST', '/api/auth/register', { body: { name: 'محاكاة الواجهة', email, password: 'Password123' } });
 
   const created = await call('ui', 'POST', '/api/tenders', {
     body: { name: 'عمارة سكنية — محاكاة', authority: null, closing: null, notes: null }
