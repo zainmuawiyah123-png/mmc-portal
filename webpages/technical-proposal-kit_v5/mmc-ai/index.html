@@ -653,7 +653,10 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    try{
     const form=new FormData();form.append('drawing',file,file.name);
     const controller=new AbortController();const watchdog=setTimeout(()=>controller.abort(),120000);let response;try{response=await fetch('/api/mmc-ai/demo/analyze',{method:'POST',body:form,credentials:'same-origin',headers:{'Accept':'application/json'},signal:controller.signal});}finally{clearTimeout(watchdog);}
-    const data=await response.json();
+    const responseType=response.headers.get('content-type')||'';
+    let data;
+    if(responseType.includes('application/json')){data=await response.json();}
+    else{const raw=(await response.text()).slice(0,900);throw new Error('محرك التحليل أعاد استجابة غير JSON (HTTP '+response.status+' · '+responseType+'). '+raw.replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim());}
     if(!response.ok)throw new Error(data.error?.message||'Analysis failed (HTTP '+response.status+').');
     const r=data.result||{};
     status.textContent='Analysis completed · '+(r.status||'result available')+' · '+(r.engine||'MMC AI');
