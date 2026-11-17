@@ -39,6 +39,18 @@ test('anonymous portal entry URLs serve the original portal screens without redi
   const r=await get(url);assert.equal(r.status,200);assert.equal(r.headers.get('location'),null);assert.match(r.data,new RegExp(marker));
  }
 });
+test('main portal gateways lead to public browse first and the full consultant office portal',async()=>{
+ const ar=await get('/index-ar.html'),en=await get('/index.html');
+ assert.equal(ar.status,200);assert.equal(en.status,200);
+ assert.ok(ar.data.includes('href="/bid/"'),'Arabic contractor gateway must open public contractor portal');
+ assert.ok(ar.data.includes('href="/procurement/"'),'Arabic procurement gateway must open public procurement view');
+ assert.ok(en.data.includes('href="/bid/"'),'English contractor gateway must open public contractor portal');
+ assert.ok(en.data.includes('href="/consulting/"'),'English consultant gateway must open full office portal');
+ const legacy=await get('/public-browse/consultant.html');
+ assert.equal(legacy.status,302);assert.equal(legacy.headers.get('location'),'/consulting/');
+ const full=await get('/consulting/');assert.equal(full.status,200);assert.match(full.data,/لوحة إدارة المكتب الاستشاري/);
+});
+
 test('write and submission operations remain protected for anonymous visitors',async()=>{
  for(const [url,method] of [['/api/procurement/tenders','POST'],['/api/consulting/requests','POST'],['/api/procurement/tenders/example/submit','POST'],['/api/public/procurement/tenders','POST'],['/api/project-finance/awards','POST'],['/api/project-finance/awards','GET'],['/api/committee/my-assignments','GET'],['/api/opportunities/feed','GET'],['/api/opportunities/admin','GET']]){
   const options={method,headers:{'Content-Type':'application/json'},redirect:'manual'};
