@@ -25,6 +25,7 @@ const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
 const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
+const mmcAiDemoRoutes = require('./routes/mmc-ai-demo');
 const mmcAiRoutes = require('./routes/mmc-ai');
 const mmcAiDocumentRoutes = require('./routes/mmc-ai-documents');
 const mmcAiOcrRoutes = require('./routes/mmc-ai-ocr');
