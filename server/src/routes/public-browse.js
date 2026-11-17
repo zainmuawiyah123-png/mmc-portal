@@ -97,14 +97,14 @@ router.get('/consulting/requests', (req,res) => {
   const db=getDB(), now=Math.floor(Date.now()/1000);
   const q=clean(req.query.q,120), discipline=clean(req.query.discipline,100), country=clean(req.query.country,2).toUpperCase();
   const rows=db.prepare(`
-    SELECT id,reference,title,discipline,country,location,description,scope_json,currency,
-           budget_min,budget_max,closing_at,created_at
+    SELECT csr.id,csr.reference,csr.title,csr.discipline,csr.country,csr.location,csr.description,csr.scope_json,csr.currency,
+           csr.budget_min,csr.budget_max,csr.closing_at,csr.created_at
     FROM consulting_service_requests csr
     INNER JOIN consulting_requester_entities cre ON cre.id=csr.requester_entity_id AND cre.verification_status='verified'
     WHERE csr.status='open' AND (csr.closing_at IS NULL OR csr.closing_at>?)
-      AND (?='' OR title LIKE ? OR reference LIKE ? OR description LIKE ? OR discipline LIKE ?)
-      AND (?='' OR discipline=?) AND (?='' OR country=?)
-    ORDER BY created_at DESC LIMIT 200
+      AND (?='' OR csr.title LIKE ? OR csr.reference LIKE ? OR csr.description LIKE ? OR csr.discipline LIKE ?)
+      AND (?='' OR csr.discipline=?) AND (?='' OR csr.country=?)
+    ORDER BY csr.created_at DESC LIMIT 200
   `).all(now,q,'%'+q+'%','%'+q+'%','%'+q+'%','%'+q+'%',discipline,discipline,country,country);
   res.setHeader('Cache-Control','public, max-age=60');
   res.json({requests:rows.map(r=>({
