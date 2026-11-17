@@ -6,6 +6,7 @@ const os=require('node:os');
 const path=require('node:path');
 const TMP=fs.mkdtempSync(path.join(os.tmpdir(),'mmc-ai-api-'));
 process.env.NODE_ENV='test';
+process.env.MAIL_HOST='json'; // isolated in-memory mail transport for OTP tests
 process.env.DB_PATH=path.join(TMP,'test.db');
 process.env.REQUIRE_ORG_VERIFICATION='false';
 process.env.UPLOAD_DIR=path.join(TMP,'uploads');
