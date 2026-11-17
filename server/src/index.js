@@ -89,7 +89,7 @@ function createApp() {
         procurement: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'procurement', 'index.html')),
         bid: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'bid', 'index.html')),
         admin: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'admin', 'index.html')),
-        consultant: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'consultant', 'index.html'))
+        consultant: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'consultant', 'index.html')),\n        tenderDirectory: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'tender-opportunities', 'index.html'))
       }
     });
   });
@@ -165,7 +165,7 @@ function createApp() {
     });
   });
 
-  app.use(express.static(WEB_ROOT, {
+  // Explicit entry route for the MMC tender directory.\n  app.get(['/tender-opportunities', '/tender-opportunities/', '/tender-opportunities/index.html'], (req, res, next) => {\n    return sendFromWeb('tender-opportunities/index.html', res, next);\n  });\n\n  app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
