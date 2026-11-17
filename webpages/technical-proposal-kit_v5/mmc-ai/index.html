@@ -615,35 +615,65 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const banner=document.createElement('div');
   banner.setAttribute('role','status');
   banner.style.cssText='position:sticky;top:0;z-index:1000;background:#e6f2fb;color:#173b59;border-bottom:1px solid #8db7d5;padding:11px 18px;text-align:center;font-size:12px;font-weight:700';
-  banner.textContent='MMC AI — Interactive Preview · No company email or password required · Files stay in this browser and are not uploaded.';
+  banner.textContent='MMC AI — Interactive Preview · No company email or password required · Temporary server-side analysis · files are not saved.';
   document.querySelector('.main').prepend(banner);
   document.querySelectorAll('button,input,select,textarea').forEach(el=>{el.disabled=true;});
   const demo=document.createElement('section');
   demo.id='mmcPublicDemo';
   demo.style.cssText='margin:16px 0 22px;padding:20px;border:1px solid #34536f;border-radius:14px;background:#10243d;color:#e6eef7';
-  demo.innerHTML='<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:1.4px;color:#83c9e6;font-weight:800">LIVE PRODUCT WALKTHROUGH · DEMO DATA</div><h2 style="margin:7px 0;color:#f2f7fc;font-size:21px">Structural Drawing Review</h2><p style="margin:0;color:#a9bfd2;font-size:12px">Sample project · One drawing sheet · Illustrative interface data, not certified quantities</p></div><span style="padding:6px 10px;border-radius:20px;background:#254762;color:#bde6f7;font-size:10px;font-weight:700">DEMO WORKSPACE</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin:16px 0"><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">Sample project</small><strong style="display:block;margin-top:5px">Structural Building</strong></div><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">Drawing register</small><strong style="display:block;margin-top:5px">1 sample sheet</strong></div><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">Verified quantities</small><strong style="display:block;margin-top:5px">Not generated</strong></div><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">BIM / IFC</small><strong style="display:block;margin-top:5px">Not yet validated</strong></div></div><div style="padding:15px;background:#0b1e33;border:1px dashed #4d7899;border-radius:10px"><label for="mmcDemoFile" style="display:block;font-weight:700;margin-bottom:7px;color:#eaf5fc">Try your own drawing (PDF / DXF / PNG / JPG · max 25 MB)</label><input id="mmcDemoFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" style="display:block;width:100%;padding:9px;background:#17324c;color:#eaf5fc;border-radius:7px;border:1px solid #41627e" /><p style="font-size:11px;color:#a9bfd2;line-height:1.7;margin:9px 0 0">This public preview opens your selected file locally for visual inspection. It does not send the drawing to MMC servers or claim an automated takeoff result.</p></div><div id="mmcDemoFileInfo" style="margin-top:12px;padding:12px;background:#0b1e33;border-radius:9px;color:#d7e8f5;font-size:12px">No file selected yet. Choose a drawing above to view it here.</div><div id="mmcDemoViewer" style="margin-top:12px;min-height:90px;max-height:620px;overflow:auto;background:#fff;border-radius:9px;color:#24394c;display:flex;align-items:center;justify-content:center"><span style="padding:24px;color:#60758a">Drawing preview will appear here.</span></div><div style="margin-top:12px;padding:11px;border-left:3px solid #d7b979;background:#1a3046;color:#d7c69f;font-size:11px;line-height:1.8"><strong>Important:</strong> Reading a file visually is not the same as extracting dimensions, calculating quantities or creating a BIM model. This preview does not invent those results. Real server-side analysis and private project saving remain protected behind the authenticated workspace.</div>';
+  demo.innerHTML='<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:1.4px;color:#83c9e6;font-weight:800">LIVE PRODUCT WALKTHROUGH · DEMO DATA</div><h2 style="margin:7px 0;color:#f2f7fc;font-size:21px">Structural Drawing Review</h2><p style="margin:0;color:#a9bfd2;font-size:12px">Sample project · One drawing sheet · Illustrative interface data, not certified quantities</p></div><span style="padding:6px 10px;border-radius:20px;background:#254762;color:#bde6f7;font-size:10px;font-weight:700">DEMO WORKSPACE</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin:16px 0"><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">Sample project</small><strong style="display:block;margin-top:5px">Structural Building</strong></div><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">Drawing register</small><strong style="display:block;margin-top:5px">1 sample sheet</strong></div><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">Verified quantities</small><strong style="display:block;margin-top:5px">Not generated</strong></div><div style="padding:12px;background:#0b1e33;border-radius:9px"><small style="color:#91a8bd">BIM / IFC</small><strong style="display:block;margin-top:5px">Not yet validated</strong></div></div><div style="padding:15px;background:#0b1e33;border:1px dashed #4d7899;border-radius:10px"><label for="mmcDemoFile" style="display:block;font-weight:700;margin-bottom:7px;color:#eaf5fc">Try your own drawing (PDF / DXF / PNG / JPG · max 25 MB)</label><input id="mmcDemoFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" style="display:block;width:100%;padding:9px;background:#17324c;color:#eaf5fc;border-radius:7px;border:1px solid #41627e" /><p style="font-size:11px;color:#a9bfd2;line-height:1.7;margin:9px 0 0">The selected file is sent over HTTPS to a temporary analysis endpoint, processed in memory, and not saved. PDF/images: text recognition only. DXF: measurable geometry only when drawing units are declared.</p></div><div id="mmcDemoFileInfo" style="margin-top:12px;padding:12px;background:#0b1e33;border-radius:9px;color:#d7e8f5;font-size:12px">No file selected yet. Choose a drawing above to inspect it and run the supported analysis.</div><div id="mmcDemoViewer" style="margin-top:12px;min-height:90px;max-height:620px;overflow:auto;background:#fff;border-radius:9px;color:#24394c;display:flex;align-items:center;justify-content:center"><span style="padding:24px;color:#60758a">Drawing preview and analysis report will appear here.</span></div><div style="margin-top:12px;padding:11px;border-left:3px solid #d7b979;background:#1a3046;color:#d7c69f;font-size:11px;line-height:1.8"><strong>Important:</strong> Reading a file visually is not the same as extracting dimensions, calculating quantities or creating a BIM model. This preview does not invent those results. Real server-side analysis and private project saving remain protected behind the authenticated workspace.</div>';
   document.querySelector('.main').prepend(demo);
   const picker=document.getElementById('mmcDemoFile'),info=document.getElementById('mmcDemoFileInfo'),viewer=document.getElementById('mmcDemoViewer');
   picker.disabled=false;
-  picker.addEventListener('change',()=>{
+
+  let currentObjectUrl=null;
+  picker.addEventListener('change',async()=>{
    const file=picker.files&&picker.files[0];viewer.replaceChildren();
+   if(currentObjectUrl){URL.revokeObjectURL(currentObjectUrl);currentObjectUrl=null;}
    if(!file)return;
    const ext=(file.name.split('.').pop()||'').toLowerCase();
-   if(file.size>25*1024*1024){info.textContent='File exceeds the 25 MB preview limit.';picker.value='';return;}
+   if(file.size>25*1024*1024){info.textContent='File exceeds the 25 MB analysis limit.';picker.value='';return;}
    if(!['pdf','dxf','png','jpg','jpeg'].includes(ext)){info.textContent='Unsupported file type. Choose PDF, DXF, PNG or JPG.';picker.value='';return;}
-   info.textContent='Selected: '+file.name+' · '+(file.size/1024/1024).toFixed(2)+' MB · '+(file.type||ext.toUpperCase())+' · Local browser preview only.';
-   if(ext==='pdf'){
-    const frame=document.createElement('iframe');frame.title='Local PDF drawing preview';frame.src=URL.createObjectURL(file);frame.style.cssText='width:100%;height:600px;border:0';viewer.appendChild(frame);
-   }else if(['png','jpg','jpeg'].includes(ext)){
-    const img=document.createElement('img');img.alt='User-selected drawing preview';img.src=URL.createObjectURL(file);img.style.cssText='max-width:100%;max-height:600px;object-fit:contain';viewer.appendChild(img);
+   info.textContent='Selected: '+file.name+' · '+(file.size/1024/1024).toFixed(2)+' MB · Preparing temporary analysis…';
+   if(ext==='pdf'||['png','jpg','jpeg'].includes(ext)){
+    currentObjectUrl=URL.createObjectURL(file);
+    if(ext==='pdf'){const frame=document.createElement('iframe');frame.title='Local PDF drawing preview';frame.src=currentObjectUrl;frame.style.cssText='width:100%;height:520px;border:0';viewer.appendChild(frame);}
+    else{const img=document.createElement('img');img.alt='Selected drawing preview';img.src=currentObjectUrl;img.style.cssText='max-width:100%;max-height:520px;object-fit:contain';viewer.appendChild(img);}
    }else{
     const note=document.createElement('div');note.style.cssText='padding:16px;width:100%';
-    const heading=document.createElement('strong');heading.textContent='DXF file received locally';
-    const body=document.createElement('pre');body.style.cssText='white-space:pre-wrap;overflow:auto;max-height:540px;font-size:10px;color:#24394c;margin-top:10px';
+    const heading=document.createElement('strong');heading.textContent='DXF selected for geometry inspection';
+    const body=document.createElement('pre');body.style.cssText='white-space:pre-wrap;overflow:auto;max-height:260px;font-size:10px;color:#24394c;margin-top:10px';
     note.append(heading,body);viewer.appendChild(note);
-    file.text().then(t=>{body.textContent=t.slice(0,50000);if(t.length>50000)body.textContent+='\\n… preview limited to first 50,000 characters';}).catch(()=>{body.textContent='Could not read this DXF as text. Binary DWG is not supported.';});
+    try{body.textContent=(await file.text()).slice(0,12000);}catch(_){body.textContent='Text preview unavailable; analysis request will validate file type.';}
    }
+   const report=document.createElement('section');report.style.cssText='margin-top:14px;padding:16px;background:#0b1e33;border:1px solid #34536f;border-radius:10px;color:#e6eef7';
+   report.innerHTML='<strong style="font-size:14px">MMC AI — Analysis report</strong><p style="color:#a9bfd2;font-size:11px">Temporary processing · no project or permanent file created</p><div id="mmcDemoAnalysisStatus" style="padding:12px;background:#17324c;border-radius:8px">Sending drawing to analysis engine…</div><div id="mmcDemoAnalysisBody" style="margin-top:12px"></div>';
+   viewer.appendChild(report);
+   const status=report.querySelector('#mmcDemoAnalysisStatus'),body=report.querySelector('#mmcDemoAnalysisBody');
+   try{
+    const form=new FormData();form.append('drawing',file,file.name);
+    const response=await fetch('/api/mmc-ai/demo/analyze',{method:'POST',body:form,credentials:'same-origin',headers:{'Accept':'application/json'}});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error?.message||'Analysis failed (HTTP '+response.status+').');
+    const r=data.result||{};
+    status.textContent='Analysis completed · '+(r.status||'result available')+' · '+(r.engine||'MMC AI');
+    const add=(label,value)=>{const row=document.createElement('div');row.style.cssText='padding:8px 0;border-bottom:1px solid #29435d;font-size:12px';const strong=document.createElement('strong');strong.textContent=label+': ';row.append(strong,document.createTextNode(String(value)));body.appendChild(row);};
+    add('File',data.filename+' ('+(data.sizeBytes/1024/1024).toFixed(2)+' MB)');
+    add('Saved to server',data.persisted?'Yes':'No — temporary only');
+    if(r.summary){add('Supported geometry entities',r.summary.supportedEntities);add('Unsupported entities',r.summary.unsupportedEntities);add('Total measured length (m)',Number(r.summary.totalLength_m||0).toFixed(3));add('Closed area (m²)',Number(r.summary.totalClosedArea_m2||0).toFixed(3));}
+    if(r.units)add('Drawing units',JSON.stringify(r.units));
+    if(r.pages){add('Pages processed',r.pagesProcessed+' / '+r.totalPages);add('Recognized characters',r.characterCount);for(const page of r.pages){const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;max-height:220px;overflow:auto;background:#10243d;padding:10px;border-radius:7px;color:#dce8f3;font-size:11px';pre.textContent='PAGE '+page.page+' · '+page.wordCount+' words · confidence '+(page.averageConfidence??'n/a')+'\n'+(page.text||'(No text recognized)');body.appendChild(pre);}}
+    if(r.byLayer){const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;overflow:auto;background:#10243d;padding:10px;border-radius:7px;color:#dce8f3;font-size:11px';pre.textContent='MEASUREMENTS BY LAYER\n'+JSON.stringify(r.byLayer,null,2);body.appendChild(pre);}
+    if(r.rows?.length){const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;max-height:260px;overflow:auto;background:#10243d;padding:10px;border-radius:7px;color:#dce8f3;font-size:10px';pre.textContent='GEOMETRY EVIDENCE\n'+JSON.stringify(r.rows.slice(0,80),null,2);body.appendChild(pre);}
+    if(r.reason)add('Why quantities were not measured',r.reason);
+    if(r.limitations?.length){const ul=document.createElement('ul');ul.style.cssText='font-size:11px;color:#d7c69f;line-height:1.7;padding-left:20px';r.limitations.forEach(x=>{const li=document.createElement('li');li.textContent=x;ul.appendChild(li);});body.appendChild(ul);}
+    if(r.requiredInformation?.length)add('Required before measurement',r.requiredInformation.join(' · '));
+    if(r.geometryExtracted===false||r.bimModelCreated===false||r.quantitiesAreContractuallyVerified===false){const warning=document.createElement('p');warning.style.cssText='color:#e9c98d;font-size:11px;line-height:1.7';warning.textContent='Important: this result is not a verified BOQ or BIM/IFC model. MMC AI will not infer missing dimensions, units or element classifications.';body.appendChild(warning);}
+    info.textContent='Analysis completed for '+file.name+'. Results are temporary and are not saved.';
+   }catch(error){status.textContent='Analysis could not be completed';const message=document.createElement('p');message.style.cssText='color:#ffcfb8;font-size:12px';message.textContent=error.message;body.appendChild(message);info.textContent='Analysis failed for '+file.name+'.';}
   });
+ }
+
  }
  if(!publicPreview) loadProjects();
 
