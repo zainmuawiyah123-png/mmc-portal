@@ -151,6 +151,9 @@ function createApp() {
     return sendFromWeb('consulting/index.html', res, next);
   });
 
+  // Legacy consultant browse URL now opens the full consulting-office portal, not the read-only market page.
+  app.get('/public-browse/consultant.html', (req, res) => res.redirect(302, '/consulting/'));
+
   // Separate requester workspace for the consultancy marketplace; not the procurement portal.
   app.get(['/consulting/requester', '/consulting/requester/', '/consulting/requester/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
