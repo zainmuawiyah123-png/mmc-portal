@@ -40,7 +40,7 @@ test('anonymous portal entry URLs serve the original portal screens without redi
  }
 });
 test('write and submission operations remain protected for anonymous visitors',async()=>{
- for(const [url,method] of [['/api/procurement/tenders','POST'],['/api/consulting/requests','POST'],['/api/procurement/tenders/example/submit','POST'],['/api/public/procurement/tenders','POST']]){
+ for(const [url,method] of [['/api/procurement/tenders','POST'],['/api/consulting/requests','POST'],['/api/procurement/tenders/example/submit','POST'],['/api/public/procurement/tenders','POST'],['/api/project-finance/awards','POST'],['/api/project-finance/awards','GET'],['/api/committee/my-assignments','GET'],['/api/opportunities/feed','GET'],['/api/opportunities/admin','GET']]){
   const r=await fetch(base+url,{method,headers:{'Content-Type':'application/json'},body:'{}',redirect:'manual'});
   assert.ok([401,403,404].includes(r.status),'unexpected anonymous write response '+method+' '+url+': '+r.status);
  }
@@ -50,4 +50,10 @@ test('original portal screens include explicit public browse behavior',async()=>
  assert.match(p.data,/publicLoad/);assert.ok(p.data.includes('/public/procurement/tenders'));
  assert.match(b.data,/publicLoad/);assert.ok(b.data.includes('/public/contractor/opportunities'));
  assert.match(s.data,/publicLoad/);assert.ok(s.data.includes('/api/public/consulting/requests'));
+});
+
+test('anonymous users cannot read award, purchase order, invoice, committee or contractor market APIs', async () => {
+ for (const url of ['/api/project-finance/awards','/api/project-finance/purchase-orders','/api/project-finance/invoices','/api/committee/my-assignments','/api/opportunities/feed']) {
+  const r=await get(url); assert.equal(r.status,401,'expected authentication for '+url);
+ }
 });
