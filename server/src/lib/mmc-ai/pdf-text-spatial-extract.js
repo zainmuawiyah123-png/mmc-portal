@@ -29,7 +29,7 @@ function parseBboxLayout(xhtml) {
   while ((pageMatch = pageRe.exec(String(xhtml || '')))) {
     const attrs = pageMatch[1];
     const numberAttr = name => {
-      const match = attrs.match(new RegExp('\b' + name + '="([-+0-9.eE]+)"'));
+      const match = attrs.match(new RegExp('\\b' + name + '="([-+0-9.eE]+)"'));
       return match ? Number(match[1]) : null;
     };
     const words = [];
@@ -37,7 +37,7 @@ function parseBboxLayout(xhtml) {
     let wordMatch;
     while ((wordMatch = wordRe.exec(pageMatch[2])) && words.length < MAX_WORDS) {
       const get = name => {
-        const match = wordMatch[1].match(new RegExp('\b' + name + '="([-+0-9.eE]+)"'));
+        const match = wordMatch[1].match(new RegExp('\\b' + name + '="([-+0-9.eE]+)"'));
         return match ? Number(match[1]) : null;
       };
       const box = { xMin: get('xMin'), yMin: get('yMin'), xMax: get('xMax'), yMax: get('yMax') };
