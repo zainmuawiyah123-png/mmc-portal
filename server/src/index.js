@@ -148,6 +148,7 @@ function createApp() {
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
+  app.use('/api/mmc-ai', mmcAiDemoRoutes); // Public stateless demo endpoint before authenticated workspace
   app.use('/api/mmc-ai', mmcAiRoutes);
   app.use('/api/mmc-ai', mmcAiDocumentRoutes);
   app.use('/api/mmc-ai', mmcAiOcrRoutes);
