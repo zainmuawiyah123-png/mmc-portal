@@ -9,7 +9,11 @@ function money(n){return n===0?T('مجاني','Free'):'$'+n}function lim(n){retu
  document.querySelector('[data-user-name]').textContent=T('وضع المشاهدة العامة','Public browse');
  document.getElementById('logout').style.display='none';
  document.getElementById('planbar').style.display='none';
- document.querySelectorAll('main .p-card').forEach(function(x){if(x.querySelector('#plans')||x.querySelector('#external')){if(x.querySelector('#plans'))x.style.display='none';}});
+ var planBox=document.getElementById('plans');
+ if(planBox){planBox.closest('.p-card').style.display='block';planBox.innerHTML='<span>'+T('جارٍ تحميل الباقات…','Loading plans…')+'</span>';API.request('GET','/plans').then(function(x){
+  var plans=x.plans||[];
+  planBox.innerHTML=plans.length?'<table class="tbl" style="width:100%;min-width:520px"><tr><th>'+T('الباقة','Plan')+'</th><th>'+T('شهري','Monthly')+'</th><th>'+T('سنوي','Yearly')+'</th><th>'+T('التقديمات الإلكترونية','E-submissions')+'</th><th>'+T('عطاءات ملفاتي','My files tenders')+'</th><th></th></tr>'+plans.map(function(q){return '<tr><td>'+esc(T('ar','en')==='en'?q.nameEn:q.nameAr)+'</td><td>'+money(q.priceMonth)+'</td><td>'+money(q.priceYear)+'</td><td>'+lim(q.maxSubmissions)+'</td><td>'+lim(q.maxTenders)+'</td><td>'+(Number(q.priceMonth)>0?'<a href="../portal/pt-9f3c7a1e5b2d/login.html?next=../../portal/pt-9f3c7a1e5b2d/billing.html?plan='+encodeURIComponent(q.key)+'">'+T('تسجيل الدخول للاشتراك','Sign in to subscribe')+'</a>':'—')+'</td></tr>'}).join('')+'</table>':'<p>'+T('لا توجد باقات منشورة حالياً.','No plans are currently published.')+'</p>';
+ }).catch(function(){planBox.innerHTML='<p>'+T('تعذّر تحميل الباقات حالياً.','Plans could not be loaded right now.')+'</p>'})}
  var list=document.getElementById('list'),ext=document.querySelector('#external');
  Promise.all([API.request('GET','/public/procurement/tenders'),API.request('GET','/public/contractor/opportunities')]).then(function(results){
   var tenders=results[0].tenders||[], opportunities=results[1].opportunities||[];
