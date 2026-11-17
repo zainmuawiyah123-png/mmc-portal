@@ -208,7 +208,7 @@ async function syncPublicContractsScotland({months=3}={}) {
       url.searchParams.set('dateFrom',dateFrom);
       url.searchParams.set('noticeType',String(noticeType));
       url.searchParams.set('outputType','0');
-      const payload=await getJson(url);
+      const payload=await getJson(url,{attempts:1,timeoutMs:20000});
       releases.push(...unpackPackages(payload));
     }
   }
