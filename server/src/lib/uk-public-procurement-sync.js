@@ -109,14 +109,31 @@ function saveRows(sourceKey, notices) {
   });
   return tx(notices);
 }
-async function getJson(url) {
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),25000);
-  try{
-    const response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'MMC-TenderWise/1.0 (public procurement data reader)'},signal:controller.signal});
-    if(!response.ok)throw new Error('UK public feed returned HTTP '+response.status);
-    return await response.json();
-  }finally{clearTimeout(timer);}
+async function getJson(url, { attempts=3, timeoutMs=60000 }={}) {
+  let lastError;
+  for(let attempt=1;attempt<=Math.max(1,attempts);attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'MMC-TenderWise/1.1 (public procurement data reader)'},signal:controller.signal});
+      if(!response.ok){
+        const retryable=response.status===408||response.status===425||response.status===429||response.status>=500;
+        const error=new Error('UK public feed returned HTTP '+response.status);
+        if(!retryable||attempt===attempts)throw error;
+        const retryAfter=Number(response.headers.get('retry-after'));
+        const waitMs=Number.isFinite(retryAfter)&&retryAfter>0?Math.min(15000,retryAfter*1000):Math.min(10000,1000*Math.pow(2,attempt-1));
+        await new Promise(resolve=>setTimeout(resolve,waitMs));
+        continue;
+      }
+      return await response.json();
+    }catch(err){
+      lastError=err;
+      const retryable=err.name==='AbortError'||/fetch failed|network|socket|timeout/i.test(err.message||'');
+      if(!retryable||attempt===attempts)throw err;
+      await new Promise(resolve=>setTimeout(resolve,Math.min(10000,1000*Math.pow(2,attempt-1))));
+    }finally{clearTimeout(timer);}
+  }
+  throw lastError||new Error('UK public feed request failed');
 }
 function dedupeLatest(releases,sourceKey){
   const byId=new Map();
