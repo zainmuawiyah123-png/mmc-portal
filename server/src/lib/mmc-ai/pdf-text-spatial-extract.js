@@ -67,25 +67,22 @@ function parseBboxLayout(xhtml) {
 }
 
 function parseSvgPageFrame(svg) {
-  const root = String(svg || '').match(/<svg\b[^>]*>/i)?.[0];
+  const root = String(svg || '').match(/<svg\\b[^>]*>/i)?.[0];
   if (!root) return null;
-  const attr = name => {
-    const match = root.match(new RegExp('\\\b' + name + '="([^"]+)"'));
-    return match ? match[1] : null;
-  };
+  const attrs = {};
+  const attrRe = /([a-zA-Z_:][\\w:.-]*)\\s*=\\s*(?:"([^"]*)"|'([^']*)')/g;
+  let match;
+  while ((match = attrRe.exec(root))) attrs[match[1]] = match[2] ?? match[3] ?? '';
   const parseLength = value => {
-    const match = String(value || '').match(/^\s*([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)(?:pt|px|mm|cm|in)?\s*$/i);
-    return match ? Number(match[1]) : null;
+    const found = String(value || '').trim().match(/^([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)(?:pt|px|mm|cm|in)?$/i);
+    return found ? Number(found[1]) : null;
   };
-  const viewBoxRaw = attr('viewBox');
-  const viewBox = viewBoxRaw ? viewBoxRaw.trim().split(/[\s,]+/).map(Number) : [];
+  const viewBox = attrs.viewBox ? attrs.viewBox.trim().split(/[\\s,]+/).map(Number) : [];
   if (viewBox.length !== 4 || !viewBox.every(Number.isFinite) || viewBox[2] <= 0 || viewBox[3] <= 0) return null;
-  const width = parseLength(attr('width'));
-  const height = parseLength(attr('height'));
   return {
     width: viewBox[2], height: viewBox[3], viewBox,
-    physicalWidth: width, physicalHeight: height,
-    coordinateSystem: 'Poppler SVG page viewBox; top-left origin; aligned to pdftocairo vector geometry'
+    physicalWidth: parseLength(attrs.width), physicalHeight: parseLength(attrs.height),
+    coordinateSystem: 'Poppler SVG page viewBox; top-left origin; page vector coordinates'
   };
 }
 
@@ -121,21 +118,33 @@ async function extractPdfTextSpatial(input, options = {}) {
     }
     if (current && vectorFrame) {
       const [originX, originY] = vectorFrame.viewBox;
+      const widthDelta = Math.abs(current.width - vectorFrame.width);
+      const heightDelta = Math.abs(current.height - vectorFrame.height);
+      const dimensionsMatch = widthDelta <= 1.5 && heightDelta <= 1.5;
       current.sourcePageSize = { width: current.width, height: current.height };
-      current.words = current.words.map(word => ({
-        ...word,
-        box: {
-          xMin: word.box.xMin - originX, yMin: word.box.yMin - originY,
-          xMax: word.box.xMax - originX, yMax: word.box.yMax - originY
-        }
-      }));
-      current.width = vectorFrame.width;
-      current.height = vectorFrame.height;
-      current.coordinateSystem = vectorFrame.coordinateSystem;
-      current.frameAlignment = 'aligned_to_pdftocairo_svg_viewBox';
+      if (dimensionsMatch) {
+        current.words = current.words.map(word => ({
+          ...word,
+          box: {
+            xMin: word.box.xMin - originX, yMin: word.box.yMin - originY,
+            xMax: word.box.xMax - originX, yMax: word.box.yMax - originY
+          }
+        }));
+        current.width = vectorFrame.width;
+        current.height = vectorFrame.height;
+        current.coordinateSystem = vectorFrame.coordinateSystem;
+        current.frameAlignment = 'dimensions_verified_translation_only';
+      } else {
+        current.frameAlignment = 'not_aligned_page_dimensions_differ';
+        current.frameAlignmentDiagnostics = {
+          bboxPage: current.sourcePageSize,
+          svgViewBox: { width: vectorFrame.width, height: vectorFrame.height },
+          widthDelta, heightDelta
+        };
+      }
     }
     return {
-      engine: 'poppler-pdftotext-bbox-layout+svg-frame-v2',
+      engine: 'poppler-pdftotext-bbox-layout+svg-frame-v3',
       status: current && current.wordCount ? 'spatial_text_extracted' : 'no_spatial_text_found',
       pageNumber: page,
       pageCountReturned: pages.length,
