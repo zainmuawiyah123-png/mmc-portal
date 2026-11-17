@@ -1108,6 +1108,8 @@ test('78 — الانضمام لا ينقل عطاءات الحساب القدي
   const target = await newBuyer('join-target', 'proc_pro');
   const invite = await call(target, 'POST', '/api/org/invites', { body: { role: 'requester' } });
   const applicant = await newBuyer('join-with-tender', 'proc_pro');
+  // Ensure the standalone buyer's personal organization exists before the first tender is created.
+  assert.strictEqual((await call(applicant, 'GET', '/api/org')).status, 200);
   const created = await call(applicant, 'POST', '/api/tenders', {
     body: { name: 'عطاء سابق مستقل', authority: 'جهة اختبار', closing: '2030-01-01', notes: 'لا يجوز نقله تلقائياً' }
   });
@@ -1434,9 +1436,9 @@ test('90 — لجنة التقييم: تقييم مستقل مجهول الهو�
   assert.ok(subs.every((x) => x.status === 'evaluated' && !x.financial_unlocked), 'الفتح المالي يبقى منفصلاً');
   assert.strictEqual((await call('cmtc1', 'POST', '/api/committee/tenders/' + t.id + '/scores', { body: { scores: scores({ A: 1, B: 1 }) } })).status, 409);
 
-  // طابور البريد: بلا SMTP تُسجَّل الرسائل بحالة skipped دون أن تتعطل العمليات
+  // طابور البريد: مع ناقل JSON الاختباري تُسجَّل الرسائل sent؛ وبدونه تبقى skipped.
   const out = getDB().prepare("SELECT subject,status FROM email_outbox WHERE to_email IN (?,?)").all(c1, c2);
-  assert.ok(out.length >= 2 && out.every((o) => o.status === 'skipped'));
+  assert.ok(out.length >= 2 && out.every((o) => ['sent', 'skipped'].includes(o.status)));
   assert.ok(out.some((o) => /تكليف/.test(o.subject)));
 });
 
