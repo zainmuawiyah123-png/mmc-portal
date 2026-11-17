@@ -176,4 +176,86 @@ async function ocrPdf(input, options = {}) {
   }
 }
 
-module.exports = { ocrPdf, parseTesseractTsv, parsePdfPageCount, inspectOcrRuntime };
+
+async function inspectImageOcrRuntime() {
+  if (!await commandAvailable('tesseract', ['--version'])) {
+    return { available: false, engine: 'tesseract-image-v1', missing: ['tesseract'] };
+  }
+  try {
+    const result = await run('tesseract', ['--list-langs'], { timeout: 10000, maxBuffer: 1024 * 1024 });
+    const languages = result.stdout.split(/\\r?\\n/).map(value => value.trim()).filter(Boolean).slice(1);
+    return {
+      available: languages.includes('eng') && languages.includes('ara'),
+      engine: 'tesseract-image-v1',
+      languages,
+      missing: ['eng', 'ara'].filter(language => !languages.includes(language))
+    };
+  } catch {
+    return { available: false, engine: 'tesseract-image-v1', missing: ['language-list'] };
+  }
+}
+
+async function ocrImage(input, options = {}) {
+  const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || '');
+  const mime = String(options.mime || '').toLowerCase();
+  const isPng = mime === 'image/png' && bytes.length >= 8 &&
+    bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isJpeg = mime === 'image/jpeg' && bytes.length >= 3 &&
+    bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (!isPng && !isJpeg) {
+    throw Object.assign(new Error('Image bytes do not match PNG or JPEG MIME type.'), { code: 'OCR_IMAGE_INVALID' });
+  }
+  if (bytes.length > MAX_PDF_BYTES) {
+    throw Object.assign(new Error('Image exceeds OCR size limit.'), { code: 'OCR_IMAGE_TOO_LARGE' });
+  }
+  const runtime = await inspectImageOcrRuntime();
+  if (!runtime.available) {
+    throw Object.assign(new Error('Image OCR runtime unavailable; install Tesseract and eng/ara language data.'), {
+      code: 'OCR_RUNTIME_UNAVAILABLE', details: runtime
+    });
+  }
+  if (activeOcrJobs >= MAX_CONCURRENT_OCR_JOBS) {
+    throw Object.assign(new Error('OCR worker is busy.'), { code: 'OCR_BUSY' });
+  }
+  activeOcrJobs++;
+  let directory;
+  try {
+    directory = await fs.mkdtemp(path.join(os.tmpdir(), 'mmc-ai-image-ocr-'));
+    const extension = isPng ? '.png' : '.jpg';
+    const imagePath = path.join(directory, 'source' + extension);
+    await fs.writeFile(imagePath, bytes, { flag: 'wx', mode: 0o600 });
+    const dpi = Math.min(300, Math.max(120, Number(options.dpi) || DEFAULT_DPI));
+    const result = await run('tesseract', [
+      imagePath, 'stdout', '-l', 'eng+ara', '--psm', '11', 'tsv'
+    ], { timeout: 90000, maxBuffer: 12 * 1024 * 1024 });
+    const parsed = parseTesseractTsv(result.stdout);
+    const page = {
+      page: 1,
+      text: parsed.text,
+      wordCount: parsed.wordCount,
+      averageConfidence: parsed.averageConfidence,
+      words: parsed.words.map(word => ({ ...word, page: 1 }))
+    };
+    return {
+      engine: 'tesseract-image-v1',
+      status: page.wordCount ? 'ocr_text_extracted' : 'ocr_no_text_found',
+      languageModel: 'eng+ara',
+      dpi,
+      pagesProcessed: 1,
+      totalPages: 1,
+      truncatedAtPageLimit: false,
+      characterCount: page.text.length,
+      pages: [page],
+      limitations: [
+        'OCR is visual text recognition, not engineering interpretation or quantity takeoff.',
+        'Image scale and geometry are not calibrated by OCR.',
+        'Dimensions and symbols require geometric association and independent verification.'
+      ]
+    };
+  } finally {
+    if (directory) await fs.rm(directory, { recursive: true, force: true });
+    activeOcrJobs--;
+  }
+}
+
+module.exports = { ocrPdf, ocrImage, parseTesseractTsv, parsePdfPageCount, inspectOcrRuntime, inspectImageOcrRuntime };
