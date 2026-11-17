@@ -12,6 +12,18 @@ const router=express.Router();
 const MAX=25*1024*1024;
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX,files:1,fields:0}});
 const attempts=new Map();
+function summarizeVectorLayout(paths,viewBox){
+ const bounds=paths.map(p=>p.bounds).filter(Boolean);
+ if(!bounds.length)return {status:'no_bounds',grid:[],overallBounds:null};
+ const overallBounds={minX:Math.min(...bounds.map(b=>b.minX)),minY:Math.min(...bounds.map(b=>b.minY)),maxX:Math.max(...bounds.map(b=>b.maxX)),maxY:Math.max(...bounds.map(b=>b.maxY))};
+ const vb=Array.isArray(viewBox)&&viewBox.length===4&&viewBox.every(Number.isFinite)&&viewBox[2]>0&&viewBox[3]>0
+  ?{minX:viewBox[0],minY:viewBox[1],maxX:viewBox[0]+viewBox[2],maxY:viewBox[1]+viewBox[3]}:overallBounds;
+ const cols=6,rows=6,cells=Array.from({length:rows*cols},(_,i)=>({row:Math.floor(i/cols)+1,column:i%cols+1,total:0,closed:0,open:0}));
+ for(const p of paths){const b=p.bounds;if(!b)continue;const x=Math.max(0,Math.min(cols-1,Math.floor((((b.minX+b.maxX)/2-vb.minX)/(vb.maxX-vb.minX))*cols)));const y=Math.max(0,Math.min(rows-1,Math.floor((((b.minY+b.maxY)/2-vb.minY)/(vb.maxY-vb.minY))*rows)));const cell=cells[y*cols+x];cell.total++;if(p.closed)cell.closed++;else cell.open++;}
+ const occupied=cells.filter(x=>x.total).sort((a,b)=>b.total-a.total);
+ const largest=bounds.map((b,i)=>({pathIndex:i+1,bounds:b,width:b.maxX-b.minX,height:b.maxY-b.minY,closed:!!paths[i].closed,vertexCount:paths[i].vertexCount})).sort((a,b)=>(b.width*b.height)-(a.width*a.height)).slice(0,12);
+ return {status:'spatial_distribution_only_not_semantic_classification',coordinateSystem:'PDF/SVG page units; not millimetres or metres',overallBounds,gridSize:{rows,columns:cols},occupiedCells:occupied.length,occupiedCellSummaries:occupied.slice(0,12),largestBoundingBoxes:largest,notice:'Grid cells locate path concentration only. They do not identify walls, slabs, title blocks, dimensions or disciplines.'};
+}
 function valid(file,ext){
  const b=file.buffer;
  if(ext==='.pdf')return b.length>=5&&b.subarray(0,5).toString('ascii')==='%PDF-';
@@ -55,6 +67,7 @@ router.post('/demo/analyze',(req,res)=>{
       const xs=path.points.map(point=>point.x),ys=path.points.map(point=>point.y);
       return {pathIndex:index+1,closed:path.closed,vertexCount:path.vertexCount,lengthPageUnits:path.lengthUnits,areaPageUnits2:path.areaSquareUnits,bounds:xs.length?{minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)}:null};
     });
+    const spatialOverview=summarizeVectorLayout(paths,vector?.svgViewBox);
     result={
       analysisType:'pdf_native_text_and_vector_geometry',
       status:(nativeChars>0||paths.length>0)?'pdf_evidence_extracted_requires_engineering_review':(ocr?.status||'pdf_no_readable_evidence'),
@@ -63,7 +76,7 @@ router.post('/demo/analyze',(req,res)=>{
       pageCount:nativeText?.pageCount||ocr?.totalPages||null,
       nativeText:{status:nativeText?.status||'unavailable',characterCount:nativeChars,text:(nativeText?.text||'').slice(0,20000),diagnostics:nativeText?.diagnostics||null,unsupportedFilters:nativeText?.unsupportedFilters??null},
       drawingTextIntelligence:textIntelligence?{status:textIntelligence.status,metadata:textIntelligence.metadata,conflicts:textIntelligence.conflicts,unresolved:textIntelligence.unresolved}:null,
-      vectorGeometry:{status:vector?.status||'unavailable',pageNumber:1,viewBox:vector?.svgViewBox||null,svgDimensions:vector?.svgDimensions||null,pathCount:paths.length,closedPathCount:paths.filter(path=>path.closed).length,openPathCount:paths.filter(path=>!path.closed).length,unsupportedPathCount:vector?.geometry?.unsupportedPathCount??null,paths:paths.slice(0,3000),limitations:vector?.geometry?.limitations||[]},
+      vectorGeometry:{status:vector?.status||'unavailable',pageNumber:1,viewBox:vector?.svgViewBox||null,svgDimensions:vector?.svgDimensions||null,pathCount:paths.length,closedPathCount:paths.filter(path=>path.closed).length,openPathCount:paths.filter(path=>!path.closed).length,unsupportedPathCount:vector?.geometry?.unsupportedPathCount??null,spatialOverview,paths:paths.slice(0,3000),limitations:vector?.geometry?.limitations||[]},
       ocrFallback:ocr?{status:ocr.status,pagesProcessed:ocr.pagesProcessed,characterCount:ocr.characterCount,pages:ocr.pages.map(page=>({page:page.page,wordCount:page.wordCount,text:page.text.slice(0,10000),averageConfidence:page.averageConfidence,status:page.status}))}:null,
       diagnostics,geometryExtracted:paths.length>0,scaleCalibrated:false,quantities:[],bimModelCreated:false,quantitiesAreContractuallyVerified:false,
       limitations:[...(nativeText?.limitations||[]),...(vector?.geometry?.limitations||[]),'تم تحليل الصفحة الأولى فقط في المعاينة.','إحداثيات ومساحات المسارات بوحدات صفحة PDF الخام وليست أمتاراً أو كميات تنفيذية.','لا يتم تصنيف المسارات تلقائياً إلى قواعد أو جدران أو بلاطات أو عناصر MEP.','المقياس يحتاج إلى بعد معلوم ومؤكد من اللوحة أو اعتماد المهندس قبل التحويل إلى قياسات فعلية.']
