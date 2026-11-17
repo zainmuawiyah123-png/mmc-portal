@@ -652,7 +652,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    const status=report.querySelector('#mmcDemoAnalysisStatus'),body=report.querySelector('#mmcDemoAnalysisBody');
    try{
     const form=new FormData();form.append('drawing',file,file.name);
-    const controller=new AbortController();const watchdog=setTimeout(()=>controller.abort(),120000);let response;try{response=await fetch('/api/mmc-ai/demo/analyze',{method:'POST',body:form,credentials:'same-origin',headers:{'Accept':'application/json'},signal:controller.signal});}finally{clearTimeout(watchdog);}
+    const controller=new AbortController();const watchdog=setTimeout(()=>controller.abort(),120000);let response;try{response=await fetch('https://mmc-ai-staging.onrender.com/api/mmc-ai/demo/analyze',{method:'POST',body:form,credentials:'omit',headers:{'Accept':'application/json'},signal:controller.signal});}finally{clearTimeout(watchdog);}
     const responseType=response.headers.get('content-type')||'';
     let data;
     if(responseType.includes('application/json')){data=await response.json();}
