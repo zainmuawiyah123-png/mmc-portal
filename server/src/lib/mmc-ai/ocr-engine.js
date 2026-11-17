@@ -19,6 +19,32 @@ function parsePdfPageCount(pdfInfo) {
   return Number.isInteger(count) && count > 0 ? count : null;
 }
 
+async function runTesseractWithFallback(imagePath, options = {}) {
+  const language = options.language || 'eng+ara';
+  const modes = options.psmModes || [6, 3, 11, 12];
+  const failures = [];
+  for (const psm of modes) {
+    try {
+      const result = await run('tesseract', [
+        imagePath, 'stdout', '-l', language, '--psm', String(psm), 'tsv'
+      ], { timeout: 90000, maxBuffer: 12 * 1024 * 1024 });
+      return { stdout: result.stdout || '', psm, fallbackUsed: psm !== modes[0], warnings: failures };
+    } catch (error) {
+      const stdout = String(error.stdout || '');
+      const stderr = String(error.stderr || error.message || '').slice(0, 1600);
+      // Some Tesseract/Leptonica builds return a non-zero exit after emitting usable TSV.
+      if (stdout.split(/\\r?\\n/).length > 2 && stdout.includes('\\t')) {
+        return { stdout, psm, fallbackUsed: psm !== modes[0], warnings: [...failures, stderr].filter(Boolean) };
+      }
+      failures.push(`PSM ${psm}: ${stderr}`);
+    }
+  }
+  throw Object.assign(new Error('Tesseract could not process this page with the available segmentation modes.'), {
+    code: 'OCR_PAGE_FAILED',
+    details: { attempts: failures }
+  });
+}
+
 function parseTesseractTsv(tsv) {
   const lines = String(tsv || '').split(/\r?\n/);
   const words = [];
@@ -141,21 +167,28 @@ async function ocrPdf(input, options = {}) {
     const pages = [];
     for (let index = 0; index < names.length; index++) {
       const imagePath = path.join(directory, names[index]);
-      const result = await run('tesseract', [
-        imagePath, 'stdout', '-l', 'eng+ara', '--psm', '11', 'tsv'
-      ], { timeout: 90000, maxBuffer: 12 * 1024 * 1024 });
-      const parsed = parseTesseractTsv(result.stdout);
+      let attempt;
+      try {
+        attempt = await runTesseractWithFallback(imagePath, { psmModes: [6, 3, 11, 12] });
+      } catch (error) {
+        pages.push({
+          page: index + 1, text: '', wordCount: 0, averageConfidence: null, words: [],
+          status: 'ocr_page_failed', error: error.message, diagnostics: error.details?.attempts || []
+        });
+        continue;
+      }
+      const parsed = parseTesseractTsv(attempt.stdout);
       pages.push({
-        page: index + 1,
-        text: parsed.text,
-        wordCount: parsed.wordCount,
-        averageConfidence: parsed.averageConfidence,
-        words: parsed.words
+        page: index + 1, text: parsed.text, wordCount: parsed.wordCount,
+        averageConfidence: parsed.averageConfidence, words: parsed.words,
+        status: parsed.wordCount ? 'ocr_text_extracted' : 'ocr_no_text_found',
+        pageSegmentationMode: attempt.psm, fallbackUsed: attempt.fallbackUsed,
+        warnings: attempt.warnings
       });
     }
     return {
       engine: 'tesseract-pdftoppm-v1',
-      status: pages.some(page => page.wordCount) ? 'ocr_text_extracted' : 'ocr_no_text_found',
+      status: pages.some(page => page.wordCount) ? 'ocr_text_extracted' : (pages.some(page => page.status === 'ocr_page_failed') ? 'ocr_partial_failure' : 'ocr_no_text_found'),
       languageModel: 'eng+ara',
       dpi,
       pageLimit: maxPages,
@@ -225,16 +258,16 @@ async function ocrImage(input, options = {}) {
     const imagePath = path.join(directory, 'source' + extension);
     await fs.writeFile(imagePath, bytes, { flag: 'wx', mode: 0o600 });
     const dpi = Math.min(300, Math.max(120, Number(options.dpi) || DEFAULT_DPI));
-    const result = await run('tesseract', [
-      imagePath, 'stdout', '-l', 'eng+ara', '--psm', '11', 'tsv'
-    ], { timeout: 90000, maxBuffer: 12 * 1024 * 1024 });
-    const parsed = parseTesseractTsv(result.stdout);
+    const attempt = await runTesseractWithFallback(imagePath, { psmModes: [6, 3, 11, 12] });
+    const parsed = parseTesseractTsv(attempt.stdout);
     const page = {
       page: 1,
       text: parsed.text,
       wordCount: parsed.wordCount,
       averageConfidence: parsed.averageConfidence,
-      words: parsed.words.map(word => ({ ...word, page: 1 }))
+      words: parsed.words.map(word => ({ ...word, page: 1 })),
+      status: parsed.wordCount ? 'ocr_text_extracted' : 'ocr_no_text_found',
+      pageSegmentationMode: attempt.psm, fallbackUsed: attempt.fallbackUsed, warnings: attempt.warnings
     };
     return {
       engine: 'tesseract-image-v1',
@@ -258,4 +291,4 @@ async function ocrImage(input, options = {}) {
   }
 }
 
-module.exports = { ocrPdf, ocrImage, parseTesseractTsv, parsePdfPageCount, inspectOcrRuntime, inspectImageOcrRuntime };
+module.exports = { ocrPdf, ocrImage, parseTesseractTsv, parsePdfPageCount, inspectOcrRuntime, inspectImageOcrRuntime, runTesseractWithFallback };
