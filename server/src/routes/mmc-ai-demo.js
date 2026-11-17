@@ -95,7 +95,7 @@ router.post('/demo/analyze',(req,res)=>{
     }
     const paths=(vector?.geometry?.paths||[]).map((path,index)=>{
       const xs=path.points.map(point=>point.x),ys=path.points.map(point=>point.y);
-      return {pathIndex:index+1,closed:path.closed,vertexCount:path.vertexCount,lengthPageUnits:path.lengthUnits,areaPageUnits2:path.areaSquareUnits,bounds:xs.length?{minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)}:null};
+      return {pathIndex:index+1,closed:path.closed,vertexCount:path.vertexCount,points:path.points.map(point=>({x:point.x,y:point.y})),lengthPageUnits:path.lengthUnits,areaPageUnits2:path.areaSquareUnits,bounds:xs.length?{minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)}:null};
     });
     const spatialOverview=summarizeVectorLayout(paths,vector?.svgViewBox);
     result={
