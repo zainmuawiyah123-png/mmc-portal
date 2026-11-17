@@ -45,3 +45,13 @@ test('rejects files above the configured size limit', () => {
 test('rejects non-buffer input', () => {
   assert.throws(() => preflightPdf('file.pdf'), { code: 'PDF_INPUT_INVALID' });
 });
+
+
+const { createTwoPageArchitecturalFixture } = require('./fixtures/mmc-ai-pdf-fixtures');
+test('preflight recognizes the generated multi-page engineering PDF fixture without claiming analysis readiness',()=>{
+  const result = preflightPdf(createTwoPageArchitecturalFixture());
+  assert.equal(result.pageCount, 2);
+  assert.equal(result.status, 'preflight_passed');
+  assert.equal(result.extractionReady, false);
+  assert.equal(result.analysisStatus, 'parser_not_configured');
+});

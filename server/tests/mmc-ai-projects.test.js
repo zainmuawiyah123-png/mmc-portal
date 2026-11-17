@@ -29,8 +29,8 @@ async function call(user,method,url,body){
  return {status:r.status,data};
 }
 const uniq=()=>Math.random().toString(36).slice(2,10);
-async function upload(user,projectId,name,bytes){
- const form=new FormData();form.append('file',new Blob([bytes]),name);
+async function upload(user,projectId,name,bytes,fields={}){
+ const form=new FormData();form.append('file',new Blob([bytes]),name);for(const [k,v] of Object.entries(fields))form.append(k,String(v));
  const r=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents',{method:'POST',headers:{...(jar[user]?{Cookie:jar[user]}:{})},body:form});
  const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();
  return {status:r.status,data};
@@ -54,6 +54,44 @@ test.before(async()=>{
  await new Promise(resolve=>{server=app.listen(0,'127.0.0.1',()=>{base='http://127.0.0.1:'+server.address().port;resolve();});});
 });
 test.after(async()=>{if(server)await new Promise(r=>server.close(r));closeDB();fs.rmSync(TMP,{recursive:true,force:true});});
+
+test('staging access gate fails closed and requires valid HTTP Basic credentials',async()=>{
+ const previous={required:process.env.STAGING_BASIC_AUTH_REQUIRED,user:process.env.STAGING_BASIC_AUTH_USER,password:process.env.STAGING_BASIC_AUTH_PASSWORD};
+ try{
+  process.env.STAGING_BASIC_AUTH_REQUIRED='true';
+  delete process.env.STAGING_BASIC_AUTH_USER;
+  delete process.env.STAGING_BASIC_AUTH_PASSWORD;
+  const locked=await fetch(base+'/api/health');
+  assert.equal(locked.status,503);
+  process.env.STAGING_BASIC_AUTH_USER='mmc-staging-test';
+  process.env.STAGING_BASIC_AUTH_PASSWORD='test-only-password-123';
+  const anonymous=await fetch(base+'/api/health');
+  assert.equal(anonymous.status,401);
+  assert.match(anonymous.headers.get('www-authenticate')||'',/Basic realm="MMC AI staging"/);
+  const invalid=await fetch(base+'/api/health',{headers:{Authorization:'Basic '+Buffer.from('mmc-staging-test:wrong-password').toString('base64')}});
+  assert.equal(invalid.status,401);
+  const authorized=await fetch(base+'/api/health',{headers:{Authorization:'Basic '+Buffer.from('mmc-staging-test:test-only-password-123').toString('base64')}});
+  assert.equal(authorized.status,200);
+ }finally{
+  if(previous.required===undefined)delete process.env.STAGING_BASIC_AUTH_REQUIRED;else process.env.STAGING_BASIC_AUTH_REQUIRED=previous.required;
+  if(previous.user===undefined)delete process.env.STAGING_BASIC_AUTH_USER;else process.env.STAGING_BASIC_AUTH_USER=previous.user;
+  if(previous.password===undefined)delete process.env.STAGING_BASIC_AUTH_PASSWORD;else process.env.STAGING_BASIC_AUTH_PASSWORD=previous.password;
+ }
+});
+
+test('MMC AI workspace and administration HTML routes enforce authentication before static file serving',async()=>{
+ const anonymousMmc=await fetch(base+'/mmc-ai/workspace/',{redirect:'manual'});
+ assert.equal(anonymousMmc.status,302);
+ assert.match(anonymousMmc.headers.get('location')||'',/login\.html\?next=\/mmc-ai\/workspace\//);
+ const anonymousAdmin=await fetch(base+'/admin/index.html',{redirect:'manual'});
+ assert.equal(anonymousAdmin.status,302);
+ assert.match(anonymousAdmin.headers.get('location')||'',/login\.html/);
+ await register('ai-page-security');
+ const memberMmc=await call('ai-page-security','GET','/mmc-ai/index.html');
+ assert.equal(memberMmc.status,200);
+ const memberAdmin=await call('ai-page-security','GET','/admin/index.html');
+ assert.equal(memberAdmin.status,403);
+});
 
 test('MMC AI project membership isolates projects and enforces viewer permissions',async()=>{
  const userA=await register('ai-owner'),userB=await register('ai-outsider'),userC=await register('ai-viewer');
@@ -92,6 +130,22 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(goodPdf.status,201,JSON.stringify(goodPdf.data));
 
  assert.equal(goodPdf.data.document.file_ext,'.pdf');
+ assert.equal(goodPdf.data.document.discipline,'unclassified');
+ const structuralUpload=await upload('ai-owner',projectId,'S-101-foundations.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'structural',sheetNumber:'S-101',revision:'A',drawingTitle:'Foundation Layout'});
+ assert.equal(structuralUpload.status,201,JSON.stringify(structuralUpload.data));
+ assert.equal(structuralUpload.data.document.discipline,'structural');assert.equal(structuralUpload.data.document.sheet_number,'S-101');assert.equal(structuralUpload.data.document.revision,'A');
+ const initialPackages=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/drawing-packages');
+ assert.equal(initialPackages.status,200);assert.equal(initialPackages.data.packages.length,5);
+ assert.equal(initialPackages.data.packages.find(p=>p.discipline==='structural').status,'ready_for_review');
+ const savedPackage=await call('ai-owner','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/structural',{applicability:'required',expectedSheets:['S-101','S-102']});
+ assert.equal(savedPackage.status,200);
+ const structuralPackage=savedPackage.data.packages.find(p=>p.discipline==='structural');
+ assert.deepEqual(structuralPackage.expectedSheets,['S-101','S-102']);
+ assert.deepEqual(structuralPackage.missingSheets,['S-102']);assert.deepEqual(structuralPackage.receivedSheets,['S-101']);
+ const forbiddenPackage=await call('ai-viewer','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/structural',{expectedSheets:['S-101']});
+ assert.equal(forbiddenPackage.status,403);
+ const invalidDiscipline=await upload('ai-owner',projectId,'invalid-discipline.pdf',Buffer.from('%PDF-1.4\\n%%EOF'),{discipline:'unknown-trade'});
+ assert.equal(invalidDiscipline.status,422);
  const pdfPreflight=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/preflight/pdf',{});
  assert.equal(pdfPreflight.status,200,JSON.stringify(pdfPreflight.data));
  assert.equal(pdfPreflight.data.report.status,'preflight_passed');
@@ -132,6 +186,13 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  assert.equal(boqViewer.status,403);
  const boqList=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/boq');
  assert.equal(boqList.status,200);assert.equal(boqList.data.items.length,1);assert.equal(boqList.data.summary.total,16.25);
+ const sourceRef=boqList.data.items[0].sourceReference;
+ assert.ok(sourceRef,'BOQ item should expose its linked takeoff source');
+ assert.equal(sourceRef.takeoffItemId,dxfRun.data.run.items[0].id);
+ assert.equal(sourceRef.entityType,'LINE');assert.equal(sourceRef.nativeCadLayer,'EARTHWORK');
+ assert.equal(sourceRef.runId,dxfRun.data.run.id);assert.equal(sourceRef.runStatus,'approved');
+ assert.equal(sourceRef.documentId,dxfUpload.data.document.id);assert.equal(sourceRef.documentName,'site-plan.dxf');
+ assert.equal(sourceRef.quantity,5);assert.equal(sourceRef.unit,'m');
  const boqQuantityChange=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{quantity:130});assert.equal(boqQuantityChange.status,422);
  const boqUpdate=await call('ai-owner','PATCH','/api/mmc-ai/projects/'+projectId+'/boq/'+boqAdd.data.item.id,{rate:4});
  assert.equal(boqUpdate.status,200);assert.equal(boqUpdate.data.item.line_total,20);
@@ -204,13 +265,16 @@ test('MMC AI project membership isolates projects and enforces viewer permission
  const assistantEmpty=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/assistant',{question:' '});assert.equal(assistantEmpty.status,422);
 
  const executive=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/dashboard');
- assert.equal(executive.status,200);assert.equal(executive.data.summary.boqItems,0);assert.equal(executive.data.summary.scheduleTasks,4);assert.equal(executive.data.summary.averageTaskProgress,39.3);assert.equal(executive.data.summary.completedTasks,1);assert.equal(executive.data.summary.inProgressTasks,1);assert.equal(executive.data.summary.criticalRisks,0);assert.equal(executive.data.summary.bimIssues,1);assert.equal(executive.data.summary.openBimIssues,0);assert.equal(executive.data.summary.criticalBimIssues,0);assert.equal(executive.data.summary.contractEvents,1);assert.equal(executive.data.summary.documents,2);assert.equal(executive.data.summary.sitePhotos,0);
+ assert.equal(executive.status,200);assert.equal(executive.data.summary.boqItems,0);assert.equal(executive.data.summary.scheduleTasks,4);assert.equal(executive.data.summary.averageTaskProgress,39.3);assert.equal(executive.data.summary.completedTasks,1);assert.equal(executive.data.summary.inProgressTasks,1);assert.equal(executive.data.summary.criticalRisks,0);assert.equal(executive.data.summary.bimIssues,1);assert.equal(executive.data.summary.openBimIssues,0);assert.equal(executive.data.summary.criticalBimIssues,0);assert.equal(executive.data.summary.contractEvents,1);assert.equal(executive.data.summary.documents,3);assert.equal(executive.data.summary.sitePhotos,0);
  const executiveOutsider=await call('ai-outsider','GET','/api/mmc-ai/projects/'+projectId+'/dashboard');assert.equal(executiveOutsider.status,404);
 
  const pdfTakeoff=await call('ai-owner','POST','/api/mmc-ai/projects/'+projectId+'/documents/'+goodPdf.data.document.id+'/takeoff/dxf',{});
  assert.equal(pdfTakeoff.status,422);
  const docs=await call('ai-owner','GET','/api/mmc-ai/projects/'+projectId+'/documents');
- assert.equal(docs.status,200);assert.equal(docs.data.documents.length,2);
+ assert.equal(docs.status,200);assert.equal(docs.data.documents.length,3);assert.ok(docs.data.documents.some(d=>d.id===structuralUpload.data.document.id&&d.discipline==='structural'));
+ assert.equal(docs.data.documents.find(d=>d.id===structuralUpload.data.document.id).sheet_number,'S-101');
+ const invalidPackage=await call('ai-owner','PUT','/api/mmc-ai/projects/'+projectId+'/drawing-packages/not-a-discipline',{expectedSheets:[]});
+ assert.equal(invalidPackage.status,422);
  const docId=goodPdf.data.document.id;
  const ownerDownload=await fetch(base+'/api/mmc-ai/projects/'+projectId+'/documents/'+docId+'/download',{headers:{Cookie:jar['ai-owner']}});
  assert.equal(ownerDownload.status,200);

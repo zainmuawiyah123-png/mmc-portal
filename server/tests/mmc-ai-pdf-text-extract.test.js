@@ -134,3 +134,27 @@ test('analyses a synthetic architectural ground-floor plan PDF fixture',()=>{
  assert.equal(r.diagnostics.coordinatePointCount,10);
  assert.ok(r.limitations.some(x=>x.includes('لا يستخرج OCR')));
 });
+
+
+const { createTwoPageArchitecturalFixture } = require('./fixtures/mmc-ai-pdf-fixtures');
+test('reads generated two-page PDF acceptance fixture without external uploads',()=>{
+ const bytes=createTwoPageArchitecturalFixture();
+ const r=extractPdfText(bytes);
+ assert.equal(r.pageCount,2);
+ assert.match(r.text,/MMC AI SYNTHETIC ACCEPTANCE PLAN/);
+ assert.match(r.text,/GROUND FLOOR SLAB S1/);
+ assert.match(r.text,/OVERALL DIMENSIONS 6000 mm x 4000 mm/);
+ assert.match(r.text,/SLAB S1 THICKNESS 200 mm/);
+ assert.equal(r.diagnostics.rectangles,2);
+ assert.ok(r.diagnostics.rawCoordinateBounds);
+ assert.equal(r.diagnostics.rawCoordinateBounds.maxX,600);
+ assert.equal(r.diagnostics.rawCoordinateBounds.maxY,400);
+});
+
+test('applies PDF cm matrices and q/Q graphics-state save/restore to path evidence',()=>{
+ const r=extractPdfText(pdf('q 2 0 0 2 10 20 cm 0 0 m 10 5 l Q 100 100 m 110 105 l S'));
+ assert.deepEqual(r.diagnostics.rawCoordinateBounds,{minX:0,minY:0,maxX:110,maxY:105});
+ assert.deepEqual(r.diagnostics.transformedCoordinateBounds,{minX:10,minY:20,maxX:110,maxY:105});
+ assert.equal(r.diagnostics.transformedCoordinatePointCount,4);
+ assert.equal(r.diagnostics.transformationCoverage,'partial_path_points_q_Q_cm_only');
+});

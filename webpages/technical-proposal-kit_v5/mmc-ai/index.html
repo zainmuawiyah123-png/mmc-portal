@@ -244,7 +244,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      <button id="boqAdd" type="button" class="btn primary">＋ Add Item</button>
     </div>
     <div id="boqSummary" class="note">Select a project to view Bill of Quantities.</div>
-    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="7" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
+    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Source / Traceability</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="8" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
     <p class="note">This project BOQ and cost estimate is separate from tender pricing in the Procurement Portal. Rates and quantities require review and approval by the responsible team.</p>
    </div></section>
   <section class="panel" id="schedulePanel" style="margin:18px 0"><div class="panelhead"><h2>Project Schedule & Critical Path</h2><span>SCHEDULE INTELLIGENCE · CPM</span></div><div style="padding:14px">
@@ -310,7 +310,23 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   </div></section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>Quantity Takeoff Register</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Unit</th><th>Quantity</th><th>Status</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">No verified quantities yet. Results will appear here when the measurement engine and engineering verification are enabled.</td></tr></tbody></table></div></section>
-   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
+   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>UPLOAD BY ENGINEERING DISCIPLINE</span></div><div class="uploadbox">
+   <p class="note" style="margin-top:0">اختر خانة التخصص المناسبة. يمكنك رفع عدة لوحات وملفات لكل تخصص؛ سيحفظ النظام التصنيف مع كل ملف.</p>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
+    <div class="drop"><div class="cloud">▦</div><strong>المخططات الإنشائية · Structural</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><label class="btn primary upload-trigger" style="display:inline-flex;position:relative;overflow:hidden;margin-top:12px;padding:9px 16px;cursor:pointer" aria-label="Choose drawing file">اختيار ملف / Choose File<input class="discipline-upload" data-discipline="structural" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label></div>
+    <div class="drop"><div class="cloud">⌂</div><strong>المخططات المعمارية · Architectural</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><label class="btn primary upload-trigger" style="display:inline-flex;position:relative;overflow:hidden;margin-top:12px;padding:9px 16px;cursor:pointer" aria-label="Choose drawing file">اختيار ملف / Choose File<input class="discipline-upload" data-discipline="architectural" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label></div>
+    <div class="drop"><div class="cloud">ϟ</div><strong>المخططات الكهربائية · Electrical</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><label class="btn primary upload-trigger" style="display:inline-flex;position:relative;overflow:hidden;margin-top:12px;padding:9px 16px;cursor:pointer" aria-label="Choose drawing file">اختيار ملف / Choose File<input class="discipline-upload" data-discipline="electrical" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label></div>
+    <div class="drop"><div class="cloud">⚙</div><strong>المخططات الميكانيكية · Mechanical</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><label class="btn primary upload-trigger" style="display:inline-flex;position:relative;overflow:hidden;margin-top:12px;padding:9px 16px;cursor:pointer" aria-label="Choose drawing file">اختيار ملف / Choose File<input class="discipline-upload" data-discipline="mechanical" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label></div>
+    <div class="drop"><div class="cloud">♧</div><strong>الصحي ومكافحة الحريق · Plumbing & Fire</strong><small>PDF · DXF · PNG · JPG · حتى 25 MB لكل ملف</small><label class="btn primary upload-trigger" style="display:inline-flex;position:relative;overflow:hidden;margin-top:12px;padding:9px 16px;cursor:pointer" aria-label="Choose drawing file">اختيار ملف / Choose File<input class="discipline-upload" data-discipline="plumbing_fire" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label></div>
+   </div>
+   <div class="filemsg" id="filemsg" style="display:block">لم يتم رفع ملفات بعد. اختر التخصص ثم الملفات.</div>
+   <div class="panel" style="margin-top:14px;padding:12px;background:#0d1d31">
+     <strong style="color:#dce8f3">Drawing Package Register / سجل اكتمال اللوحات</strong>
+     <p class="note">سجل أرقام اللوحات المتوقعة لكل تخصص. لا يعتبر التخصص مكتملاً لمجرد رفع ملف؛ يجب تسجيل رقم كل لوحة وإصدارها ومراجعة النواقص.</p>
+     <div id="drawingPackageRegister" style="display:grid;gap:8px"><p class="note">Select a project to review drawing packages.</p></div>
+    </div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div>
+   <p class="note">الصيغ المقبولة حالياً PDF وDXF وPNG وJPG. لا نعرض DWG كصيغة مدعومة حتى إضافة تحويل موثوق. الرفع والحفظ لا يعنيان أن الحصر الآلي لهذا التخصص أصبح جاهزاً.</p>
+  </div></section>
   </div>
 
 <section id="plans" aria-labelledby="plansTitle">
@@ -426,11 +442,25 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     for(const val of [item.item_code||'—',item.description,item.unit,item.quantity,item.rate, item.line_total.toFixed(3)]){
      const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);
     }
+    const sourceCell=document.createElement('td');sourceCell.style.cssText='padding:8px;border-bottom:1px solid #edf1f5;min-width:190px';
+    const src=item.sourceReference;
+    if(src){
+     const label=document.createElement('strong');label.textContent=(src.documentName||src.documentId)+' · '+(src.nativeCadLayer||'CAD layer');label.style.cssText='display:block;color:#31536f;font-size:11px';sourceCell.appendChild(label);
+     const meta=document.createElement('div');meta.textContent='Element '+src.takeoffItemId+' · '+src.entityType+' #'+src.entityIndex+' · '+src.quantity+' '+src.unit;meta.style.cssText='font-size:10px;color:#718096;margin-top:4px';sourceCell.appendChild(meta);
+     const status=document.createElement('div');status.textContent='Run '+src.runId+' · '+src.runStatus;status.style.cssText='font-size:10px;color:#718096;margin-top:3px';sourceCell.appendChild(status);
+     const m=src.measurement||{};
+     const trace=document.createElement('details');trace.style.cssText='margin-top:5px;font-size:10px';
+     const summaryNode=document.createElement('summary');summaryNode.textContent='Measurement details';summaryNode.style.cursor='pointer';trace.appendChild(summaryNode);
+     const detail=document.createElement('pre');detail.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0;color:#526579';
+     detail.textContent=[m.method&&('Method: '+m.method),m.ruleId&&('Rule: '+m.ruleId+(m.ruleVersion?' v'+m.ruleVersion:'')),m.formula&&('Formula: '+m.formula),m.inputs&&('Inputs: '+JSON.stringify(m.inputs)),m.geometry&&('Geometry: '+JSON.stringify(m.geometry))].filter(Boolean).join('\\n')||'No additional derivation details were stored for this source item.';
+     trace.appendChild(detail);sourceCell.appendChild(trace);
+    }else{sourceCell.textContent=item.source_takeoff_item_id?'Source record is no longer available in this project.':'Manual BOQ item — no drawing source linked.';}
+    tr.appendChild(sourceCell);
     const td=document.createElement('td'),del=document.createElement('button');del.type='button';del.textContent='Delete';del.style.cssText='border:1px solid #e6caca;border-radius:6px;padding:5px 8px;color:#9a4545;background:#10243d;cursor:pointer';
     del.addEventListener('click',async()=>{if(!confirm('Delete this BOQ item?'))return;const d=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/'+encodeURIComponent(item.id),{method:'DELETE',credentials:'same-origin'});const x=await d.json();if(!d.ok){notify(x.message||'Could not delete');return;}loadProjectBoq(id);});
     td.appendChild(del);tr.appendChild(td);body.appendChild(tr);
    }
-   if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='No BOQ items yet. Add the first item using the form above.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
+   if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='No BOQ items yet. Add the first item using the form above.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
  async function loadProjectSchedule(id){
@@ -513,7 +543,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('Could not open the selected project.');
-  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
+  const data=await r.json();activeProject=data.project;showProject(activeProject);await loadProjectDocuments(id);await loadDrawingPackages(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('Could not load project photos.');
   const images=(await list.json()).images||[];
@@ -575,11 +605,21 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const name=window.prompt('Enter the new project name:');if(!name||name.trim().length<3)return;
   try{
    const r=await fetch('/api/mmc-ai/projects',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name.trim(),country:'JO',currency:'JOD'})});
-   const data=await r.json();if(!r.ok)throw new Error(data.message||'Could not create project.');
+   const data=await r.json();if(!r.ok)throw new Error(data.error?.message||data.message||('Could not create project (HTTP '+r.status+').'));if(!data.project)throw new Error('The server returned success without a project record.');
    await loadProjects(data.project.project_id||data.project.id);notify('Project created. You can now upload a site photo.');
   }catch(err){notify(err.message);}
  });
- if(new URLSearchParams(window.location.search).get('preview')!=='1') loadProjects();
+ const publicPreview=!window.location.pathname.startsWith('/mmc-ai/workspace');
+ if(publicPreview){
+  document.body.classList.add('public-preview');
+  const banner=document.createElement('div');
+  banner.setAttribute('role','status');
+  banner.style.cssText='position:sticky;top:0;z-index:1000;background:#f4e7c8;color:#493819;border-bottom:1px solid #d7b979;padding:11px 18px;text-align:center;font-size:12px;font-weight:700';
+  banner.textContent='MMC AI — Public Preview · Read-only demonstration. Sign-in is required to access projects, drawings and private data.';
+  document.querySelector('.main').prepend(banner);
+  document.querySelectorAll('button,input,select,textarea').forEach(el=>{el.disabled=true;});
+ }
+ if(!publicPreview) loadProjects();
 
  document.getElementById('ask').addEventListener('click',async()=>{const q=document.getElementById('question').value.trim(),host=document.getElementById('assistantResponse'),btn=document.getElementById('ask');if(!q){notify('Enter a question first.');return}if(!activeProject){notify('Select a project so the answer can use its data.');return}const id=activeProject.project_id||activeProject.id;btn.disabled=true;btn.textContent='Analyzing...';host.style.display='block';host.textContent='Reviewing project records...';try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/assistant',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})}),d=await r.json();if(!r.ok)throw new Error(d.message||'Could not prepare answer.');host.replaceChildren();const answer=document.createElement('p');answer.textContent=d.assistant.answer;answer.style.cssText='margin:0 0 8px;color:#233e58';host.appendChild(answer);const sources=document.createElement('small');sources.textContent='Answer sources: '+d.assistant.sources.map(x=>x.type+' ('+(x.count??'—')+')').join(' · ');sources.style.color='#6f8193';host.appendChild(sources);const limit=document.createElement('p');limit.textContent=d.assistant.limitations;limit.style.cssText='margin:8px 0 0;color:#9a6a27;font-size:10px';host.appendChild(limit);}catch(e){host.textContent=e.message;}finally{btn.disabled=false;btn.textContent='Send';}});
  document.querySelectorAll('.prompt').forEach(b=>b.addEventListener('click',()=>{document.getElementById('question').value=b.textContent;document.getElementById('question').focus()}));
@@ -590,14 +630,19 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin'});
    if(!r.ok)throw new Error('Could not load project documents.');
    const docs=(await r.json()).documents||[];
+   let savedRuns=[];try{const runsResponse=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs',{credentials:'same-origin',cache:'no-store'});if(runsResponse.ok)savedRuns=(await runsResponse.json()).runs||[];}catch(_runsError){}
    if(!docs.length){const p=document.createElement('p');p.className='note';p.textContent='No documents uploaded for this project.';host.appendChild(p);return;}
    const list=document.createElement('div');list.style.cssText='display:grid;gap:8px';
    for(const d of docs){
     const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#10243d';
     const meta=document.createElement('div');meta.style.cssText='min-width:0';
     const name=document.createElement('div');name.textContent=d.original_name;name.style.cssText='font-size:11px;font-weight:600;color:#dce8f3;overflow-wrap:anywhere';
-    const sub=document.createElement('div');sub.textContent=d.file_ext.toUpperCase()+' · '+(d.size_bytes/1048576).toFixed(2)+' MB · Stored in this project';sub.style.cssText='font-size:10px;color:#8996a4;margin-top:4px';
-    meta.append(name,sub);
+    const disciplineLabels={structural:'Structural / إنشائي',architectural:'Architectural / معماري',electrical:'Electrical / كهرباء',mechanical:'Mechanical / ميكانيكا',plumbing_fire:'Plumbing & Fire / صحي وحريق',unclassified:'Unclassified / غير مصنف'};
+    const sub=document.createElement('div');const latestRun=savedRuns.find(run=>String(run.document_id)===String(d.id));
+    const statusLabel=latestRun?(latestRun.status==='approved'?'Engineering review approved':latestRun.status==='rejected'?'Engineering review rejected':'Pending engineering review'):'Received; analysis not started';
+    sub.textContent=(disciplineLabels[d.discipline]||disciplineLabels.unclassified)+' · '+d.file_ext.toUpperCase()+' · '+(d.size_bytes/1048576).toFixed(2)+' MB · '+statusLabel;
+    sub.dataset.documentStatus=latestRun?(latestRun.status||'completed'):'received';
+    sub.style.cssText='font-size:10px;color:#8996a4;margin-top:4px';    meta.append(name,sub);
     const btn=document.createElement('button');btn.type='button';btn.textContent='Download';btn.style.cssText='border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
     btn.addEventListener('click',()=>{window.location.href='/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/download';});
     const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
@@ -606,7 +651,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      const check=document.createElement('button');check.type='button';check.textContent='PDF Preflight';check.style.cssText='border:1px solid #c8d7e8;border-radius:7px;padding:7px 10px;background:#f0f5fb;color:#31536f;font-size:10px;cursor:pointer';
      check.addEventListener('click',async()=>{check.disabled=true;check.textContent='Inspecting...';try{
       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/preflight/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'PDF preflight failed.');
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'PDF preflight failed.');
       const report=data.report,output=document.getElementById('takeoffResult');output.replaceChildren();
       const title=document.createElement('strong');title.textContent='PDF Preflight Result — Not an Engineering Analysis';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
       const detail=document.createElement('p');detail.textContent='Version: '+report.version+' · Size: '+(report.bytes/1048576).toFixed(2)+' MB · Estimated pages: '+(report.pageCount??'Not specified')+' · Status: '+report.status;
@@ -648,25 +693,176 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
       for(const choice of [{status:'approved',label:'Approve After Review'},{status:'rejected',label:'Reject Result'}]){const action=document.createElement('button');action.type='button';action.textContent=choice.label;action.style.cssText='border:1px solid var(--line);border-radius:7px;padding:8px 11px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';action.addEventListener('click',async()=>{try{const review=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(run.id)+'/review',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:choice.status})});const reviewed=await review.json();if(!review.ok)throw new Error(reviewed.message||'Review update failed.');heading.textContent=choice.status==='approved'?'Result approved by reviewer':'Takeoff result rejected';controls.remove();notify('Takeoff review status updated.');}catch(err){notify(err.message);}});controls.appendChild(action);}output.appendChild(controls);notify('PDF schedule takeoff saved as a draft requiring engineer review.');
      }catch(err){notify(err.message);}finally{pdfTake.disabled=false;pdfTake.textContent='PDF Concrete + Rebar Takeoff (Pilot)';}});
      actions.appendChild(pdfTake);
-    }
+     const drawingRead=document.createElement('button');extract.type='button';drawingRead.textContent='Read Drawing (PDF)';extract.style.cssText='border:1px solid #d8cba8;border-radius:7px;padding:7px 10px;background:#10243d9eb;color:#8a641b;font-size:10px;cursor:pointer';
+     const renderDrawingRead=(payload)=>{
+      const output=document.getElementById('takeoffResult');output.replaceChildren();
+      const analysis=payload.result?.analysis||payload.analysis||{};
+      const metadata=analysis.metadata||{};
+      const heading=document.createElement('strong');heading.textContent='PDF Drawing Read — Saved Evidence';heading.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Status: '+(analysis.status||'saved')+' · Pages: '+(payload.result?.extractionSummary?.pageCount??metadata.extractedPageCount??'—')+' · OCR: '+(payload.result?.extractionSummary?.ocrPerformed?'Yes':'Not confirmed');
+      const scales=document.createElement('p');scales.textContent='Scale clues: '+((metadata.textualScaleCandidates||[]).join(', ')||'No explicit scale found');
+      const dimensions=[...(metadata.explicitDimensionCallouts||[]).map(x=>({page:'Text',raw:x.raw,kind:'Explicit dimension'})),...(metadata.ocrSpatialDimensionCandidates||[]).map(x=>({page:x.page,raw:x.raw,kind:x.status}))];
+      const dimTitle=document.createElement('strong');dimTitle.textContent='Detected dimension candidates ('+dimensions.length+')';dimTitle.style.cssText='display:block;margin:10px 0 5px';
+      const list=document.createElement('div');list.style.cssText='max-height:260px;overflow:auto;border:1px solid #dbe3ea;border-radius:7px;padding:8px';
+      if(!dimensions.length){const empty=document.createElement('p');empty.textContent='No explicit dimension strings were identified in this read. Scanned pages may require OCR.';list.appendChild(empty);}
+      dimensions.slice(0,250).forEach(item=>{const row=document.createElement('div');row.textContent='Page '+item.page+' · '+item.raw+' · '+item.kind;row.style.cssText='padding:4px 0;border-bottom:1px solid #edf1f5;font-size:11px';list.appendChild(row);});
+      const unresolved=document.createElement('p');unresolved.textContent='Engineering quantity status: NOT CALCULATED. These are text/dimension candidates only. No PDF geometry scale or excavation/concrete volume has been verified.';unresolved.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8;margin-top:9px';
+      const saved=document.createElement('p');saved.textContent='Saved analysis ID: '+(payload.analysisId||'available from latest saved record');saved.style.cssText='font-size:10px;color:#52677d';
+      output.append(heading,summary,scales,dimTitle,list,unresolved,saved);
+     };
+     drawingRead.addEventListener('click',async()=>{drawingRead.disabled=true;drawingRead.textContent='Reading drawing...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'Drawing analysis failed.');
+      renderDrawingRead(data);notify('Drawing read saved. Quantity calculation is not yet available for this PDF.');
+     }catch(err){notify(err.message);}finally{drawingRead.disabled=false;drawingRead.textContent='Read Drawing (PDF)';}});
+     const analyze=document.createElement('button');analyze.type='button';analyze.textContent='Analyze Drawing Text';analyze.style.cssText='border:1px solid #9fc9e4;border-radius:7px;padding:7px 10px;background:#eaf5fc;color:#245d86;font-size:10px;cursor:pointer';
+     analyze.addEventListener('click',async()=>{analyze.disabled=true;analyze.textContent='Analyzing...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({sheetOrPage:d.original_name})});
+      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Drawing text analysis failed.');
+      const analysis=data.analysis||{},meta=analysis.metadata||{},output=document.getElementById('takeoffResult');output.replaceChildren();
+      const title=document.createElement('strong');title.textContent='Drawing Text Intelligence — Evidence Review Only';title.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Status: '+(analysis.status||'unknown')+' · Evidence clues: '+(analysis.evidence?.evidenceCount??0)+' · Pages: '+(meta.extractedPageCount??'unknown')+' · OCR: '+(meta.ocrPerformed?'performed':'not performed');
+      const disciplines=document.createElement('p');disciplines.textContent='Discipline clues: '+((meta.disciplineClues||[]).join(', ')||'None detected')+' · Scale text: '+((meta.textualScaleCandidates||[]).join(', ')||'None detected');
+      const titles=document.createElement('p');titles.textContent='Drawing title candidates: '+((meta.titleCandidates||[]).join(' | ')||'None detected');
+      const dims=document.createElement('p');dims.textContent='Explicit dimension callouts: '+((meta.explicitDimensionCallouts||[]).map(x=>x.raw).join(' | ')||'None detected');
+      const refs=document.createElement('p');refs.textContent='Sheet / revision candidates: '+JSON.stringify({sheets:meta.textualSheetNumberCandidates||[],revisions:meta.textualRevisionCandidates||[],details:meta.detailAndSectionReferenceCandidates||[]});
+      const conflicts=document.createElement('p');conflicts.textContent='Register conflicts: '+((analysis.conflicts||[]).length?JSON.stringify(analysis.conflicts):'None detected');
+      const limitations=document.createElement('p');limitations.textContent='Important: these are text clues only. Scale is not applied, dimensions are not linked to drawing elements, and no quantities are calculated or approved.';
+      limitations.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      const unresolved=document.createElement('ul');for(const item of (analysis.unresolved||[])){const li=document.createElement('li');li.textContent=item;unresolved.appendChild(li);}
+      const ocr=document.createElement('p');ocr.textContent=data.ocr?.status==='runtime_unavailable'?'OCR runtime unavailable; native PDF text clues only.':data.ocr?.status==='failed'?'OCR failed: '+(data.ocr.message||'unknown error'):meta.ocrPerformed?'OCR confidence: '+(meta.ocrAverageConfidence??'not available')+' · words: '+(meta.ocrWordCount||0):'OCR was not needed for this extraction decision.';
+      output.append(title,summary,disciplines,titles,dims,refs,conflicts,ocr,limitations,unresolved);notify('Drawing text clues extracted; engineering quantities remain unverified.');
+     }catch(err){notify(err.message);}finally{analyze.disabled=false;analyze.textContent='Analyze Drawing Text';}});
+     actions.appendChild(analyze);
+     actions.appendChild(drawingRead);
+     const savedRead=document.createElement('button');savedRead.type='button';savedRead.textContent='Load Saved Read';savedRead.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     savedRead.addEventListener('click',async()=>{savedRead.disabled=true;try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analysis/latest',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||'No saved drawing read.');
+      renderDrawingRead(data);notify('Saved drawing read loaded.');
+     }catch(err){notify(err.message);}finally{savedRead.disabled=false;}});
+     actions.appendChild(savedRead);
+     const ocr=document.createElement('button');ocr.type='button';ocr.textContent='OCR (Arabic + English)';ocr.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     ocr.addEventListener('click',async()=>{ocr.disabled=true;ocr.textContent='Checking OCR...';try{
+      const statusResponse=await fetch('/api/mmc-ai/ocr/status',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      const statusData=await statusResponse.json();
+      if(!statusResponse.ok||!statusData.runtime?.available){
+       const missing=(statusData.runtime?.missing||[]).join(', ')||'Arabic/English OCR runtime';
+       throw new Error('OCR غير جاهز على الخادم. الأدوات أو اللغات الناقصة: '+missing);
+      }
+      ocr.textContent='Running OCR...';
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/ocr/pdf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({maxPages:20,dpi:200})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error?.message||data.message||data.error?.code||'OCR failed.');
+      const result=data.result,output=document.getElementById('takeoffResult');output.replaceChildren();
+      const title=document.createElement('strong');title.textContent='OCR Result — Preliminary Text Recognition';title.style.cssText='display:block;color:#17623e;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Engine: '+result.engine+' · Status: '+result.status+' · Pages: '+result.pagesProcessed+'/'+result.totalPages+' · Characters: '+result.characterCount+' · DPI: '+result.dpi;
+      const pages=document.createElement('div');pages.style.cssText='display:grid;gap:8px;margin-top:8px';
+      for(const page of (result.pages||[])){
+       const section=document.createElement('section');section.style.cssText='border:1px solid #d7e2dc;border-radius:7px;padding:9px;background:#f7faf8';
+       const heading=document.createElement('strong');heading.textContent='Page '+page.page+' · '+page.wordCount+' words · confidence '+(page.averageConfidence??'n/a');
+       const text=document.createElement('pre');text.textContent=page.text||'No text recognized on this page.';text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:11px;line-height:1.7;margin:7px 0 0';
+       section.append(heading,text);pages.appendChild(section);
+      }
+      const limitation=document.createElement('p');limitation.textContent='OCR recognizes visible text only. It does not interpret structural elements, verify dimensions, or calculate quantities. Engineering-critical values require manual verification.';
+      limitation.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      output.append(title,summary,pages,limitation);notify('OCR completed: preliminary text recognition only.');
+     }catch(err){notify(err.message);}finally{ocr.disabled=false;ocr.textContent='OCR (Arabic + English)';}});
+     actions.appendChild(ocr);    }
     if(d.file_ext==='.dxf'){
-     const take=document.createElement('button');take.type='button';take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
+     const take=document.createElement('button');take.type='button';take.dataset.action='dxf-takeoff';take.dataset.documentId=String(d.id);take.textContent='DXF Takeoff';take.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
      take.addEventListener('click',async()=>{
-      take.disabled=true;take.textContent='Running takeoff...';
+      take.disabled=true;take.textContent='Running takeoff...';sub.textContent=d.file_ext.toUpperCase()+' · Analysis running…';sub.dataset.documentStatus='running';const output=document.getElementById('takeoffResult');output.replaceChildren();const progress=document.createElement('p');progress.className='note';progress.textContent='DXF geometry analysis is running. No quantities are verified until engineering review.';output.appendChild(progress);
       try{
        const run=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/takeoff/dxf',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
-       const result=await run.json();if(!run.ok)throw new Error(result.message||result.error||'Could not run takeoff.');
-       const summary=result.run.summary||{};
-       const output=document.getElementById('takeoffResult');output.replaceChildren();
+       const result=await run.json();if(!run.ok){const apiError=result.error;const message=(apiError&&typeof apiError==='object'&&apiError.message)||result.message||(typeof apiError==='string'?apiError:null)||'Could not run takeoff (HTTP '+run.status+').';const error=new Error(message);error.code=apiError&&typeof apiError==='object'?apiError.code:null;error.status=run.status;error.details=apiError&&typeof apiError==='object'?apiError.details:null;throw error;}
+       const summary=result.run.summary||{};sub.textContent=d.file_ext.toUpperCase()+' · Analysis completed · '+(summary.supportedEntities??0)+' readable · '+(summary.unsupportedEntities??0)+' unsupported · Pending engineering review';sub.dataset.documentStatus='completed';
+       output.replaceChildren();
        const heading=document.createElement('strong');heading.textContent='Preliminary Result — Pending Engineering Review';heading.style.cssText='display:block;color:#a15a0b;margin-bottom:6px';
        const detail=document.createElement('div');detail.textContent='Readable entities: '+summary.supportedEntities+' · Unsupported entities: '+summary.unsupportedEntities+' · Total length: '+Number(summary.totalLength_m||0).toFixed(3)+' m · Closed area: '+Number(summary.totalClosedArea_m2||0).toFixed(3)+' m²';
        detail.style.cssText='font-size:11px;line-height:1.8;color:#dce8f3';
        output.append(heading,detail);
+       const previewPanel=document.createElement('section');previewPanel.style.cssText='margin-top:14px;padding:12px;border:1px solid #29435d;border-radius:10px;background:#07182a';
+       const previewTitle=document.createElement('strong');previewTitle.textContent='Engineering Drawing Preview';previewTitle.style.cssText='display:block;color:#e6eef7;margin-bottom:8px';
+       const previewNote=document.createElement('p');previewNote.textContent='Geometry preview from supported DXF entities. Select a row to highlight its source element. Not a full CAD editor.';previewNote.style.cssText='font-size:10px;color:#91a8bd;margin:0 0 8px';
+       const drawingSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');drawingSvg.setAttribute('role','img');drawingSvg.setAttribute('aria-label','DXF geometry preview');drawingSvg.style.cssText='width:100%;height:360px;background:#0b2239;border:1px solid #29435d;border-radius:7px;display:block';
+       const geometryItems=(result.run.items||[]).filter(item=>item.geometry&&item.geometry.type);
+       const coordinates=[];for(const item of geometryItems){const g=item.geometry;if(g.type==='LINE')coordinates.push(g.start,g.end);else if(g.type==='LWPOLYLINE')coordinates.push(...g.vertices);else if(g.center){coordinates.push({x:g.center.x-g.radius,y:g.center.y-g.radius},{x:g.center.x+g.radius,y:g.center.y+g.radius});}}
+       const xs=coordinates.map(p=>p.x),ys=coordinates.map(p=>p.y);
+       const minX=coordinates.length?Math.min(...xs):0,maxX=coordinates.length?Math.max(...xs):100,minY=coordinates.length?Math.min(...ys):0,maxY=coordinates.length?Math.max(...ys):100;
+       const pad=Math.max(maxX-minX,maxY-minY)*.06||1;
+       const initialViewBox=coordinates.length?[minX-pad,-(maxY+pad),(maxX-minX)+2*pad,(maxY-minY)+2*pad]:[0,0,100,100];
+       drawingSvg.setAttribute('viewBox',initialViewBox.join(' '));
+       const viewControls=document.createElement('div');viewControls.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin:8px 0';
+       const viewBoxState={x:initialViewBox[0],y:initialViewBox[1],w:initialViewBox[2],h:initialViewBox[3]};
+       const applyView=()=>drawingSvg.setAttribute('viewBox',[viewBoxState.x,viewBoxState.y,viewBoxState.w,viewBoxState.h].join(' '));
+       const viewButton=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:6px 10px;border:1px solid #42617e;border-radius:6px;background:#132e4b;color:#e6eef7;cursor:pointer';b.addEventListener('click',action);viewControls.appendChild(b);return b;};
+       viewButton('Zoom +',()=>{const cx=viewBoxState.x+viewBoxState.w/2,cy=viewBoxState.y+viewBoxState.h/2;viewBoxState.w*=.8;viewBoxState.h*=.8;viewBoxState.x=cx-viewBoxState.w/2;viewBoxState.y=cy-viewBoxState.h/2;applyView();});
+       viewButton('Zoom −',()=>{const cx=viewBoxState.x+viewBoxState.w/2,cy=viewBoxState.y+viewBoxState.h/2;viewBoxState.w*=1.25;viewBoxState.h*=1.25;viewBoxState.x=cx-viewBoxState.w/2;viewBoxState.y=cy-viewBoxState.h/2;applyView();});
+       viewButton('Fit drawing',()=>{viewBoxState.x=initialViewBox[0];viewBoxState.y=initialViewBox[1];viewBoxState.w=initialViewBox[2];viewBoxState.h=initialViewBox[3];applyView();});
+       let panStart=null;
+       drawingSvg.style.touchAction='none';
+       drawingSvg.addEventListener('pointerdown',event=>{if(event.button!==0)return;panStart={x:event.clientX,y:event.clientY,viewX:viewBoxState.x,viewY:viewBoxState.y};drawingSvg.setPointerCapture(event.pointerId);});
+       drawingSvg.addEventListener('pointermove',event=>{if(!panStart)return;const rect=drawingSvg.getBoundingClientRect();viewBoxState.x=panStart.viewX-(event.clientX-panStart.x)*viewBoxState.w/rect.width;viewBoxState.y=panStart.viewY-(event.clientY-panStart.y)*viewBoxState.h/rect.height;applyView();});
+       const stopPan=()=>{panStart=null;};drawingSvg.addEventListener('pointerup',stopPan);drawingSvg.addEventListener('pointercancel',stopPan);
+       drawingSvg.addEventListener('wheel',event=>{event.preventDefault();const factor=event.deltaY<0?.85:1.18,cx=viewBoxState.x+viewBoxState.w/2,cy=viewBoxState.y+viewBoxState.h/2;viewBoxState.w*=factor;viewBoxState.h*=factor;viewBoxState.x=cx-viewBoxState.w/2;viewBoxState.y=cy-viewBoxState.h/2;applyView();},{passive:false});
+       const selectedInfo=document.createElement('div');selectedInfo.setAttribute('aria-live','polite');selectedInfo.style.cssText='margin-top:8px;padding:9px;border:1px solid #29435d;border-radius:7px;color:#dce8f3;font-size:11px;line-height:1.8';selectedInfo.textContent='Select a drawing element or table row to inspect its source properties.';
+       const palette=['#55c2ff','#f5c451','#7dd3a7','#d49aff','#ff8b8b','#a9c5ff'];
+       const layerColor=name=>{let h=0;for(const ch of String(name||'0'))h=(h*31+ch.charCodeAt(0))>>>0;return palette[h%palette.length];};
+       const svgNode=(tag,attrs)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));return el;};
+       for(const item of geometryItems){const g=item.geometry,color=layerColor(item.layer);let shape=null;
+        if(g.type==='LINE')shape=svgNode('line',{x1:g.start.x,y1:-g.start.y,x2:g.end.x,y2:-g.end.y,stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});
+        else if(g.type==='LWPOLYLINE'&&g.vertices.length){const points=g.vertices.map(p=>p.x+','+-p.y).join(' ');shape=svgNode(g.closed?'polygon':'polyline',{points,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});}
+        else if(g.type==='CIRCLE')shape=svgNode('circle',{cx:g.center.x,cy:-g.center.y,r:g.radius,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});
+        else if(g.type==='ARC'){const start=g.startDegrees*Math.PI/180,end=(g.startDegrees+g.sweepDegrees)*Math.PI/180,x1=g.center.x+g.radius*Math.cos(start),y1=-(g.center.y+g.radius*Math.sin(start)),x2=g.center.x+g.radius*Math.cos(end),y2=-(g.center.y+g.radius*Math.sin(end));shape=svgNode('path',{d:'M '+x1+' '+y1+' A '+g.radius+' '+g.radius+' 0 '+(g.sweepDegrees>180?1:0)+' 0 '+x2+' '+y2,fill:'none',stroke:color,'stroke-width':Math.max((maxX-minX)*.002,.01),'vector-effect':'non-scaling-stroke'});}
+        if(shape){shape.dataset.itemId=item.id;shape.style.cursor='pointer';shape.addEventListener('click',()=>selectDrawingItem(item,shape));drawingSvg.appendChild(shape);}
+       }
+       const selectDrawingItem=(item,shape)=>{for(const node of drawingSvg.querySelectorAll('[data-item-id]'))node.style.opacity=node===shape?'1':'.22';for(const row of tbody.rows)row.style.background=row.dataset.itemId===item.id?'#244563':'';selectedInfo.replaceChildren();const g=item.geometry||{};const sourceRows=[['Element ID',item.id],['Element type',item.entity],['Native CAD layer',item.layer],['Measured quantity',String(item.quantity)+' '+item.unit],['Entity index',String(item.entityIndex)],['Geometry type',g.type||'Not available'],['Source document',d.original_name||d.file_name||'Document #'+d.id],['Document ID',d.id],['Takeoff run',result.run.id],['Drawing units',result.run.units?.length||'Not confirmed']];for(const [label,value] of sourceRows){const line=document.createElement('div');line.textContent=label+': '+String(value??'—');selectedInfo.appendChild(line);}let geometryDetail=null;if(g.type==='LINE'){geometryDetail='Start ('+g.start.x+', '+g.start.y+') · End ('+g.end.x+', '+g.end.y+') · Length '+Math.hypot(g.end.x-g.start.x,g.end.y-g.start.y);}else if(g.type==='CIRCLE'){geometryDetail='Center ('+g.center.x+', '+g.center.y+') · Radius '+g.radius+' · Diameter '+(2*g.radius);}else if(g.type==='ARC'){geometryDetail='Center ('+g.center.x+', '+g.center.y+') · Radius '+g.radius+' · Start '+g.startDegrees+'° · Sweep '+g.sweepDegrees+'°';}else if(g.type==='LWPOLYLINE'){geometryDetail='Vertices '+(g.vertices?.length||0)+' · Closed '+(g.closed?'Yes':'No');}if(geometryDetail){const line=document.createElement('div');line.textContent='Source geometry: '+geometryDetail;selectedInfo.appendChild(line);}const note=document.createElement('div');note.textContent='Source coordinates are shown in drawing units; they are not converted to metres unless the drawing units and scale are verified.';note.style.cssText='margin-top:5px;color:#e9bd75';selectedInfo.appendChild(note);};
+       if(!geometryItems.length){const msg=svgNode('text',{x:5,y:50,fill:'#dce8f3','font-size':5});msg.textContent='No supported geometry available for preview';drawingSvg.appendChild(msg);}
+       previewPanel.append(previewTitle,previewNote,viewControls,drawingSvg,selectedInfo);output.appendChild(previewPanel);
        const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;margin-top:12px;font-size:10px;color:#dce8f3';
        const thead=document.createElement('thead'),trh=document.createElement('tr');
        for(const label of ['Entity','Layer','Quantity','Unit','Status']){const th=document.createElement('th');th.textContent=label;th.style.cssText='text-align:left;padding:8px;border-bottom:1px solid var(--line)';trh.appendChild(th);}thead.appendChild(trh);table.appendChild(thead);
        const tbody=document.createElement('tbody');
-       for(const item of (result.run.items||[])){const tr=document.createElement('tr');for(const val of [item.entity,item.layer,item.quantity,item.unit,'Pending Review']){const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}const actionCell=document.createElement('td'),addToBoq=document.createElement('button');addToBoq.type='button';addToBoq.textContent='Add to BOQ';addToBoq.style.cssText='border:1px solid #b9d6c8;border-radius:6px;padding:5px 7px;background:#eef8f2;color:#17623e;cursor:pointer;font-size:10px';addToBoq.addEventListener('click',()=>{selectedTakeoffSourceId=item.id;document.getElementById('boqDescription').value=item.entity+' — '+item.layer;document.getElementById('boqUnit').value=item.unit;document.getElementById('boqQuantity').value=item.quantity;document.getElementById('boqRate').focus();document.getElementById('boqPanel').scrollIntoView({behavior:'smooth',block:'center'});notify('Quantity transferred to BOQ. Enter the unit rate to add this item.');});actionCell.appendChild(addToBoq);tr.appendChild(actionCell);tbody.appendChild(tr);}table.appendChild(tbody);output.appendChild(table);
+       for(const item of (result.run.items||[])){const tr=document.createElement('tr');tr.dataset.itemId=item.id;tr.dataset.nativeLayer=item.layer||'0';for(const val of [item.entity,item.layer,item.quantity,item.unit,'Pending Review']){const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}const actionCell=document.createElement('td'),addToBoq=document.createElement('button');addToBoq.type='button';addToBoq.textContent='Add to BOQ';addToBoq.style.cssText='border:1px solid #b9d6c8;border-radius:6px;padding:5px 7px;background:#eef8f2;color:#17623e;cursor:pointer;font-size:10px';addToBoq.addEventListener('click',()=>{selectedTakeoffSourceId=item.id;document.getElementById('boqDescription').value=item.entity+' — '+item.layer;document.getElementById('boqUnit').value=item.unit;document.getElementById('boqQuantity').value=item.quantity;document.getElementById('boqRate').focus();document.getElementById('boqPanel').scrollIntoView({behavior:'smooth',block:'center'});notify('Quantity transferred to BOQ. Enter the unit rate to add this item.');});actionCell.appendChild(addToBoq);tr.appendChild(actionCell);tbody.appendChild(tr);}table.appendChild(tbody);output.appendChild(table);
+       const layerPanel=document.createElement('section');layerPanel.style.cssText='margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#0b1e33';
+       const layerTitle=document.createElement('strong');layerTitle.textContent='Drawing Layers — Native DXF';layerTitle.style.cssText='display:block;color:#e6eef7;margin-bottom:8px';
+       const layerNote=document.createElement('p');layerNote.textContent='Layer visibility is a viewer filter only. Engineering discipline is not guessed from layer names.';layerNote.style.cssText='font-size:10px;color:#91a8bd;margin:0 0 10px';
+       const layerList=document.createElement('div');layerList.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px';
+       const layerEditor=document.createElement('div');layerEditor.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:12px 0';
+       const newLayerName=document.createElement('input');newLayerName.placeholder='New layer name';newLayerName.maxLength=128;newLayerName.style.cssText='padding:8px;border:1px solid #42617e;border-radius:7px;background:#132e4b;color:#fff;min-width:180px';
+       const newLayerDiscipline=document.createElement('select');newLayerDiscipline.style.cssText='padding:8px;border:1px solid #42617e;border-radius:7px;background:#132e4b;color:#fff';
+       for(const option of [{value:'general',label:'General'},{value:'structural',label:'Structural'},{value:'architectural',label:'Architectural'},{value:'electrical',label:'Electrical'},{value:'mechanical_hvac',label:'Mechanical / HVAC'},{value:'plumbing_drainage',label:'Plumbing / Drainage'},{value:'fire_protection',label:'Fire Protection'},{value:'civil_earthworks',label:'Earthworks'}]){const o=document.createElement('option');o.value=option.value;o.textContent=option.label;newLayerDiscipline.appendChild(o);}
+       const addLayer=document.createElement('button');addLayer.type='button';addLayer.textContent='Create Layer';addLayer.style.cssText='padding:8px 12px;border:1px solid #6aa6cc;border-radius:7px;background:#1d5277;color:#fff;cursor:pointer';
+       layerEditor.append(newLayerName,newLayerDiscipline,addLayer);
+       layerPanel.append(layerTitle,layerNote,layerEditor,layerList);output.appendChild(layerPanel);
+       try{
+        const lr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/layers',{credentials:'same-origin'});
+        const ld=await lr.json();if(!lr.ok)throw new Error(ld.message||'Could not load drawing layers.');
+        let allLayers=ld.layers||[];
+        const layerAssignments=new Map((ld.assignments||[]).map(item=>[item.entityId,item.targetLayerId]));
+        const layerVisibility=new Map(allLayers.map(layer=>[layer.id,layer.visible!==false]));
+        const effectiveLayerId=(itemId,nativeName)=>layerAssignments.get(itemId)||('native:'+String(nativeName||'0').toLocaleLowerCase('en-US'));
+        const syncLayerVisibility=()=>{
+         for(const row of tbody.rows){const layerId=effectiveLayerId(row.dataset.itemId,row.dataset.nativeLayer);row.style.display=layerVisibility.get(layerId)===false?'none':'';}
+         for(const item of geometryItems){const shape=drawingSvg.querySelector('[data-item-id="'+item.id+'"]');if(shape)shape.style.display=layerVisibility.get(effectiveLayerId(item.id,item.layer))===false?'none':'';}
+        };
+        const renderLayerCard=layer=>{
+         const card=document.createElement('label');card.style.cssText='display:flex;align-items:center;gap:8px;padding:9px;border:1px solid #29435d;border-radius:8px;color:#dce8f3;font-size:10px';
+         const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=layerVisibility.get(layer.id)!==false;toggle.addEventListener('change',()=>{layerVisibility.set(layer.id,toggle.checked);syncLayerVisibility();});
+         const text=document.createElement('span');text.textContent=(layer.source==='user'?'User: ':'CAD: ')+layer.name+' · '+layer.entityCount+' entities · '+Number(layer.lengths_m||0).toFixed(3)+' m · '+Number(layer.areas_m2||0).toFixed(3)+' m²';
+         card.append(toggle,text);layerList.appendChild(card);
+        };
+        addLayer.addEventListener('click',async()=>{const name=newLayerName.value.trim();if(!name){notify('Enter a layer name.');return;}addLayer.disabled=true;try{const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/layers',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,classification:{discipline:newLayerDiscipline.value}})});const data=await response.json();if(!response.ok)throw new Error(data.message||'Could not create layer.');allLayers=data.layers||allLayers;const created=allLayers.find(layer=>layer.source==='user'&&layer.name===name);if(created){layerVisibility.set(created.id,created.visible!==false);renderLayerCard(created);for(const row of tbody.rows){const select=row.querySelector('select');if(select){const option=document.createElement('option');option.value=created.id;option.textContent='User: '+created.name;select.appendChild(option);}}}newLayerName.value='';notify('Layer created and available for assignment.');}catch(err){notify(err.message);}finally{addLayer.disabled=false;}});
+        for(const layer of allLayers)renderLayerCard(layer);
+        for(const row of tbody.rows){
+         const select=document.createElement('select');select.style.cssText='max-width:150px;padding:5px;border:1px solid #42617e;border-radius:6px;background:#132e4b;color:#fff;font-size:10px';
+         const original=document.createElement('option');original.value='native:'+String(row.dataset.nativeLayer).toLocaleLowerCase('en-US');original.textContent='CAD: '+row.dataset.nativeLayer;select.appendChild(original);
+         for(const layer of allLayers){const opt=document.createElement('option');opt.value=layer.id||('native:'+String(layer.name).toLocaleLowerCase('en-US'));opt.textContent=layer.source==='user'?'User: '+layer.name:'CAD: '+layer.name;select.appendChild(opt);}
+         const cell=document.createElement('td');cell.style.cssText='padding:6px;border-bottom:1px solid #edf1f5';cell.appendChild(select);
+         const save=document.createElement('button');save.type='button';save.textContent='Save layer';save.style.cssText='margin-left:5px;padding:5px 7px;font-size:10px';save.addEventListener('click',async()=>{save.disabled=true;try{const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/takeoff/runs/'+encodeURIComponent(result.run.id)+'/items/'+encodeURIComponent(row.dataset.itemId)+'/layer',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({targetLayerId:select.value})});const data=await response.json();if(!response.ok)throw new Error(data.message||'Could not assign layer.');notify('Element layer assignment saved.');}catch(err){notify(err.message);}finally{save.disabled=false;}});cell.appendChild(save);row.appendChild(cell);
+        }
+        if(!(ld.layers||[]).length)layerList.textContent='No supported native layers were found in this takeoff.';
+       }catch(layerError){layerList.textContent='Layer summary unavailable: '+layerError.message;}
        const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px';
        for(const choice of [{status:'approved',label:'Approve After Review'},{status:'rejected',label:'Reject Result'}]){
         const action=document.createElement('button');action.type='button';action.textContent=choice.label;action.style.cssText='border:1px solid var(--line);border-radius:7px;padding:8px 11px;background:#f7fafc;color:#31536f;font-size:10px;cursor:pointer';
@@ -675,7 +871,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
        }
        output.appendChild(controls);
        notify('Takeoff saved as a draft requiring engineer review.');
-      }catch(err){notify(err.message);}finally{take.disabled=false;take.textContent='DXF Takeoff';}
+      }catch(err){sub.textContent=d.file_ext.toUpperCase()+' · Analysis failed · '+err.message;sub.dataset.documentStatus='failed';const errorPanel=document.getElementById('takeoffResult');errorPanel.replaceChildren();const errorTitle=document.createElement('strong');errorTitle.textContent='DXF analysis failed';errorTitle.style.cssText='display:block;color:#ff9b9b;margin-bottom:7px';const errorText=document.createElement('p');errorText.textContent=err.message+(err.code?' · '+err.code:'')+(err.status?' · HTTP '+err.status:'');errorText.style.cssText='font-size:11px;line-height:1.8;color:#ffd4d4;overflow-wrap:anywhere';errorPanel.append(errorTitle,errorText);if(err.details){const details=document.createElement('pre');details.textContent=typeof err.details==='string'?err.details:JSON.stringify(err.details,null,2);details.style.cssText='white-space:pre-wrap;font-size:10px;color:#e6eef7';errorPanel.appendChild(details);}notify('DXF analysis failed: '+err.message);}finally{take.disabled=false;take.textContent='Retry DXF Takeoff';}
      });
      actions.appendChild(take);
     }
@@ -685,20 +881,80 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   }catch(e){const p=document.createElement('p');p.className='note';p.textContent=e.message;host.appendChild(p);}
  }
  const originalSelectProject=selectProject;
- document.getElementById('drawingFile').addEventListener('change',async e=>{
-  const file=e.target.files&&e.target.files[0];if(!file)return;
-  const box=document.getElementById('filemsg');box.style.display='block';
-  if(!activeProject){box.textContent='Select a project before uploading a document.';e.target.value='';return;}
-  if(file.size>25*1024*1024){box.textContent='File exceeds the 25 MB limit.';e.target.value='';return;}
-  const id=activeProject.project_id||activeProject.id,fd=new FormData();fd.append('file',file);
-  box.textContent='Uploading '+file.name+' to the secure project workspace...';
+ async function loadDrawingPackages(id){
+  const host=document.getElementById('drawingPackageRegister');host.replaceChildren();
+  if(!id){host.textContent='Select a project first.';return;}
+  const labels={structural:'إنشائي / Structural',architectural:'معماري / Architectural',electrical:'كهرباء / Electrical',mechanical:'ميكانيكا / Mechanical',plumbing_fire:'صحي ومكافحة حريق / Plumbing & Fire'};
   try{
-   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
-   const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
-   box.textContent='Document saved successfully. Engineering analysis has not started yet.';
-   await loadProjectDocuments(id);
-  }catch(err){box.textContent=err.message;}finally{e.target.value='';}
- });
+   const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/drawing-packages',{credentials:'same-origin',cache:'no-store'});
+   const data=await response.json();if(!response.ok)throw new Error(data.message||'Could not load package register.');
+   for(const pkg of data.packages||[]){
+    const row=document.createElement('div');row.style.cssText='display:grid;gap:6px;border:1px solid var(--line);border-radius:8px;padding:9px;background:#10243d';
+    const head=document.createElement('div');head.style.cssText='display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap';
+    const title=document.createElement('strong');title.textContent=labels[pkg.discipline]||pkg.discipline;title.style.color='#dce8f3';
+    const status=document.createElement('small');const statusText={awaiting_upload:'بانتظار رفع اللوحات',incomplete:'غير مكتمل — توجد نواقص',ready_for_review:'الملفات مسجلة — بانتظار المراجعة الهندسية',not_required:'غير مطلوب لهذا المشروع'};status.textContent=statusText[pkg.status]||pkg.status;status.style.color=pkg.status==='ready_for_review'?'#8fc6a0':'#d9b878';
+    head.append(title,status);row.append(head);
+    const expected=document.createElement('input');expected.type='text';expected.value=(pkg.expectedSheets||[]).join(', ');expected.placeholder='Expected sheet numbers, comma separated (e.g. S-001, S-101)';
+    expected.style.cssText='width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:#f8fafc;color:#20364d';
+    const applicable=document.createElement('select');applicable.innerHTML='<option value="required">Required / مطلوب</option><option value="not_required">Not required / غير مطلوب</option>';applicable.value=pkg.applicability;applicable.style.cssText='padding:7px;border:1px solid var(--line);border-radius:6px';
+    const save=document.createElement('button');save.type='button';save.textContent='Save package requirements';save.className='btn';save.style.cssText='padding:7px 10px;font-size:10px';
+    save.addEventListener('click',async()=>{
+     save.disabled=true;try{
+      const expectedSheets=expected.value.split(',').map(x=>x.trim()).filter(Boolean);
+      const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/drawing-packages/'+pkg.discipline,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({applicability:applicable.value,expectedSheets})});
+      const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not save package requirements.');
+      await loadDrawingPackages(id);notify('Drawing package requirements saved.');
+     }catch(err){notify(err.message);}finally{save.disabled=false;}
+    });
+    const details=document.createElement('small');details.style.color='#9aaabd';
+    details.textContent='Received: '+(pkg.receivedSheets||[]).join(', ')+' · Missing: '+(pkg.missingSheets||[]).join(', ')+' · Unnumbered files: '+(pkg.unnumberedDocuments||[]).length+' · Duplicate sheet/revision entries: '+(pkg.duplicateSheetNumbers||[]).length+' · Revision conflicts: '+(pkg.revisionConflicts||[]).length;
+    row.append(expected,applicable,save,details);host.append(row);
+   }
+  }catch(err){host.textContent=err.message;}
+ }
+ document.querySelectorAll('.discipline-upload').forEach(input=>input.addEventListener('change',async e=>{
+  const files=[...(e.target.files||[])];if(!files.length)return;
+  const box=document.getElementById('filemsg');
+  if(!activeProject){box.textContent='Select a project before uploading documents.';e.target.value='';return;}
+  const id=activeProject.project_id||activeProject.id,discipline=input.dataset.discipline,uploadedDocumentIds=[];
+  for(const file of files){
+   if(file.size>25*1024*1024){box.textContent=file.name+': file exceeds the 25 MB limit; skipped.';continue;}
+   const sheetNumber=window.prompt('Sheet number for '+file.name+' (leave blank if unknown):')||'';
+   const revision=window.prompt('Revision for '+file.name+' (leave blank if unknown):')||'';
+   const drawingTitle=window.prompt('Drawing title for '+file.name+' (optional):')||'';
+   const fd=new FormData();fd.append('file',file);fd.append('discipline',discipline);fd.append('sheetNumber',sheetNumber);fd.append('revision',revision);fd.append('drawingTitle',drawingTitle);
+   box.textContent='Uploading '+file.name+' · '+discipline+'...';
+   try{
+    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
+    const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
+    uploadedDocumentIds.push(data.document.id);
+     if(file.name.toLowerCase().endsWith('.pdf')){
+      const a=data.automaticAnalysis,err=data.automaticAnalysisError;
+      if(err){box.textContent='Saved '+file.name+'. Automatic PDF reading failed: '+(err.message||err.code||'unknown error')+'. The document is retained; no quantities were generated.';}
+      else if(a){
+       box.textContent='PDF reading completed for '+file.name+' · '+(a.pagesVectorProcessed||0)+' vector pages · '+(a.detectedFootprintCount||0)+' rectangular candidates · text clues '+(a.textAnalysis?.evidence?.evidenceCount??0)+'. '+(a.ocr?.status==='runtime_unavailable'?'OCR unavailable on this server. ':'')+'No verified quantities or 3D model yet; engineering scale/classification review is required.';
+       const result=document.getElementById('takeoffResult');if(result){result.replaceChildren();
+        const h=document.createElement('strong');h.textContent='Automatic PDF Reading — Evidence Only';h.style.cssText='display:block;margin-bottom:8px;color:#8bd5b6';
+        const p=document.createElement('p');p.textContent='Status: '+a.status+' · Pages: '+(a.pageCount??'unknown')+' · Vector pages processed: '+(a.pagesVectorProcessed||0)+' · Rectangular candidates: '+(a.detectedFootprintCount||0)+' · Text evidence: '+(a.textAnalysis?.evidence?.evidenceCount??0);
+        const n=document.createElement('p');n.textContent=(a.unresolved||[]).join(' ');
+        n.style.cssText='font-size:11px;line-height:1.8;color:#d9b477';
+        result.append(h,p,n);
+       }
+      }else{box.textContent='Saved '+file.name+'. No automatic analysis result was returned.';}
+     }else{box.textContent='Saved '+file.name+' under '+discipline+'.';}
+   }catch(err){box.textContent=file.name+': '+err.message;}
+  }
+  await loadProjectDocuments(id);await loadDrawingPackages(id);
+  const uploadedDocs=await (await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{credentials:'same-origin',cache:'no-store'})).json();
+  for(const documentId of uploadedDocumentIds){
+   const doc=(uploadedDocs.documents||[]).find(x=>String(x.id)===String(documentId));
+   if(doc&&doc.file_ext==='.dxf'){
+    box.textContent='DXF saved. Starting automatic geometric takeoff...';
+    const action=document.querySelector('[data-action="dxf-takeoff"][data-document-id="'+String(doc.id)+'"]');if(action)action.click();
+   }
+  }
+  e.target.value='';
+ }));
  document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{
   e.preventDefault();
   const key=(a.getAttribute('href')||'').slice(1);

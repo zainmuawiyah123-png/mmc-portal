@@ -3,7 +3,7 @@
 /**
  * MMC AI — deterministic DXF geometry takeoff (first engineering kernel).
  *
- * Supports ASCII DXF ENTITIES: LINE, LWPOLYLINE, CIRCLE, ARC.
+ * Supports ASCII DXF ENTITIES: LINE, 2D POLYLINE/LWPOLYLINE, CIRCLE, ARC.
  * Quantities are calculated from CAD coordinates and the drawing's $INSUNITS.
  * This module deliberately does not use an LLM to invent geometry or scale.
  *
@@ -63,6 +63,57 @@ function entitiesFrom(pairs) {
   }
   if (current) entities.push(current);
   return entities;
+}
+
+
+/**
+ * Reassembles legacy POLYLINE -> VERTEX... -> SEQEND sequences.
+ * Only planar 2D polylines with explicit vertex coordinates are converted.
+ * 3D, mesh, polyface and fitted/spline vertices remain unsupported.
+ */
+function normalizeClassicPolylines(entities) {
+  const normalized = [], unsupported = {};
+  const mark = (name) => { unsupported[name] = (unsupported[name] || 0) + 1; };
+  for (let i = 0; i < entities.length; i++) {
+    const entity = entities[i];
+    if (entity.type !== 'POLYLINE') {
+      if (entity.type === 'VERTEX' || entity.type === 'SEQEND') {
+        mark('ORPHAN_' + entity.type);
+      } else normalized.push(entity);
+      continue;
+    }
+
+    const flags = first(entity, 70, 0);
+    const vertices = [];
+    let foundEnd = false, malformed = false;
+    while (i + 1 < entities.length) {
+      const next = entities[i + 1];
+      if (next.type === 'SEQEND') { i++; foundEnd = true; break; }
+      if (next.type !== 'VERTEX') break;
+      i++;
+      const vertexFlags = first(next, 70, 0);
+      if ((vertexFlags & (1 | 8 | 16 | 32 | 64 | 128)) !== 0) malformed = true;
+      const x = first(next, 10, NaN), y = first(next, 20, NaN), bulge = first(next, 42, 0);
+      if (![x, y, bulge].every(Number.isFinite)) malformed = true;
+      vertices.push({ x, y, bulge });
+    }
+
+    const unsupportedMode = (flags & (2 | 4 | 8 | 16 | 32 | 64)) !== 0;
+    if (unsupportedMode || malformed || !foundEnd || vertices.length < 2) {
+      mark(unsupportedMode ? 'POLYLINE_3D_MESH_OR_FITTED_UNSUPPORTED' : 'POLYLINE_INVALID_OR_INCOMPLETE');
+      continue;
+    }
+    const pairs = [];
+    const layer = entity.pairs.find(p => p.code === 8);
+    if (layer) pairs.push({ code: 8, value: layer.value });
+    pairs.push({ code: 70, value: String(flags & 1) });
+    for (const vertex of vertices) {
+      pairs.push({ code: 10, value: String(vertex.x) }, { code: 20, value: String(vertex.y) });
+      if (vertex.bulge !== 0) pairs.push({ code: 42, value: String(vertex.bulge) });
+    }
+    normalized.push({ type: 'LWPOLYLINE', pairs, legacyType: 'POLYLINE' });
+  }
+  return { entities: normalized, unsupported };
 }
 
 function requireCodes(e, codes, label) {
@@ -246,10 +297,11 @@ function takeoffDxf(text, options = {}) {
     throw new Error('Drawing units are undefined. Set a verified metresPerUnit scale before measuring.');
   }
   const sourceEntities = entitiesFrom(pairs);
-  const blockExpansion = expandBlockInserts(sourceEntities, blocksFrom(pairs));
+  const classic = normalizeClassicPolylines(sourceEntities);
+  const blockExpansion = expandBlockInserts(classic.entities, blocksFrom(pairs));
   const entities = blockExpansion.entities;
   const rows = [];
-  const unsupported = { ...blockExpansion.unsupported };
+  const unsupported = { ...classic.unsupported, ...blockExpansion.unsupported };
   const byLayer = {};
   for (let index = 0; index < entities.length; index++) {
     const e = entities[index], layer = layerOf(e);
@@ -260,6 +312,7 @@ function takeoffDxf(text, options = {}) {
       requireCodes(e, [10, 20, 11, 21], 'LINE entity ' + index);
       const a = { x: first(e, 10), y: first(e, 20) }, b = { x: first(e, 11), y: first(e, 21) };
       assertFinite([a.x, a.y, b.x, b.y], 'LINE entity ' + index);
+      row.geometry = { type: 'LINE', start: a, end: b };
       quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
     } else if (e.type === 'LWPOLYLINE') {
       requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);
@@ -267,6 +320,7 @@ function takeoffDxf(text, options = {}) {
       assertFinite(vertices.flatMap(v => [v.x, v.y, v.bulge ?? 0]), 'LWPOLYLINE entity ' + index);
       if (vertices.length < 2) { unsupported[e.type] = (unsupported[e.type] || 0) + 1; continue; }
       const m = polylineMetrics(vertices, closed);
+      row.geometry = { type: 'LWPOLYLINE', vertices: vertices.map(v => ({ x: v.x, y: v.y })), closed };
       row.closed = closed;
       row.length_m = m.perimeter * metresPerUnit;
       if (closed) row.area_m2 = m.area * metresPerUnit * metresPerUnit;
@@ -278,6 +332,7 @@ function takeoffDxf(text, options = {}) {
       assertFinite([...center, radius], 'CIRCLE entity ' + index);
       if (radius < 0) throw new Error('Invalid negative circle radius at entity ' + index);
       row.radius_m = radius * metresPerUnit;
+      row.geometry = { type: 'CIRCLE', center: { x: center[0], y: center[1] }, radius };
       row.circumference_m = 2 * Math.PI * row.radius_m;
       row.area_m2 = Math.PI * row.radius_m * row.radius_m;
       quantity = row.circumference_m; unit = 'm';
@@ -290,6 +345,7 @@ function takeoffDxf(text, options = {}) {
       let sweep = (end - start) % 360;
       if (sweep < 0) sweep += 360;
       row.radius_m = radius * metresPerUnit;
+      row.geometry = { type: 'ARC', center: { x: center[0], y: center[1] }, radius, startDegrees: start, sweepDegrees: sweep };
       quantity = radius * sweep * Math.PI / 180 * metresPerUnit; unit = 'm';
       row.sweep_degrees = sweep;
     } else {
@@ -318,4 +374,4 @@ function takeoffDxf(text, options = {}) {
   };
 }
 
-module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
+module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, normalizeClassicPolylines, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };

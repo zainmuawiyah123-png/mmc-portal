@@ -15,7 +15,30 @@ function number(v,label){const n=Number(v);if(!Number.isFinite(n)||n<0||n>1e12)t
 function itemView(x){return {...x,line_total:Number((x.quantity*x.rate).toFixed(3))};}
 router.get('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req);
- const rows=getDB().prepare(`SELECT id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by,updated_at,created_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id`).all(req.params.projectId).map(itemView);
+ const db=getDB();
+ const rows=db.prepare(`SELECT id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by,updated_at,created_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id`).all(req.params.projectId).map(itemView);
+ // Resolve provenance only through the same project's run and document; never trust a bare source item id.
+ const source=db.prepare(`SELECT i.id AS item_id,i.entity_index,i.entity_type,i.layer_name,i.quantity AS source_quantity,i.unit AS source_unit,i.detail_json,
+   r.id AS run_id,r.status AS run_status,r.engine,r.document_id,r.created_at AS run_created_at,
+   d.original_name AS document_name,d.file_ext
+   FROM ai_takeoff_items i JOIN ai_takeoff_runs r ON r.id=i.run_id
+   JOIN ai_documents d ON d.id=r.document_id
+   WHERE i.id=? AND r.project_id=? AND d.project_id=?`);
+ for(const row of rows){
+  if(!row.source_takeoff_item_id)continue;
+  const src=source.get(row.source_takeoff_item_id,req.params.projectId,req.params.projectId);
+  if(!src)continue;
+  let detail={};try{detail=JSON.parse(src.detail_json||'{}');}catch(_){}
+  row.sourceReference={
+   takeoffItemId:src.item_id,entityIndex:src.entity_index,entityType:src.entity_type,nativeCadLayer:src.layer_name,
+   quantity:Number(src.source_quantity),unit:src.source_unit,runId:src.run_id,runStatus:src.run_status,
+   engine:src.engine,documentId:src.document_id,documentName:src.document_name,fileExtension:src.file_ext,
+   runCreatedAt:src.run_created_at,
+   measurement:{method:detail.method||detail.measurementMethod||detail.measurement_method||null,
+    ruleId:detail.ruleId||detail.rule_id||null,ruleVersion:detail.ruleVersion||detail.rule_version||null,
+    formula:detail.formula||null,inputs:detail.inputs||null,geometry:detail.geometry||null}
+  };
+ }
  const total=Number(rows.reduce((s,x)=>s+x.line_total,0).toFixed(3));
  res.setHeader('Cache-Control','no-store');
  res.json({items:rows,summary:{itemCount:rows.length,total}});

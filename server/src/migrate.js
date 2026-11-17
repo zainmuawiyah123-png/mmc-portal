@@ -1180,6 +1180,18 @@ function upgradeMmcAiProjects(db) {
     CREATE INDEX IF NOT EXISTS idx_ai_documents_project ON ai_documents(project_id,created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_ai_documents_uploader ON ai_documents(uploaded_by,created_at DESC);
 
+    CREATE TABLE IF NOT EXISTS ai_document_analyses (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      document_id TEXT NOT NULL REFERENCES ai_documents(id) ON DELETE CASCADE,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      analysis_type TEXT NOT NULL,
+      result_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_document_analyses_document
+      ON ai_document_analyses(project_id,document_id,created_at DESC);
+
     CREATE TABLE IF NOT EXISTS ai_project_images (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
@@ -1347,6 +1359,27 @@ function upgradeEmailVerification(db) {
   `);
 }
 
+/** Additive, repeatable discipline classification for MMC AI project drawings. */
+function upgradeMmcAiDocumentDisciplines(db) {
+  const columns = new Set(db.prepare('PRAGMA table_info(ai_documents)').all().map((c) => c.name));
+  if (!columns.has('discipline')) db.exec("ALTER TABLE ai_documents ADD COLUMN discipline TEXT NOT NULL DEFAULT 'unclassified'");
+  if (!columns.has('sheet_number')) db.exec('ALTER TABLE ai_documents ADD COLUMN sheet_number TEXT');
+  if (!columns.has('revision')) db.exec('ALTER TABLE ai_documents ADD COLUMN revision TEXT');
+  if (!columns.has('drawing_title')) db.exec('ALTER TABLE ai_documents ADD COLUMN drawing_title TEXT');
+  db.exec("CREATE INDEX IF NOT EXISTS idx_ai_documents_project_discipline ON ai_documents(project_id,discipline,created_at DESC)");
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_discipline_packages (
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      discipline TEXT NOT NULL CHECK(discipline IN ('structural','architectural','electrical','mechanical','plumbing_fire')),
+      applicability TEXT NOT NULL DEFAULT 'required' CHECK(applicability IN ('required','not_required')),
+      expected_sheets_json TEXT NOT NULL DEFAULT '[]',
+      updated_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY(project_id,discipline)
+    );
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1389,7 +1422,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
   upgradeEmailVerification(db);
-
+  upgradeMmcAiDocumentDisciplines(db);
   return db;
 }
 
