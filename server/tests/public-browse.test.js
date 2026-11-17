@@ -37,6 +37,12 @@ test('anonymous portal entry URLs open public screens instead of redirecting to 
   const r=await get(url);assert.equal(r.status,200);assert.match(r.data,/PUBLIC BROWSE MODE/);assert.match(r.data,new RegExp(label));
  }
 });
+test('write and submission operations remain protected for anonymous visitors',async()=>{
+ for(const [url,method] of [['/api/procurement/tenders','POST'],['/api/consulting/requests','POST'],['/api/procurement/tenders/example/submit','POST'],['/api/public/procurement/tenders','POST']]){
+  const r=await fetch(base+url,{method,headers:{'Content-Type':'application/json'},body:'{}',redirect:'manual'});
+  assert.ok([401,403,404].includes(r.status),'unexpected anonymous write response '+method+' '+url+': '+r.status);
+ }
+});
 test('public portal screens are served as real interactive pages',async()=>{
  for(const p of ['procurement','contractor','consultant']){
   const r=await get('/public-browse/'+p+'.html');
