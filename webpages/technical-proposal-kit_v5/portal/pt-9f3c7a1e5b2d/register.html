@@ -200,7 +200,9 @@
     API.register({name:name, email:email, password:p1, company:company, role:role, country:country}).then(function(res){
       registeredEmail=res.email||email.toLowerCase();
       form.hidden=true; otpPanel.hidden=false;
-      showAlert(T('أرسلنا رمز التحقق إلى بريد العمل. أدخله لتأكيد البريد، ثم يخضع الحساب لمراجعة MMC.','A verification code was sent to your work email. Enter it to verify the address; MMC review follows.'),'ok');
+      showAlert(res.mailSent
+        ? T('أرسلنا رمز التحقق إلى بريد العمل. أدخله لتأكيد البريد، ثم يخضع الحساب لمراجعة MMC.','A verification code was sent to your work email. Enter it to verify the address; MMC review follows.')
+        : T('تم حفظ طلبك، لكن لم يصل الرمز بعد. اضغط إعادة إرسال الرمز بعد قليل.','Your request was saved, but the code was not sent yet. Use Resend code shortly.'),res.mailSent?'ok':'err');
     }).catch(function(err){
       btn.disabled=false; btn.innerHTML=defaultLabel;
       if(err.code==='CONFLICT'){
