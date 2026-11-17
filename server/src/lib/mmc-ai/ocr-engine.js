@@ -183,7 +183,7 @@ async function inspectImageOcrRuntime() {
   }
   try {
     const result = await run('tesseract', ['--list-langs'], { timeout: 10000, maxBuffer: 1024 * 1024 });
-    const languages = result.stdout.split(/\\r?\\n/).map(value => value.trim()).filter(Boolean).slice(1);
+    const languages = result.stdout.split(/\r?\n/).map(value => value.trim()).filter(Boolean).slice(1);
     return {
       available: languages.includes('eng') && languages.includes('ara'),
       engine: 'tesseract-image-v1',
