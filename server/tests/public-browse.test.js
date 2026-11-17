@@ -21,13 +21,15 @@ test('public browse feeds are readable without a session and return safe collect
  const p=await get('/api/public/procurement/tenders');
  const c=await get('/api/public/contractor/opportunities');
  const s=await get('/api/public/consulting/requests');
+ const sf=await get('/api/public/consulting/firm-tenders');
  assert.equal(p.status,200);assert.ok(Array.isArray(p.data.tenders));assert.equal(typeof p.data.count,'number');
  assert.equal(c.status,200);assert.ok(Array.isArray(c.data.opportunities));assert.equal(typeof c.data.count,'number');
  assert.equal(s.status,200);assert.ok(Array.isArray(s.data.requests));assert.equal(typeof s.data.count,'number');
- for(const r of [p,c,s])assert.match(r.headers.get('cache-control')||'',/public/);
+ assert.equal(sf.status,200);assert.ok(Array.isArray(sf.data.tenders));assert.equal(typeof sf.data.count,'number');
+ for(const r of [p,c,s,sf])assert.match(r.headers.get('cache-control')||'',/public/);
 });
 test('public browse feeds do not expose protected submission or identity routes',async()=>{
- for(const url of ['/api/public/procurement/tenders','/api/public/contractor/opportunities','/api/public/consulting/requests']){
+ for(const url of ['/api/public/procurement/tenders','/api/public/contractor/opportunities','/api/public/consulting/requests','/api/public/consulting/firm-tenders']){
   const r=await get(url);const body=JSON.stringify(r.data);
   for(const secret of ['password_hash','financial_amount','contractor_id','submitted_ip','storage_key','contact_email','registration_number','owner_email'])assert.ok(!body.includes(secret),'leaked '+secret);
  }
