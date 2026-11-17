@@ -12,6 +12,7 @@ const path = require('path');
 /* ---------------- بيئة اختبار معزولة (قبل أي require آخر) ---------------- */
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'tpkit-test-'));
 process.env.NODE_ENV = 'test';
+process.env.MAIL_HOST = 'json'; // isolated in-memory mail transport for OTP tests
 process.env.DB_PATH = path.join(TMP, 'test.db');
 process.env.REQUIRE_ORG_VERIFICATION = 'false'; // يُفعَّل داخل اختبارات التوثيق فقط
 process.env.UPLOAD_DIR = path.join(TMP, 'uploads');
