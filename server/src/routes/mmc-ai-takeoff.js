@@ -7,6 +7,8 @@ const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
+const {extractPdfTextPoppler}=require('../lib/mmc-ai/pdf-poppler-text');
+const {parseStructuralScheduleText}=require('../lib/mmc-ai/pdf-structural-takeoff');
 const {summarizeTakeoffLayers}=require('../lib/mmc-ai/drawing-layer-summary');
 const {createUserLayer,updateLayer,deleteUserLayer,assignEntityLayer}=require('../lib/mmc-ai/drawing-layer-manager');
 const router=express.Router();
@@ -16,6 +18,41 @@ function member(projectId,userId){
  return getDB().prepare(`SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?`).get(projectId,userId)||null;
 }
 function requireMember(req){const m=member(req.params.projectId,req.user.id);if(!m||m.status!=='active')throw E.notFound('المشروع غير موجود.');return m;}
+
+router.post('/projects/:projectId/documents/:documentId/takeoff/pdf',wrap(async(req,res)=>{
+ const m=requireMember(req);
+ if(!['owner','project_manager','engineer','quantity_surveyor'].includes(m.role))throw E.forbidden('لا تملك صلاحية تشغيل الحصر.');
+ const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc)throw E.notFound('المستند غير موجود.');
+ if(doc.file_ext!=='.pdf')throw E.validation('حصر PDF متاح لملفات PDF فقط.');
+ const lockKey=req.params.projectId+':'+doc.id;
+ if(activeTakeoffDocuments.has(lockKey))return res.status(409).json({error:{code:'TAKEOFF_ALREADY_RUNNING',message:'تحليل هذا المخطط قيد التنفيذ بالفعل.'}});
+ activeTakeoffDocuments.add(lockKey);
+ try{
+  const store=storage.getStorage();
+  if(!(await store.exists(doc.storage_key)))throw E.notFound('ملف المخطط غير موجود في التخزين.');
+  const raw=await store.get(doc.storage_key);
+  if(!Buffer.isBuffer(raw)||raw.length!==Number(doc.size_bytes))throw E.validation('فشل التحقق من حجم المستند المخزن.');
+  const actual=crypto.createHash('sha256').update(raw).digest(),expected=Buffer.from(String(doc.sha256||''),'hex');
+  if(expected.length!==actual.length||!crypto.timingSafeEqual(expected,actual))throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
+  let extracted,result;
+  try{extracted=await extractPdfTextPoppler(raw);}catch(err){throw E.validation(err.message||'تعذر استخراج نص PDF.');}
+  if(extracted.status!=='partial_text_extracted')throw E.validation('لم يُعثر على نص قابل للقراءة. هذا الملف يحتاج OCR؛ لم تُنشأ كميات.');
+  try{result=parseStructuralScheduleText(extracted.text);}catch(err){throw E.validation(err.message||'صيغة جدول PDF غير مدعومة؛ لم تُنشأ كميات.');}
+  const runId=uid('aitake_'),savedRows=[];
+  db.transaction(()=>{
+   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
+    VALUES(?,?,?,?,?,'needs_review',?,?,?)`).run(runId,doc.project_id,doc.id,req.user.id,result.engine,JSON.stringify(result.units),JSON.stringify(result.summary),JSON.stringify(result.unsupported));
+   const add=db.prepare(`INSERT INTO ai_takeoff_items(id,run_id,entity_index,entity_type,layer_name,quantity,unit,detail_json)
+    VALUES(?,?,?,?,?,?,?,?)`);
+   for(const row of result.rows){const itemId=uid('aitem_');add.run(itemId,runId,row.entityIndex,row.entity,row.layer,row.quantity,row.unit,JSON.stringify(row.detail));savedRows.push({...row,id:itemId,review_status:'needs_review'});}
+   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
+    VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_structural_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,textEngine:extracted.engine,pages:extracted.pageCount,items:result.rows.length}));
+  })();
+  console.info('[mmc-ai][pdf-takeoff][completed]',JSON.stringify({projectId:doc.project_id,documentId:doc.id,runId,engine:result.engine,items:savedRows.length,status:'needs_review'}));
+  res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,textEngine:extracted.engine,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
+ }finally{activeTakeoffDocuments.delete(lockKey);}
+}));
 router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(req,res)=>{
  const m=requireMember(req);
  if(!['owner','project_manager','engineer','quantity_surveyor'].includes(m.role))throw E.forbidden('لا تملك صلاحية تشغيل الحصر.');
