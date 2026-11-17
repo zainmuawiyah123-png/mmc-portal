@@ -10,6 +10,7 @@ const { E, wrap } = require('../lib/errors');
 const { registerSchema, loginSchema, parse } = require('../lib/validate');
 const A = require('../lib/auth');
 const O = require('../lib/org');
+const { audit } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ const registerLimiter = rateLimit({
 function publicUser(u) {
   return {
     id: u.id, email: u.email, name: u.name, company: u.company,
-    role: u.role || 'contractor', country: u.country || 'JO', planKey: u.role === 'buyer' ? 'free' : u.plan_key, createdAt: u.created_at, lastLoginAt: u.last_login_at
+    role: u.role || 'contractor', accountStatus: u.account_status || 'active', country: u.country || 'JO', planKey: u.role === 'buyer' ? 'free' : u.plan_key, createdAt: u.created_at, lastLoginAt: u.last_login_at
   };
 }
 
@@ -62,19 +63,17 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
   const id = uid('usr_');
   const hash = await A.hashPassword(body.password);
 
-  db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, country, plan_key)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 'free')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
+  db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, country, plan_key, account_status)
+              VALUES (?, ?, ?, ?, ?, ?, ?, 'free', 'pending')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
 
   db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
               VALUES (?, ?, 'free', 'active', ?)`).run(uid('sub_'), id, ['buyer','consultant'].includes(body.role) ? 'system' : 'trial');
 
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
-  A.setSessionCookie(res, A.signToken(user));
-
   res.status(201).json({
     user: publicUser(user),
-    plan: A.planAndUsage(id),
-    message: body.role === 'buyer' ? 'تم إنشاء حساب الجهة. بوابة المشتريات الأساسية مجانية بالكامل.' : body.role === 'consultant' ? 'تم إنشاء حساب الاستشاري الأساسي. لا توجد تجربة مدفوعة تلقائية.' : 'تم إنشاء الحساب. أنت الآن على الباقة المجانية.'
+    accountStatus: 'pending',
+    message: 'تم استلام طلب التسجيل. سيُراجع فريق MMC بيانات الشركة ونوع الحساب قبل تفعيل الدخول. مشاهدة البوابات العامة لا تتطلب حساباً.'
   });
 }));
 
@@ -94,6 +93,10 @@ router.post('/login', loginLimiter, wrap(async (req, res) => {
   }
   const ok = await A.verifyPassword(body.password, user.password_hash);
   if (!ok) throw generic;
+  if ((user.account_status || 'active') !== 'active') {
+    const statusMessage = user.account_status === 'pending' ? 'حسابك قيد مراجعة MMC. ستتمكن من تسجيل الدخول بعد اعتماد بيانات الشركة.' : user.account_status === 'rejected' ? 'لم تتم الموافقة على طلب الحساب. يرجى التواصل مع إدارة MMC.' : 'تم إيقاف هذا الحساب. يرجى التواصل مع إدارة MMC.';
+    throw E.forbidden(statusMessage);
+  }
 
   db.prepare('UPDATE users SET last_login_at = unixepoch() WHERE id = ?').run(user.id);
 
@@ -128,6 +131,35 @@ router.patch('/me', A.requireAuth, wrap(async (req, res) => {
   }
   const fresh = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   res.json({ user: publicUser(fresh), message: 'تم تحديث البيانات.' });
+}));
+
+
+/* إدارة طلبات الحسابات — التفعيل بعد مراجعة بيانات الشركة ونوع البوابة */
+router.get('/admin/accounts', A.requireAuth, A.requireRole('admin'), wrap(async (req, res) => {
+  const status = String(req.query.status || 'pending').trim();
+  if (status && !['pending','active','rejected','suspended'].includes(status)) throw E.validation('حالة الحساب غير صالحة.');
+  const rows = getDB().prepare(`
+    SELECT id,email,name,company,role,country,account_status,account_status_note,created_at,account_reviewed_at
+    FROM users ${status ? 'WHERE account_status=?' : ''}
+    ORDER BY created_at DESC LIMIT 500
+  `).all(...(status ? [status] : []));
+  res.json({ accounts: rows, count: rows.length });
+}));
+
+router.patch('/admin/accounts/:id/status', A.requireAuth, A.requireRole('admin'), wrap(async (req, res) => {
+  const status = String(req.body?.status || '').trim();
+  const note = String(req.body?.note || '').trim().slice(0, 1000);
+  if (!['active','rejected','suspended'].includes(status)) throw E.validation('الحالة الجديدة غير صالحة.');
+  if (['rejected','suspended'].includes(status) && !note) throw E.validation('اكتب سبب الرفض أو الإيقاف.');
+  const db = getDB();
+  const target = db.prepare('SELECT id,role,account_status FROM users WHERE id=?').get(req.params.id);
+  if (!target) throw E.notFound('الحساب غير موجود.');
+  if (target.role === 'admin') throw E.forbidden('لا يمكن تغيير حالة حساب مدير المنصة من هذه الشاشة.');
+  const now = Math.floor(Date.now()/1000);
+  db.prepare('UPDATE users SET account_status=?,account_status_note=?,account_reviewed_by=?,account_reviewed_at=? WHERE id=?')
+    .run(status, note || null, req.user.id, now, target.id);
+  audit({action:'account_status_change',entity:'user',entityId:target.id,userId:req.user.id,ip:req.ip,detail:{from:target.account_status,to:status,note}});
+  res.json({ok:true,status,message:status==='active'?'تم اعتماد الحساب ويمكنه تسجيل الدخول.':status==='rejected'?'تم رفض طلب الحساب.':'تم إيقاف الحساب.'});
 }));
 
 module.exports = router;
