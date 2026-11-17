@@ -33,3 +33,10 @@ test('reads rotated SVG page viewBox as the spatial text alignment frame', () =>
   assert.equal(frame.physicalWidth, 2384);
   assert.equal(frame.physicalHeight, 1684);
 });
+
+test('parses numeric attributes using real word boundaries', () => {
+  const xml = '<doc><page width="612" height="792"><flow><block><line><word xMin="10" yMin="20" xMax="30" yMax="40">DIM</word></line></block></flow></page></doc>';
+  const pages = parseBboxLayout(xml);
+  assert.equal(pages[0].words[0].box.xMin, 10);
+  assert.equal(pages[0].words[0].box.yMax, 40);
+});
