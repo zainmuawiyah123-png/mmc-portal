@@ -101,6 +101,8 @@
 
     /* ---- auth ---- */
     register: function (body) { return request('POST', '/auth/register', body); },
+    verifyEmail: function (body) { return request('POST', '/auth/verify-email', body); },
+    resendVerification: function (body) { return request('POST', '/auth/resend-verification', body); },
     login: function (body) { return request('POST', '/auth/login', body); },
     logout: function () { return request('POST', '/auth/logout'); },
     me: function () { return request('GET', '/auth/me'); },
