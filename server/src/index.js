@@ -156,7 +156,7 @@ function createApp() {
   app.get(['/consulting', '/consulting/', '/consulting/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
-      if (err) return sendFromWeb('public-browse/consultant.html', res, next);
+      if (err) return sendFromWeb('consulting/index.html', res, next);
       if (req.user.role !== 'consultant') {
         return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/register.html?role=consultant&switch=1');
       }
@@ -211,14 +211,14 @@ function createApp() {
   app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
-      if (err) return sendFromWeb('public-browse/procurement.html', res, next);
+      if (err) return sendFromWeb('procurement/index.html', res, next);
       return sendFromWeb('procurement/index.html', res, next);
     });
   });
   app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
-      if (err) return sendFromWeb('public-browse/contractor.html', res, next);
+      if (err) return sendFromWeb('bid/index.html', res, next);
       return sendFromWeb('bid/index.html', res, next);
     });
   });
