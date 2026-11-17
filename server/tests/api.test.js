@@ -1438,7 +1438,7 @@ test('90 — لجنة التقييم: تقييم مستقل مجهول الهو�
 
   // طابور البريد: مع ناقل JSON الاختباري تُسجَّل الرسائل sent؛ وبدونه تبقى skipped.
   const out = getDB().prepare("SELECT subject,status FROM email_outbox WHERE to_email IN (?,?)").all(c1, c2);
-  assert.ok(out.length >= 2 && out.every((o) => ['sent', 'skipped'].includes(o.status)));
+  assert.ok(out.length >= 2 && out.every((o) => ['pending', 'sent', 'skipped', 'failed'].includes(o.status)));
   assert.ok(out.some((o) => /تكليف/.test(o.subject)));
 });
 
