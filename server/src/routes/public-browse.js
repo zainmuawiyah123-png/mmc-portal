@@ -86,7 +86,7 @@ router.get('/contractor/opportunities', (req,res) => {
            source_url,application_url,status,language,source_key,imported_at
     FROM tender_opportunities WHERE ${where}
     ORDER BY CASE WHEN status='open' THEN 0 ELSE 1 END, COALESCE(closing_at,'9999-12-31') ASC, imported_at DESC
-    LIMIT 250
+    LIMIT 500
   `).all(...values);
   const today=ammanToday();
   res.setHeader('Cache-Control','public, max-age=60');
