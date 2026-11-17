@@ -588,6 +588,10 @@ function upgradeMultiCountry(db) {
     if (!columns.has(column)) db.exec('ALTER TABLE ' + table + ' ADD COLUMN ' + column + ' ' + definition);
   };
   add('users', 'country', 'TEXT');
+  add('users', 'account_status', "TEXT NOT NULL DEFAULT 'active'");
+  add('users', 'account_status_note', 'TEXT');
+  add('users', 'account_reviewed_by', 'TEXT');
+  add('users', 'account_reviewed_at', 'INTEGER');
   add('organizations', 'country', 'TEXT');
   db.exec("CREATE INDEX IF NOT EXISTS idx_users_country ON users(country)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_organizations_country ON organizations(country)");
