@@ -32,6 +32,11 @@ test('public browse feeds do not expose protected submission or identity routes'
   for(const secret of ['password_hash','financial_amount','contractor_id','submitted_ip','storage_key','contact_email','registration_number','owner_email'])assert.ok(!body.includes(secret),'leaked '+secret);
  }
 });
+test('anonymous portal entry URLs open public screens instead of redirecting to login',async()=>{
+ for(const [url,label] of [['/procurement/','بوابة المشتريات'],['/bid/','بوابة المقاول'],['/consulting/','بوابة المكاتب الاستشارية']]){
+  const r=await get(url);assert.equal(r.status,200);assert.match(r.data,/PUBLIC BROWSE MODE/);assert.match(r.data,new RegExp(label));
+ }
+});
 test('public portal screens are served as real interactive pages',async()=>{
  for(const p of ['procurement','contractor','consultant']){
   const r=await get('/public-browse/'+p+'.html');
