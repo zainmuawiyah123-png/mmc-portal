@@ -892,7 +892,21 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    try{
     const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents',{method:'POST',credentials:'same-origin',body:fd});
     const data=await r.json();if(!r.ok)throw new Error(data.message||data.error||'Document upload failed.');
-    uploadedDocumentIds.push(data.document.id);box.textContent='Saved '+file.name+' under '+discipline+'. Drawing registration saved; engineering analysis is not yet complete.';
+    uploadedDocumentIds.push(data.document.id);
+     if(file.name.toLowerCase().endsWith('.pdf')){
+      const a=data.automaticAnalysis,err=data.automaticAnalysisError;
+      if(err){box.textContent='Saved '+file.name+'. Automatic PDF reading failed: '+(err.message||err.code||'unknown error')+'. The document is retained; no quantities were generated.';}
+      else if(a){
+       box.textContent='PDF reading completed for '+file.name+' · '+(a.pagesVectorProcessed||0)+' vector pages · '+(a.detectedFootprintCount||0)+' rectangular candidates · text clues '+(a.textAnalysis?.evidence?.evidenceCount??0)+'. '+(a.ocr?.status==='runtime_unavailable'?'OCR unavailable on this server. ':'')+'No verified quantities or 3D model yet; engineering scale/classification review is required.';
+       const result=document.getElementById('takeoffResult');if(result){result.replaceChildren();
+        const h=document.createElement('strong');h.textContent='Automatic PDF Reading — Evidence Only';h.style.cssText='display:block;margin-bottom:8px;color:#8bd5b6';
+        const p=document.createElement('p');p.textContent='Status: '+a.status+' · Pages: '+(a.pageCount??'unknown')+' · Vector pages processed: '+(a.pagesVectorProcessed||0)+' · Rectangular candidates: '+(a.detectedFootprintCount||0)+' · Text evidence: '+(a.textAnalysis?.evidence?.evidenceCount??0);
+        const n=document.createElement('p');n.textContent=(a.unresolved||[]).join(' ');
+        n.style.cssText='font-size:11px;line-height:1.8;color:#d9b477';
+        result.append(h,p,n);
+       }
+      }else{box.textContent='Saved '+file.name+'. No automatic analysis result was returned.';}
+     }else{box.textContent='Saved '+file.name+' under '+discipline+'.';}
    }catch(err){box.textContent=file.name+': '+err.message;}
   }
   await loadProjectDocuments(id);await loadDrawingPackages(id);
