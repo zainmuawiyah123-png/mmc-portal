@@ -115,4 +115,27 @@ router.get('/consulting/requests', (req,res) => {
   })),count:rows.length});
 });
 
+
+router.get('/consulting/firm-tenders', (req,res) => {
+  const db=getDB(), now=Math.floor(Date.now()/1000);
+  const q=clean(req.query.q,120);
+  const rows=db.prepare(`
+    SELECT t.id,t.reference,t.title,t.discipline,t.country,t.location,t.description,
+           t.scope_json,t.currency,t.budget_min,t.budget_max,t.closing_at,t.created_at,
+           f.legal_name AS publisher_name
+    FROM consulting_firm_tenders t
+    INNER JOIN consulting_firms f ON f.id=t.firm_id AND f.verification_status='verified'
+    WHERE t.status='open' AND (t.closing_at IS NULL OR t.closing_at>?)
+      AND (?='' OR t.title LIKE ? OR t.reference LIKE ? OR t.description LIKE ? OR t.discipline LIKE ?)
+    ORDER BY t.created_at DESC LIMIT 200
+  `).all(now,q,'%'+q+'%','%'+q+'%','%'+q+'%','%'+q+'%');
+  res.setHeader('Cache-Control','public, max-age=60');
+  res.json({tenders:rows.map(t=>({id:t.id,reference:t.reference,title:t.title,discipline:t.discipline,
+    country:t.country,location:t.location,description:t.description,
+    scope:(()=>{try{return JSON.parse(t.scope_json||'[]')}catch(_){return []}})(),
+    currency:t.currency,budgetMin:t.budget_min,budgetMax:t.budget_max,
+    closingAt:t.closing_at,createdAt:t.created_at,publisherName:t.publisher_name
+  })),count:rows.length});
+});
+
 module.exports = router;
