@@ -62,7 +62,7 @@
  async function show(id){
   modal.style.display='flex';content.textContent=label('جارٍ تحميل تفاصيل العطاء...','Loading tender details...');
   try{
-   const res=await fetch('/api/opportunities/'+encodeURIComponent(id),{credentials:'same-origin'});
+   const res=await fetch('/api/public/contractor/opportunities/'+encodeURIComponent(id),{credentials:'same-origin'});
    const data=await res.json();if(!res.ok)throw new Error(data.error?.message||label('تعذر تحميل التفاصيل','Unable to load details'));
    const o=data.opportunity||{},d=data.details||{},t=d.tender||{},buyer=d.buyer||{};
    const docs=(data.documents||[]);
@@ -82,7 +82,7 @@
    ].join('');
    const description=t.description||o.summary||'';
    content.innerHTML='<h2>'+esc(o.title||label('تفاصيل العطاء','Tender details'))+'</h2><p>'+esc(description)+'</p><div class="mmc-detail-grid">'+cells+'</div><h3>'+label('وثائق العطاء المتاحة','Available tender documents')+'</h3><div class="mmc-doc-list">'+(docs.length?docs.map(x=>'<a href="'+esc(x.downloadUrl||x.documentUrl||'#')+'" '+(x.downloadUrl?'':'target="_blank" rel="noopener"')+'>'+esc(x.label||'Tender document')+(x.cached?' · '+label('نسخة محفوظة في MMC','Cached in MMC'):'')+'</a>').join(''):'<p>'+label('لا توجد وثائق عامة مرفقة من المصدر حتى الآن. قد تتطلب الوثائق التسجيل أو الشراء من الجهة.','No public documents are attached yet. Documents may require registration or purchase from the authority.')+'</p>')+'</div><div class="mmc-detail-actions">'+(o.sourceUrl?'<a class="btn" href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+label('الإعلان الرسمي','Official notice')+' ↗</a>':'')+(o.applicationUrl?'<a class="btn" href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+label('التقديم الرسمي','Official submission')+' ↗</a>':'')+'</div>';
-  }catch(e){if(e.status===401){const next='../../international-tenders/index.html';location.replace('/portal/pt-9f3c7a1e5b2d/login.html?next='+encodeURIComponent(next));return;}content.innerHTML='<p>'+esc(e.message)+'</p>';}
+  }catch(e){content.innerHTML='<p>'+esc(e.message)+'</p>';}
  }
  document.addEventListener('click',e=>{
   const btn=e.target.closest('[data-mmc-detail-id]');
@@ -124,7 +124,7 @@
   const rows=[];let offset=0,more=true;
   while(more){
    const p=new URLSearchParams({status:state,limit:'60',offset:String(offset)});if(q.value.trim())p.set('q',q.value.trim());
-   const r=await fetch('/api/opportunities/feed?'+p.toString(),{credentials:'same-origin'}),d=await r.json();
+   const r=await fetch('/api/public/contractor/opportunities?'+p.toString(),{credentials:'same-origin'}),d=await r.json();
    if(!r.ok){const err=new Error(d.error?.message||(en()?'Unable to load opportunities':'تعذر تحميل العطاءات'));err.status=r.status;throw err;}
    rows.push(...(d.opportunities||[]));more=Boolean(d.hasMore);offset+=60;
    if(rows.length>10000)throw new Error(en()?'Too many records to load at once. Refine your search.':'عدد النتائج كبير جداً. يرجى تضييق البحث.');
@@ -146,7 +146,7 @@
    source.innerHTML='<option value="">'+(en()?'All sources':'كل المصادر')+'</option>'+sources.map(key=>'<option value="'+esc(key)+'">'+esc((sourceNames[key]||[key,key])[en()?1:0])+'</option>').join('');
    source.value=sources.includes(previousSource)?previousSource:'';
    loadedRows=allRows;applyFilters();
-  }catch(err){if(err.status===401){const next='../../international-tenders/index.html';location.replace('/portal/pt-9f3c7a1e5b2d/login.html?next='+encodeURIComponent(next));return;}box.innerHTML='<div class="empty">'+esc(err.message)+'</div>';document.getElementById('count').textContent='';}
+  }catch(err){box.innerHTML='<div class="empty">'+esc(err.message)+'</div>';document.getElementById('count').textContent='';}
  }
  box.addEventListener('click',e=>{if(e.target&&e.target.id==='load-more-international'){visibleLimit+=30;applyFilters();}});
  window.reloadInternationalTenders=load;
