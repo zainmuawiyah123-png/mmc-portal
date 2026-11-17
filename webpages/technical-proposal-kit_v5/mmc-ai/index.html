@@ -1161,4 +1161,29 @@ body.mmc-projects-view #projectGallery { display: block !important; }
  setView();
 })();
 </script>
+
+<style id="mmc-hover-preview-large">
+/* Larger, clearer hover previews for Workspace sections. */
+.workspace-hover-preview{
+  width:min(540px,calc(100vw - 310px));
+  padding:14px;
+  top:88px;
+  left:268px;
+  border-radius:15px;
+  box-shadow:0 22px 58px #000a;
+}
+.workspace-hover-art{height:310px;border-radius:10px}
+.workspace-hover-caption{gap:7px;padding:12px 4px 4px}
+.workspace-hover-caption strong{font-size:16px}
+.workspace-hover-caption span{font-size:12px;line-height:1.6}
+html[dir="rtl"] .workspace-hover-preview{left:auto;right:268px}
+@media(min-width:1200px){
+ .workspace-hover-preview{width:560px}
+ .workspace-hover-art{height:330px}
+}
+@media(max-width:900px) and (min-width:701px){
+ .workspace-hover-preview{width:min(460px,calc(100vw - 285px))}
+ .workspace-hover-art{height:260px}
+}
+</style>
 </body></html>
