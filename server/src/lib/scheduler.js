@@ -107,6 +107,8 @@ async function runOpportunitySyncJob() {
   };
   await runSource('gam',()=>require('./jordan-public-sources-sync').syncGAM());
   await runSource('austender',()=>require('./austender-sync').syncAusTender());
+  // VendorPanel is a separate Australian public marketplace feed; keep it alongside AusTender.
+  await runSource('vendorpanel-australia',()=>require('./vendorpanel-australia-sync').syncVendorPanelAustralia());
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('apc',()=>require('./apc-sync').syncAPC());
   await runSource('jprc',()=>require('./jprc-sync').syncJPRC());
