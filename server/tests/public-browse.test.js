@@ -32,9 +32,9 @@ test('public browse feeds do not expose protected submission or identity routes'
   for(const secret of ['password_hash','financial_amount','contractor_id','submitted_ip','storage_key','contact_email','registration_number','owner_email'])assert.ok(!body.includes(secret),'leaked '+secret);
  }
 });
-test('anonymous portal entry URLs open public screens instead of redirecting to login',async()=>{
- for(const [url,label] of [['/procurement/','بوابة المشتريات'],['/bid/','بوابة المقاول'],['/consulting/','بوابة المكاتب الاستشارية']]){
-  const r=await get(url);assert.equal(r.status,200);assert.match(r.data,/PUBLIC BROWSE MODE/);assert.match(r.data,new RegExp(label));
+test('anonymous portal entry URLs serve the original portal screens without redirecting',async()=>{
+ for(const [url,marker] of [['/procurement/','إنشاء عطاء إلكتروني'],['/bid/','العطاءات المتاحة'],['/consulting/','لوحة إدارة المكتب الاستشاري']]){
+  const r=await get(url);assert.equal(r.status,200);assert.equal(r.headers.get('location'),null);assert.match(r.data,new RegExp(marker));
  }
 });
 test('write and submission operations remain protected for anonymous visitors',async()=>{
@@ -43,9 +43,9 @@ test('write and submission operations remain protected for anonymous visitors',a
   assert.ok([401,403,404].includes(r.status),'unexpected anonymous write response '+method+' '+url+': '+r.status);
  }
 });
-test('public portal screens are served as real interactive pages',async()=>{
- for(const p of ['procurement','contractor','consultant']){
-  const r=await get('/public-browse/'+p+'.html');
-  assert.equal(r.status,200);assert.match(r.data,/PUBLIC BROWSE MODE/);assert.match(r.data,/fetch\('\/api\/public/);
- }
+test('original portal screens include explicit public browse behavior',async()=>{
+ const p=await get('/procurement/'),b=await get('/bid/'),s=await get('/consulting/');
+ assert.match(p.data,/publicLoad/);assert.match(p.data,/public\\/procurement\\/tenders/);
+ assert.match(b.data,/publicLoad/);assert.match(b.data,/public\\/contractor\\/opportunities/);
+ assert.match(s.data,/publicLoad/);assert.match(s.data,/public\\/consulting\\/requests/);
 });
