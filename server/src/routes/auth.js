@@ -134,7 +134,7 @@ router.post('/verify-email', wrap(async (req, res) => {
 /* ---------------- POST /api/auth/resend-verification ---------------- */
 router.post('/resend-verification', wrap(async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw E.validation('أدخل بريداً إلكترونياً صحيحاً.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw E.validation('أدخل بريداً إلكترونياً صحيحاً.');
   if (!mailer.enabled()) throw E.server('خدمة البريد الإلكتروني غير مفعّلة على الخادم.');
   const db = getDB();
   const user = db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
