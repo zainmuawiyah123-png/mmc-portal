@@ -10,6 +10,7 @@ const { tenderCreateSchema, tenderUpdateSchema, parse } = require('../lib/valida
 const A = require('../lib/auth');
 const S = require('../lib/storage');
 const config = require('../config');
+const O = require('../lib/org');
 
 const router = express.Router();
 router.use(A.requireAuth);
@@ -55,9 +56,12 @@ router.post('/', wrap(async (req, res) => {
     );
   }
 
+  // Bind buyer tenders to the buyer's organization at creation time.
+  // This preserves tenant scoping for newly created tenders instead of relying on a later migration.
+  const org = req.user.role === 'buyer' ? O.ensureOrg(req.user) : null;
   const id = uid('tnd_');
-  db.prepare('INSERT INTO tenders (id, user_id, name, authority, closing, notes, status) VALUES (?,?,?,?,?,?,?)')
-    .run(id, req.user.id, body.name, body.authority, body.closing, body.notes, 'new');
+  db.prepare('INSERT INTO tenders (id, user_id, org_id, name, authority, closing, notes, status) VALUES (?,?,?,?,?,?,?,?)')
+    .run(id, req.user.id, org ? org.org_id : null, body.name, body.authority, body.closing, body.notes, 'new');
 
   const row = db.prepare('SELECT * FROM tenders WHERE id = ?').get(id);
   res.status(201).json({ tender: shape(row), message: 'تم إنشاء العطاء.' });
