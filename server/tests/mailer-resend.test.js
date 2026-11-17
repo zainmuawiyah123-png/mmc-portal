@@ -18,7 +18,7 @@ test('Resend sends email through HTTPS with the official sender and recipient', 
   assert.equal(request.options.method, 'POST');
   assert.equal(request.options.headers.Authorization, 'Bearer re_test_key');
   assert.deepEqual(JSON.parse(request.options.body).to, ['user@example.com']);
-  assert.match(JSON.parse(request.options.body).from, /m\\.madadha@mrc-jordan\\.com/);
+  assert.match(JSON.parse(request.options.body).from, /m\.madadha@mrc-jordan\.com/);
   assert.equal(result.id, 'email_test_123');
 });
 
