@@ -652,7 +652,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    const status=report.querySelector('#mmcDemoAnalysisStatus'),body=report.querySelector('#mmcDemoAnalysisBody');
    try{
     const form=new FormData();form.append('drawing',file,file.name);
-    const response=await fetch('/api/mmc-ai/demo/analyze',{method:'POST',body:form,credentials:'same-origin',headers:{'Accept':'application/json'}});
+    const controller=new AbortController();const watchdog=setTimeout(()=>controller.abort(),120000);let response;try{response=await fetch('/api/mmc-ai/demo/analyze',{method:'POST',body:form,credentials:'same-origin',headers:{'Accept':'application/json'},signal:controller.signal});}finally{clearTimeout(watchdog);}
     const data=await response.json();
     if(!response.ok)throw new Error(data.error?.message||'Analysis failed (HTTP '+response.status+').');
     const r=data.result||{};
@@ -670,7 +670,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     if(r.requiredInformation?.length)add('Required before measurement',r.requiredInformation.join(' · '));
     if(r.geometryExtracted===false||r.bimModelCreated===false||r.quantitiesAreContractuallyVerified===false){const warning=document.createElement('p');warning.style.cssText='color:#e9c98d;font-size:11px;line-height:1.7';warning.textContent='Important: this result is not a verified BOQ or BIM/IFC model. MMC AI will not infer missing dimensions, units or element classifications.';body.appendChild(warning);}
     info.textContent='Analysis completed for '+file.name+'. Results are temporary and are not saved.';
-   }catch(error){status.textContent='Analysis could not be completed';const message=document.createElement('p');message.style.cssText='color:#ffcfb8;font-size:12px';message.textContent=error.message;body.appendChild(message);info.textContent='Analysis failed for '+file.name+'.';}
+   }catch(error){status.textContent='Analysis could not be completed';const message=document.createElement('p');message.style.cssText='color:#ffcfb8;font-size:12px';message.textContent=error.name==='AbortError'?'تحليل المخطط تجاوز دقيقتين وتم إيقاف الطلب لحماية الخدمة. جرّب صفحة واحدة أو نسخة PDF أخف.':error.message;body.appendChild(message);info.textContent='Analysis failed for '+file.name+'.';}
   });
  }
  if(!publicPreview) loadProjects();
