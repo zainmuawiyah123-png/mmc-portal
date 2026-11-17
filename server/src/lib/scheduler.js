@@ -99,7 +99,14 @@ function persistOpportunitySync(source, startedAt, result) {
 
 async function runOpportunitySyncJob() {
   const started=Date.now(), results={};
-  const runSource=async(name,fn)=>{\n    const sourceStarted=Date.now();\n    console.log('[scheduler] بدء المصدر '+name);\n    try { results[name]={ok:true,...await fn()}; }\n    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }\n    persistOpportunitySync(name,sourceStarted,results[name]);\n    console.log('[scheduler] انتهاء المصدر '+name+' '+(results[name].ok?'OK':'ERROR')+' '+JSON.stringify(results[name])+' '+(Date.now()-sourceStarted)+'ms');\n  };
+  const runSource=async(name,fn)=>{
+    const sourceStarted=Date.now();
+    console.log('[scheduler] بدء المصدر '+name);
+    try { results[name]={ok:true,...await fn()}; }
+    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
+    persistOpportunitySync(name,sourceStarted,results[name]);
+    console.log('[scheduler] انتهاء المصدر '+name+' '+(results[name].ok?'OK':'ERROR')+' '+JSON.stringify(results[name])+' '+(Date.now()-sourceStarted)+'ms');
+  };
   await runSource('gam',()=>require('./jordan-public-sources-sync').syncGAM());
   await runSource('austender',()=>require('./austender-sync').syncAusTender());
   // VendorPanel is a separate Australian public marketplace feed; keep it alongside AusTender.
