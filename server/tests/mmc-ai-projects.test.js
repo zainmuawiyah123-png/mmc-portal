@@ -6,6 +6,7 @@ const os=require('node:os');
 const path=require('node:path');
 const TMP=fs.mkdtempSync(path.join(os.tmpdir(),'mmc-ai-api-'));
 process.env.NODE_ENV='test';
+process.env.MAIL_HOST='json'; // isolated in-memory mail transport for OTP tests
 process.env.DB_PATH=path.join(TMP,'test.db');
 process.env.REQUIRE_ORG_VERIFICATION='false';
 process.env.UPLOAD_DIR=path.join(TMP,'uploads');
@@ -46,7 +47,7 @@ async function uploadImage(user,projectId,name,bytes,fields={}){
  const data=(r.headers.get('content-type')||'').includes('application/json')?await r.json():await r.text();
  return {status:r.status,data};
 }
-async function register(key){const r=await call(key,'POST','/api/auth/register',{name:key,email:key+uniq()+'@test.local',password:'Password123',company:key});assert.equal(r.status,201,JSON.stringify(r.data));return r.data.user.id;}
+async function register(key){const email=key+uniq()+'@test.local';const r=await call(key,'POST','/api/auth/register',{name:key,email,password:'Password123',company:key});assert.equal(r.status,201,JSON.stringify(r.data));const db=require('../src/db').getDB();const user=db.prepare('SELECT id FROM users WHERE email=?').get(email);const now=Math.floor(Date.now()/1000);db.prepare('UPDATE email_verifications SET verified_at=? WHERE user_id=?').run(now,user.id);db.prepare("UPDATE users SET account_status='active' WHERE id=?").run(user.id);const login=await call(key,'POST','/api/auth/login',{email,password:'Password123'});assert.equal(login.status,200,JSON.stringify(login.data));return user.id;}
 test.before(async()=>{
  migrate(process.env.DB_PATH);
  const app=createApp();

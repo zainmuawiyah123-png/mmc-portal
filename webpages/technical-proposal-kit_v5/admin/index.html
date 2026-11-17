@@ -43,4 +43,24 @@ return '<tr><td><b>'+esc(f.legal_name)+'</b><div class="small">'+esc(f.country)+
 rows.addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const status=b.dataset.action;const noteText=prompt(status==='verified'?'اكتب مرجع التحقق القانوني وماذا راجعت:':'اكتب سبب القرار:');if(noteText===null)return;if(noteText.trim().length<5){show('يجب إدخال ملاحظة تفصيلية لا تقل عن خمسة أحرف.');return;}try{const d=await api('/admin/firms/'+encodeURIComponent(b.dataset.id)+'/verification',{method:'PATCH',body:JSON.stringify({status,note:noteText.trim()})});show(d.message||'تم حفظ القرار.');await load();}catch(err){show(err.message);}});
 sel.onchange=load;document.getElementById('consultantRefresh').onclick=load;load();
 })();
-</script><script src="../portal/pt-9f3c7a1e5b2d/assets/i18n.js"></script><script>(function(){var t=document.querySelector('.p-top');if(t&&window.MMC_I18N)MMC_I18N.mountSwitcher(t)})()</script></body></html>
+</script>
+<div class="admin-wrap" style="padding-top:0">
+  <div class="admin-head"><div><div class="eyebrow">طلبات التسجيل</div><h1>مراجعة حسابات الشركات والجهات</h1><p class="small">الحساب الجديد لا يستطيع تسجيل الدخول أو تنفيذ العمليات حتى تعتمد الإدارة نوع الحساب وبيانات الشركة. المشاهدة العامة تبقى متاحة للجميع.</p></div>
+  <div class="filter"><select id="accountStatus"><option value="pending">طلبات جديدة</option><option value="active">حسابات مفعّلة</option><option value="rejected">مرفوضة</option><option value="suspended">موقوفة</option><option value="">كل الحسابات</option></select><button class="btn amber" id="accountRefresh">تحديث</button></div></div>
+  <div id="accountNotice" class="notice" hidden></div>
+  <div class="p-card table-wrap"><table class="admin-table"><thead><tr><th>المستخدم</th><th>الشركة / المكتب</th><th>نوع البوابة</th><th>الدولة وتاريخ التسجيل</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody id="accountRows"><tr><td colspan="6">جارٍ تحميل الحسابات…</td></tr></tbody></table></div>
+</div>
+<script>
+(function(){
+const rows=document.getElementById('accountRows'),sel=document.getElementById('accountStatus'),note=document.getElementById('accountNotice');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const roles={buyer:'جهة مشتريات',contractor:'مقاول',consultant:'مكتب استشاري',admin:'إدارة MMC'};
+const states={pending:'قيد المراجعة',active:'مفعّل',rejected:'مرفوض',suspended:'موقوف'};
+function show(s){note.hidden=false;note.textContent=s;}
+async function api(path,opt){const r=await fetch('/api/auth'+path,Object.assign({credentials:'include',headers:{'Content-Type':'application/json'}},opt||{}));const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error?.message||'تعذر تنفيذ الطلب');return d;}
+async function load(){try{const d=await api('/admin/accounts'+(sel.value?'?status='+encodeURIComponent(sel.value):''));rows.innerHTML=d.accounts.map(u=>'<tr><td><b>'+esc(u.name)+'</b><br><span class="small">'+esc(u.email)+'</span></td><td>'+esc(u.company||'—')+'</td><td>'+esc(roles[u.role]||u.role)+'</td><td>'+esc(u.country||'—')+'<br><span class="small">'+new Date(u.created_at*1000).toLocaleString('ar-JO')+'</span></td><td><b>'+esc(states[u.account_status]||u.account_status)+'</b>'+(u.account_status_note?'<br><span class="small">'+esc(u.account_status_note)+'</span>':'')+'</td><td><div class="actions">'+(u.account_status!=='active'?'<button class="btn sm amber" data-status="active" data-id="'+esc(u.id)+'">اعتماد وتفعيل</button>':'')+(u.account_status!=='rejected'?'<button class="btn sm light" data-status="rejected" data-id="'+esc(u.id)+'">رفض</button>':'')+(u.account_status!=='suspended'?'<button class="btn sm light" data-status="suspended" data-id="'+esc(u.id)+'">إيقاف</button>':'')+'</div></td></tr>').join('')||'<tr><td colspan="6">لا توجد حسابات في هذه الحالة.</td></tr>';}catch(e){show(e.message);rows.innerHTML='<tr><td colspan="6">'+esc(e.message)+'</td></tr>';}}
+rows.addEventListener('click',async e=>{const b=e.target.closest('[data-status]');if(!b)return;const status=b.dataset.status;let noteText='';if(status!=='active'){noteText=prompt(status==='rejected'?'سبب رفض التسجيل:':'سبب إيقاف الحساب:');if(noteText===null)return;if(noteText.trim().length<4){show('يرجى كتابة سبب واضح للقرار.');return;}}if(!confirm(status==='active'?'اعتماد بيانات الشركة وتفعيل الحساب؟':status==='rejected'?'تأكيد رفض طلب التسجيل؟':'تأكيد إيقاف الحساب؟'))return;try{const d=await api('/admin/accounts/'+encodeURIComponent(b.dataset.id)+'/status',{method:'PATCH',body:JSON.stringify({status,note:noteText.trim()})});show(d.message);await load();}catch(err){show(err.message);}});
+sel.onchange=load;document.getElementById('accountRefresh').onclick=load;load();
+})();
+</script>
+<script src="../portal/pt-9f3c7a1e5b2d/assets/i18n.js"></script><script>(function(){var t=document.querySelector('.p-top');if(t&&window.MMC_I18N)MMC_I18N.mountSwitcher(t)})()</script></body></html>

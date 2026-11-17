@@ -75,7 +75,7 @@ test('MMCUI-03 — دليل العطاءات الخارجية متاح للمق�
 
 
 test('OPP-01 — دليل العطاءات مربوط بواجهة API عامة قابلة للبحث والتصفية', () => {
-  assert.ok(tenderDirectory.includes("fetch('/api/opportunities?"));
+  assert.ok(tenderDirectory.includes("fetch('/api/public/contractor/opportunities?"));
   assert.ok(tenderDirectory.includes("opp-q"));
   assert.ok(tenderDirectory.includes("opp-country"));
   assert.ok(tenderDirectory.includes("opp-status"));
@@ -297,7 +297,7 @@ test('OPP-27 — سوق العطاءات يعرض المصادر المتصلة 
   assert.ok(market.includes("jprc:['مصفاة البترول الأردنية','Jordan Petroleum Refinery']"));
   assert.ok(market.includes("jpmc:['مناجم الفوسفات الأردنية','Jordan Phosphate Mines']"));
   assert.ok(market.includes("nepco:['الكهرباء الوطنية','National Electric Power Company']"));
-  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof']"));
+  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','austender','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof']"));
   assert.ok(market.includes('https://www.jopetrol.com.jo/ar/modules/tenders'));
   assert.ok(market.includes('https://www.jpmc.com.jo/en/tender'));
   assert.ok(market.includes('https://www.nepco.com.jo/en/Tenders.aspx'));
@@ -308,7 +308,7 @@ test('OPP-27 — سوق العطاءات يعرض المصادر المتصلة 
 test('OPP-28 — تفاصيل سوق العطاءات تعرض مرفقات MMC مع فحص HEAD قبل التنزيل', () => {
   const market = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/market.html'), 'utf8');
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
-  assert.ok(market.includes("API.request('GET','/opportunities/'+encodeURIComponent(id))"));
+  assert.ok(market.includes("API.request('GET',(role==='guest'?'/public/contractor/opportunities/':'/opportunities/')+encodeURIComponent(id))"));
   assert.ok(market.includes('data-market-doc'));
   assert.ok(market.includes("method:'HEAD'"));
   assert.ok(market.includes("window.location.href=link.href"));

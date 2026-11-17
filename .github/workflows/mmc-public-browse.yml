@@ -1,0 +1,31 @@
+name: MMC Public Browse Regression
+on:
+  push:
+    branches:
+      - feature/mmc-public-browse-original
+    paths:
+      - 'server/**'
+      - 'webpages/technical-proposal-kit_v5/**'
+      - '.github/workflows/mmc-public-browse.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'server/**'
+      - 'webpages/technical-proposal-kit_v5/**'
+jobs:
+  public-browse:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm run test:public
+      - run: node --test tests/consulting.test.js

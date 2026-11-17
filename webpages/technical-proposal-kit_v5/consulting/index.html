@@ -140,7 +140,33 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
   try{const r=await fetch('/api/consulting/firms/me/documents',{method:'POST',credentials:'same-origin',body:data});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر رفع الوثائق');msg.textContent=d.message||'تم رفع الوثائق.';form.reset();await loadFirmDocuments();}catch(err){showError(err);}
  });
  $('#firmForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),data={};for(const [k,v] of f.entries())data[k]=String(v).trim();data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}catch(err){showError(err);}});
- load().catch(showError);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
+ async function publicLoad(){
+  $('#user').textContent='وضع المشاهدة العامة';
+  $('#logout').hidden=true;
+  $('#message').textContent='يمكنك تصفح الفرص المنشورة وأقسام بوابة المكاتب الاستشارية. تتطلب إدارة المكتب وتقديم العروض والوثائق والعقود تسجيل الدخول ببريد العمل.';
+  ['existing','register','firmTenderProposalsMine','firmTenders','firmSubcontracts','firmTeam','firmReports','myProposals','myContracts'].forEach(id=>{
+   const e=document.getElementById(id);if(!e)return;e.hidden=false;
+   const gate=node('div','يتطلب عرض بيانات المكتب وإدارة العروض والوثائق والعقود تسجيل الدخول ببريد العمل.','status');
+   const link=node('a','تسجيل الدخول / إنشاء حساب','btn amber');link.href='/portal/pt-9f3c7a1e5b2d/login.html';gate.append(link);e.insertBefore(gate,e.firstChild);
+   e.querySelectorAll('input,select,textarea,button').forEach(control=>{control.disabled=true;});
+   e.querySelectorAll('form').forEach(form=>{form.addEventListener('submit',ev=>ev.preventDefault());});
+  });
+  $('#market').hidden=false;$('#firmTenderMarket').hidden=false;
+  try{
+   const r=await fetch('/api/public/consulting/requests',{credentials:'same-origin'}),d=await r.json();
+   if(!r.ok)throw new Error(d.error?.message||'تعذر تحميل الفرص');
+   const box=$('#requests');box.replaceChildren();
+   if(!d.requests?.length)box.append(node('p','لا توجد طلبات استشارية منشورة حالياً.','muted'));
+   d.requests.forEach(x=>{const card=node('article',undefined,'request');card.append(node('h3',(x.reference||'')+' · '+x.title));card.append(node('p',[x.country,x.location,disciplineLabel(x.discipline)].filter(Boolean).join(' · ')));card.append(node('p',x.description||''));if(x.scope?.length)card.append(node('p','نطاق العمل: '+x.scope.join('، ')));card.append(node('p','آخر موعد: '+(x.closing_at?new Date(x.closing_at*1000).toLocaleDateString('ar-JO'):'غير محدد')+' · '+(x.currency||'')+' '+(x.budget_min??'—')+' – '+(x.budget_max??'—')));const a=node('a','تسجيل الدخول لتقديم عرض','btn amber');a.href='/portal/pt-9f3c7a1e5b2d/login.html';card.append(a);box.append(card);});
+   const fr=await fetch('/api/public/consulting/firm-tenders',{credentials:'same-origin'}),fd=await fr.json();
+   if(!fr.ok)throw new Error(fd.error?.message||'تعذر تحميل سوق المكاتب');
+   const fb=$('#firmTenderMarketList');fb.replaceChildren();
+   if(!fd.tenders?.length)fb.append(node('p','لا توجد عطاءات فرعية منشورة حالياً.','muted'));
+   fd.tenders.forEach(x=>{const card=node('article',undefined,'request');card.append(node('h3',(x.reference||'')+' · '+x.title));card.append(node('p','المكتب الناشر: '+x.publisherName+' · '+x.country+' · '+disciplineLabel(x.discipline)));card.append(node('p',x.description||''));if(x.scope?.length)card.append(node('p','نطاق العمل: '+x.scope.join('، ')));card.append(node('p','الميزانية: '+(x.currency||'')+' '+(x.budgetMin??'—')+' – '+(x.budgetMax??'—')+' · آخر موعد: '+(x.closingAt?new Date(x.closingAt*1000).toLocaleDateString('ar-JO'):'غير محدد')));const a=node('a','تسجيل الدخول لتقديم عرض','btn amber');a.href='/portal/pt-9f3c7a1e5b2d/login.html';card.append(a);fb.append(card);});
+   $('#statOpen').textContent=String((d.count||0)+(fd.count||0));$('#statProposals').textContent='—';$('#statContracts').textContent='—';
+  }catch(e){showError(e);}
+ }
+ load().catch(publicLoad);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
 })();
 </script>
 </body></html>

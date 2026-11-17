@@ -101,22 +101,22 @@ async function runOpportunitySyncJob() {
   const started=Date.now(), results={};
   const runSource=async(name,fn)=>{
     const sourceStarted=Date.now();
+    console.log('[scheduler] بدء المصدر '+name);
     try { results[name]={ok:true,...await fn()}; }
     catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
     persistOpportunitySync(name,sourceStarted,results[name]);
+    console.log('[scheduler] انتهاء المصدر '+name+' '+(results[name].ok?'OK':'ERROR')+' '+JSON.stringify(results[name])+' '+(Date.now()-sourceStarted)+'ms');
   };
   await runSource('gam',()=>require('./jordan-public-sources-sync').syncGAM());
   await runSource('austender',()=>require('./austender-sync').syncAusTender());
+  // VendorPanel is a separate Australian public marketplace feed; keep it alongside AusTender.
+  await runSource('vendorpanel-australia',()=>require('./vendorpanel-australia-sync').syncVendorPanelAustralia());
   await runSource('joneps',()=>require('./joneps-sync').syncJONEPS());
   await runSource('apc',()=>require('./apc-sync').syncAPC());
   await runSource('jprc',()=>require('./jprc-sync').syncJPRC());
   await runSource('nepco',()=>require('./nepco-sync').syncNEPCO());
   await runSource('jpmc',()=>require('./jpmc-curated-sync').syncJPMCCurated());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
-  await runSource('findatender',()=>require('./uk-public-procurement-sync').syncFindATender({days:45,maxPages:20}));
-  await runSource('contractsfinder',()=>require('./uk-public-procurement-sync').syncContractsFinder({days:30,maxPages:5}));
-  await runSource('pcs',()=>require('./uk-public-procurement-sync').syncPublicContractsScotland({months:2}));
-  await runSource('sell2wales',()=>require('./uk-public-procurement-sync').syncSell2Wales({months:2}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
   const ms=Date.now()-started;
@@ -124,6 +124,45 @@ async function runOpportunitySyncJob() {
   const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):v.skipped?'skipped':('ERROR '+v.error))).join(' | ');
   record({at:new Date().toISOString(),job:'opportunity-sync',ok:failed.length===0,ms,message:summary});
   return {ok:failed.length===0,partial:failed.length>0,failed,results,ms};
+}
+
+async function runUKOpportunitySyncJob() {
+  const started=Date.now(), results={};
+  const runSource=async(name,fn)=>{
+    const sourceStarted=Date.now();
+    console.log('[scheduler] بدء مصدر بريطانيا '+name);
+    try { results[name]={ok:true,...await fn()}; }
+    catch(err) { results[name]={ok:false,error:(err.message||String(err)).slice(0,300)}; }
+    persistOpportunitySync(name,sourceStarted,results[name]);
+    console.log('[scheduler] نتيجة بريطانيا '+name+' '+(results[name].ok?'OK':'ERROR')+' '+JSON.stringify(results[name])+' '+(Date.now()-sourceStarted)+'ms');
+  };
+  await runSource('findatender',()=>require('./uk-public-procurement-sync').syncFindATender({days:45,maxPages:20}));
+  await runSource('contractsfinder',()=>require('./uk-public-procurement-sync').syncContractsFinder({days:30,maxPages:5}));
+  await runSource('pcs',()=>require('./uk-public-procurement-sync').syncPublicContractsScotland({months:2}));
+  await runSource('sell2wales',()=>require('./uk-public-procurement-sync').syncSell2Wales({months:2}));
+  const failed=Object.entries(results).filter(([,v])=>!v.ok).map(([k])=>k);
+  const summary=Object.entries(results).map(([k,v])=>k+': '+(v.ok?('+'+v.added+' / ~'+v.updated):('ERROR '+v.error))).join(' | ');
+  record({at:new Date().toISOString(),job:'uk-opportunity-sync',ok:failed.length===0,ms:Date.now()-started,message:summary});
+  return {ok:failed.length===0,partial:failed.length>0,failed,results,ms:Date.now()-started};
+}
+
+// Run both tender-source groups as one serialized cycle. This prevents the UK and
+// general feeds from competing for the same SQLite database at the same cron tick.
+let opportunityCycleRunning = false;
+async function runOpportunitySyncCycle() {
+  if (opportunityCycleRunning) {
+    console.log('[scheduler] تخطي دورة المزامنة: توجد دورة أخرى قيد التنفيذ.');
+    return { ok: false, skipped: true, reason: 'already-running' };
+  }
+  opportunityCycleRunning = true;
+  try {
+    const uk = await runUKOpportunitySyncJob();
+    const general = await runOpportunitySyncJob();
+    const failed = [...(uk.failed || []).map((x) => 'uk:' + x), ...(general.failed || [])];
+    return { ok: failed.length === 0, partial: failed.length > 0, failed, uk, general };
+  } finally {
+    opportunityCycleRunning = false;
+  }
 }
 
 function startScheduler() {
@@ -162,12 +201,12 @@ function startScheduler() {
   }
   if (config.OPPORTUNITY_SYNC_ENABLED) {
     addJob('opportunity-sync',config.OPPORTUNITY_SYNC_CRON,()=>{
-      console.log('[scheduler] بدء مزامنة مصادر العطاءات...');
-      runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة العطاءات:',e.message));
+      console.log('[scheduler] بدء دورة مزامنة العطاءات (بريطانيا ثم بقية المصادر)...');
+      runOpportunitySyncCycle().catch(e=>console.error('[scheduler] دورة مزامنة العطاءات:',e.message));
     });
-    // أول مزامنة بعد الإقلاع بقليل حتى لا تبقى قائمة العطاءات فارغة حتى أول موعد مجدول
-    setTimeout(()=>runOpportunitySyncJob().catch(e=>console.error('[scheduler] مزامنة أولية:',e.message)),20000).unref();
-    console.log('[scheduler] ✓ مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
+    // تشغيل أولي واحد ومتسلسل بعد الإقلاع؛ يمنع تداخل مجموعتي المصادر.
+    setTimeout(()=>runOpportunitySyncCycle().catch(e=>console.error('[scheduler] دورة المزامنة الأولية:',e.message)),25000).unref();
+    console.log('[scheduler] ✓ دورة مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }
   if (config.SCHEDULER_ENABLED) {
     console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
@@ -194,4 +233,4 @@ function schedulerStatus() {
     active: _jobs.length > 0, running: _jobs.length, lastRun: _lastRun };
 }
 
-module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob, persistOpportunitySync };
+module.exports = { startScheduler, stopScheduler, schedulerStatus, runBackupJob, runSubscriptionExpiryJob, runOpportunitySyncJob, runUKOpportunitySyncJob, runOpportunitySyncCycle, persistOpportunitySync };

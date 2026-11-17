@@ -109,14 +109,34 @@ function saveRows(sourceKey, notices) {
   });
   return tx(notices);
 }
-async function getJson(url) {
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),25000);
-  try{
-    const response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'MMC-TenderWise/1.0 (public procurement data reader)'},signal:controller.signal});
-    if(!response.ok)throw new Error('UK public feed returned HTTP '+response.status);
-    return await response.json();
-  }finally{clearTimeout(timer);}
+async function getJson(url, { attempts=5, timeoutMs=60000 }={}) {
+  let lastError;
+  const maxAttempts=Math.max(1,attempts);
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const response=await fetch(url,{headers:{Accept:'application/json, application/*+json;q=0.9','User-Agent':'Mozilla/5.0 (compatible; MMC-TenderWise/1.2; +https://mmc-portal-1.onrender.com)'},signal:controller.signal});
+      if(!response.ok){
+        const retryable=response.status===408||response.status===425||response.status===429||response.status>=500;
+        const error=new Error('UK public feed returned HTTP '+response.status);
+        if(!retryable||attempt===maxAttempts)throw error;
+        const retryHeader=response.headers.get('retry-after');
+        const retrySeconds=retryHeader&&/^\d+$/.test(retryHeader)?Number(retryHeader):0;
+        const retryDateMs=retryHeader&&!retrySeconds?Date.parse(retryHeader):NaN;
+        const waitMs=retrySeconds>0?Math.min(60000,retrySeconds*1000):Number.isFinite(retryDateMs)?Math.min(60000,Math.max(1000,retryDateMs-Date.now())):Math.min(45000,3000*Math.pow(2,attempt-1));
+        await new Promise(resolve=>setTimeout(resolve,waitMs));
+        continue;
+      }
+      return await response.json();
+    }catch(err){
+      lastError=err;
+      const retryable=err.name==='AbortError'||/fetch failed|network|socket|timeout/i.test(err.message||'');
+      if(!retryable||attempt===maxAttempts)throw err;
+      await new Promise(resolve=>setTimeout(resolve,Math.min(45000,3000*Math.pow(2,attempt-1))));
+    }finally{clearTimeout(timer);}
+  }
+  throw lastError||new Error('UK public feed request failed');
 }
 function dedupeLatest(releases,sourceKey){
   const byId=new Map();
@@ -188,7 +208,7 @@ async function syncPublicContractsScotland({months=3}={}) {
       url.searchParams.set('dateFrom',dateFrom);
       url.searchParams.set('noticeType',String(noticeType));
       url.searchParams.set('outputType','0');
-      const payload=await getJson(url);
+      const payload=await getJson(url,{attempts:1,timeoutMs:20000});
       releases.push(...unpackPackages(payload));
     }
   }

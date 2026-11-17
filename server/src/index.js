@@ -14,6 +14,7 @@ const { migrate } = require('./migrate');
 const { errorHandler } = require('./lib/errors');
 
 const authRoutes = require('./routes/auth');
+const publicBrowseRoutes = require('./routes/public-browse');
 const { router: tenderRoutes } = require('./routes/tenders');
 const fileRoutes = require('./routes/files');
 const accountRoutes = require('./routes/account');
@@ -70,6 +71,8 @@ function createApp() {
   const WEB_ROOT_HEALTH = config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5');
 
   /* ---------------- API ---------------- */
+  // Strictly read-only, sanitized public listings; protected routers remain unchanged.
+  app.use('/api/public', publicBrowseRoutes);
   app.get('/api/health', (req, res) => {
     const db = require('./db').getDB();
     const users = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
@@ -86,7 +89,8 @@ function createApp() {
         procurement: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'procurement', 'index.html')),
         bid: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'bid', 'index.html')),
         admin: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'admin', 'index.html')),
-        consultant: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'consultant', 'index.html'))
+        consultant: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'consultant', 'index.html')),
+        tenderDirectory: fs.existsSync(path.join(WEB_ROOT_HEALTH, 'tender-opportunities', 'index.html'))
       }
     });
   });
@@ -133,32 +137,18 @@ function createApp() {
   if (!fs.existsSync(WEB_ROOT)) {
     console.warn('  ⚠ WEB_ROOT غير موجود: ' + WEB_ROOT + ' — الواجهة لن تُخدم. اضبط WEB_ROOT.');
   }
-  // صفحة دورة المشروع تحتوي بيانات مالية؛ لا تُقدَّم كملف ثابت قبل التحقق من الجلسة.
-  // يسمح للمقاول والجهة المشترية فقط، بينما تبقى صلاحيات كل عملية مفروضة في API.
+  // المعاينة العامة لدورة الترسية والفواتير متاحة دون تسجيل دخول.
+  // لا تعرض الصفحة العامة بيانات مالية خاصة؛ وتظل جميع عمليات القراءة/الكتابة الحساسة
+  // محمية بصلاحيات API المستقلة، لذلك لا يمنح فتح الواجهة أي صلاحية تنفيذية.
   app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
-    if (process.env.MMC_AI_PREVIEW_PUBLIC === 'true' && req.query.preview === '1') {
-      return sendFromWeb('mmc-ai/index.html', res, next);
-    }
-    const A = require('./lib/auth');
-    A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html');
-      if (!['buyer', 'contractor'].includes(req.user.role)) {
-        return res.status(403).type('text').send('ليس لديك صلاحية الوصول إلى هذه الصفحة.');
-      }
-      return sendFromWeb('project-finance/index.html', res, next);
-    });
+    return sendFromWeb('project-finance/index.html', res, next);
   });
 
   // Independent consulting-firm portal entry. Keep it separate from the evaluator workspace at /consultant/.
   app.get(['/consulting', '/consulting/', '/consulting/index.html'], (req, res, next) => {
-    const A = require('./lib/auth');
-    A.requireAuth(req, res, (err) => {
-      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/');
-      if (req.user.role !== 'consultant') {
-        return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/register.html?role=consultant&switch=1');
-      }
-      return sendFromWeb('consulting/index.html', res, next);
-    });
+    // Public landing and directory are viewable without an account; all private firm actions
+    // remain protected by the consulting API's authentication, role and tenant checks.
+    return sendFromWeb('consulting/index.html', res, next);
   });
 
   // Separate requester workspace for the consultancy marketplace; not the procurement portal.
@@ -169,6 +159,11 @@ function createApp() {
       if (req.user.role !== 'buyer') return res.status(403).type('text').send('هذه المساحة مخصصة للجهات الطالبة للخدمات الاستشارية.');
       return sendFromWeb('consulting/requester/index.html', res, next);
     });
+  });
+
+  // Explicit entry route for the MMC tender directory.
+  app.get(['/tender-opportunities', '/tender-opportunities/', '/tender-opportunities/index.html'], (req, res, next) => {
+    return sendFromWeb('tender-opportunities/index.html', res, next);
   });
 
   app.use(express.static(WEB_ROOT, {
@@ -205,8 +200,20 @@ function createApp() {
     res.setHeader('Expires', '0');
     return res.sendFile(target, (err) => { if (err) next(err); });
   }
-  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => sendFromWeb('procurement/index.html', res, next));
-  app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => sendFromWeb('bid/index.html', res, next));
+  app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return sendFromWeb('procurement/index.html', res, next);
+      return sendFromWeb('procurement/index.html', res, next);
+    });
+  });
+  app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return sendFromWeb('bid/index.html', res, next);
+      return sendFromWeb('bid/index.html', res, next);
+    });
+  });
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
@@ -298,7 +305,7 @@ function start() {
   });
 
   const shutdown = (sig) => {
-    console.log('\n[' + sig + '] إيقاف الخادم...');
+    console.log('\\n[' + sig + '] إيقاف الخادم...');
     server.close(() => {
       try { require('./db').closeDB(); } catch (_) {}
       process.exit(0);
