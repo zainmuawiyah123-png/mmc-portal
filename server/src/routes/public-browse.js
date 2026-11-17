@@ -15,6 +15,7 @@ router.get('/procurement/tenders', (req,res) => {
            technical_weight,financial_weight,technical_threshold,procurement_status,created_at
     FROM tenders
     WHERE procurement_status='published'
+      AND EXISTS (SELECT 1 FROM org_verifications ov WHERE ov.user_id=tenders.user_id AND ov.status='verified' AND (ov.expires_at IS NULL OR ov.expires_at>unixepoch()))
       AND (closing IS NULL OR closing='' OR substr(closing,1,10)>=?)
       AND (?='' OR name LIKE ? OR name_en LIKE ? OR reference LIKE ? OR authority LIKE ?)
     ORDER BY CASE WHEN closing IS NULL OR closing='' THEN 1 ELSE 0 END, closing ASC, created_at DESC
@@ -47,6 +48,7 @@ router.get('/procurement/tenders/:id', (req,res) => {
            technical_weight,financial_weight,technical_threshold
     FROM tenders
     WHERE id=? AND procurement_status='published'
+      AND EXISTS (SELECT 1 FROM org_verifications ov WHERE ov.user_id=tenders.user_id AND ov.status='verified' AND (ov.expires_at IS NULL OR ov.expires_at>unixepoch()))
       AND (closing IS NULL OR closing='' OR substr(closing,1,10)>=?)
   `).get(req.params.id,ammanToday());
   if(!t) return res.status(404).json({error:{code:'NOT_FOUND',message:'العطاء غير متاح للعرض العام.'}});
