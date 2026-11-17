@@ -58,7 +58,8 @@ router.get('/tenders/:id/work', wrap(async (req, res) => {
     requirements: reqs.map((r) => ({ id: r.id, title: r.title, titleEn: r.title_en || null, description: r.description, weight: r.weight, mandatory: !!r.mandatory })),
     bidders: subs.map((s, i) => ({
       submissionId: s.id, label: C.bidderLabel(i),
-      documents: db.prepare("SELECT id, original_name, size FROM bid_submission_docs WHERE submission_id=? AND doc_class='technical' ORDER BY uploaded_at").all(s.id).map((d) => ({ id: d.id, name: d.original_name, size: d.size })),
+      // Do not expose original filenames to evaluators: filenames can reveal bidder identities.
+      documents: db.prepare("SELECT id, size FROM bid_submission_docs WHERE submission_id=? AND doc_class='technical' ORDER BY uploaded_at").all(s.id).map((d) => ({ id: d.id, label: 'Technical document', size: d.size })),
       responses: reqs.map((r) => {
         const a = db.prepare('SELECT answer FROM bid_responses WHERE submission_id=? AND requirement_id=?').get(s.id, r.id);
         const m = mine.get(s.id + '|' + r.id);
