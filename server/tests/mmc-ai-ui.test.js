@@ -217,3 +217,13 @@ test('DXF upload automatically starts the existing authenticated takeoff action'
  assert.match(html,/data-action="dxf-takeoff"/);
  assert.match(html,/\/takeoff\/dxf/);
 });
+
+
+test('MMC AI authenticated workspace route serves the editable workspace separately from public preview',()=>{
+ const serverIndex=fs.readFileSync(path.join(__dirname,'../src/index.js'),'utf8');
+ assert.match(serverIndex,/app\.get\(\['\/mmc-ai\/workspace', '\/mmc-ai\/workspace\/'\]/);
+ assert.match(serverIndex,/A\.requireAuth\(req, res, \(err\) => \{/);
+ assert.match(serverIndex,/encodeURIComponent\('\/mmc-ai\/workspace'\)/);
+ assert.match(serverIndex,/sendFromWeb\('mmc-ai\/index\.html', res, next\)/);
+ assert.match(html,/const publicPreview=!window\.location\.pathname\.startsWith\('\/mmc-ai\/workspace'\)/);
+});
