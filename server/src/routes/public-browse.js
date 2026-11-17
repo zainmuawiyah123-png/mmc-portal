@@ -138,4 +138,31 @@ router.get('/consulting/firm-tenders', (req,res) => {
   })),count:rows.length});
 });
 
+
+router.get('/contractor/opportunities/:id', (req,res) => {
+  const db=getDB();
+  const row=db.prepare("SELECT * FROM tender_opportunities WHERE id=? AND status IN ('open','closed')").get(req.params.id);
+  if(!row) return res.status(404).json({error:{code:'NOT_FOUND',message:'العطاء غير موجود أو غير منشور.'}});
+  let details={};
+  try { details=row.details_json?JSON.parse(row.details_json):{}; } catch (_) { details={}; }
+  const documents=db.prepare(`
+    SELECT id,label,availability,document_url
+    FROM tender_opportunity_public_documents
+    WHERE opportunity_id=? ORDER BY created_at,id
+  `).all(row.id).map(doc=>({
+    id:doc.id,label:doc.label,availability:doc.availability,
+    sourceUrl:doc.availability==='public-source-link' && /^https:\/\//i.test(String(doc.document_url||'')) ? doc.document_url : null
+  }));
+  res.setHeader('Cache-Control','public, max-age=30');
+  res.json({
+    opportunity:{
+      id:row.id,title:row.title,authority:row.authority,country:row.country,sector:row.sector,
+      tenderNumber:row.tender_number,summary:row.summary,publishedAt:row.published_at,
+      closingAt:row.closing_at,sourceUrl:row.source_url,applicationUrl:row.application_url,
+      status:row.status,language:row.language,sourceKey:row.source_key,importedAt:row.imported_at
+    },
+    details,documents
+  });
+});
+
 module.exports = router;
