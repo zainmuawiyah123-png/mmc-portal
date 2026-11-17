@@ -5,7 +5,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { parseTesseractTsv, parsePdfPageCount, ocrPdf, inspectOcrRuntime } = require('../src/lib/mmc-ai/ocr-engine');
+const { parseTesseractTsv, parsePdfPageCount, ocrPdf, ocrImage, inspectOcrRuntime } = require('../src/lib/mmc-ai/ocr-engine');
 
 test('parses OCR TSV words, boxes, line grouping, and confidence', () => {
   const tsv = [
@@ -102,6 +102,55 @@ open(out, "wb").write(pdf)
     assert.match(recognized, /6000 MM/);
     assert.match(recognized, /CONCRETE C30/);
     assert.ok(result.pages[0].wordCount >= 8);
+    assert.ok(result.pages[0].words.some(word => word.box.width > 0 && word.box.height > 0));
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+
+test('rejects image bytes whose MIME does not match PNG or JPEG', async () => {
+  await assert.rejects(
+    () => ocrImage(Buffer.from('not an image'), { mime: 'image/png' }),
+    error => error.code === 'OCR_IMAGE_INVALID'
+  );
+});
+
+test('runs OCR against a real PNG engineering drawing image', { timeout: 180000 }, async t => {
+  const runtime = await inspectOcrRuntime();
+  if (!runtime.available) {
+    t.skip('Tesseract or eng/ara language data is unavailable.');
+    return;
+  }
+  const pillow = spawnSync('python3', ['-c', 'from PIL import Image, ImageDraw, ImageFont'], { encoding: 'utf8' });
+  if (pillow.status !== 0) {
+    t.skip('Python Pillow is unavailable for generating the image fixture.');
+    return;
+  }
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'mmc-ai-image-ocr-test-'));
+  const imagePath = path.join(directory, 'drawing.png');
+  const python = String.raw`
+import sys
+from PIL import Image, ImageDraw, ImageFont
+im = Image.new("RGB", (1800, 1200), "white")
+d = ImageDraw.Draw(im)
+font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
+d.text((100, 100), "GROUND FLOOR PLAN", font=font, fill="black")
+d.text((100, 260), "6000 mm", font=font, fill="black")
+d.text((100, 420), "BEAM B1 300 x 600", font=font, fill="black")
+d.rectangle((80, 70, 1250, 560), outline="black", width=5)
+im.save(sys.argv[1])
+`;
+  try {
+    const generated = spawnSync('python3', ['-c', python, imagePath], { encoding: 'utf8', timeout: 30000 });
+    assert.equal(generated.status, 0, generated.stderr || 'PNG fixture generation failed');
+    const result = await ocrImage(await fs.readFile(imagePath), { mime: 'image/png', dpi: 200 });
+    assert.equal(result.pagesProcessed, 1);
+    assert.equal(result.totalPages, 1);
+    assert.ok(result.pages[0].wordCount >= 5);
+    const recognized = result.pages[0].text.toUpperCase();
+    assert.match(recognized, /GROUND FLOOR PLAN/);
+    assert.match(recognized, /6000 MM/);
     assert.ok(result.pages[0].words.some(word => word.box.width > 0 && word.box.height > 0));
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
