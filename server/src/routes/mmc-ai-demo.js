@@ -5,6 +5,9 @@ const multer=require('multer');
 const path=require('path');
 const {ocrPdf,ocrImage}=require('../lib/mmc-ai/ocr-engine');
 const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
+const {extractPdfText}=require('../lib/mmc-ai/pdf-text-extract');
+const {inspectPdfVectorPage}=require('../lib/mmc-ai/pdf-pdf-vector-extract');
+const {analyzePdfDrawingText}=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
 const router=express.Router();
 const MAX=25*1024*1024;
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX,files:1,fields:0}});
@@ -35,8 +38,38 @@ router.post('/demo/analyze',(req,res)=>{
      const m=takeoffDxf(f.buffer.toString('utf8').replace(/^\uFEFF/,''));
      result={analysisType:'dxf_geometry_measurement',status:'geometry_measured_needs_classification_and_review',sourceFormat:'DXF',engine:m.engine,units:m.units,summary:m.summary,byLayer:m.byLayer,unsupported:m.unsupported,rows:m.rows.slice(0,5000),truncatedRows:m.rows.length>5000,quantitiesAreContractuallyVerified:false,bimModelCreated:false,limitations:[...(m.limitations||[]),'القياسات حسب وحدات DXF فقط؛ لا يوجد تصنيف تلقائي للعناصر الإنشائية أو المعمارية أو MEP.','لا يتم إصدار BOQ دون تصنيف العناصر ومراجعة المهندس.']};
     }catch(e){result={analysisType:'dxf_geometry_measurement',status:'measurement_blocked',sourceFormat:'DXF',reason:e.message,quantities:[],bimModelCreated:false,requiredInformation:['تحديد وحدة الرسم الصحيحة أو تصدير DXF مع INSUNITS موثوق.'],limitations:['لن يتم افتراض المقياس أو تخمين الوحدات.']};}
+   }else if(ext==='.pdf'){
+    let nativeText=null,vector=null,ocr=null,textIntelligence=null;
+    const diagnostics=[];
+    try{nativeText=extractPdfText(f.buffer);}catch(e){diagnostics.push({stage:'native_pdf_text',error:e.message});}
+    try{vector=await inspectPdfVectorPage(f.buffer,{pageNumber:1});}catch(e){diagnostics.push({stage:'pdf_vector_geometry',error:e.message});}
+    const nativeChars=nativeText?.characterCount||0;
+    // OCR is a fallback for raster-only or textless PDFs; vector geometry is reported separately.
+    if(nativeChars===0 && !(vector?.geometry?.pathCount>0)){
+      try{ocr=await ocrPdf(f.buffer,{maxPages:1,dpi:140});}catch(e){diagnostics.push({stage:'pdf_ocr_fallback',error:e.message});}
+    }
+    if(nativeText){
+      try{textIntelligence=analyzePdfDrawingText(nativeText);}catch(e){diagnostics.push({stage:'drawing_text_intelligence',error:e.message});}
+    }
+    const paths=(vector?.geometry?.paths||[]).map((path,index)=>{
+      const xs=path.points.map(point=>point.x),ys=path.points.map(point=>point.y);
+      return {pathIndex:index+1,closed:path.closed,vertexCount:path.vertexCount,lengthPageUnits:path.lengthUnits,areaPageUnits2:path.areaSquareUnits,bounds:xs.length?{minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)}:null};
+    });
+    result={
+      analysisType:'pdf_native_text_and_vector_geometry',
+      status:(nativeChars>0||paths.length>0)?'pdf_evidence_extracted_requires_engineering_review':(ocr?.status||'pdf_no_readable_evidence'),
+      sourceFormat:'PDF',
+      engine:'mmc-pdf-native-text+poppler-svg-vector-v1',
+      pageCount:nativeText?.pageCount||ocr?.totalPages||null,
+      nativeText:{status:nativeText?.status||'unavailable',characterCount:nativeChars,text:(nativeText?.text||'').slice(0,20000),diagnostics:nativeText?.diagnostics||null,unsupportedFilters:nativeText?.unsupportedFilters??null},
+      drawingTextIntelligence:textIntelligence?{status:textIntelligence.status,metadata:textIntelligence.metadata,conflicts:textIntelligence.conflicts,unresolved:textIntelligence.unresolved}:null,
+      vectorGeometry:{status:vector?.status||'unavailable',pageNumber:1,viewBox:vector?.svgViewBox||null,svgDimensions:vector?.svgDimensions||null,pathCount:paths.length,closedPathCount:paths.filter(path=>path.closed).length,openPathCount:paths.filter(path=>!path.closed).length,unsupportedPathCount:vector?.geometry?.unsupportedPathCount??null,paths:paths.slice(0,3000),limitations:vector?.geometry?.limitations||[]},
+      ocrFallback:ocr?{status:ocr.status,pagesProcessed:ocr.pagesProcessed,characterCount:ocr.characterCount,pages:ocr.pages.map(page=>({page:page.page,wordCount:page.wordCount,text:page.text.slice(0,10000),averageConfidence:page.averageConfidence,status:page.status}))}:null,
+      diagnostics,geometryExtracted:paths.length>0,scaleCalibrated:false,quantities:[],bimModelCreated:false,quantitiesAreContractuallyVerified:false,
+      limitations:[...(nativeText?.limitations||[]),...(vector?.geometry?.limitations||[]),'تم تحليل الصفحة الأولى فقط في المعاينة.','إحداثيات ومساحات المسارات بوحدات صفحة PDF الخام وليست أمتاراً أو كميات تنفيذية.','لا يتم تصنيف المسارات تلقائياً إلى قواعد أو جدران أو بلاطات أو عناصر MEP.','المقياس يحتاج إلى بعد معلوم ومؤكد من اللوحة أو اعتماد المهندس قبل التحويل إلى قياسات فعلية.']
+    };
    }else{
-    const o=ext==='.pdf'?await ocrPdf(f.buffer,{maxPages:10,dpi:160}):await ocrImage(f.buffer,{mime:ext==='.png'?'image/png':'image/jpeg',dpi:180});
+    const o=await ocrImage(f.buffer,{mime:ext==='.png'?'image/png':'image/jpeg',dpi:180});
     result={analysisType:'drawing_text_recognition',status:o.status,sourceFormat:ext.slice(1).toUpperCase(),engine:o.engine,languageModel:o.languageModel,pagesProcessed:o.pagesProcessed,totalPages:o.totalPages,truncatedAtPageLimit:o.truncatedAtPageLimit,characterCount:o.characterCount,pages:o.pages.map(p=>({page:p.page,wordCount:p.wordCount,averageConfidence:p.averageConfidence,text:p.text.slice(0,12000),words:p.words.slice(0,1500)})),geometryExtracted:false,quantities:[],bimModelCreated:false,limitations:[...(o.limitations||[]),'OCR يتعرف على النصوص ومواقع الكلمات فقط؛ لا يستخرج هندسة CAD أو كميات أو BIM.']};
    }
    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('X-Content-Type-Options','nosniff');
