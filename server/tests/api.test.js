@@ -36,7 +36,11 @@ async function call(name, method, p, { body, form, headers } = {}) {
   let payload;
   if (form) payload = form;
   else if (body instanceof FormData) payload = body;
-  else if (body !== undefined) { h['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
+  else if (body !== undefined) {
+    // Keep legacy integration fixtures aligned with the current required company field.
+    if (p === '/api/auth/register' && body && typeof body === 'object' && !Object.prototype.hasOwnProperty.call(body, 'company') && body.name && body.email && body.password) body = { ...body, company: 'Automated test company' };
+    h['Content-Type'] = 'application/json'; payload = JSON.stringify(body);
+  }
 
   const res = await fetch(base + p, { method, headers: h, body: payload, redirect: 'manual' });
 
