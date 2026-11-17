@@ -3,6 +3,7 @@
  * نقاط المصادقة: تسجيل، دخول، خروج، بياناتي.
  */
 const express = require('express');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const config = require('../config');
 const { getDB, uid } = require('../db');
@@ -11,6 +12,33 @@ const { registerSchema, loginSchema, parse } = require('../lib/validate');
 const A = require('../lib/auth');
 const O = require('../lib/org');
 const { audit } = require('../lib/audit');
+const mailer = require('../lib/mailer');
+
+const OTP_TTL_SECONDS = 10 * 60;
+const OTP_RESEND_SECONDS = 60;
+const OTP_MAX_ATTEMPTS = 5;
+function otpHash(userId, code) {
+  return crypto.createHmac('sha256', config.JWT_SECRET).update(userId + ':' + code).digest('hex');
+}
+function issueOtp(db, user) {
+  const now = Math.floor(Date.now() / 1000);
+  const previous = db.prepare('SELECT last_sent_at FROM email_verifications WHERE user_id=?').get(user.id);
+  if (previous && now - previous.last_sent_at < OTP_RESEND_SECONDS) {
+    throw E.rateLimited('انتظر دقيقة قبل طلب رمز جديد.');
+  }
+  const code = String(crypto.randomInt(100000, 1000000));
+  db.prepare(`INSERT INTO email_verifications (user_id,email,code_hash,expires_at,attempts,last_sent_at,verified_at)
+    VALUES (?,?,?,?,0,?,NULL) ON CONFLICT(user_id) DO UPDATE SET email=excluded.email,code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0,last_sent_at=excluded.last_sent_at,verified_at=NULL`)
+    .run(user.id, user.email, otpHash(user.id, code), now + OTP_TTL_SECONDS, now);
+  const id = mailer.notify(user.email, 'رمز تأكيد البريد الإلكتروني - MMC',
+    'رمز تأكيد بريدك الإلكتروني في MMC هو: ' + code + '\\n\\nصلاحية الرمز 10 دقائق. لا تشارك هذا الرمز مع أي شخص.');
+  if (!id || !mailer.enabled()) throw E.server('خدمة البريد الإلكتروني غير مفعّلة على الخادم. لم يتم إرسال رمز التحقق.');
+  // Try immediately; the background queue remains a fallback if the SMTP provider is temporarily unavailable.
+  return mailer.sendOne(id).then((sent) => {
+    if (!sent) throw E.server('تعذّر إرسال رمز التحقق. تحقق من إعدادات البريد ثم أعد المحاولة.');
+    return true;
+  });
+}
 
 const router = express.Router();
 
@@ -56,25 +84,68 @@ function publicUser(u) {
 router.post('/register', registerLimiter, wrap(async (req, res) => {
   const body = parse(registerSchema, req.body);
   const db = getDB();
+  if (!mailer.enabled()) throw E.server('خدمة البريد الإلكتروني غير مفعّلة على الخادم. لا يمكن إكمال التسجيل قبل تفعيل إرسال البريد.');
 
   const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(body.email);
   if (exists) throw E.conflict('هذا البريد مسجّل بالفعل. سجّل الدخول بدلاً من إنشاء حساب جديد.');
 
   const id = uid('usr_');
   const hash = await A.hashPassword(body.password);
-
-  db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, country, plan_key, account_status)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 'free', 'pending')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
-
-  db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
-              VALUES (?, ?, 'free', 'active', ?)`).run(uid('sub_'), id, ['buyer','consultant'].includes(body.role) ? 'system' : 'trial');
-
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
-  res.status(201).json({
-    user: publicUser(user),
-    accountStatus: 'pending',
-    message: 'تم استلام طلب التسجيل. سيُراجع فريق MMC بيانات الشركة ونوع الحساب قبل تفعيل الدخول. مشاهدة البوابات العامة لا تتطلب حساباً.'
+  const tx = db.transaction(() => {
+    db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, country, plan_key, account_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'free', 'pending')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
+    db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
+                VALUES (?, ?, 'free', 'active', ?)`).run(uid('sub_'), id, ['buyer','consultant'].includes(body.role) ? 'system' : 'trial');
   });
+  tx();
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  try {
+    await issueOtp(db, user);
+  } catch (err) {
+    // Keep the pending account so a transient SMTP failure can be retried via resend.
+    throw err;
+  }
+  res.status(201).json({
+    verificationRequired: true, email: user.email,
+    message: 'أرسلنا رمز التحقق إلى بريد العمل. أكّد البريد أولاً، ثم ينتقل الحساب إلى مراجعة MMC.'
+  });
+}));
+
+/* ---------------- POST /api/auth/verify-email ---------------- */
+router.post('/verify-email', wrap(async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const code = String(req.body?.code || '').trim();
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || !/^\\d{6}$/.test(code)) throw E.validation('أدخل البريد ورمز التحقق المكوّن من 6 أرقام.');
+  const db = getDB();
+  const user = db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
+  if (!user) throw E.notFound('طلب التسجيل غير موجود.');
+  const row = db.prepare('SELECT * FROM email_verifications WHERE user_id=?').get(user.id);
+  if (!row || row.verified_at) throw E.conflict('لا يوجد رمز تحقق نشط لهذا البريد.');
+  const now = Math.floor(Date.now() / 1000);
+  if (row.expires_at < now) throw E.conflict('انتهت صلاحية الرمز. اطلب رمزاً جديداً.');
+  if (row.attempts >= OTP_MAX_ATTEMPTS) throw E.rateLimited('تجاوزت عدد المحاولات. اطلب رمزاً جديداً بعد دقيقة.');
+  const expected = Buffer.from(row.code_hash, 'hex');
+  const actual = Buffer.from(otpHash(user.id, code), 'hex');
+  if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+    db.prepare('UPDATE email_verifications SET attempts=attempts+1 WHERE user_id=?').run(user.id);
+    throw E.validation('رمز التحقق غير صحيح.');
+  }
+  db.prepare('UPDATE email_verifications SET verified_at=? WHERE user_id=?').run(now, user.id);
+  res.json({ verified: true, accountStatus: 'pending', message: 'تم تأكيد البريد الإلكتروني. طلبك الآن بانتظار مراجعة واعتماد MMC.' });
+}));
+
+/* ---------------- POST /api/auth/resend-verification ---------------- */
+router.post('/resend-verification', wrap(async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw E.validation('أدخل بريداً إلكترونياً صحيحاً.');
+  if (!mailer.enabled()) throw E.server('خدمة البريد الإلكتروني غير مفعّلة على الخادم.');
+  const db = getDB();
+  const user = db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
+  if (!user) throw E.notFound('طلب التسجيل غير موجود.');
+  const row = db.prepare('SELECT verified_at FROM email_verifications WHERE user_id=?').get(user.id);
+  if (!row || row.verified_at) throw E.conflict('لا يوجد طلب تحقق معلّق لهذا البريد.');
+  await issueOtp(db, user);
+  res.json({ sent: true, message: 'تم إرسال رمز تحقق جديد إلى بريدك.' });
 }));
 
 /* ---------------- POST /api/auth/login ---------------- */
@@ -93,6 +164,10 @@ router.post('/login', loginLimiter, wrap(async (req, res) => {
   }
   const ok = await A.verifyPassword(body.password, user.password_hash);
   if (!ok) throw generic;
+  const emailVerification = db.prepare('SELECT verified_at FROM email_verifications WHERE user_id=?').get(user.id);
+  if (emailVerification && !emailVerification.verified_at) {
+    throw E.forbidden('يجب تأكيد البريد الإلكتروني أولاً. أدخل رمز التحقق المرسل إلى بريد العمل.');
+  }
   if ((user.account_status || 'active') !== 'active') {
     const statusMessage = user.account_status === 'pending' ? 'حسابك قيد مراجعة MMC. ستتمكن من تسجيل الدخول بعد اعتماد بيانات الشركة.' : user.account_status === 'rejected' ? 'لم تتم الموافقة على طلب الحساب. يرجى التواصل مع إدارة MMC.' : 'تم إيقاف هذا الحساب. يرجى التواصل مع إدارة MMC.';
     throw E.forbidden(statusMessage);
