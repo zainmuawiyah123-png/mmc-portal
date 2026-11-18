@@ -73,24 +73,50 @@ function colIndex(ref) {
   return n-1;
 }
 function xlsxRows(buffer) {
-  const files=zipEntries(buffer), sheetName=[...files.keys()].find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));
-  if(!sheetName) throw new Error('ملف Excel لا يحتوي ورقة عمل قابلة للقراءة.');
-  const shared=[]; const ss=files.get('xl/sharedStrings.xml');
-  if(ss) for(const si of ss.matchAll(/<si(?:\s[^>]*)?>([\s\S]*?)<\/si>/g)) shared.push([...si[1].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>xmlDecode(m[1])).join(''));
-  const xml=files.get(sheetName), rows=[];
-  for(const rm of xml.matchAll(/<row(?:\s[^>]*)?>([\s\S]*?)<\/row>/g)){
-    const row=[];
-    for(const cm of rm[1].matchAll(/<c(?:\s[^>]*)?(?:\/>|>([\s\S]*?)<\/c>)/g)){
-      const tag=cm[0].slice(0,cm[0].indexOf('>')+1), ref=attr(tag,'r'), type=attr(tag,'t'), body=cm[1]||'';
-      const vm=body.match(/<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/), im=body.match(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/);
-      let value=vm?xmlDecode(vm[1]):(im?xmlDecode(im[1]):'');
-      if(type==='s') value=shared[Number(value)]??'';
-      else if(type==='inlineStr') value=[...body.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>xmlDecode(m[1])).join('');
-      const index=colIndex(ref); if(index>=0) row[index]=value;
-    }
-    rows.push(row.map(v=>v??''));
+  const files=zipEntries(buffer);
+  const ss=files.get('xl/sharedStrings.xml')||'';
+  const shared=[];
+  for(const si of ss.matchAll(/<(?:\\w+:)?si(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:\\w+:)?si>/g)) {
+    shared.push([...si[1].matchAll(/<(?:\\w+:)?t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:\\w+:)?t>/g)].map(m=>xmlDecode(m[1])).join(''));
   }
-  return rows;
+  const sheetNames=[...files.keys()].filter(k=>/^xl\\/worksheets\\/sheet\\d+\\.xml$/.test(k));
+  if(!sheetNames.length) throw new Error('ملف Excel لا يحتوي ورقة عمل قابلة للقراءة.');
+  function readSheet(xml) {
+    const rows=[];
+    for(const rm of xml.matchAll(/<(?:\\w+:)?row(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:\\w+:)?row>/g)) {
+      const row=[];
+      for(const cm of rm[1].matchAll(/<(?:\\w+:)?c(?:\\s[^>]*)?(?:\\/>|>([\\s\\S]*?)<\\/(?:\\w+:)?c>)/g)) {
+        const tag=cm[0].slice(0,cm[0].indexOf('>')+1), ref=attr(tag,'r'), type=attr(tag,'t'), body=cm[1]||'';
+        const vm=body.match(/<(?:\\w+:)?v(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:\\w+:)?v>/);
+        let value=vm?xmlDecode(vm[1]):'';
+        if(type==='s') value=shared[Number(value)]??'';
+        else if(type==='inlineStr') value=[...body.matchAll(/<(?:\\w+:)?t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:\\w+:)?t>/g)].map(m=>xmlDecode(m[1])).join('');
+        else if(type==='str'&&!vm) value='';
+        const index=colIndex(ref);
+        if(index>=0) row[index]=value;
+      }
+      rows.push(row.map(v=>v??''));
+    }
+    return rows;
+  }
+  // Do not assume sheet1 is the BOQ: workbooks often contain cover/instructions sheets first.
+  // Select the worksheet whose first 20 rows contain the greatest number of recognized BOQ headers.
+  let bestRows=[],bestScore=0;
+  for(const name of sheetNames) {
+    const rows=readSheet(files.get(name)||'');
+    let score=0;
+    for(const row of rows.slice(0,20)) {
+      const cells=row.map(normalizeHeader);
+      const found=['description','unit','quantity'].filter(field=>
+        cells.some(cell=>(ALIASES[field]||[]).some(alias=>normalizeHeader(alias)===cell))
+      ).length;
+      score=Math.max(score,found);
+    }
+    if(score>bestScore) { bestScore=score; bestRows=rows; }
+    if(score===3) return rows;
+  }
+  if(bestRows.length) return bestRows;
+  throw new Error('لم أتمكن من قراءة صفوف جدول Excel. تأكد أن الملف بصيغة XLSX غير محمية.');
 }
 function normalizeHeader(value) {
   return String(value??'').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670]/g,'').replace(/[ـ]/g,'').replace(/[\s_\-./()]+/g,'').trim();
