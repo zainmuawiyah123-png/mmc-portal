@@ -166,31 +166,33 @@ function parseBoqNumber(value){
 }
 function inferDiscipline(description){
  const d=String(description||'').toLowerCase();
- if(/demolition|dismantling|removal of doors|remove doors|ceiling removal|هدم|ازاله|إزالة|فك |قص الاسوار|قص الأسوار/.test(d))return 'Demolition & Removal';
+ // Classify by the principal work first; incidental words must not override it.
+ if(/demolition|dismantling|removal|remove |take down|ceiling removal|هدم|ازاله|إزالة|فك |تفكيك|قص الاسوار|قص الأسوار/.test(d))return 'Demolition & Removal';
+ if(/door|doors|door frame|ابواب|أبواب|باب|حلوق الابواب|حلق باب/.test(d))return 'Doors & Joinery';
+ if(/window|windows|glazing|window frame|نوافذ|شبابيك|شباك|اطار الشباك|إطار الشباك/.test(d))return 'Windows & Glazing';
+ if(/marble|granite|basalt|stone cladding|natural stone|رخام|بازلت|حجر طبيعي|كسوة حجرية|تلبيس حجر/.test(d))return 'Stone & Marble';
+ if(/tile|tiling|porcelain|ceramic|flooring|floor finish|ارضيات|أرضيات|بلاط|بورسلان|تبليط|بلاط ارضيات|بلاط أرضيات/.test(d))return 'Flooring & Tiling';
+ if(/paint|painting|vinyl silk|emulsion|decorative coating|دهان|طلاء|صبغ|معجونة|معجون|دهانات/.test(d))return 'Painting & Finishes';
+ if(/gypsum|gypsum board|false ceiling|suspended ceiling|drywall|جبس|جبص|جبصم|جبسم|اسقف مستعارة|أسقف مستعارة|سقف مستعار|بانوه|زنانير/.test(d))return 'Gypsum & Ceilings';
  if(/geotextile|geosynthetic|hdpe|geomembrane|جيوتكستايل|جيوتكستيل|غشاء بولي|بطانة الحوض|بطانه الحوض|اغشية|أغشية/.test(d))return 'Geosynthetics & Pond Lining';
  if(/riprap|rock armour|stone pitching|دبش|تدبيش|حماية حجرية|حمايه حجريه/.test(d))return 'Riprap & Slope Protection';
+ if(/insulation|insulated panel|foam concrete|polystyrene|thermal|acoustic|عازل حراري|عزل حراري|ألواح عازلة|الواح عازله|فلين|بولسترين|بوليسترين/.test(d))return 'Insulation & Wall Systems';
+ if(/waterproof|water proof|bitumen|damp proof|عزل مائي|مائي|بيتومين|لفائف عزل|دهان عازل/.test(d))return 'Waterproofing';
  if(/landscap|planting|shrubs|flowers|seedlings|garden|irrigation|شجيرات|ازهار|أزهار|اشتال|أشتال|زراعة|زراعه|تربة زراعية|تربه زراعيه|حصى سيل/.test(d))return 'Landscaping';
  if(/furniture|sofa|chair|chairs|table|tables|upholster|curtain|roller blind|zebra blind|اثاث|أثاث|كنب|كرسي|كراسي|طاولة|طاولات|ستائر|ستاره|ستارة/.test(d))return 'Furniture & Fixtures';
+ if(/cabinet|counter|reception desk|wardrobe|shelves|shelf|خزانة|خزانه|كاونتر|كونتر|رفوف|رف خشبي|خزائن|نجارة|نجاره|m\\.?d\\.?f|hdf|melamine|ميلامين|فورمايكا/.test(d))return 'Joinery & Cabinetry';
  if(/signage|sign board|illuminated sign|led sign|ارمة|أرمة|لوحة مضيئة|لوحه مضيئه|يافطة/.test(d))return 'Signage';
- if(/cabinet|counter|reception desk|wardrobe|shelves|shelf|خزانة|خزانه|كاونتر|كونتر|رفوف|رف خشبي|خزائن|نجارة|نجاره|m.d.f|mdf|hdf|melamine|ميلامين|فورمايكا/.test(d))return 'Joinery & Cabinetry';
  if(/road|pavement|asphalt|roadwork|طريق|طرق|اسفلت|أسفلت|تعبيد/.test(d))return 'Roadworks';
  if(/waste|debris|rubbish|disposal|cart away|مخلفات|نفايات|انقاض|أنقاض|ترحيل/.test(d))return 'Waste Removal';
  if(/inspection|testing|laboratory|third.party|فحص|اختبار|مختبر|ضبط الجودة|ضبط الجوده/.test(d))return 'QA/QC & Testing';
  if(/manpower|labou?r|workforce|عمالة|عماله|عمال|ايدي عامله|أيدي عاملة/.test(d))return 'Manpower';
  if(/equipment|mobilization|mobilisation|excavator|loader|dump truck|crane|معدات|آليات|اليات|حفار|جرافة|جرافه|قلاب/.test(d))return 'Plant & Equipment';
- if(/excavat|backfill|earthwork|earth work|soil|filling|حفر|ردم|تراب|تسوية|تسويه/.test(d))return 'Earthworks';
+ if(/excavat|backfill|earthwork|earth work|soil|filling|bulk excavation|حفر|ردم|تراب|تسوية|تسويه/.test(d))return 'Earthworks';
  if(/formwork|shuttering|shutter|soffit|form work|نجاره|قوالب/.test(d))return 'Formwork';
  if(/plaster|rendering|render coat|لياسه|قصاره|محاره|قصارة|محارة/.test(d))return 'Plastering';
- if(/gypsum|gypsum board|false ceiling|suspended ceiling|drywall|جبس|جبص|جبصم|جبسم|اسقف مستعارة|أسقف مستعارة|سقف مستعار|بانوه|زنانير/.test(d))return 'Gypsum & Ceilings';
- if(/tile|tiling|porcelain|ceramic|flooring|ارضيات|أرضيات|بلاط|بورسلان|تبليط/.test(d))return 'Flooring & Tiling';
- if(/marble|granite|basalt|stone cladding|رخام|بازلت|حجر طبيعي|حجر طبيعي/.test(d))return 'Stone & Marble';
- if(/paint|painting|vinyl silk|emulsion|دهان|طلاء|صبغ|معجونة|معجون/.test(d))return 'Painting & Finishes';
- if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك|بناء/.test(d))return 'Masonry';
- if(/door|doors|joinery|ابواب|أبواب|باب/.test(d))return 'Doors & Joinery';
- if(/window|windows|glazing|نوافذ|شبابيك|شباك/.test(d))return 'Windows & Glazing';
+ if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك|بناء جدران|بناء بلوك/.test(d))return 'Masonry';
  if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|اعمال معدنية|أعمال معدنية/.test(d))return 'Metalwork';
  if(/roof covering|roofing|roof membrane|تسقيف/.test(d))return 'Roofing';
- if(/waterproof|water proof|bitumen|damp proof|عزل|مائي|بيتومين|لفائف عزل|دهان عازل/.test(d))return 'Waterproofing';
  if(/concrete|\\bpcc\\b|\\brcc\\b|footing|column|beam|\\bslab\\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
  return null;
 }
