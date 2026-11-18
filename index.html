@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MMC AI — Construction Intelligence (Standalone Demo v2)</title>
+<style>
+:root{
+  --navy:#0b1e33; --navy2:#132b43; --blue:#2876c7; --cyan:#53c4dc;
+  --ink:#eaf2fb; --muted:#91a8bd; --line:#29435d; --bg:#071629;
+  --green:#169b72; --amber:#d99b32; --card:#10243d; --card2:#122b46;
+  --shadow:0 12px 32px rgba(0,0,0,.22);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(ellipse at 78% -10%,#173b5d 0,transparent 38%),#07111f;
+  color:var(--ink);
+  font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+  font-size:13px;
+  line-height:1.6;
+}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ===== Layout ===== */
+.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}
+@media(max-width:850px){.app{grid-template-columns:1fr}}
+
+.sidebar{
+  background:linear-gradient(180deg,#0b192a,#0d2238 55%,#091726);
+  color:#bdcddd;padding:22px 14px;border-right:1px solid #203a54;
+  display:flex;flex-direction:column;gap:22px;
+}
+@media(max-width:850px){.sidebar{display:none}}
+
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px}
+.brandmark{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,#50c7e6,#2879ce);
+  display:grid;place-items:center;color:white;font-weight:900;font-size:15px;
+  box-shadow:0 8px 20px #071a2c66;
+}
+.brand strong{display:block;font-size:14px;letter-spacing:.5px;color:#fff}
+.brand small{color:#9eb6cc;font-size:9px;letter-spacing:1.5px}
+
+.nav{display:grid;gap:4px}
+.nav a{
+  color:#a9bdd1;text-decoration:none;padding:9px 11px;border-radius:7px;
+  display:flex;align-items:center;gap:9px;font-size:12px;
+  border:1px solid transparent;
+}
+.nav a:hover,.nav a.active{
+  background:linear-gradient(90deg,#1c4263,#15314c);
+  border-color:#315979;color:#fff;
+}
+.nav .ico{width:18px;text-align:center;font-size:14px}
+
+.sidebottom{margin-top:auto;border-top:1px solid #29435d;padding:14px 4px 0;color:#91a9bf;font-size:10px;line-height:1.7}
+
+.main{min-width:0;min-height:100vh}
+.topbar{
+  height:60px;background:#0b1e33;border-bottom:1px solid #243a52;
+  display:flex;align-items:center;justify-content:space-between;padding:0 22px;
+  position:sticky;top:0;z-index:50;
+}
+.crumb{font-size:11px;color:#8a98a8}
+.crumb b{color:#b6c9dc}
+.topright{display:flex;align-items:center;gap:14px}
+.status{font-size:10px;color:#75dfbd;background:#123e3a;border-radius:14px;padding:5px 9px}
+.avatar{width:30px;height:30px;border-radius:50%;background:#1c3a57;color:#dce9f5;display:grid;place-items:center;font-size:11px;font-weight:700}
+
+.content{max-width:1500px;margin:auto;padding:24px 28px 48px}
+@media(max-width:850px){.content{padding:18px 14px}}
+
+/* ===== Welcome ===== */
+.welcome{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px;flex-wrap:wrap}
+.welcome h1{font-size:22px;margin:0 0 5px;color:#f5f9ff}
+.welcome p{margin:0;color:#a5b7c9;font-size:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.btn{
+  border:1px solid #34516e;background:#17324e;color:#dce9f5;
+  padding:8px 13px;border-radius:7px;font-size:12px;cursor:pointer;
+  font-family:inherit;
+}
+.btn:hover{filter:brightness(1.1)}
+.btn.primary{background:#2876c7;border-color:#2876c7;color:#fff;box-shadow:0 5px 14px #2876c733}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.small{padding:6px 9px;font-size:11px}
+
+/* ===== KPI grid ===== */
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+
+.metric{
+  background:var(--card);border:1px solid var(--line);border-radius:11px;
+  padding:14px 16px;box-shadow:var(--shadow);
+}
+.metrichead{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:10px}
+.metricicon{width:28px;height:28px;border-radius:8px;background:#1b3b5c;color:#69c8e2;display:grid;place-items:center;font-size:14px}
+.metric strong{display:block;font-size:20px;color:#f2f7fc;margin:8px 0 2px}
+.metric small{font-size:9px;color:var(--muted)}
+
+/* ===== Project showcase ===== */
+.project-showcase{
+  display:grid;grid-template-columns:1.55fr .9fr;gap:14px;margin-bottom:18px;
+  background:#101e30;border:1px solid #2a4561;border-radius:12px;overflow:hidden;
+  box-shadow:0 18px 44px #0005;
+}
+@media(max-width:850px){.project-showcase{grid-template-columns:1fr}}
+
+.project-photo{
+  min-height:240px;background:linear-gradient(135deg,#142f4b,#0b1e33);
+  position:relative;overflow:hidden;
+}
+.project-photo img{width:100%;height:100%;min-height:240px;object-fit:cover;display:block}
+.photo-empty{
+  position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  padding:20px;color:#dce9f5;background:linear-gradient(135deg,#183653,#10243d);
+}
+.photo-empty strong{display:block;font-size:16px;margin-bottom:6px}
+.photo-empty span{font-size:11px;line-height:1.7}
+.photo-label{position:absolute;bottom:10px;right:10px;background:#071629e8;color:#fff;padding:6px 9px;border-radius:6px;font-size:10px}
+
+.project-info{padding:18px 20px;display:flex;flex-direction:column;justify-content:center;gap:11px}
+.project-info h2{font-size:17px;margin:0;color:#f5f9ff}
+.project-info p{font-size:11px;color:#a5b7c9;line-height:1.7;margin:0}
+.project-tools{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.project-tools select{
+  flex:1;min-width:140px;padding:8px;border:1px solid #34516e;border-radius:6px;
+  background:#0c2036;color:#e6eef7;font-family:inherit;font-size:12px;
+}
+
+/* ===== Panels ===== */
+.panel{
+  background:var(--card);border:1px solid var(--line);border-radius:11px;
+  margin-bottom:16px;box-shadow:var(--shadow);min-width:0;
+}
+.panelhead{
+  padding:14px 16px;border-bottom:1px solid #29435d;display:flex;
+  justify-content:space-between;align-items:center;gap:10px;
+  background:linear-gradient(180deg,#122b46,#10243d);
+}
+.panelhead h2{font-size:13px;margin:0;color:#f2f7fc;font-weight:600}
+.panelhead span{font-size:9px;color:var(--muted);letter-spacing:.5px}
+.panelbody{padding:14px}
+
+.note{font-size:11px;color:var(--muted);line-height:1.7;margin:8px 2px}
+.note.warning{color:#e9bd75}
+.note.error{color:#ff9b9b}
+.note.success{color:#8fc6a0}
+
+/* ===== Forms ===== */
+.form-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:flex-end}
+.form-row label{font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.form-row input,.form-row select,.form-row textarea{
+  padding:7px 9px;border:1px solid #34516e;border-radius:6px;
+  background:#0c2036;color:#e6eef7;font-family:inherit;font-size:12px;min-width:80px;
+}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{
+  outline:2px solid #2876c7;outline-offset:1px;
+}
+
+/* ===== Drop zone ===== */
+.drop{
+  border:1.5px dashed #3a587a;border-radius:9px;background:#0b1e33;
+  padding:18px 12px;text-align:center;cursor:pointer;
+}
+.drop:hover{border-color:var(--cyan);background:#0d2239}
+.drop .cloud{font-size:24px;color:var(--cyan)}
+.drop strong{display:block;font-size:12px;color:#dce9f5;margin:6px 0}
+.drop small{color:var(--muted);font-size:10px;line-height:1.6;display:block}
+
+/* ===== Table ===== */
+.tablewrap{overflow:auto;margin-top:10px}
+table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:11px}
+th,td{text-align:right;padding:8px 11px;border-bottom:1px solid #29435d}
+th{color:#e6eef7;background:#183653;font-weight:600}
+td{color:#dce8f3;background:var(--card)}
+tr:hover td{background:#14304d}
+
+.tag{font-size:9px;border-radius:10px;padding:3px 7px;background:#244563;color:#a8c5e0;display:inline-block}
+.tag.green{background:#123e3a;color:#75dfbd}
+.tag.amber{background:#3a2e1a;color:#e9bd75}
+.tag.red{background:#3a1f1f;color:#ff9b9b}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;bottom:18px;left:18px;background:#173651;color:white;
+  padding:11px 15px;border-radius:8px;font-size:12px;box-shadow:var(--shadow);
+  display:none;z-index:200;max-width:340px;
+}
+.toast.show{display:block;animation:slideIn .25s ease-out}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ===== Discipline cards ===== */
+.disc-card{
+  border:1px solid #2a4561;border-radius:9px;padding:11px 13px;margin-bottom:10px;
+  background:#0e2440;
+}
+.disc-card .title{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;gap:7px;flex-wrap:wrap}
+.disc-card .title strong{color:#f2f7fc;font-size:12px}
+.disc-card .title small{font-size:10px;color:var(--muted)}
+
+/* ===== Quantity rule cards ===== */
+.qr-card{
+  border:1px solid #2a4561;border-radius:9px;padding:11px;margin-bottom:9px;
+}
+.qr-card.proposed{border-color:#2faa72;background:#0d2a23}
+.qr-card.incomplete{border-color:#d99b32;background:#2a1f10}
+.qr-card .title{display:flex;justify-content:space-between;gap:7px;flex-wrap:wrap;margin-bottom:5px}
+.qr-card .title strong{color:#f2f7fc;font-size:12px}
+.qr-card .title small{font-size:10px;color:var(--muted)}
+.qr-card ul{margin:5px 0 0;padding-right:18px;font-size:11px;color:#dce8f3}
+.qr-card p{margin:4px 0;font-size:11px}
+
+/* ===== Footer ===== */
+.footer{text-align:center;color:#9aa7b4;font-size:10px;padding:18px 0 0}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- Standalone demo mode: load engines + fetch shim BEFORE the page's main script runs. -->
+<script src="/mmc-ai-bundle.js"></script>
+<script src="/mmc-ai-demo-backend.js"></script>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brandmark">MMC</div>
+      <div>
+        <strong>MMC AI</strong>
+        <small>CONSTRUCTION INTELLIGENCE</small>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="#overview" class="active"><span class="ico">▦</span> Dashboard</a>
+      <a href="#drawings"><span class="ico">▣</span> Drawings</a>
+      <a href="#takeoff"><span class="ico">⌗</span> Quantity Takeoff</a>
+      <a href="#boq"><span class="ico">$</span> BOQ</a>
+      <a href="#discipline"><span class="ico">Ⓓ</span> Disciplines</a>
+      <a href="#quantityRules"><span class="ico">∑</span> Quantity Rules</a>
+    </nav>
+    <div class="sidebottom">
+      v2.0.0 — Standalone Demo<br>
+      All data stored locally in browser<br>
+      <br>
+      © 2026 MMC AI — MIT License
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">MMC / <b>Construction Intelligence</b> / Dashboard</div>
+      <div class="topright">
+        <span class="status">● Demo mode</span>
+        <div class="avatar">DE</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Welcome -->
+      <section id="overview" class="welcome">
+        <div>
+          <h1>MMC AI — Construction Intelligence</h1>
+          <p>محرّك حصر كميات CAD/DXF + تصنيف تخصصات + قواعد قياس هندسية. كل النتائج مسودة تحتاج اعتماد مهندس.</p>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="btnNewProject">＋ New Project</button>
+          <button class="btn" id="btnExport">↓ Export State</button>
+          <button class="btn" id="btnReset">Reset Demo</button>
+        </div>
+      </section>
+
+      <!-- KPI grid -->
+      <section class="grid" id="kpiGrid">
+        <div class="metric"><div class="metrichead"><span>Active Projects</span><span class="metricicon">▣</span></div><strong id="kpiProjects">0</strong><small>localStorage</small></div>
+        <div class="metric"><div class="metrichead"><span>BOQ Items</span><span class="metricicon">$</span></div><strong id="kpiBoq">0</strong><small>across all projects</small></div>
+        <div class="metric"><div class="metrichead"><span>DXF Takeoff Runs</span><span class="metricicon">⌗</span></div><strong id="kpiRuns">0</strong><small>needs_review</small></div>
+        <div class="metric"><div class="metrichead"><span>Documents</span><span class="metricicon">▦</span></div><strong id="kpiDocs">0</strong><small>uploaded DXFs</small></div>
+      </section>
+
+      <!-- Project showcase -->
+      <section class="project-showcase">
+        <div class="project-photo has-image" id="projectPhoto">
+          <img id="projectCover" src="/assets/hero-construction-site-1.jpg" alt="Construction site cover">
+          <span class="photo-label" id="photoLabel">Site cover</span>
+        </div>
+        <div class="project-info">
+          <h2 id="projectTitle">Select or create a project</h2>
+          <p id="projectDescription">اختر مشروعاً من القائمة أو أنشئ واحداً جديداً لبدء الحصر والتصنيف.</p>
+          <div class="project-tools">
+            <select id="projectSelect" aria-label="Select project">
+              <option value="">— Select project —</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Drawings upload -->
+      <section class="panel" id="drawings">
+        <div class="panelhead">
+          <h2>Drawings & Documents</h2>
+          <span>DXF UPLOAD</span>
+        </div>
+        <div class="panelbody">
+          <p class="note">ارفع ملف DXF لتشغيل الحصر الهندسي. الملف يُحفظ في الذاكرة المؤقتة للمتصفح.</p>
+          <label class="drop">
+            <div class="cloud">⬆</div>
+            <strong>Drop DXF file or click to browse</strong>
+            <small>Supports .dxf · No size limit in demo mode</small>
+            <input type="file" id="dxfFileInput" accept=".dxf" hidden>
+          </label>
+          <div id="documentsList" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- Takeoff -->
+      <section class="panel" id="takeoff">
+        <div class="panelhead">
+          <h2>DXF Takeoff</h2>
+          <span>GEOMETRY + CLASSIFICATION</span>
+        </div>
+        <div class="panelbody">
+          <div class="form-row">
+            <button class="btn primary" id="btnRunTakeoff" disabled>Run DXF Takeoff</button>
+            <button class="btn" id="btnClassify" disabled>Classify by Discipline</button>
+            <span id="takeoffStatus" class="note" style="margin:0"></span>
+          </div>
+          <div id="takeoffResult"><p class="note">Upload a DXF and select a document, then click "Run DXF Takeoff".</p></div>
+        </div>
+      </section>
+
+      <!-- Discipline classification -->
+      <section class="panel" id="discipline">
+        <div class="panelhead">
+          <h2>Discipline Classification</h2>
+          <span>LAYER → DISCIPLINE</span>
+        </div>
+        <div class="panelbody">
+          <div id="disciplineResult"><p class="note">بعد تشغيل الحصر، اضغط "Classify by Discipline" لعرض الملخص.</p></div>
+        </div>
+      </section>
+
+      <!-- Quantity rules -->
+      <section class="panel" id="quantityRules">
+        <div class="panelhead">
+          <h2>Quantity Rules</h2>
+          <span>PROPOSED · NEEDS REVIEW</span>
+        </div>
+        <div class="panelbody">
+          <p class="note">حوّل أطوال CAD إلى كميات مقترحة بقواعد صريحة. المدخلات الناقصة تُظهر الحالة "incomplete" ولا تُخمَّن.</p>
+
+          <div class="form-row">
+            <label>Wall height (m)<input type="number" id="qrWallHeight" step="0.1" min="0" placeholder="3.0"></label>
+            <label>Wall thickness (mm)<input type="number" id="qrWallThk" step="1" min="0" placeholder="200"></label>
+            <label>Column height (m)<input type="number" id="qrColHeight" step="0.1" min="0" placeholder="3.0"></label>
+            <label>Duct width (mm)<input type="number" id="qrDuctW" step="1" min="0" placeholder="400"></label>
+            <label>Duct height (mm)<input type="number" id="qrDuctH" step="1" min="0" placeholder="250"></label>
+          </div>
+
+          <div class="form-row" style="background:#0b1e33;padding:9px;border-radius:7px;border:1px solid #29435d">
+            <span style="font-size:11px;color:#a5b7c9;width:100%;font-weight:600">Opening deductions (from door/window layers × typical sizes)</span>
+            <label>Door W (m)<input type="number" id="qrDoorW" step="0.05" min="0" placeholder="0.90"></label>
+            <label>Door H (m)<input type="number" id="qrDoorH" step="0.05" min="0" placeholder="2.10"></label>
+            <label>Window W (m)<input type="number" id="qrWinW" step="0.05" min="0" placeholder="1.20"></label>
+            <label>Window H (m)<input type="number" id="qrWinH" step="0.05" min="0" placeholder="1.40"></label>
+            <label>Min deduction (m²)<input type="number" id="qrMinOpen" step="0.1" min="0" placeholder="0.5" value="0.5"></label>
+          </div>
+
+          <div class="form-row">
+            <button class="btn primary" id="btnRunQuantityRules" disabled>Apply Rules</button>
+          </div>
+          <div id="quantityRulesResult"><p class="note">شغّل حصر DXF أولاً، ثم اضغط Apply Rules.</p></div>
+        </div>
+      </section>
+
+      <!-- BOQ -->
+      <section class="panel" id="boq">
+        <div class="panelhead">
+          <h2>BOQ — Bill of Quantities</h2>
+          <span>CSV IMPORT + MANUAL</span>
+        </div>
+        <div class="panelbody">
+          <p class="note">استيراد BOQ من CSV (فاصلة أو فاصلة منقوطة، رؤوس عربية/إنجليزية) أو إضافة بند يدوي.</p>
+
+          <div class="form-row">
+            <label class="drop" style="flex:1">
+              <div class="cloud">⬆</div>
+              <strong>Upload BOQ CSV</strong>
+              <small>رقم البند;البيان;الوحدة;الكمية;سعر الوحدة</small>
+              <input type="file" id="boqCsvInput" accept=".csv,.txt" hidden>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>Code<input type="text" id="boqCode" placeholder="1.1"></label>
+            <label>Description<input type="text" id="boqDesc" placeholder="حفر عام"></label>
+            <label>Unit<input type="text" id="boqUnit" placeholder="م3"></label>
+            <label>Qty<input type="number" id="boqQty" step="0.01" placeholder="100"></label>
+            <label>Rate<input type="number" id="boqRate" step="0.01" placeholder="5"></label>
+            <button class="btn primary" id="btnAddBoq">Add Item</button>
+          </div>
+
+          <div id="boqList"></div>
+        </div>
+      </section>
+
+      <div class="footer">
+        MMC AI v2.0.0 — All quantities are proposed / needs_review ·
+        Engineering review required before contractual use · MIT License
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+  let activeProject = null;
+  let activeDocument = null;
+  let activeRun = null;
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+  function notify(msg, type){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    setTimeout(() => { t.className = 'toast'; }, 3500);
+  }
+  function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:3}); }
+  function numOrNull(id){ const el=document.getElementById(id); if(!el||!el.value) return null; const n=Number(el.value); return Number.isFinite(n)&&n>0?n:null; }
+
+  // ── Projects ─────────────────────────────────────────────────────────
+  async function loadProjects(){
+    try{
+      const r = await fetch('/api/mmc-ai/projects');
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || 'Load failed');
+      const sel = document.getElementById('projectSelect');
+      sel.innerHTML = '<option value="">— Select project —</option>';
+      for(const p of d.projects||[]){
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = p.name;
+        sel.appendChild(opt);
+      }
+      updateKpis(d.projects||[]);
+    }catch(err){ notify('Load projects failed: '+err.message); }
+  }
+
+  async function selectProject(id){
+    if(!id){ activeProject = null; document.getElementById('projectTitle').textContent = 'Select or create a project'; document.getElementById('projectDescription').textContent = 'اختر مشروعاً من القائمة أو أنشئ واحداً جديداً.'; return; }
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(id));
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || 'Project not found');
+      activeProject = d.project;
+      document.getElementById('projectTitle').textContent = activeProject.name;
+      document.getElementById('projectDescription').textContent = activeProject.description || '';
+      document.getElementById('photoLabel').textContent = activeProject.name;
+      await loadDocuments(id);
+      await loadBoq(id);
+    }catch(err){ notify(err.message); }
+  }
+
+  async function createProject(){
+    const name = prompt('Enter project name (min 3 chars):');
+    if(!name || name.trim().length < 3){ notify('Name too short'); return; }
+    try{
+      const r = await fetch('/api/mmc-ai/projects', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name: name.trim(), country:'JO', currency:'JOD' })
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || 'Create failed');
+      await loadProjects();
+      document.getElementById('projectSelect').value = d.project.id;
+      await selectProject(d.project.id);
+      notify('Project created', 'success');
+    }catch(err){ notify(err.message); }
+  }
+
+  // ── Documents ────────────────────────────────────────────────────────
+  async function loadDocuments(pid){
+    const host = document.getElementById('documentsList');
+    host.innerHTML = '';
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(pid) + '/documents');
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message);
+      const docs = d.documents || [];
+      if(!docs.length){
+        host.innerHTML = '<p class="note">No documents uploaded.</p>';
+        return;
+      }
+      for(const doc of docs){
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border:1px solid #29435d;border-radius:6px;margin-bottom:6px;background:#0e2440';
+        row.innerHTML = '<div><div style="font-size:11px;font-weight:600;color:#dce9f5">'+doc.original_name+'</div><div style="font-size:10px;color:#91a8bd">'+doc.file_ext+' · '+fmt(doc.size_bytes/1024)+' KB · '+doc.discipline+'</div></div>';
+        const btn = document.createElement('button');
+        btn.className = 'btn small';
+        btn.textContent = 'Select';
+        btn.dataset.docId = doc.id;
+        btn.addEventListener('click', () => { activeDocument = doc; document.getElementById('btnRunTakeoff').disabled = false; document.getElementById('takeoffStatus').textContent = 'Selected: ' + doc.original_name; notify('Document selected: ' + doc.original_name, 'success'); });
+        row.appendChild(btn);
+        host.appendChild(row);
+      }
+    }catch(err){ host.innerHTML = '<p class="note error">'+err.message+'</p>'; }
+  }
+
+  async function uploadDxf(file){
+    if(!activeProject){ notify('Select or create a project first'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('discipline', 'unclassified');
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(activeProject.id) + '/documents', { method:'POST', body: fd });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || 'Upload failed');
+      await loadDocuments(activeProject.id);
+      notify('DXF uploaded: ' + d.document.original_name, 'success');
+    }catch(err){ notify(err.message); }
+  }
+
+  // ── Takeoff ──────────────────────────────────────────────────────────
+  async function runTakeoff(){
+    if(!activeProject || !activeDocument){ notify('Select project + document first'); return; }
+    const btn = document.getElementById('btnRunTakeoff');
+    btn.disabled = true; btn.textContent = 'Running...';
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(activeProject.id) + '/documents/' + encodeURIComponent(activeDocument.id) + '/takeoff/dxf', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || d.error?.message || 'Takeoff failed');
+      activeRun = d.run;
+      renderTakeoff(d.run);
+      document.getElementById('btnClassify').disabled = false;
+      document.getElementById('btnRunQuantityRules').disabled = false;
+      // Auto-classify
+      await classifyDisciplines();
+      notify('Takeoff completed: ' + d.run.items.length + ' entities', 'success');
+    }catch(err){ notify(err.message); }
+    finally{ btn.disabled = false; btn.textContent = 'Run DXF Takeoff'; }
+  }
+
+  function renderTakeoff(run){
+    const host = document.getElementById('takeoffResult');
+    host.innerHTML = '';
+    const s = run.summary || {};
+    const meta = document.createElement('div');
+    meta.style.cssText = 'margin-bottom:10px;font-size:11px;color:#a5b7c9';
+    meta.innerHTML = 'Engine: <b>'+run.engine+'</b> · Status: <span class="tag amber">'+run.status+'</span> · Items: '+run.items.length+' · Length: '+fmt(s.totalLength_m)+' m · Area: '+fmt(s.totalClosedArea_m2)+' m² · Disciplines: '+(s.disciplineCount||0);
+    host.appendChild(meta);
+    const tbl = document.createElement('table');
+    tbl.innerHTML = '<thead><tr><th>#</th><th>Entity</th><th>Layer</th><th>Qty</th><th>Unit</th><th>Discipline</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    for(const it of run.items.slice(0, 50)){
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>'+it.entity_index+'</td><td>'+it.entity_type+'</td><td>'+(it.layer_name||'0')+'</td><td>'+fmt(it.quantity)+'</td><td>'+(it.unit||'')+'</td><td>'+(it.detail?.discipline||'—')+'</td>';
+      tbody.appendChild(tr);
+    }
+    tbl.appendChild(tbody);
+    host.appendChild(tbl);
+    if(run.items.length > 50){
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = 'Showing first 50 of '+run.items.length+' entities.';
+      host.appendChild(note);
+    }
+  }
+
+  // ── Discipline classification ────────────────────────────────────────
+  async function classifyDisciplines(){
+    if(!activeProject || !activeRun){ notify('Run takeoff first'); return; }
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(activeProject.id) + '/takeoff/runs/' + encodeURIComponent(activeRun.id) + '/disciplines', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({layerMap:{}})
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || 'Classification failed');
+      renderDisciplines(d.disciplines||[]);
+    }catch(err){ notify(err.message); }
+  }
+
+  function renderDisciplines(disciplines){
+    const host = document.getElementById('disciplineResult');
+    host.innerHTML = '';
+    if(!disciplines.length){
+      host.innerHTML = '<p class="note">No disciplines detected.</p>';
+      return;
+    }
+    for(const d of disciplines){
+      const card = document.createElement('div');
+      card.className = 'disc-card';
+      const lab = (d.label && d.label.ar) ? d.label.ar + ' · ' + (d.label.en||'') : d.discipline;
+      card.innerHTML = '<div class="title"><strong>'+lab+'</strong><small>'+d.layers.length+' layers</small></div>';
+      const tbl = document.createElement('table');
+      tbl.innerHTML = '<thead><tr><th>Category</th><th>Entities</th><th>Length m</th><th>Area m²</th><th>Basis</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      for(const c of d.categories||[]){
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>'+c.category+'</td><td>'+c.entities+'</td><td>'+(c.basis==='excluded'?'—':fmt(c.linework_length_m))+'</td><td>'+(c.closed_area_m2?fmt(c.closed_area_m2):'—')+'</td><td>'+c.basis+'</td>';
+        tbody.appendChild(tr);
+      }
+      tbl.appendChild(tbody);
+      card.appendChild(tbl);
+      host.appendChild(card);
+    }
+  }
+
+  // ── Quantity rules ───────────────────────────────────────────────────
+  async function runQuantityRules(){
+    if(!activeProject || !activeRun){ notify('Run takeoff first'); return; }
+    const body = {
+      defaults: {
+        wallHeightM: numOrNull('qrWallHeight'),
+        wallThicknessMm: numOrNull('qrWallThk')
+      },
+      byCategory: {
+        columns: { heightM: numOrNull('qrColHeight') },
+        ducts: { widthMm: numOrNull('qrDuctW'), heightMm: numOrNull('qrDuctH') },
+        walls: {
+          typicalDoorWidthM: numOrNull('qrDoorW'),
+          typicalDoorHeightM: numOrNull('qrDoorH'),
+          typicalWindowWidthM: numOrNull('qrWinW'),
+          typicalWindowHeightM: numOrNull('qrWinH'),
+          minOpeningDeductionM2: numOrNull('qrMinOpen') || 0.5
+        }
+      }
+    };
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(activeProject.id) + '/takeoff/runs/' + encodeURIComponent(activeRun.id) + '/quantity-rules', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || 'Quantity rules failed');
+      renderQuantityRules(d);
+      notify('Quantity rules applied — '+(d.summary?.proposed||0)+' proposed, '+(d.summary?.incomplete||0)+' incomplete', 'success');
+    }catch(err){ notify(err.message); }
+  }
+
+  function renderQuantityRules(data){
+    const host = document.getElementById('quantityRulesResult');
+    host.innerHTML = '';
+    const sum = document.createElement('p');
+    sum.className = 'note';
+    sum.textContent = (data.notice && (data.notice.ar||data.notice.en)) || '';
+    host.appendChild(sum);
+    const meta = document.createElement('p');
+    meta.style.cssText = 'font-size:11px;color:#a5b7c9;margin-bottom:10px';
+    meta.textContent = 'مقترح: '+(data.summary?.proposed||0)+' · ناقص مدخلات: '+(data.summary?.incomplete||0);
+    host.appendChild(meta);
+    for(const r of data.results||[]){
+      const card = document.createElement('div');
+      card.className = 'qr-card ' + (r.status === 'proposed' ? 'proposed' : 'incomplete');
+      const name = (r.name?.ar||'') + ' · ' + (r.name?.en||r.category);
+      card.innerHTML = '<div class="title"><strong>'+name+'</strong><small>'+(r.status==='proposed'?'مقترح · proposed':'ناقص · incomplete')+(r.ruleId?' · '+r.ruleId:'')+'</small></div>';
+      if(r.formula){ const p = document.createElement('p'); p.style.cssText='font-size:10px;color:#a5b7c9;margin:3px 0'; p.textContent = 'Formula: ' + r.formula; card.appendChild(p); }
+      if(r.reason){ const p = document.createElement('p'); p.style.cssText='font-size:11px;color:#e9bd75;margin:3px 0'; p.textContent = r.reason; card.appendChild(p); }
+      if(r.requiredInputs && r.requiredInputs.length){ const p = document.createElement('p'); p.style.cssText='font-size:10px;color:#d99b32;margin:3px 0'; p.textContent = 'Required: ' + r.requiredInputs.join(', '); card.appendChild(p); }
+      if(r.proposed && r.proposed.length){
+        const ul = document.createElement('ul');
+        for(const q of r.proposed){
+          const li = document.createElement('li');
+          li.textContent = (q.label?.ar||q.key)+': '+q.value+' '+q.unit;
+          ul.appendChild(li);
+        }
+        card.appendChild(ul);
+      }
+      if(r.assumptions && r.assumptions.length){
+        const p = document.createElement('p');
+        p.style.cssText='font-size:10px;color:#91a8bd;margin:5px 0 0';
+        p.textContent = 'Assumptions: ' + r.assumptions.slice(0,3).join(' · ');
+        card.appendChild(p);
+      }
+      host.appendChild(card);
+    }
+  }
+
+  // ── BOQ ──────────────────────────────────────────────────────────────
+  async function loadBoq(pid){
+    const host = document.getElementById('boqList');
+    host.innerHTML = '';
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(pid) + '/boq');
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message);
+      const items = d.items || [];
+      if(!items.length){
+        host.innerHTML = '<p class="note">No BOQ items yet.</p>';
+        return;
+      }
+      const tbl = document.createElement('table');
+      tbl.innerHTML = '<thead><tr><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      let total = 0;
+      for(const it of items){
+        const tr = document.createElement('tr');
+        const amount = (Number(it.quantity)||0) * (Number(it.rate)||0);
+        total += amount;
+        tr.innerHTML = '<td>'+(it.item_code||'')+'</td><td>'+it.description+'</td><td>'+it.unit+'</td><td>'+fmt(it.quantity)+'</td><td>'+fmt(it.rate)+'</td><td>'+fmt(amount)+'</td>';
+        tbody.appendChild(tr);
+      }
+      tbl.appendChild(tbody);
+      host.appendChild(tbl);
+      const totalP = document.createElement('p');
+      totalP.style.cssText = 'text-align:left;font-weight:700;color:#f2f7fc;margin-top:8px;font-size:13px';
+      totalP.textContent = 'Total: ' + fmt(total);
+      host.appendChild(totalP);
+    }catch(err){ host.innerHTML = '<p class="note error">'+err.message+'</p>'; }
+  }
+
+  async function importBoqCsv(file){
+    if(!activeProject){ notify('Select a project first'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(activeProject.id) + '/boq-imports', { method:'POST', body: fd });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || d.error?.message || 'Import failed');
+      await loadBoq(activeProject.id);
+      notify('BOQ imported: ' + d.imported + ' items, ' + d.rejected + ' rejected', 'success');
+    }catch(err){ notify(err.message); }
+  }
+
+  async function addBoqItem(){
+    if(!activeProject){ notify('Select a project first'); return; }
+    const payload = {
+      itemCode: document.getElementById('boqCode').value,
+      description: document.getElementById('boqDesc').value,
+      unit: document.getElementById('boqUnit').value,
+      quantity: document.getElementById('boqQty').value,
+      rate: document.getElementById('boqRate').value
+    };
+    if(!payload.description){ notify('Description required'); return; }
+    try{
+      const r = await fetch('/api/mmc-ai/projects/' + encodeURIComponent(activeProject.id) + '/boq', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message || 'Add failed');
+      for(const k of ['boqCode','boqDesc','boqUnit','boqQty','boqRate']) document.getElementById(k).value = '';
+      await loadBoq(activeProject.id);
+      notify('BOQ item added', 'success');
+    }catch(err){ notify(err.message); }
+  }
+
+  // ── KPIs ─────────────────────────────────────────────────────────────
+  async function updateKpis(projects){
+    document.getElementById('kpiProjects').textContent = projects.length;
+    let boqCount = 0;
+    for(const p of projects){
+      try{
+        const r = await fetch('/api/mmc-ai/projects/' + p.id + '/boq');
+        const d = await r.json();
+        boqCount += (d.items||[]).length;
+      }catch(_){}
+    }
+    document.getElementById('kpiBoq').textContent = boqCount;
+  }
+
+  // ── Export / Reset ───────────────────────────────────────────────────
+  function exportState(){
+    const state = localStorage.getItem('mmc-ai-demo-v2');
+    const blob = new Blob([state || '{}'], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'mmc-ai-demo-state.json';
+    a.click();
+    notify('State exported', 'success');
+  }
+  function resetDemo(){
+    if(!confirm('Reset all demo data? This clears projects, documents, BOQ from localStorage.')) return;
+    localStorage.removeItem('mmc-ai-demo-v2');
+    location.reload();
+  }
+
+  // ── Event wiring ─────────────────────────────────────────────────────
+  document.getElementById('btnNewProject').addEventListener('click', createProject);
+  document.getElementById('btnExport').addEventListener('click', exportState);
+  document.getElementById('btnReset').addEventListener('click', resetDemo);
+  document.getElementById('projectSelect').addEventListener('change', e => selectProject(e.target.value));
+  document.getElementById('dxfFileInput').addEventListener('change', e => {
+    if(e.target.files[0]) uploadDxf(e.target.files[0]);
+    e.target.value = '';
+  });
+  document.getElementById('boqCsvInput').addEventListener('change', e => {
+    if(e.target.files[0]) importBoqCsv(e.target.files[0]);
+    e.target.value = '';
+  });
+  document.getElementById('btnRunTakeoff').addEventListener('click', runTakeoff);
+  document.getElementById('btnClassify').addEventListener('click', classifyDisciplines);
+  document.getElementById('btnRunQuantityRules').addEventListener('click', runQuantityRules);
+  document.getElementById('btnAddBoq').addEventListener('click', addBoqItem);
+
+  // Nav scroll
+  document.querySelectorAll('.nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+      document.querySelectorAll('.nav a').forEach(n => n.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+
+  // Initial load
+  loadProjects();
+})();
+</script>
+
+</body>
+</html>

@@ -1,225 +1,203 @@
-# MMC — حزمة العروض الفنية لمشاريع المقاولات — النسخة 5
+# MMC AI — Construction Intelligence (v13, bug-fixed + standalone demo)
 
-حزمة متكاملة لتقديم العروض الفنية (Technical Proposal) لمشاريع المقاولات: نماذج جاهزة للتعبئة، دليل قراءة المخططات، جدول حساب كميات بمعادلات حقيقية، نسخة إنجليزية كاملة، نظام باقات وتسويق، وبوابة مستخدم تعمل بخادم حقيقي وقاعدة بيانات ومصادقة.
+> Deterministic CAD/DXF takeoff + discipline classification + quantity rules
+> for construction projects. Every output is `needs_review` — no quantities
+> are invented without engineer sign-off.
 
-هذا الأرشيف يحتوي **كل** ملفات النسخة 5: صفحات الويب، البوابة، كود الخادم، والمستندات (Excel و PDF و README ونتائج الاختبارات).
-
----
-
-## ١. محتويات الأرشيف
-
-```
-technical-proposal-kit_v5/
-├── README.md                  ← هذا الملف
-├── webpages/
-│   └── technical-proposal-kit_v5/     ← كل صفحات الويب (٥٠ ملفاً)
-│       ├── index.html                 ← الفهرس الموحّد (عربي / إنجليزي / باقات)
-│       ├── index-ar.html              ← الفهرس العربي
-│       ├── 01-cover-letter.html … 13-usage-guide.html   ← النماذج الـ١٤ (عربي)
-│       ├── en/                        ← النسخة الإنجليزية الكاملة (١٤ صفحة)
-│       ├── marketing/                 ← صفحات التسويق والباقات (٥ صفحات)
-│       ├── portal/pt-9f3c7a1e5b2d/    ← البوابة الخاصة (٨ صفحات + assets)
-│       └── assets/                    ← CSS و JS المشتركة
-├── documents/
-│   ├── technical-proposal-kit/        ← ملفات النسخة العربية الأولى
-│   └── technical-proposal-kit_v5/     ← ملفات النسخة 5 ← ابدأ من هنا
-│       ├── quantity-takeoff-en.xlsx   ← جدول الكميات (٧ أوراق مترابطة)
-│       ├── technical-proposal-kit-en.pdf      ← الحزمة الإنجليزية (٦٣ صفحة)
-│       ├── marketing-brochure-en.pdf          ← كتيّب التسويق (٢٢ صفحة)
-│       ├── server-README.md           ← دليل الخادم بالعربية (مفصّل)
-│       ├── test-results.txt           ← نتائج الاختبارات الفعلية
-│       └── env.example                ← نموذج متغيرات البيئة
-└── server/                    ← كود الخادم كاملاً (بدون node_modules ولا قاعدة بيانات)
-    ├── src/                   ← ١٩ ملفاً مصدرياً
-    ├── scripts/               ← الترحيل والنسخ الاحتياطي والاستعادة
-    ├── tests/                 ← ٦٥ اختباراً (٥٤ + ١١)
-    ├── package.json
-    ├── .env.example
-    └── README.md              ← دليل الخادم (نفس نسخة documents)
-```
-
-**الحجم:** ٦٥ ملفاً قبل الضغط (بدون `node_modules`). بعد فك الضغط تُنشئ `npm install` مجلد التبعيات.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status: Demo](https://img.shields.io/badge/Status-Standalone%20Demo%20v2-brightgreen)](#standalone-demo-mode)
+[![Engine: deterministic](https://img.shields.io/badge/Engine-deterministic%20JS-orange)](#engines)
 
 ---
 
-## ٢. البدء السريع — تشغيل البوابة
+## What this is
 
-### المتطلبات
-- Node.js 20 أو أحدث
-- مساحة قرص 200 م.ب على الأقل
+A patch bundle for an existing mmc-ai v13 server, plus a **standalone
+browser-only demo mode** that runs the full takeoff pipeline without any
+Node.js / SQLite / v13 backend.
 
-### الخطوات
+| Layer | What it does |
+|-------|-------------|
+| **Engines** (pure JS, no Node APIs) | DXF geometry parsing, layer→discipline classification, engineering quantity rules |
+| **Server route** (for v13 integration) | REST API: `/api/mmc-ai/projects/:id/documents/:docId/takeoff/dxf`, `/disciplines`, `/quantity-rules`, `/review`, etc. |
+| **Standalone demo** (browser-only) | `fetch` shim that intercepts `/api/mmc-ai/*` calls and routes them to in-browser engines + localStorage |
+| **Images** | 12 neubuild.ai-style royalty-free images auto-injected into page placeholders |
+
+## Quick start (standalone demo mode)
 
 ```bash
-cd server
-npm install
-cp .env.example .env
+# 1. Extract the zip
+unzip mmc-ai-v13-fixed-v2.zip -d mmc-ai-v13-fixed
+cd mmc-ai-v13-fixed
+
+# 2. Run the local preview server (Python 3, no dependencies)
+python3 serve_preview.py
+# Windows: py serve_preview.py  (or python serve_preview.py)
+
+# 3. Open in browser
+# http://localhost:8807/mmc-ai/workspace
 ```
 
-حرّر `.env` وغيّر على الأقل:
-```ini
-JWT_SECRET=<سر عشوائي ٤٨ حرفاً على الأقل>
-PORT=4000
+You'll see a green banner: "وضع تجريبي مستقل (Standalone Demo v2)".
+
+### What works in demo mode
+
+- ✅ Create / list / select projects (localStorage)
+- ✅ Upload DXF files (in-memory)
+- ✅ DXF takeoff: LINE / LWPOLYLINE / CIRCLE / ARC / INSERT (block expansion)
+- ✅ Discipline classification: 9 disciplines, 50+ categories
+- ✅ Quantity rules: 25 rules across 8 disciplines (walls, columns, beams,
+  slabs, foundations, ducts, cables, pipes, sprinklers, hydrants, roads,
+  excavation, trees, irrigation, etc.)
+- ✅ Wall net area with opening deductions (with min-deduction threshold)
+- ✅ Run review (approve / reject)
+- ✅ **BOQ CSV import** — supports comma + semicolon, quoted fields,
+  Arabic + English headers
+- ✅ Manual BOQ item entry
+- ✅ 12 neubuild.ai-style images auto-injected
+
+### What does NOT work in demo mode
+
+- ❌ PDF takeoff (needs `pdftotext` server-side)
+- ❌ BIM / IFC / GLB upload (needs file storage)
+- ❌ User layer management (POST/PATCH/DELETE on layers)
+- ❌ AI assistant
+
+These return clean JSON errors (`DEMO_LIMIT` / `DEMO_NOT_IMPLEMENTED`)
+instead of crashing the page.
+
+## Engines
+
+| Module | Purpose | Lines |
+|--------|---------|-------|
+| `discipline-layer-classifier.js` | Maps CAD layer names → 9 disciplines + 50+ categories. AIA/NCS prefixes + Arabic/English keyword tables. | ~360 |
+| `discipline-measurement-kernels.js` | Math kernels: masonry walls (with opening deductions), rectangular ductwork, routed services (pipes/cables). | ~110 |
+| `discipline-quantity-rules.js` | 25 rules that convert classified CAD rows into *proposed* engineering quantities with explicit formulas + assumptions. | ~775 |
+| `dxf-takeoff.js` | ASCII DXF parser: LINE / LWPOLYLINE / classic POLYLINE / CIRCLE / ARC / INSERT (with block expansion + transforms). $INSUNITS handling. | ~400 |
+| `drawing-element-normalizer.js` | Converts measured primitives into traceable engineering candidates with explicit layer maps. | ~130 |
+| `demo-project.js` | Illustrative demo BOQ + schedule + risks for first-time users. | ~85 |
+| `mmc-ai-takeoff.js` | Express routes wiring the engines into the v13 REST API (with auth + audit + transactions). | ~230 |
+
+## Bug fixes applied (vs upstream v13-improved-merge)
+
+| # | Bug | Severity | Fix |
+|---|-----|----------|-----|
+| 1 | `disciplines.length` ReferenceError in UI button | 🔴 Critical | Use `data.disciplines.length` |
+| 2 | BACKFILL / EARTH-FILL excluded as annotation | 🔴 Critical | Early backfill rule + `\bFILL\b` boundary |
+| 3 | Arabic "ري" substring false matches (طريق, مجاري, خريطة, مريض) | 🔴 Critical | Removed bare "ري", added specific singulars |
+| 4 | HYDRANT-MAIN → unclassified | 🟠 High | Added `HYDR` to fire_protection keyword |
+| 5 | GEN-PUMP → unclassified | 🟠 High | Added English `PUMP` to mechanical keyword |
+| 6 | جدران (plural) → unclassified | 🟡 Medium | Added plural form to walls + architectural |
+| 7 | `/boq-imports` not implemented in demo backend | 🟠 High | NEW: full CSV parser + localStorage store |
+
+See [`CHANGELOG-FIXES.md`](CHANGELOG-FIXES.md) for the full per-fix trace
+(Arabic, with test results before/after).
+
+## Project structure
+
+```
+mmc-ai-v13-fixed/
+├── .gitignore
+├── LICENSE                         ← MIT
+├── README.md                       ← this file
+├── README-FIXES.md                 ← detailed setup (English)
+├── CHANGELOG-FIXES.md              ← detailed changelog (Arabic)
+├── RELEASE_NOTES.md                ← copy-paste release description
+├── serve_preview.py                ← local preview server
+├── server/
+│   └── src/
+│       ├── lib/mmc-ai/
+│       │   ├── discipline-layer-classifier.js    ← BUG-FIXED
+│       │   ├── discipline-measurement-kernels.js
+│       │   ├── discipline-quantity-rules.js
+│       │   ├── drawing-element-normalizer.js
+│       │   ├── dxf-takeoff.js
+│       │   └── demo-project.js
+│       └── routes/mmc-ai-takeoff.js
+└── webpages/technical-proposal-kit_v5/mmc-ai/
+    ├── index.html                  ← Full standalone dashboard (NEW)
+    ├── mmc-ai-bundle.js            ← engines + image injection (auto-gen, 79 KB)
+    ├── mmc-ai-demo-backend.js      ← fetch shim + boq-imports (26 KB)
+    └── assets/                     ← 12 neubuild.ai-style images (2 MB)
+        ├── hero-construction-site-{1,2,3}.jpg
+        ├── worker-ar-tech-{1,2,3}.jpg
+        ├── bim-model-screen-{1,2,3}.jpg
+        └── dashboard-gantt-{1,2,3}.{png,jpg}
 ```
 
-لتوليد سر قوي:
-```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
-```
+## Deployment
 
-> **مهم:** ملف `.env` يُقرأ تلقائياً عند الإقلاع. لكن `.env.example` يحتوي **نصاً إرشادياً** لا سراً حقيقياً — إن نسخته كما هو وبقيت فيه القيمة الإرشادية، سيرفض الخادم الإقلاع في وضع `production` برسالة صريحة. هذا مقصود: يمنع تشغيل نظام حقيقي بسر معروف علناً.
+### Option A — Use as a patch on existing v13 server
 
-ثم:
-
-```bash
-npm run migrate          # ينشئ الجداول ويضيف الباقات الأربع
-node src/seed.js --email=me@company.com --password=Secret1234 --name="م. أحمد"
-npm start
-```
-
-افتح المتصفح على:
-```
-http://localhost:4000/portal/pt-9f3c7a1e5b2d/login.html
-```
-
-سجّل الدخول بالبريد وكلمة المرور اللذين أنشأتهما للتو.
-
-> **مهم:** الخادم يقدّم صفحات الواجهة بنفسه من `../webpages/technical-proposal-kit_v5`. لا حاجة لخادم ويب ثانٍ. لا تفتح الصفحات بـ `file://` — تسجيل الدخول والـ API لن يعملا.
-
-### تشغيل الاختبارات
-
-```bash
-npm test          # ٥٤ اختباراً — المصادقة والعطاءات والملفات والعزل
-npm run test:s3   # ١١ اختباراً — طبقة التخزين السحابي
-npm run test:all  # الاثنان معاً
-```
-
----
-
-## ٣. الصفحات الثابتة (بدون خادم)
-
-معظم صفحات الحزمة تعمل بفتحها مباشرة في المتصفح — النماذج والحقول تُحفظ في متصفحك:
-
-| ما تريده | الملف |
-|---|---|
-| الفهرس الموحّد | `webpages/technical-proposal-kit_v5/index.html` |
-| الفهرس العربي | `webpages/technical-proposal-kit_v5/index-ar.html` |
-| النماذج العربية (١٤) | `01-cover-letter.html` … `13-usage-guide.html` |
-| النسخة الإنجليزية | `webpages/technical-proposal-kit_v5/en/index.html` |
-| صفحة التسعير | `webpages/technical-proposal-kit_v5/marketing/pricing.html` |
-| صفحة الهبوط | `webpages/technical-proposal-kit_v5/marketing/landing.html` |
-| المقارنة / الأسئلة / الاشتراك | `marketing/compare.html` · `faq.html` · `subscribe.html` |
-
-**البوابة** (`portal/`) هي الجزء الوحيد الذي يحتاج الخادم.
-
----
-
-## ٤. ملفات Excel و PDF
-
-**جدول الكميات** — `documents/technical-proposal-kit_v5/quantity-takeoff-en.xlsx`
-
-سبع أوراق مترابطة بـ ١٣٥ خلية معادلة. عدّل الأبعاد في ورقة `2-Take-off` فتتحدّث `3-Summary` و`4-BOQ` و`6-Checks` تلقائياً. ورقة `6-Checks` تتحقق من خمس مطابقات وتعرض PASS/FAIL.
-
-**الملفات المطبوعة:**
-- `technical-proposal-kit-en.pdf` — الحزمة الإنجليزية كاملة (٦٣ صفحة)
-- `marketing-brochure-en.pdf` — كتيّب العرض التسويقي (٢٢ صفحة)
-
----
-
-## ٥. ⚠️ ما يجب أن تعرفه قبل الاستخدام
-
-### الأسعار إرشادية
-كميات جدول الكميات مشتقة من أبعاد معلنة ويمكن التحقق منها يدوياً. أما **أسعار الوحدات فإرشادية** — بُنيت لإثبات ترابط سلسلة حساب الكميات، وليست أسعار سوق. **استبدل كل سعر** بعرض مورد أو مقايسة مقاول من الباطن قبل أي تقديم.
-
-### البوابة نموذج تشغيلي لا خدمة إنتاجية
-المرحلة المنفَّذة تشمل: الخادم، قاعدة البيانات، المصادقة، تخزين الملفات (محلي أو S3)، والنسخ الاحتياطي. **لم تُنفَّذ بعد:**
-
-1. **معالجة المخططات آلياً** — لا استخراج جداول من PDF، ولا قراءة DWG، ولا حساب كميات تلقائي من ملف مرفوع. المخرجات تُبنى من النماذج وبيانات العطاء، والكميات تُدخل يدوياً.
-2. **الدفع** — لا Stripe/Paddle. زر الترقية يبدّل الباقة في قاعدة البيانات بلا تحصيل.
-3. **البريد والإشعارات** — لا تحقق بريد، ولا استعادة كلمة مرور، ولا إشعار عند تغيّر الحالة.
-4. **أدوار الفريق** — كل مستخدم يرى عطاءاته فقط، ولا صلاحيات متعددة داخل الحساب.
-
-### قبل الإنتاج
-- `JWT_SECRET` قوي وعشوائي (الخادم يرفض الإقلاع بسر افتراضي في الإنتاج)
-- `NODE_ENV=production` و`COOKIE_SECURE=true`
-- HTTPS عبر reverse proxy
-- مجلد S3/R2 إن أردت التخزين السحابي: `STORAGE_DRIVER=s3`
-
-التفاصيل الكاملة في `server/README.md` — القسم ١١ يشرح ما اختُبر على محاكي S3 وما لم يُختبر على سحابة حقيقية.
-
----
-
-## ٦. إعداد التخزين السحابي (اختياري)
-
-النظام يعمل محلياً بالكامل بلا أي مفاتيح. للانتقال للسحابة غيّر متغيراً واحداً:
-
-```ini
-STORAGE_DRIVER=s3
-S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
-S3_REGION=auto
-S3_BUCKET=tpkit-files
-S3_ACCESS_KEY_ID=...
-S3_SECRET_ACCESS_KEY=...
-S3_FORCE_PATH_STYLE=true
-```
-
-ثم انقل الملفات الموجودة:
-```bash
-node scripts/migrate-to-cloud.js --dry-run   # معاينة
-node scripts/migrate-to-cloud.js             # ترحيل مع تحقق SHA-256
-```
-
----
-
-## ٧. النسخ الاحتياطي والاستعادة
+Copy the server-side files over your v13 installation:
 
 ```bash
-npm run backup                                      # نسخة مضغوطة + SHA-256
-npm run restore -- --latest --to=./data/restored.db # استعادة إلى ملف جديد
+cp server/src/lib/mmc-ai/discipline-layer-classifier.js  /path/to/v13/server/src/lib/mmc-ai/
+cp server/src/lib/mmc-ai/discipline-quantity-rules.js     /path/to/v13/server/src/lib/mmc-ai/
+# ... etc for the other engine files
+cp server/src/routes/mmc-ai-takeoff.js                    /path/to/v13/server/src/routes/
 ```
 
-`VACUUM INTO` لا `cp` — نسخة متسقة والخادم يعمل. سياسة الاستبقاء: ٧ يومية + ٤ أسبوعية + ١٢ شهرية.
+Restart the v13 server. No DB migration needed.
 
-للجدولة التلقائية داخل الخادم:
-```ini
-SCHEDULER_ENABLED=true
-BACKUP_CRON=30 2 * * *
-BACKUP_TZ=Asia/Riyadh
+### Option B — Standalone demo mode (no backend)
+
+See [Quick start](#quick-start-standalone-demo-mode) above.
+
+### Option C — Publish to GitHub
+
+1. Create a new repo (or use an existing one)
+2. Push the entire `mmc-ai-v13-fixed/` folder
+3. Tag a release using the description in `RELEASE_NOTES.md`
+
+## Verification
+
+7/7 end-to-end tests pass under a Node-simulated browser environment:
+
+```
+1. Create project            → 201 ✓
+2. BOQ import (null pid)     → 400 NO_PROJECT (bilingual) ✓
+3. BOQ import (valid CSV)    → 201 imported=3 ✓
+4. List BOQ                  → 200 3 items ✓
+5. Project summary           → boqItems=3, cost=39925 ✓
+6. Manual BOQ add            → 201 amount=11520 ✓
+7. DXF takeoff               → 201 1 item ✓
 ```
 
----
+Classifier regression tests: 10/10 critical edge cases pass
+(BACKFILL, EARTH-FILL, HYDRANT-MAIN, HYDRANT-F1, GEN-PUMP, مجاري,
+طريق, جدران, خريطة, مريض).
 
-## ٨. استكشاف الأخطاء
+## Engineering philosophy
 
-| المشكلة | السبب المحتمل | الحل |
-|---|---|---|
-| صفحة بيضاء أو 404 على `/portal/...` | WEB_ROOT غير صحيح | اضبط `WEB_ROOT` على المسار المطلق لمجلد `technical-proposal-kit_v5` |
-| `Cannot find module 'better-sqlite3'` | لم يُشغَّل `npm install` | `npm install` داخل `server/` |
-| ٤٠١ على كل نقطة API | لم تسجّل الدخول أو انتهت الجلسة | سجّل الدخول من `login.html` |
-| الرفع يفشل بحجم صغير | حجم ملف كبير | ارفع `MAX_FILE_BYTES` في `.env` |
-| الخادم يرفض الإقلاع برسالة `[FATAL] JWT_SECRET` | السر إرشادي أو أقصر من ١٦ حرفاً مع `NODE_ENV=production` | ولّد سراً حقيقياً: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
-| `SQLITE_BUSY` | عمليتان تكتبان معاً | أعد المحاولة؛ النسخ الاحتياطي يستخدم عملية فرعية معزولة |
+Every quantity produced by this system carries:
 
----
+- `status: 'proposed' | 'incomplete'` (never `'approved'` automatically)
+- `reviewState: 'needs_review' | 'needs_inputs'`
+- `approvalEligible: false`
+- An `assumptions[]` array documenting every input and inference
+- A `limitations[]` array listing what was NOT included
+- A `formula` string showing the math applied
+- A `ruleId` linking back to the rule that produced it
 
+Missing inputs (height, thickness, diameter, typical door sizes) cause the
+output to be `incomplete` with a `reason` — never guessed.
 
-## ٩. النشر على استضافتك (MMC)
+Approved quantities can only come from the `/review` endpoint, which
+requires `owner`, `project_manager`, or `reviewer` role.
 
-الخادم يقدّم الواجهة والـ API معاً، فتكفي استضافة Node واحدة. الملفات الجاهزة في جذر المشروع: `Dockerfile` و`render.yaml`.
+## License
 
-**الخيار أ — Render (الأسهل):**
-1. ارفع المشروع إلى مستودع GitHub خاص بك.
-2. في Render: New → Blueprint واختر المستودع. سيقرأ `render.yaml` وينشئ الخدمة مع قرص دائم ويولّد `JWT_SECRET` تلقائياً.
-3. افتح `https://<اسم-خدمتك>.onrender.com/portal/pt-9f3c7a1e5b2d/register.html` وأنشئ حسابك.
+MIT — see [`LICENSE`](LICENSE). The engineering notice in the license
+clarifies that all output is proposed/draft and requires engineer review
+before contractual use.
 
-> القرص الدائم في Render خدمة مدفوعة. بدونه تضيع قاعدة البيانات والملفات عند كل إعادة نشر.
+## Credits
 
-**الخيار ب — أي VPS أو Railway أو Fly:** `docker build -t mmc-portal .` ثم شغّل الحاوية مع ربط `/data` بقرص دائم، وعيّن `JWT_SECRET` و`NODE_ENV=production` و`COOKIE_SECURE=true`، وضع أمامها HTTPS.
-
-**ربط دومينك:** أضفه من لوحة الاستضافة، ولا تغيّر في الكود شيئاً (الواجهة تستخدم مسارات نسبية).
-
----
-
----
-
-**آخر تحديث:** أكتوبر ٢٠٢٦ · **الإصدار:** 5.0
+- Engines, demo backend, bug fixes, standalone mode: built and verified
+  through deterministic testing.
+- Images: royalty-free stock via ZAI in-house image search (Shutterstock,
+  Alamy, LinkedIn, Milwaukee Tool, Strand Consulting, W. Bradley Electric,
+  Powerslides, Lark, Wrike, Economic Times).
+- Inspired by [neubuild.ai](https://www.neubuild.ai) visual style for
+  construction-intelligence SaaS.
