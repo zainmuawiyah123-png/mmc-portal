@@ -155,7 +155,8 @@ function createApp() {
   app.use('/api/mmc-ai', mmcAiOcrRoutes);
   app.use('/api/mmc-ai', mmcAiImageRoutes);
   app.use('/api/mmc-ai', mmcAiTakeoffRoutes);
-  app.use('/api/mmc-ai', mmcAiBoqRoutes);
+  app.use('/api/mmc-ai', mmcAiBoqRoutes.publicRouter); // Stateless spreadsheet preview; no project access
+  app.use('/api/mmc-ai', mmcAiBoqRoutes.router); // All project BOQ routes require authentication
   app.use('/api/mmc-ai', mmcAiScheduleRoutes);
   app.use('/api/mmc-ai', mmcAiRiskRoutes);
   app.use('/api/mmc-ai', mmcAiContractEventRoutes.router);
