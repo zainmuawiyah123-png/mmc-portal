@@ -89,12 +89,26 @@ router.post('/demo/analyze',(req,res)=>{
     try{spatialText=await extractPdfTextSpatial(f.buffer,{pageNumber:1});}catch(e){diagnostics.push({stage:'spatial_pdf_text',error:e.message});}
     try{vector=await inspectPdfVectorPage(f.buffer,{pageNumber:1});}catch(e){diagnostics.push({stage:'pdf_vector_geometry',error:e.message});}
     const nativeChars=nativeText?.characterCount||0;
-    // OCR is a fallback for raster-only or textless PDFs; vector geometry is reported separately.
-    if(nativeChars===0 && !(vector?.geometry?.pathCount>0)){
-      try{ocr=await ocrPdf(f.buffer,{maxPages:1,dpi:140});}catch(e){diagnostics.push({stage:'pdf_ocr_fallback',error:e.message});}
+    // A vector frame or a few native labels do not prove that the drawing annotations are readable.
+    // Run OCR when native text is absent or too sparse; keep vector extraction independent.
+    const MIN_NATIVE_TEXT_CHARS=80;
+    const ocrRequired=nativeChars<MIN_NATIVE_TEXT_CHARS;
+    if(ocrRequired){
+      try{ocr=await ocrPdf(f.buffer,{maxPages:1,dpi:140});}catch(e){diagnostics.push({stage:'pdf_ocr_fallback',error:e.message,reason:'native_text_below_threshold',nativeCharacterCount:nativeChars,minimumNativeCharacters:MIN_NATIVE_TEXT_CHARS});}
     }
-    if(nativeText){
-      try{textIntelligence=analyzePdfDrawingText(nativeText);}catch(e){diagnostics.push({stage:'drawing_text_intelligence',error:e.message});}
+    const ocrPages=Array.isArray(ocr?.pages)?ocr.pages:[];
+    const ocrWords=ocrPages.flatMap(page=>(Array.isArray(page.words)?page.words:[]).map(word=>({...word,page:page.page})));
+    const ocrText=ocrPages.map(page=>page.text||'').filter(Boolean).join('\\n');
+    const textForIntelligence=(nativeText||ocrText)?{
+      ...(nativeText||{}),
+      text:[nativeText?.text||'',ocrText].filter(Boolean).join('\\n'),
+      characterCount:(nativeText?.text||'').length+ocrText.length,
+      ocrPerformed:ocrWords.length>0,
+      ocrPageCount:ocrPages.filter(page=>page.wordCount>0).length,
+      ocrWords
+    }:null;
+    if(textForIntelligence){
+      try{textIntelligence=analyzePdfDrawingText(textForIntelligence);}catch(e){diagnostics.push({stage:'drawing_text_intelligence',error:e.message});}
     }
     const paths=(vector?.geometry?.paths||[]).map((path,index)=>{
       const xs=path.points.map(point=>point.x),ys=path.points.map(point=>point.y);
