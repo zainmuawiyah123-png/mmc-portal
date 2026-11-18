@@ -64,7 +64,7 @@ function xmlDecode(s) {
   return String(s||'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 }
 function attr(tag,name) {
-  const m=tag.match(new RegExp('(?:^|\\\\s)'+name+'="([^"]*)"'));
+  const m=tag.match(new RegExp('(?:^|\\s)'+name+'="([^"]*)"'));
   return m?xmlDecode(m[1]):'';
 }
 function colIndex(ref) {
@@ -73,19 +73,19 @@ function colIndex(ref) {
   return n-1;
 }
 function xlsxRows(buffer) {
-  const files=zipEntries(buffer), sheetName=[...files.keys()].find(k=>/^xl\\/worksheets\\/sheet\\d+\\.xml$/.test(k));
+  const files=zipEntries(buffer), sheetName=[...files.keys()].find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));
   if(!sheetName) throw new Error('ملف Excel لا يحتوي ورقة عمل قابلة للقراءة.');
   const shared=[]; const ss=files.get('xl/sharedStrings.xml');
-  if(ss) for(const si of ss.matchAll(/<si(?:\\s[^>]*)?>([\\s\\S]*?)<\\/si>/g)) shared.push([...si[1].matchAll(/<t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/t>/g)].map(m=>xmlDecode(m[1])).join(''));
+  if(ss) for(const si of ss.matchAll(/<si(?:\s[^>]*)?>([\s\S]*?)<\/si>/g)) shared.push([...si[1].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>xmlDecode(m[1])).join(''));
   const xml=files.get(sheetName), rows=[];
-  for(const rm of xml.matchAll(/<row(?:\\s[^>]*)?>([\\s\\S]*?)<\\/row>/g)){
+  for(const rm of xml.matchAll(/<row(?:\s[^>]*)?>([\s\S]*?)<\/row>/g)){
     const row=[];
-    for(const cm of rm[1].matchAll(/<c(?:\\s[^>]*)?(?:\\/>|>([\\s\\S]*?)<\\/c>)/g)){
+    for(const cm of rm[1].matchAll(/<c(?:\s[^>]*)?(?:\/>|>([\s\S]*?)<\/c>)/g)){
       const tag=cm[0].slice(0,cm[0].indexOf('>')+1), ref=attr(tag,'r'), type=attr(tag,'t'), body=cm[1]||'';
-      const vm=body.match(/<v(?:\\s[^>]*)?>([\\s\\S]*?)<\\/v>/), im=body.match(/<t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/t>/);
+      const vm=body.match(/<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/), im=body.match(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/);
       let value=vm?xmlDecode(vm[1]):(im?xmlDecode(im[1]):'');
       if(type==='s') value=shared[Number(value)]??'';
-      else if(type==='inlineStr') value=[...body.matchAll(/<t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/t>/g)].map(m=>xmlDecode(m[1])).join('');
+      else if(type==='inlineStr') value=[...body.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>xmlDecode(m[1])).join('');
       const index=colIndex(ref); if(index>=0) row[index]=value;
     }
     rows.push(row.map(v=>v??''));
@@ -106,8 +106,8 @@ const ALIASES = {
 function parseNumber(value) {
   let s=String(value??'').trim().replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
   if(!s) return null;
-  s=s.replace(/[\u066C,](?=\\d{3}(?:\\D|$))/g,'').replace(/\u066B/g,'.').replace(/,/g,'.');
-  if(!/^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$/.test(s)) return NaN;
+  s=s.replace(/[\u066C,](?=\d{3}(?:\D|$))/g,'').replace(/\u066B/g,'.').replace(/,/g,'.');
+  if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)) return NaN;
   const n=Number(s); return Number.isFinite(n)?n:NaN;
 }
 function normalizeRows(matrix) {
