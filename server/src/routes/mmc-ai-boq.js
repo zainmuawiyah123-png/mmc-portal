@@ -88,4 +88,89 @@ router.delete('/projects/:projectId/boq/:itemId',wrap(async(req,res)=>{
  audit(db,req,'boq_item_deleted',old.id,{});
  res.json({ok:true,id:old.id});
 }));
+
+
+// Spreadsheet import: CSV and XLSX (first non-empty worksheet). Upload is parsed in memory only.
+const multer=require('multer');
+const zlib=require('node:zlib');
+const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:20*1024*1024,files:1}});
+function xmlText(s){return String(s||'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));}
+function unzipEntries(buf){
+ const out={};let eocd=-1;
+ for(let i=buf.length-22;i>=Math.max(0,buf.length-65558);i--){if(buf.readUInt32LE(i)===0x06054b50){eocd=i;break;}}
+ if(eocd<0)throw E.validation('ملف XLSX غير صالح أو تالف.');
+ const count=buf.readUInt16LE(eocd+10),start=buf.readUInt32LE(eocd+16);let p=start;
+ for(let i=0;i<count;i++){
+  if(buf.readUInt32LE(p)!==0x02014b50)throw E.validation('بنية ملف XLSX غير مدعومة.');
+  const method=buf.readUInt16LE(p+10),compressed=buf.readUInt32LE(p+20),nameLen=buf.readUInt16LE(p+28),extraLen=buf.readUInt16LE(p+30),commentLen=buf.readUInt16LE(p+32),local=buf.readUInt32LE(p+42);
+  const name=buf.toString('utf8',p+46,p+46+nameLen);const lhName=buf.readUInt16LE(local+26),lhExtra=buf.readUInt16LE(local+28),dataStart=local+30+lhName+lhExtra;
+  const raw=buf.subarray(dataStart,dataStart+compressed);
+  if(!name.endsWith('/')){if(method===0)out[name]=raw;else if(method===8)out[name]=zlib.inflateRawSync(raw);else throw E.validation('طريقة ضغط XLSX غير مدعومة.');}
+  p+=46+nameLen+extraLen+commentLen;
+ }
+ return out;
+}
+function parseXlsx(buf){
+ const files=unzipEntries(buf),get=n=>files[n]?.toString('utf8')||'';
+ const shared=[...get('xl/sharedStrings.xml').matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map(m=>[...m[1].matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(x=>xmlText(x[1])).join(''));
+ const wb=get('xl/workbook.xml'),rels=get('xl/_rels/workbook.xml.rels');
+ const relation={};for(const m of rels.matchAll(/<Relationship\b([^>]*)\/?>/g)){const a=m[1],id=(a.match(/\bId="([^"]+)"/)||[])[1],target=(a.match(/\bTarget="([^"]+)"/)||[])[1];if(id&&target)relation[id]=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');}
+ const sheets=[...wb.matchAll(/<sheet\b([^>]*)\/?>/g)].map(m=>({name:(m[1].match(/\bname="([^"]+)"/)||[])[1],rid:(m[1].match(/r:id="([^"]+)"/)||[])[1]}));
+ for(const sh of sheets){const path=relation[sh.rid];if(!path||!files[path])continue;const xml=files[path].toString('utf8'),rows=[];
+  for(const rm of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)){const cells=[];for(const cm of rm[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)){const attrs=cm[1],body=cm[2],ref=(attrs.match(/\br="([A-Z]+)\d+"/)||[])[1]||'',type=(attrs.match(/\bt="([^"]+)"/)||[])[1],idx=ref.split('').reduce((n,ch)=>n*26+ch.charCodeAt(0)-64,0)-1;let val='';const v=(body.match(/<v>([\s\S]*?)<\/v>/)||[])[1];if(type==='s')val=shared[Number(v)]??'';else if(type==='inlineStr')val=[...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(x=>xmlText(x[1])).join('');else val=v==null?'':xmlText(v);cells[idx]=val;}rows.push(cells);}
+  if(rows.some(row=>row.some(v=>String(v??'').trim())))return {sheet:sh.name||'Sheet',rows};
+ }
+ throw E.validation('لم يتم العثور على ورقة تحتوي بيانات في ملف XLSX.');
+}
+function parseCsv(text){
+ const first=(text.split(/\r?\n/,1)[0]||''),delim=[',',';','\t'].sort((a,b)=>first.split(b).length-first.split(a).length)[0],rows=[];let row=[],cell='',quoted=false;
+ for(let i=0;i<text.length;i++){const ch=text[i];if(ch==='"'&&quoted&&text[i+1]==='"'){cell+='"';i++;}else if(ch==='"')quoted=!quoted;else if(ch===delim&&!quoted){row.push(cell);cell='';}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell='';}else cell+=ch;}
+ row.push(cell);if(row.some(v=>v.trim()))rows.push(row);return rows;
+}
+function headerKey(v){return String(v||'').trim().toLowerCase().replace(/[\s_\-./()]+/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه');}
+function normalizeSpreadsheet(rows){
+ if(!rows.length)throw E.validation('الملف لا يحتوي صفوفاً.');
+ const aliases={code:['itemno','itemcode','code','رقمالبند','رقمالفقرة','الكود'],description:['description','itemdescription','workdescription','scope','الوصف','وصفالبند','البيان','بيانالاعمال'],unit:['unit','uom','الوحده','الوحدة'],quantity:['quantity','qty','quantities','الكميه','الكمية'],rate:['rate','unitrate','price','unitprice','سعرالوحده','سعرالوحدة','السعر'],discipline:['discipline','trade','section','التخصص','القسم']};
+ const headers=rows[0].map(headerKey),idx={};for(const [key,opts] of Object.entries(aliases))idx[key]=headers.findIndex(h=>opts.includes(h));
+ if(idx.description<0||idx.unit<0||idx.quantity<0)throw E.validation('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم عناوين: Description, Unit, Quantity (أو العناوين العربية المكافئة).');
+ const items=[],errors=[];
+ for(let i=1;i<rows.length;i++){const row=rows[i],get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';if(!row.some(v=>String(v??'').trim()))continue;
+  const description=get('description'),unit=get('unit'),q=Number(get('quantity').replace(/,/g,'')),rateRaw=get('rate'),rate=rateRaw===''?0:Number(rateRaw.replace(/,/g,''));
+  const err=[];if(description.length<3)err.push('وصف البند مفقود أو قصير');if(!unit)err.push('الوحدة مفقودة');if(!get('quantity')||!Number.isFinite(q)||q<0)err.push('الكمية غير صالحة');if(rateRaw!==''&&(!Number.isFinite(rate)||rate<0))err.push('سعر الوحدة غير صالح');
+  if(err.length)errors.push({row:i+1,errors:err});
+  else items.push({itemCode:get('code')||null,description,unit,quantity:q,rate,discipline:get('discipline')||null,sourceRow:i+1});
+ }
+ if(!items.length)throw E.validation('لم يتم استخراج أي بنود صالحة من الملف.');
+ if(items.length>10000)throw E.validation('الملف يتجاوز الحد المسموح وهو 10,000 بند.');
+ return {items,errors,headers:rows[0].map(x=>String(x||'')),totalRows:rows.length-1};
+}
+function readBoqUpload(file){
+ const name=String(file.originalname||'').toLowerCase(),mime=String(file.mimetype||'');
+ if(name.endsWith('.csv')||mime.includes('csv'))return {sheet:'CSV',...normalizeSpreadsheet(parseCsv(file.buffer.toString('utf8').replace(/^\uFEFF/,'')))};
+ if(name.endsWith('.xlsx')||mime.includes('spreadsheetml')){const parsed=parseXlsx(file.buffer);return {sheet:parsed.sheet,...normalizeSpreadsheet(parsed.rows)};}
+ throw E.validation('الصيغ المدعومة حالياً: XLSX وCSV فقط.');
+}
+router.post('/projects/:projectId/boq/import-preview',upload.single('file'),wrap(async(req,res)=>{
+ access(req,true);if(!req.file)throw E.validation('اختر ملف Excel أو CSV أولاً.');
+ const parsed=readBoqUpload(req.file);
+ res.setHeader('Cache-Control','no-store');
+ res.json({filename:req.file.originalname,sheet:parsed.sheet,headers:parsed.headers,totalRows:parsed.totalRows,validCount:parsed.items.length,errorCount:parsed.errors.length,errors:parsed.errors,items:parsed.items,pricedCount:parsed.items.filter(x=>x.rate>0).length,unpricedCount:parsed.items.filter(x=>x.rate===0).length});
+}));
+router.post('/projects/:projectId/boq/import',wrap(async(req,res)=>{
+ access(req,true);const items=req.body?.items;
+ if(!Array.isArray(items)||!items.length||items.length>10000)throw E.validation('قائمة الاستيراد غير صالحة.');
+ const seen=new Set(),cleaned=items.map((x,i)=>{
+  const description=clean(x.description,1000),unit=clean(x.unit,24),quantity=number(x.quantity,'الكمية'),rate=number(x.rate??0,'سعر الوحدة'),itemCode=clean(x.itemCode,80)||null;
+  if(description.length<3||!unit)throw E.validation('يوجد بند بلا وصف أو وحدة في الصف '+(x.sourceRow||i+1)+'.');
+  const key=itemCode?itemCode.toLowerCase():null;if(key&&seen.has(key))throw E.validation('رقم البند مكرر داخل الملف: '+itemCode);if(key)seen.add(key);
+  return {description,unit,quantity,rate,itemCode,sourceRow:Number(x.sourceRow)||i+1,discipline:clean(x.discipline,80)||null};
+ });
+ const db=getDB(),insert=db.prepare('INSERT INTO ai_boq_items(id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by) VALUES(?,?,?,?,?,?,?,?,?)');
+ const auditInsert=db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)');
+ const transaction=db.transaction(()=>{for(const x of cleaned){const id=uid('aiboq_');insert.run(id,req.params.projectId,x.itemCode,x.description,x.unit,x.quantity,x.rate,null,req.user.id);auditInsert.run(uid('aial_'),req.params.projectId,req.user.id,'boq_item_imported','boq_item',id,JSON.stringify({sourceRow:x.sourceRow,discipline:x.discipline,rateProvided:x.rate>0}));}});
+ transaction();
+ const total=Number(cleaned.reduce((s,x)=>s+x.quantity*x.rate,0).toFixed(3));
+ res.status(201).json({ok:true,imported:cleaned.length,priced:cleaned.filter(x=>x.rate>0).length,unpriced:cleaned.filter(x=>x.rate===0).length,total});
+}));
+
 module.exports=router;
