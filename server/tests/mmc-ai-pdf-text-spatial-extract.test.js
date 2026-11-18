@@ -52,3 +52,10 @@ test('rotates Poppler bbox coordinates into SVG frame for 90 degree PDF pages',(
 test('does not transform unsupported page rotations',()=>{
  assert.equal(rotateBboxToSvgFrame({xMin:1,yMin:2,xMax:3,yMax:4},100,200,45),null);
 });
+
+test('parses SVG viewBox and physical dimensions from Poppler output',()=>{
+ const frame=parseSvgPageFrame('<svg xmlns="http://www.w3.org/2000/svg" width="2384pt" height="1684pt" viewBox="0 0 2384 1684">');
+ assert.deepEqual(frame.viewBox,[0,0,2384,1684]);
+ assert.equal(frame.physicalWidth,2384);
+ assert.equal(frame.physicalHeight,1684);
+});
