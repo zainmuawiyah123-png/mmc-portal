@@ -231,7 +231,7 @@ function normalizeSpreadsheet(rows){
   const description=get('description'),unit=get('unit'),quantityRaw=get('quantity'),q=parseBoqNumber(quantityRaw),rateRaw=get('rate'),rate=rateRaw===''?0:parseBoqNumber(rateRaw);
   // Ignore section labels, notes and wrapped continuation rows. A numbered BOQ item
   // (for example A\\1 or C/4) remains a validation error if its measurement data is missing.
-  const code=get('code'),looksLikeItemCode=/^[A-Z]{1,3}\\s*[\\\\/]\\s*\\d{1,4}[A-Z]?$/i.test(code)||/^\\d+(?:[.\\/-]\\d+)*$/.test(code);
+  const code=get('code'),looksLikeItemCode=/^[A-Z]{1,3}\s*[\\/]\s*\d{1,4}[A-Z]?$/i.test(code)||/^\d+(?:[.\/-]\d+)*$/.test(code)
   if(!unit&&!quantityRaw&&rateRaw===''&&!looksLikeItemCode){ignoredRows++;continue;}
   const err=[];if(description.length<3)err.push('وصف البند مفقود أو قصير');if(!unit)err.push('الوحدة مفقودة');if(!get('quantity')||!Number.isFinite(q)||q<0)err.push('الكمية غير صالحة');if(rateRaw!==''&&(!Number.isFinite(rate)||rate<0))err.push('سعر الوحدة غير صالح');
   if(err.length)errors.push({row:i+1,errors:err});
