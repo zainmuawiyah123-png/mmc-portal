@@ -118,7 +118,7 @@ function parseXlsx(buf){
  const relation={};for(const m of rels.matchAll(/<Relationship\b([^>]*)\/?>/g)){const a=m[1],id=(a.match(/\bId="([^"]+)"/)||[])[1],target=(a.match(/\bTarget="([^"]+)"/)||[])[1];if(id&&target)relation[id]=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');}
  const sheets=[...wb.matchAll(/<sheet\b([^>]*)\/?>/g)].map(m=>({name:(m[1].match(/\bname="([^"]+)"/)||[])[1],rid:(m[1].match(/r:id="([^"]+)"/)||[])[1]}));
  const aliases={
-  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','الوصف','وصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','بيانالعمل','البيان','تفاصيلالبند','تفاصيلالاعمال','اسمالبند','البند','الاعمال'],
+  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','نوعالعمل','نوعالاعمال','نوعالعملالرئيسي','الوصف','وصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','بيانالعمل','البيان','تفاصيلالبند','تفاصيلالاعمال','اسمالبند','البند','الاعمال'],
   unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحده','وحدة','وحدهالقياس','وحدةالقياس'],
   quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كمية','كميهالبند','كميةالبند','العدد','اجماليالكميه','اجماليالكمية','المقدار']
  };
@@ -166,6 +166,7 @@ function parseBoqNumber(value){
 }
 function inferDiscipline(description){
  const d=String(description||'').toLowerCase();
+ if(/demolition|dismantling|removal of doors|remove doors|ceiling removal|هدم|ازاله|إزالة|فك |قص الاسوار|قص الأسوار/.test(d))return 'Demolition & Removal';
  if(/geotextile|geosynthetic|hdpe|geomembrane|جيوتكستايل|جيوتكستيل|غشاء بولي|بطانة الحوض|بطانه الحوض|اغشية|أغشية/.test(d))return 'Geosynthetics & Pond Lining';
  if(/riprap|rock armour|stone pitching|دبش|تدبيش|حماية حجرية|حمايه حجريه/.test(d))return 'Riprap & Slope Protection';
  if(/road|pavement|asphalt|roadwork|طريق|طرق|اسفلت|أسفلت|تعبيد/.test(d))return 'Roadworks';
@@ -188,11 +189,11 @@ function inferDiscipline(description){
 function normalizeSpreadsheet(rows){
  if(!rows.length)throw E.validation('الملف لا يحتوي صفوفاً.');
  const aliases={
-  code:['itemno','itemnumber','itemcode','code','رقمالبند','رقمالفقرة','الكود','رقمالعنصر'],
-  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسم البند','اسمالبند','البند'],
+  code:['itemno','itemnumber','itemcode','code','الرقم','رقم','رقمالبند','رقمالفقرة','الكود','رقمالعنصر'],
+  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','نوعالعمل','نوعالاعمال','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسم البند','اسمالبند','البند'],
   unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحدهالقياس','وحدةالقياس'],
   quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كميهالبند','كميةالبند','العدد'],
-  rate:['rate','unitrate','price','unitprice','سعرالوحده','سعرالوحدة','سعرالافراد','سعرالإفراد','سعرالافرادي','السعرالافرادي','السعر','سعر'],
+  rate:['rate','unitrate','price','unitprice','دينار','د.ا','سعرالوحده','سعرالوحدة','سعرالافراد','سعرالإفراد','سعرالافرادي','السعرالافرادي','السعر','سعر'],
   discipline:['discipline','trade','section','التخصص','القسم','البندالرئيسي']
  };
  // Header rows are not always the first row: BOQs often start with a project title or blank lines.
