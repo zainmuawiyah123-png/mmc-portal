@@ -66,6 +66,25 @@ function parseBboxLayout(xhtml) {
   return pages;
 }
 
+function rotateBboxToSvgFrame(box, pageWidth, pageHeight, rotationDegrees) {
+  if (![0, 90, 180, 270].includes(rotationDegrees)) return null;
+  const corners = [
+    { x: box.xMin, y: box.yMin }, { x: box.xMax, y: box.yMin },
+    { x: box.xMax, y: box.yMax }, { x: box.xMin, y: box.yMax }
+  ].map(point => {
+    if (rotationDegrees === 90) return { x: pageHeight - point.y, y: point.x };
+    if (rotationDegrees === 180) return { x: pageWidth - point.x, y: pageHeight - point.y };
+    if (rotationDegrees === 270) return { x: point.y, y: pageWidth - point.x };
+    return point;
+  });
+  return {
+    xMin: Math.min(...corners.map(point => point.x)),
+    yMin: Math.min(...corners.map(point => point.y)),
+    xMax: Math.max(...corners.map(point => point.x)),
+    yMax: Math.max(...corners.map(point => point.y))
+  };
+}
+
 function parseSvgPageFrame(svg) {
   const root = String(svg || '').match(/<svg\\b[^>]*>/i)?.[0];
   if (!root) return null;
@@ -105,6 +124,16 @@ async function extractPdfTextSpatial(input, options = {}) {
     ], { timeout: 20000, killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024 });
     const pages = parseBboxLayout(result.stdout);
     const current = pages[0] || null;
+    let pageRotationDegrees = 0;
+    try {
+      const info = await run('pdfinfo', ['-f', String(page), '-l', String(page), pdfPath], {
+        timeout: 10000, killSignal: 'SIGKILL', maxBuffer: 1024 * 1024
+      });
+      const rotationMatch = String(info.stdout || '').match(new RegExp('Page\\s+' + page + '\\s+rot:\\s*(0|90|180|270)', 'i'));
+      if (rotationMatch) pageRotationDegrees = Number(rotationMatch[1]);
+    } catch (_) {
+      // Preserve unrotated/raw coordinates if page rotation metadata cannot be read.
+    }
     let vectorFrame = null;
     try {
       const svgPrefix = path.join(directory, 'aligned-page');
@@ -118,40 +147,52 @@ async function extractPdfTextSpatial(input, options = {}) {
     }
     if (current && vectorFrame) {
       const [originX, originY] = vectorFrame.viewBox;
-      const widthDelta = Math.abs(current.width - vectorFrame.width);
-      const heightDelta = Math.abs(current.height - vectorFrame.height);
-      const dimensionsMatch = widthDelta <= 1.5 && heightDelta <= 1.5;
+      const directWidthDelta = Math.abs(current.width - vectorFrame.width);
+      const directHeightDelta = Math.abs(current.height - vectorFrame.height);
+      const directMatch = directWidthDelta <= 1.5 && directHeightDelta <= 1.5;
+      const rotatedWidth = [90, 270].includes(pageRotationDegrees) ? current.height : current.width;
+      const rotatedHeight = [90, 270].includes(pageRotationDegrees) ? current.width : current.height;
+      const rotatedWidthDelta = Math.abs(rotatedWidth - vectorFrame.width);
+      const rotatedHeightDelta = Math.abs(rotatedHeight - vectorFrame.height);
+      const rotatedMatch = !directMatch && pageRotationDegrees !== 0 &&
+        rotatedWidthDelta <= 1.5 && rotatedHeightDelta <= 1.5;
       current.sourcePageSize = { width: current.width, height: current.height };
-      if (dimensionsMatch) {
-        current.words = current.words.map(word => ({
-          ...word,
-          box: {
-            xMin: word.box.xMin - originX, yMin: word.box.yMin - originY,
-            xMax: word.box.xMax - originX, yMax: word.box.yMax - originY
-          }
-        }));
+      current.pageRotationDegrees = pageRotationDegrees;
+      if (directMatch || rotatedMatch) {
+        current.words = current.words.map(word => {
+          const aligned = rotatedMatch
+            ? rotateBboxToSvgFrame(word.box, current.sourcePageSize.width, current.sourcePageSize.height, pageRotationDegrees)
+            : word.box;
+          return { ...word, box: {
+            xMin: aligned.xMin - originX, yMin: aligned.yMin - originY,
+            xMax: aligned.xMax - originX, yMax: aligned.yMax - originY
+          }};
+        });
         current.width = vectorFrame.width;
         current.height = vectorFrame.height;
         current.coordinateSystem = vectorFrame.coordinateSystem;
-        current.frameAlignment = 'dimensions_verified_translation_only';
+        current.frameAlignment = rotatedMatch
+          ? 'dimensions_and_pdf_rotation_verified'
+          : 'dimensions_verified_translation_only';
       } else {
         current.frameAlignment = 'not_aligned_page_dimensions_differ';
         current.frameAlignmentDiagnostics = {
           bboxPage: current.sourcePageSize,
           svgViewBox: { width: vectorFrame.width, height: vectorFrame.height },
-          widthDelta, heightDelta
+          pageRotationDegrees, directWidthDelta, directHeightDelta,
+          rotatedWidthDelta, rotatedHeightDelta
         };
       }
     }
     return {
-      engine: 'poppler-pdftotext-bbox-layout+svg-frame-v3',
+      engine: 'poppler-pdftotext-bbox-layout+svg-frame-v4',
       status: current && current.wordCount ? 'spatial_text_extracted' : 'no_spatial_text_found',
       pageNumber: page,
       pageCountReturned: pages.length,
       vectorFrame,
       page: current,
       limitations: [
-        'Text boxes use Poppler bbox positions aligned to the pdftocairo SVG viewBox when that frame is available.',
+        'Text boxes use Poppler bbox positions aligned to the pdftocairo SVG viewBox, including verified PDF page rotations of 0, 90, 180 and 270 degrees.',
         'This frame alignment does not interpret dimensions, symbols, drawing scales, or engineering element types.',
         'Image-only text requires OCR and is not included in this native text result.',
         'All boxes remain page points, not calibrated real-world dimensions.'
@@ -167,4 +208,4 @@ async function extractPdfTextSpatial(input, options = {}) {
   }
 }
 
-module.exports = { decodeXml, parseBboxLayout, parseSvgPageFrame, extractPdfTextSpatial };
+module.exports = { decodeXml, parseBboxLayout, parseSvgPageFrame, rotateBboxToSvgFrame, extractPdfTextSpatial };
