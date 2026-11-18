@@ -118,9 +118,9 @@ function parseXlsx(buf){
  const relation={};for(const m of rels.matchAll(/<Relationship\b([^>]*)\/?>/g)){const a=m[1],id=(a.match(/\bId="([^"]+)"/)||[])[1],target=(a.match(/\bTarget="([^"]+)"/)||[])[1];if(id&&target)relation[id]=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');}
  const sheets=[...wb.matchAll(/<sheet\b([^>]*)\/?>/g)].map(m=>({name:(m[1].match(/\bname="([^"]+)"/)||[])[1],rid:(m[1].match(/r:id="([^"]+)"/)||[])[1]}));
  const aliases={
-  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسمالبند','البند'],
-  unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحدهالقياس','وحدةالقياس'],
-  quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كميهالبند','كميةالبند','العدد']
+  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','الوصف','وصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','بيانالعمل','البيان','تفاصيلالبند','تفاصيلالاعمال','اسمالبند','البند','الاعمال'],
+  unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحده','وحدة','وحدهالقياس','وحدةالقياس'],
+  quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كمية','كميهالبند','كميةالبند','العدد','اجماليالكميه','اجماليالكمية','المقدار']
  };
  let best=null,bestScore=0;
  for(const sh of sheets){
@@ -159,17 +159,29 @@ function parseCsv(text){
 function headerKey(v){
  return String(v||'').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[^\p{L}\p{N}]/gu,'');
 }
+function parseBoqNumber(value){
+ const digits={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+ const normalized=String(value??'').replace(/[٠-٩۰-۹]/g,ch=>digits[ch]).replace(/[٬،]/g,'').replace(/٫/g,'.').replace(/\s/g,'');
+ return normalized===''?NaN:Number(normalized.replace(/,/g,''));
+}
 function inferDiscipline(description){
  const d=String(description||'').toLowerCase();
- if(/excavat|backfill|earthwork|earth work|soil|filling|cart away|disposal|حفر|ردم|تراب/.test(d))return 'Earthworks';
+ if(/geotextile|geosynthetic|hdpe|geomembrane|جيوتكستايل|جيوتكستيل|غشاء بولي|بطانة الحوض|بطانه الحوض|اغشية|أغشية/.test(d))return 'Geosynthetics & Pond Lining';
+ if(/riprap|rock armour|stone pitching|دبش|تدبيش|حماية حجرية|حمايه حجريه/.test(d))return 'Riprap & Slope Protection';
+ if(/road|pavement|asphalt|roadwork|طريق|طرق|اسفلت|أسفلت|تعبيد/.test(d))return 'Roadworks';
+ if(/waste|debris|rubbish|disposal|cart away|مخلفات|نفايات|انقاض|أنقاض|ترحيل/.test(d))return 'Waste Removal';
+ if(/inspection|testing|laboratory|third.party|فحص|اختبار|مختبر|ضبط الجودة|ضبط الجوده/.test(d))return 'QA/QC & Testing';
+ if(/manpower|labou?r|workforce|عمالة|عماله|عمال|ايدي عامله|أيدي عاملة/.test(d))return 'Manpower';
+ if(/equipment|mobilization|mobilisation|excavator|loader|dump truck|crane|معدات|آليات|اليات|حفار|جرافة|جرافه|قلاب/.test(d))return 'Plant & Equipment';
+ if(/excavat|backfill|earthwork|earth work|soil|filling|حفر|ردم|تراب|تسوية|تسويه/.test(d))return 'Earthworks';
  if(/formwork|shuttering|shutter|soffit|form work|نجاره|قوالب/.test(d))return 'Formwork';
- if(/plaster|rendering|render coat|لياسه|قصاره|محاره/.test(d))return 'Plastering';
+ if(/plaster|rendering|render coat|لياسه|قصاره|محاره|قصارة|محارة/.test(d))return 'Plastering';
  if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك/.test(d))return 'Masonry';
- if(/\bdoor\b|doors|joinery|ابواب|باب/.test(d))return 'Doors & Joinery';
- if(/\bwindow\b|windows|glazing|نوافذ|شبابيك/.test(d))return 'Windows & Glazing';
+ if(/\\bdoor\\b|doors|joinery|ابواب|أبواب|باب/.test(d))return 'Doors & Joinery';
+ if(/\\bwindow\\b|windows|glazing|نوافذ|شبابيك/.test(d))return 'Windows & Glazing';
  if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|حديد/.test(d))return 'Metalwork';
- if(/roof covering|roofing|waterproof|membrane|عزل|تسقيف/.test(d))return 'Roofing';
- if(/concrete|\bpcc\b|\brcc\b|footing|column|beam|\bslab\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
+ if(/roof covering|roofing|waterproof|عزل|تسقيف/.test(d))return 'Roofing';
+ if(/concrete|\\bpcc\\b|\\brcc\\b|footing|column|beam|\\bslab\\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
  return null;
 }
 function normalizeSpreadsheet(rows){
@@ -196,7 +208,7 @@ function normalizeSpreadsheet(rows){
   throw E.validation('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم Description, Unit, Quantity أو: وصف البند، الوحدة، الكمية. تأكد أن عناوين الأعمدة موجودة في أول 20 صفاً.');
  const items=[],errors=[];let ignoredRows=0;
  for(let i=headerIndex+1;i<rows.length;i++){const row=rows[i]||[],get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';if(!row.some(v=>String(v??'').trim()))continue;
-  const description=get('description'),unit=get('unit'),quantityRaw=get('quantity'),q=Number(quantityRaw.replace(/,/g,'')),rateRaw=get('rate'),rate=rateRaw===''?0:Number(rateRaw.replace(/,/g,''));
+  const description=get('description'),unit=get('unit'),quantityRaw=get('quantity'),q=parseBoqNumber(quantityRaw),rateRaw=get('rate'),rate=rateRaw===''?0:parseBoqNumber(rateRaw);
   // Descriptive section headings have no measurement fields; ignore them rather than flagging them as malformed items.
   if(description.length>=3&&!unit&&!quantityRaw){ignoredRows++;continue;}
   const err=[];if(description.length<3)err.push('وصف البند مفقود أو قصير');if(!unit)err.push('الوحدة مفقودة');if(!get('quantity')||!Number.isFinite(q)||q<0)err.push('الكمية غير صالحة');if(rateRaw!==''&&(!Number.isFinite(rate)||rate<0))err.push('سعر الوحدة غير صالح');
