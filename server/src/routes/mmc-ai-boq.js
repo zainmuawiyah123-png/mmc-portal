@@ -16,7 +16,7 @@ function itemView(x){return {...x,line_total:Number((x.quantity*x.rate).toFixed(
 router.get('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req);
  const db=getDB();
- const rows=db.prepare(`SELECT id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by,updated_at,created_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id`).all(req.params.projectId).map(itemView);
+ const rows=db.prepare(`SELECT id,project_id,item_code,discipline,description,unit,quantity,rate,source_takeoff_item_id,created_by,updated_at,created_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id`).all(req.params.projectId).map(itemView);
  // Resolve provenance only through the same project's run and document; never trust a bare source item id.
  const source=db.prepare(`SELECT i.id AS item_id,i.entity_index,i.entity_type,i.layer_name,i.quantity AS source_quantity,i.unit AS source_unit,i.detail_json,
    r.id AS run_id,r.status AS run_status,r.engine,r.document_id,r.created_at AS run_created_at,
@@ -167,7 +167,7 @@ router.post('/projects/:projectId/boq/import',wrap(async(req,res)=>{
  });
  const db=getDB(),insert=db.prepare('INSERT INTO ai_boq_items(id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by) VALUES(?,?,?,?,?,?,?,?,?)');
  const auditInsert=db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)');
- const transaction=db.transaction(()=>{for(const x of cleaned){const id=uid('aiboq_');insert.run(id,req.params.projectId,x.itemCode,x.description,x.unit,x.quantity,x.rate,null,req.user.id);auditInsert.run(uid('aial_'),req.params.projectId,req.user.id,'boq_item_imported','boq_item',id,JSON.stringify({sourceRow:x.sourceRow,discipline:x.discipline,rateProvided:x.rate>0}));}});
+ const transaction=db.transaction(()=>{for(const x of cleaned){const id=uid('aiboq_');insert.run(id,req.params.projectId,x.itemCode,x.discipline,x.description,x.unit,x.quantity,x.rate,null,req.user.id);auditInsert.run(uid('aial_'),req.params.projectId,req.user.id,'boq_item_imported','boq_item',id,JSON.stringify({sourceRow:x.sourceRow,discipline:x.discipline,rateProvided:x.rate>0}));}});
  transaction();
  const total=Number(cleaned.reduce((s,x)=>s+x.quantity*x.rate,0).toFixed(3));
  res.status(201).json({ok:true,imported:cleaned.length,priced:cleaned.filter(x=>x.rate>0).length,unpriced:cleaned.filter(x=>x.rate===0).length,total});
