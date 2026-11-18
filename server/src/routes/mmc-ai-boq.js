@@ -180,7 +180,8 @@ function inferDiscipline(description){
  if(/\\bdoor\\b|doors|joinery|ابواب|أبواب|باب/.test(d))return 'Doors & Joinery';
  if(/\\bwindow\\b|windows|glazing|نوافذ|شبابيك/.test(d))return 'Windows & Glazing';
  if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|حديد/.test(d))return 'Metalwork';
- if(/roof covering|roofing|waterproof|عزل|تسقيف/.test(d))return 'Roofing';
+ if(/roof covering|roofing|roof membrane|تسقيف/.test(d))return 'Roofing';
+ if(/waterproof|water proof|bitumen|damp proof|عزل|مائي|بيتومين|لفائف عزل|دهان عازل/.test(d))return 'Waterproofing';
  if(/concrete|\\bpcc\\b|\\brcc\\b|footing|column|beam|\\bslab\\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
  return null;
 }
@@ -191,7 +192,7 @@ function normalizeSpreadsheet(rows){
   description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسم البند','اسمالبند','البند'],
   unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحدهالقياس','وحدةالقياس'],
   quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كميهالبند','كميةالبند','العدد'],
-  rate:['rate','unitrate','price','unitprice','سعرالوحده','سعرالوحدة','السعر','سعر'],
+  rate:['rate','unitrate','price','unitprice','سعرالوحده','سعرالوحدة','سعرالافراد','سعرالإفراد','سعرالافرادي','السعرالافرادي','السعر','سعر'],
   discipline:['discipline','trade','section','التخصص','القسم','البندالرئيسي']
  };
  // Header rows are not always the first row: BOQs often start with a project title or blank lines.
