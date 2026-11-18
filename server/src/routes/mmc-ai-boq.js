@@ -159,6 +159,19 @@ function parseCsv(text){
 function headerKey(v){
  return String(v||'').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[^\p{L}\p{N}]/gu,'');
 }
+function inferDiscipline(description){
+ const d=String(description||'').toLowerCase();
+ if(/excavat|backfill|earthwork|earth work|soil|filling|cart away|disposal|حفر|ردم|تراب/.test(d))return 'Earthworks';
+ if(/formwork|shuttering|shutter|soffit|form work|نجاره|قوالب/.test(d))return 'Formwork';
+ if(/plaster|rendering|render coat|لياسه|قصاره|محاره/.test(d))return 'Plastering';
+ if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك/.test(d))return 'Masonry';
+ if(/\bdoor\b|doors|joinery|ابواب|باب/.test(d))return 'Doors & Joinery';
+ if(/\bwindow\b|windows|glazing|نوافذ|شبابيك/.test(d))return 'Windows & Glazing';
+ if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|حديد/.test(d))return 'Metalwork';
+ if(/roof covering|roofing|waterproof|membrane|عزل|تسقيف/.test(d))return 'Roofing';
+ if(/concrete|\bpcc\b|\brcc\b|footing|column|beam|\bslab\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
+ return null;
+}
 function normalizeSpreadsheet(rows){
  if(!rows.length)throw E.validation('الملف لا يحتوي صفوفاً.');
  const aliases={
@@ -181,16 +194,18 @@ function normalizeSpreadsheet(rows){
  }
  if(headerIndex<0||['description','unit','quantity'].some(k=>idx[k]<0))
   throw E.validation('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم Description, Unit, Quantity أو: وصف البند، الوحدة، الكمية. تأكد أن عناوين الأعمدة موجودة في أول 20 صفاً.');
- const items=[],errors=[];
+ const items=[],errors=[];let ignoredRows=0;
  for(let i=headerIndex+1;i<rows.length;i++){const row=rows[i]||[],get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';if(!row.some(v=>String(v??'').trim()))continue;
-  const description=get('description'),unit=get('unit'),q=Number(get('quantity').replace(/,/g,'')),rateRaw=get('rate'),rate=rateRaw===''?0:Number(rateRaw.replace(/,/g,''));
+  const description=get('description'),unit=get('unit'),quantityRaw=get('quantity'),q=Number(quantityRaw.replace(/,/g,'')),rateRaw=get('rate'),rate=rateRaw===''?0:Number(rateRaw.replace(/,/g,''));
+  // Descriptive section headings have no measurement fields; ignore them rather than flagging them as malformed items.
+  if(description.length>=3&&!unit&&!quantityRaw){ignoredRows++;continue;}
   const err=[];if(description.length<3)err.push('وصف البند مفقود أو قصير');if(!unit)err.push('الوحدة مفقودة');if(!get('quantity')||!Number.isFinite(q)||q<0)err.push('الكمية غير صالحة');if(rateRaw!==''&&(!Number.isFinite(rate)||rate<0))err.push('سعر الوحدة غير صالح');
   if(err.length)errors.push({row:i+1,errors:err});
-  else items.push({itemCode:get('code')||null,description,unit,quantity:q,rate,discipline:get('discipline')||null,sourceRow:i+1});
+  else items.push({itemCode:get('code')||null,description,unit,quantity:q,rate,discipline:get('discipline')||inferDiscipline(description),sourceRow:i+1});
  }
  if(!items.length)throw E.validation('لم يتم استخراج أي بنود صالحة من الملف.');
  if(items.length>3000)throw E.validation('الملف يتجاوز الحد المسموح وهو 3,000 بند لكل عملية استيراد.');
- return {items,errors,headers:rows[headerIndex].map(x=>String(x||'')),headerRow:headerIndex+1,totalRows:rows.length-headerIndex-1};
+ return {items,errors,ignoredRows,headers:rows[headerIndex].map(x=>String(x||'')),headerRow:headerIndex+1,totalRows:rows.length-headerIndex-1};
 }
 function readBoqUpload(file){
  const name=String(file.originalname||'').toLowerCase(),mime=String(file.mimetype||'');
@@ -202,7 +217,7 @@ router.post('/projects/:projectId/boq/import-preview',upload.single('file'),wrap
  access(req,true);if(!req.file)throw E.validation('اختر ملف Excel أو CSV أولاً.');
  const parsed=readBoqUpload(req.file);
  res.setHeader('Cache-Control','no-store');
- res.json({filename:req.file.originalname,sheet:parsed.sheet,headers:parsed.headers,totalRows:parsed.totalRows,validCount:parsed.items.length,errorCount:parsed.errors.length,errors:parsed.errors,items:parsed.items,pricedCount:parsed.items.filter(x=>x.rate>0).length,unpricedCount:parsed.items.filter(x=>x.rate===0).length});
+ res.json({filename:req.file.originalname,sheet:parsed.sheet,headers:parsed.headers,totalRows:parsed.totalRows,validCount:parsed.items.length,errorCount:parsed.errors.length,ignoredRows:parsed.ignoredRows,errors:parsed.errors,items:parsed.items,pricedCount:parsed.items.filter(x=>x.rate>0).length,unpricedCount:parsed.items.filter(x=>x.rate===0).length});
 }));
 router.post('/projects/:projectId/boq/import',wrap(async(req,res)=>{
  access(req,true);const items=req.body?.items;
@@ -230,7 +245,7 @@ publicRouter.post('/public-boq-preview',upload.single('file'),wrap(async(req,res
  const knownTotal=Number(parsed.items.reduce((s,x)=>s+x.quantity*x.rate,0).toFixed(3));
  const disciplines=Object.entries(parsed.items.reduce((a,x)=>{const k=x.discipline||'غير مصنف';a[k]=(a[k]||0)+1;return a;},{})).map(([discipline,count])=>({discipline,count}));
  res.setHeader('Cache-Control','no-store');
- res.json({mode:'public_preview_only',persisted:false,filename:req.file.originalname,sheet:parsed.sheet,totalRows:parsed.totalRows,items:parsed.items,errors:parsed.errors,summary:{itemCount:parsed.items.length,pricedCount:priced.length,unpricedCount:unpriced.length,knownPricedTotal:knownTotal,disciplineBreakdown:disciplines},scheduleCandidates:parsed.items.map((x,i)=>({sequence:i+1,code:x.itemCode,activity:x.description,discipline:x.discipline||null,quantity:x.quantity,unit:x.unit,durationDays:null,status:'requires_productivity_resources_and_logic'})),riskSignals:[...(unpriced.length?[{type:'missing_unit_rates',count:unpriced.length,severity:'commercial_input_required'}]:[]),...(parsed.items.some(x=>!x.discipline)?[{type:'unclassified_discipline',count:parsed.items.filter(x=>!x.discipline).length,severity:'classification_required'}]:[]),...(parsed.errors.length?[{type:'invalid_rows',count:parsed.errors.length,severity:'data_quality'}]:[])]});
+ res.json({mode:'public_preview_only',persisted:false,filename:req.file.originalname,sheet:parsed.sheet,totalRows:parsed.totalRows,items:parsed.items,errors:parsed.errors,summary:{itemCount:parsed.items.length,pricedCount:priced.length,unpricedCount:unpriced.length,knownPricedTotal:knownTotal,ignoredRows:parsed.ignoredRows,disciplineBreakdown:disciplines},scheduleCandidates:parsed.items.map((x,i)=>({sequence:i+1,code:x.itemCode,activity:x.description,discipline:x.discipline||null,quantity:x.quantity,unit:x.unit,durationDays:null,status:'requires_productivity_resources_and_logic'})),riskSignals:[...(unpriced.length?[{type:'missing_unit_rates',count:unpriced.length,severity:'commercial_input_required'}]:[]),...(parsed.items.some(x=>!x.discipline)?[{type:'unclassified_discipline',count:parsed.items.filter(x=>!x.discipline).length,severity:'classification_required'}]:[]),...(parsed.errors.length?[{type:'invalid_rows',count:parsed.errors.length,severity:'data_quality'}]:[])]});
 }));
 
 
