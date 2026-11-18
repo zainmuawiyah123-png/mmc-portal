@@ -144,10 +144,17 @@
 
     busy(true);
     API.login({email:email,password:pass}).then(function(res){
-      showAlert(T('تم تسجيل الدخول. جارٍ التحويل…','Signed in. Redirecting…'),'ok');
-      var next=new URLSearchParams(location.search).get('next');
-      if(!next) next=(res.user && res.user.role==='admin') ? '../../admin/index.html' : (res.user && res.user.role==='buyer' ? '/consulting/requester/' : (res.user && res.user.role==='consultant' ? '/consulting/' : 'index.html'));
-      setTimeout(function(){ location.replace(safeNext(next)); }, 350);
+      // Verify the cookie-backed session before navigating; never send the user into a redirect loop.
+      return API.me().then(function(session){
+        showAlert(T('تم التحقق من الجلسة. جارٍ فتح مساحة العمل…','Session verified. Opening your workspace…'),'ok');
+        var user=(session && session.user) || res.user || {};
+        var next=new URLSearchParams(location.search).get('next');
+        if(!next) next=(user.role==='admin') ? '../../admin/index.html' : (user.role==='buyer' ? '/consulting/requester/' : (user.role==='consultant' ? '/consulting/' : 'index.html'));
+        location.replace(safeNext(next));
+      }).catch(function(){
+        busy(false, defaultLabel);
+        showAlert(T('تم قبول كلمة المرور، لكن المتصفح لم يحتفظ بجلسة الدخول. لم نعد توجيهك حتى لا تدخل في حلقة متكررة. يرجى السماح بملفات تعريف الارتباط لهذا الموقع.','Password accepted, but the browser did not retain the session. You have not been redirected, to avoid a sign-in loop. Please allow cookies for this site.'),'err');
+      });
     }).catch(function(err){
       busy(false, defaultLabel);
       if(err.status===429){
