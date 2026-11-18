@@ -32,7 +32,7 @@ $('run').addEventListener('click',async()=>{
  try{
   const fd=new FormData();fd.append('file',f);
   const r=await fetch('/api/mmc-ai/public-boq-preview',{method:'POST',body:fd});
-  const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not analyze spreadsheet.');
+  const d=await r.json();if(!r.ok)throw new Error(d.message||d.error?.message||d.error?.details||('HTTP '+r.status+' · '+JSON.stringify(d)));
   $('status').textContent='Analysis complete · '+d.filename+' · worksheet: '+d.sheet+' · '+d.totalRows+' source rows.';
   const s=d.summary;
   const cards=[['Valid BOQ items',s.itemCount],['With unit rates',s.pricedCount],['Awaiting rates',s.unpricedCount],['Known priced total',s.knownPricedTotal.toLocaleString(undefined,{maximumFractionDigits:3})]];
