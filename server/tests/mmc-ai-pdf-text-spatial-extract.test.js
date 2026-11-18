@@ -40,3 +40,15 @@ test('parses numeric attributes using real word boundaries', () => {
   assert.equal(pages[0].words[0].box.xMin, 10);
   assert.equal(pages[0].words[0].box.yMax, 40);
 });
+
+test('rotates Poppler bbox coordinates into SVG frame for 270 degree PDF pages',()=>{
+ const result=rotateBboxToSvgFrame({xMin:100,yMin:200,xMax:140,yMax:240},1684,2384,270);
+ assert.deepEqual(result,{xMin:200,yMin:1544,xMax:240,yMax:1584});
+});
+test('rotates Poppler bbox coordinates into SVG frame for 90 degree PDF pages',()=>{
+ const result=rotateBboxToSvgFrame({xMin:100,yMin:200,xMax:140,yMax:240},1684,2384,90);
+ assert.deepEqual(result,{xMin:2144,yMin:100,xMax:2184,yMax:140});
+});
+test('does not transform unsupported page rotations',()=>{
+ assert.equal(rotateBboxToSvgFrame({xMin:1,yMin:2,xMax:3,yMax:4},100,200,45),null);
+});
