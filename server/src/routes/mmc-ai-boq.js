@@ -1,10 +1,18 @@
 'use strict';
 /** Project BOQ and estimate workspace. No tender/procurement tables are modified. */
 const express=require('express');
+const multer=require('multer');
+const path=require('node:path');
+const {parseBoqFile}=require('../lib/mmc-ai/boq-import');
 const {getDB,uid}=require('../db');
 const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const router=express.Router();
+const importUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1,fields:0},fileFilter(req,file,cb){
+ const ext=path.extname(file.originalname||'').toLowerCase();
+ if(!['.xlsx','.csv'].includes(ext)) return cb(E.validation('يدعم استيراد BOQ ملفات XLSX وCSV فقط.'));
+ cb(null,true);
+}});
 router.use(A.requireAuth);
 const EDIT=new Set(['owner','project_manager','engineer','quantity_surveyor']);
 function member(projectId,userId){return getDB().prepare(`SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?`).get(projectId,userId)||null;}
@@ -13,6 +21,29 @@ function audit(db,req,action,itemId,detail){db.prepare(`INSERT INTO ai_audit_log
 function clean(v,max){return String(v==null?'':v).trim().slice(0,max);}
 function number(v,label){const n=Number(v);if(!Number.isFinite(n)||n<0||n>1e12)throw E.validation(label+' يجب أن يكون رقماً موجباً صالحاً.');return n;}
 function itemView(x){return {...x,line_total:Number((x.quantity*x.rate).toFixed(3))};}
+router.post('/projects/:projectId/boq/import',importUpload.single('file'),wrap(async(req,res)=>{
+ access(req,true);
+ if(!req.file) throw E.validation('اختر ملف Excel أو CSV أولاً.');
+ let parsed;
+ try{parsed=parseBoqFile({buffer:req.file.buffer,filename:req.file.originalname});}
+ catch(err){throw E.validation(err.message||'تعذر قراءة ملف BOQ.');}
+ if(!parsed.items.length) return res.status(422).json({error:'لا توجد بنود صالحة للاستيراد.',summary:parsed.summary,errors:parsed.errors});
+ const db=getDB(),created=[];
+ const insert=db.prepare(`INSERT INTO ai_boq_items(id,project_id,item_code,description,unit,quantity,rate,created_by) VALUES(?,?,?,?,?,?,?,?)`);
+ const tx=db.transaction(()=>{
+  for(const item of parsed.items){
+   const id=uid('aiboq_');
+   // The current BOQ schema requires a numeric rate. Missing rates are stored as zero,
+   // and explicitly counted in the response so they are not mistaken for quoted prices.
+   insert.run(id,req.params.projectId,item.itemCode,item.description,item.unit,item.quantity,item.rate??0,req.user.id);
+   created.push({id,...item,rate:item.rate??0,rateMissing:item.rate===null});
+  }
+  db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)`)
+   .run(uid('aial_'),req.params.projectId,req.user.id,'boq_items_imported','boq_import',null,JSON.stringify({filename:req.file.originalname,format:parsed.sourceFormat,imported:created.length,errorRows:parsed.errors.length,missingRates:created.filter(x=>x.rateMissing).length}));
+ });
+ tx();
+ res.status(201).json({items:created,summary:{...parsed.summary,imported:created.length,missingRates:created.filter(x=>x.rateMissing).length},errors:parsed.errors,notice:'تم استيراد البنود الصالحة فقط. الصفوف غير الصالحة معروضة في الأخطاء ولم تُسقط بصمت. السعر المفقود حُفظ بصفر بسبب قيد قاعدة البيانات ومُعلّم بأنه غير مدخل.'});
+}));
 router.get('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req);
  const rows=getDB().prepare(`SELECT id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by,updated_at,created_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id`).all(req.params.projectId).map(itemView);
