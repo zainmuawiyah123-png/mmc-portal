@@ -93,9 +93,11 @@ router.post('/demo/analyze',(req,res)=>{
     // A vector frame or a few native labels do not prove that the drawing annotations are readable.
     // Run OCR when native text is absent or too sparse; keep vector extraction independent.
     const MIN_NATIVE_TEXT_CHARS=80;
-    const ocrRequired=nativeChars<MIN_NATIVE_TEXT_CHARS;
+    const MIN_NATIVE_SPATIAL_WORDS=120;
+    const nativeSpatialWordCount=spatialText?.page?.wordCount||0;
+    const ocrRequired=nativeChars<MIN_NATIVE_TEXT_CHARS||nativeSpatialWordCount<MIN_NATIVE_SPATIAL_WORDS;
     if(ocrRequired){
-      try{ocr=await ocrPdf(f.buffer,{maxPages:1,dpi:140});}catch(e){diagnostics.push({stage:'pdf_ocr_fallback',error:e.message,reason:'native_text_below_threshold',nativeCharacterCount:nativeChars,minimumNativeCharacters:MIN_NATIVE_TEXT_CHARS});}
+      try{ocr=await ocrPdf(f.buffer,{maxPages:1,dpi:140});}catch(e){diagnostics.push({stage:'pdf_ocr_fallback',error:e.message,reason:nativeChars<MIN_NATIVE_TEXT_CHARS?'native_text_below_character_threshold':'sparse_native_spatial_text',nativeCharacterCount:nativeChars,minimumNativeCharacters:MIN_NATIVE_TEXT_CHARS,nativeSpatialWordCount,minimumNativeSpatialWords:MIN_NATIVE_SPATIAL_WORDS});}
     }
     const ocrPages=Array.isArray(ocr?.pages)?ocr.pages:[];
     const ocrWords=ocrPages.flatMap(page=>(Array.isArray(page.words)?page.words:[]).map(word=>({...word,page:page.page})));
