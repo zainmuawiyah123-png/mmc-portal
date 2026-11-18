@@ -652,7 +652,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/import-preview',{method:'POST',credentials:'same-origin',body:fd});
    const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not read BOQ file.');
    pendingBoqImport=d.items;importButton.disabled=!d.items.length;
-   importStatus.textContent='File: '+d.filename+' · Sheet: '+d.sheet+' · Rows: '+d.totalRows+' · Valid: '+d.validCount+' · Invalid: '+d.errorCount+' · With rates: '+d.pricedCount+' · Without rates: '+d.unpricedCount+'. Invalid rows will be skipped; verify the preview before importing.';
+   importStatus.textContent='File: '+d.filename+' · Sheet: '+d.sheet+' · Rows: '+d.totalRows+' · Valid: '+d.validCount+' · Invalid: '+d.errorCount+' · Section headings ignored: '+(d.ignoredRows||0)+' · With rates: '+d.pricedCount+' · Without rates: '+d.unpricedCount+'. Classified disciplines are inferred from item descriptions where possible; verify the preview before importing.';
    const table=document.createElement('table');table.style.width='100%';const head=document.createElement('tr');
    for(const label of ['Row','Item No.','Description','Unit','Quantity','Rate','Discipline']){const th=document.createElement('th');th.textContent=label;head.appendChild(th);}const thead=document.createElement('thead');thead.appendChild(head);table.appendChild(thead);
    const tbody=document.createElement('tbody');
