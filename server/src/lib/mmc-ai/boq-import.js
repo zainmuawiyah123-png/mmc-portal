@@ -138,8 +138,7 @@ function normalizeRows(matrix) {
     if(issue.length) errors.push({rowNumber:i+1,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
       if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:i+1,duplicateOfRowNumber:seen.get(key),item});}
-      else seen.set(key,i+1);
-      items.push(item);
+      else { seen.set(key,i+1); items.push(item); }
     }
   }
   return {headerRow:headerIndex+1,items,errors,duplicates,summary:{rowsRead:matrix.length-headerIndex-1,validItems:items.length,errorRows:errors.length,duplicateRows:duplicates.length}};
