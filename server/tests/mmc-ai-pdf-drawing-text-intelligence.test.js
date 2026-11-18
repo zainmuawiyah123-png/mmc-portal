@@ -291,3 +291,25 @@ test('captures reinforcement distribution hints such as each way and each face',
   assert.ok(candidates.some(item => item.diameterMm === 16 && item.spacingMm === 200 && item.distribution === 'each_face'));
   assert.ok(candidates.every(item => item.measurementEligible === false && item.totalSteelMassKg === null));
 });
+
+
+test('native PDF text boxes are grouped spatially and dimension callouts remain unverified',()=>{
+ const result=analyzePdfDrawingText({
+  text:'PLAN',
+  nativeSpatialWords:[
+   {text:'6000',box:{xMin:100,yMin:100,xMax:140,yMax:112}},
+   {text:'mm',box:{xMin:142,yMin:100,xMax:158,yMax:112}},
+   {text:'B1',box:{xMin:160,yMin:100,xMax:176,yMax:112}},
+   {text:'300',box:{xMin:100,yMin:160,xMax:124,yMax:172}},
+   {text:'x',box:{xMin:126,yMin:160,xMax:132,yMax:172}},
+   {text:'600',box:{xMin:134,yMin:160,xMax:158,yMax:172}}
+  ],
+  nativeSpatialPageNumber:1,nativeSpatialPageWidth:2000,nativeSpatialPageHeight:1400
+ });
+ assert.equal(result.metadata.nativeSpatialLines.length,2);
+ assert.match(result.metadata.nativeSpatialLines[0].text,/6000 mm B1/);
+ assert.equal(result.metadata.nativeSpatialDimensionCandidates[0].raw,'6000 mm');
+ assert.equal(result.metadata.nativeSpatialDimensionCandidates[0].measurementEligible,false);
+ assert.equal(result.metadata.nativeSpatialElementCandidates[0].measurementEligible,false);
+ assert.equal(result.metadata.nativeSpatialElementCandidates[0].source,'native PDF text and page-coordinate proximity; not verified geometry');
+});
