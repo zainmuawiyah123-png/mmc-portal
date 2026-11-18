@@ -169,6 +169,10 @@ function inferDiscipline(description){
  if(/demolition|dismantling|removal of doors|remove doors|ceiling removal|هدم|ازاله|إزالة|فك |قص الاسوار|قص الأسوار/.test(d))return 'Demolition & Removal';
  if(/geotextile|geosynthetic|hdpe|geomembrane|جيوتكستايل|جيوتكستيل|غشاء بولي|بطانة الحوض|بطانه الحوض|اغشية|أغشية/.test(d))return 'Geosynthetics & Pond Lining';
  if(/riprap|rock armour|stone pitching|دبش|تدبيش|حماية حجرية|حمايه حجريه/.test(d))return 'Riprap & Slope Protection';
+ if(/landscap|planting|shrubs|flowers|seedlings|garden|irrigation|شجيرات|ازهار|أزهار|اشتال|أشتال|زراعة|زراعه|تربة زراعية|تربه زراعيه|حصى سيل/.test(d))return 'Landscaping';
+ if(/furniture|sofa|chair|chairs|table|tables|upholster|curtain|roller blind|zebra blind|اثاث|أثاث|كنب|كرسي|كراسي|طاولة|طاولات|ستائر|ستاره|ستارة/.test(d))return 'Furniture & Fixtures';
+ if(/signage|sign board|illuminated sign|led sign|ارمة|أرمة|لوحة مضيئة|لوحه مضيئه|يافطة/.test(d))return 'Signage';
+ if(/cabinet|counter|reception desk|wardrobe|shelves|shelf|خزانة|خزانه|كاونتر|كونتر|رفوف|رف خشبي|خزائن|نجارة|نجاره|m.d.f|mdf|hdf|melamine|ميلامين|فورمايكا/.test(d))return 'Joinery & Cabinetry';
  if(/road|pavement|asphalt|roadwork|طريق|طرق|اسفلت|أسفلت|تعبيد/.test(d))return 'Roadworks';
  if(/waste|debris|rubbish|disposal|cart away|مخلفات|نفايات|انقاض|أنقاض|ترحيل/.test(d))return 'Waste Removal';
  if(/inspection|testing|laboratory|third.party|فحص|اختبار|مختبر|ضبط الجودة|ضبط الجوده/.test(d))return 'QA/QC & Testing';
@@ -177,10 +181,14 @@ function inferDiscipline(description){
  if(/excavat|backfill|earthwork|earth work|soil|filling|حفر|ردم|تراب|تسوية|تسويه/.test(d))return 'Earthworks';
  if(/formwork|shuttering|shutter|soffit|form work|نجاره|قوالب/.test(d))return 'Formwork';
  if(/plaster|rendering|render coat|لياسه|قصاره|محاره|قصارة|محارة/.test(d))return 'Plastering';
- if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك/.test(d))return 'Masonry';
- if(/\\bdoor\\b|doors|joinery|ابواب|أبواب|باب/.test(d))return 'Doors & Joinery';
- if(/\\bwindow\\b|windows|glazing|نوافذ|شبابيك/.test(d))return 'Windows & Glazing';
- if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|حديد/.test(d))return 'Metalwork';
+ if(/gypsum|gypsum board|false ceiling|suspended ceiling|drywall|جبس|جبص|جبصم|جبسم|اسقف مستعارة|أسقف مستعارة|سقف مستعار|بانوه|زنانير/.test(d))return 'Gypsum & Ceilings';
+ if(/tile|tiling|porcelain|ceramic|flooring|ارضيات|أرضيات|بلاط|بورسلان|تبليط/.test(d))return 'Flooring & Tiling';
+ if(/marble|granite|basalt|stone cladding|رخام|بازلت|حجر طبيعي|حجر طبيعي/.test(d))return 'Stone & Marble';
+ if(/paint|painting|vinyl silk|emulsion|دهان|طلاء|صبغ|معجونة|معجون/.test(d))return 'Painting & Finishes';
+ if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك|بناء/.test(d))return 'Masonry';
+ if(/door|doors|joinery|ابواب|أبواب|باب/.test(d))return 'Doors & Joinery';
+ if(/window|windows|glazing|نوافذ|شبابيك|شباك/.test(d))return 'Windows & Glazing';
+ if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|اعمال معدنية|أعمال معدنية/.test(d))return 'Metalwork';
  if(/roof covering|roofing|roof membrane|تسقيف/.test(d))return 'Roofing';
  if(/waterproof|water proof|bitumen|damp proof|عزل|مائي|بيتومين|لفائف عزل|دهان عازل/.test(d))return 'Waterproofing';
  if(/concrete|\\bpcc\\b|\\brcc\\b|footing|column|beam|\\bslab\\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
@@ -221,8 +229,10 @@ function normalizeSpreadsheet(rows){
  const items=[],errors=[];let ignoredRows=0;
  for(let i=headerIndex+1;i<rows.length;i++){const row=rows[i]||[],get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';if(!row.some(v=>String(v??'').trim()))continue;
   const description=get('description'),unit=get('unit'),quantityRaw=get('quantity'),q=parseBoqNumber(quantityRaw),rateRaw=get('rate'),rate=rateRaw===''?0:parseBoqNumber(rateRaw);
-  // Descriptive section headings have no measurement fields; ignore them rather than flagging them as malformed items.
-  if(description.length>=3&&!unit&&!quantityRaw){ignoredRows++;continue;}
+  // Ignore section labels, notes and wrapped continuation rows. A numbered BOQ item
+  // (for example A\\1 or C/4) remains a validation error if its measurement data is missing.
+  const code=get('code'),looksLikeItemCode=/^[A-Z]{1,3}\\s*[\\\\/]\\s*\\d{1,4}[A-Z]?$/i.test(code)||/^\\d+(?:[.\\/-]\\d+)*$/.test(code);
+  if(!unit&&!quantityRaw&&rateRaw===''&&!looksLikeItemCode){ignoredRows++;continue;}
   const err=[];if(description.length<3)err.push('وصف البند مفقود أو قصير');if(!unit)err.push('الوحدة مفقودة');if(!get('quantity')||!Number.isFinite(q)||q<0)err.push('الكمية غير صالحة');if(rateRaw!==''&&(!Number.isFinite(rate)||rate<0))err.push('سعر الوحدة غير صالح');
   if(err.length)errors.push({row:i+1,errors:err});
   else items.push({itemCode:get('code')||null,description,unit,quantity:q,rate,discipline:get('discipline')||inferDiscipline(description),sourceRow:i+1});
