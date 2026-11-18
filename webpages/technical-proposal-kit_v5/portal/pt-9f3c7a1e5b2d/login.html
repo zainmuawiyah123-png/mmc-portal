@@ -123,7 +123,7 @@
     // منع إعادة التوجيه المفتوح: مسارات نسبية فقط داخل البوابة
     // مسموح: صفحات البوابة نفسها، والبوابات المستقلة المعروفة فقط.
     // مسارات الاستشاري والجهة الطالبة مطابقة حرفياً لتجنب إعادة التوجيه المفتوح.
-    if(n==='/consulting/'||n==='/consulting'||n==='/consulting/requester/'||n==='/consulting/requester') return n;
+    if(n==='/consulting/'||n==='/consulting'||n==='/consulting/requester/'||n==='/consulting/requester'||n==='/mmc-ai/'||n==='/mmc-ai') return n;
     if(/^\.\.\/\.\.\/(bid|procurement|admin|tender-opportunities)\/index\.html$/.test(n)) return n;
     if(/^\.\.\/\.\.\/international-tenders\/(index\.html|uk\/find-a-tender\.html)$/.test(n)) return n;
     if(/^[a-z-]+\.html(\?[A-Za-z0-9_=&.-]*)?$/.test(n)) return n;
