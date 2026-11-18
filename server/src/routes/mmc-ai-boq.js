@@ -39,10 +39,10 @@ router.post('/projects/:projectId/boq/import',importUpload.single('file'),wrap(a
    created.push({id,...item,rate:item.rate??0,rateMissing:item.rate===null});
   }
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)`)
-   .run(uid('aial_'),req.params.projectId,req.user.id,'boq_items_imported','boq_import',null,JSON.stringify({filename:req.file.originalname,format:parsed.sourceFormat,imported:created.length,errorRows:parsed.errors.length,missingRates:created.filter(x=>x.rateMissing).length}));
+   .run(uid('aial_'),req.params.projectId,req.user.id,'boq_items_imported','boq_import',null,JSON.stringify({filename:req.file.originalname,format:parsed.sourceFormat,imported:created.length,errorRows:parsed.errors.length,duplicateRows:parsed.duplicates.length,missingRates:created.filter(x=>x.rateMissing).length}));
  });
  tx();
- res.status(201).json({items:created,summary:{...parsed.summary,imported:created.length,missingRates:created.filter(x=>x.rateMissing).length},errors:parsed.errors,notice:'تم استيراد البنود الصالحة فقط. الصفوف غير الصالحة معروضة في الأخطاء ولم تُسقط بصمت. السعر المفقود حُفظ بصفر بسبب قيد قاعدة البيانات ومُعلّم بأنه غير مدخل.'});
+ res.status(201).json({items:created,summary:{...parsed.summary,imported:created.length,missingRates:created.filter(x=>x.rateMissing).length},errors:parsed.errors,duplicates:parsed.duplicates,notice:'تم استيراد البنود الصالحة فقط. الصفوف غير الصالحة معروضة في الأخطاء ولم تُسقط بصمت. السعر المفقود حُفظ بصفر بسبب قيد قاعدة البيانات ومُعلّم بأنه غير مدخل.'});
 }));
 router.get('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req);
