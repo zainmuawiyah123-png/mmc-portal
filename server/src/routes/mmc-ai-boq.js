@@ -6,7 +6,7 @@ const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const router=express.Router();
 
-router.use(A.requireAuth);
+// Auth gate is installed after the stateless public preview route.
 const EDIT=new Set(['owner','project_manager','engineer','quantity_surveyor']);
 function member(projectId,userId){return getDB().prepare(`SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?`).get(projectId,userId)||null;}
 function access(req,edit=false){const m=member(req.params.projectId,req.user.id);if(!m||m.status!=='active')throw E.notFound('المشروع غير موجود.');if(edit&&!EDIT.has(m.role))throw E.forbidden('لا تملك صلاحية تعديل جدول الكميات.');return m;}
@@ -186,5 +186,7 @@ router.post('/public-boq-preview',upload.single('file'),wrap(async(req,res)=>{
  res.json({mode:'public_preview_only',persisted:false,filename:req.file.originalname,sheet:parsed.sheet,totalRows:parsed.totalRows,items:parsed.items,errors:parsed.errors,summary:{itemCount:parsed.items.length,pricedCount:priced.length,unpricedCount:unpriced.length,knownPricedTotal:knownTotal,disciplineBreakdown:disciplines},scheduleCandidates:parsed.items.map((x,i)=>({sequence:i+1,code:x.itemCode,activity:x.description,discipline:x.discipline||null,quantity:x.quantity,unit:x.unit,durationDays:null,status:'requires_productivity_resources_and_logic'})),riskSignals:[...(unpriced.length?[{type:'missing_unit_rates',count:unpriced.length,severity:'commercial_input_required'}]:[]),...(parsed.items.some(x=>!x.discipline)?[{type:'unclassified_discipline',count:parsed.items.filter(x=>!x.discipline).length,severity:'classification_required'}]:[]),...(parsed.errors.length?[{type:'invalid_rows',count:parsed.errors.length,severity:'data_quality'}]:[])]});
 }));
 
+
+router.use(A.requireAuth);
 
 module.exports=router;
