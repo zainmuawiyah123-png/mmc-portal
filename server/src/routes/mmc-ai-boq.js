@@ -141,7 +141,7 @@ function normalizeSpreadsheet(rows){
   else items.push({itemCode:get('code')||null,description,unit,quantity:q,rate,discipline:get('discipline')||null,sourceRow:i+1});
  }
  if(!items.length)throw E.validation('لم يتم استخراج أي بنود صالحة من الملف.');
- if(items.length>10000)throw E.validation('الملف يتجاوز الحد المسموح وهو 10,000 بند.');
+ if(items.length>3000)throw E.validation('الملف يتجاوز الحد المسموح وهو 3,000 بند لكل عملية استيراد.');
  return {items,errors,headers:rows[0].map(x=>String(x||'')),totalRows:rows.length-1};
 }
 function readBoqUpload(file){
@@ -158,7 +158,7 @@ router.post('/projects/:projectId/boq/import-preview',upload.single('file'),wrap
 }));
 router.post('/projects/:projectId/boq/import',wrap(async(req,res)=>{
  access(req,true);const items=req.body?.items;
- if(!Array.isArray(items)||!items.length||items.length>10000)throw E.validation('قائمة الاستيراد غير صالحة.');
+ if(!Array.isArray(items)||!items.length||items.length>3000)throw E.validation('قائمة الاستيراد غير صالحة أو تتجاوز 3,000 بند في العملية الواحدة.');
  const seen=new Set(),cleaned=items.map((x,i)=>{
   const description=clean(x.description,1000),unit=clean(x.unit,24),quantity=number(x.quantity,'الكمية'),rate=number(x.rate??0,'سعر الوحدة'),itemCode=clean(x.itemCode,80)||null;
   if(description.length<3||!unit)throw E.validation('يوجد بند بلا وصف أو وحدة في الصف '+(x.sourceRow||i+1)+'.');
