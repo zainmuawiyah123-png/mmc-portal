@@ -204,6 +204,10 @@ function normalizeSpreadsheet(rows){
   // Merge labels by column from the current row and the two rows immediately above it.
   const width=Math.max(0,...rows.slice(Math.max(0,r-2),r+1).map(x=>x.length));
   const candidate=Array.from({length:width},(_,col)=>{
+   for(let rr=r;rr>=Math.max(0,r-2);rr--){
+    const key=headerKey(rows[rr]?.[col]??'');
+    if(key&&Object.values(aliases).some(opts=>opts.some(a=>headerKey(a)===key)))return key;
+   }
    for(let rr=r;rr>=Math.max(0,r-2);rr--){const v=String(rows[rr]?.[col]??'').trim();if(v)return headerKey(v);}
    return '';
   }),found={};
