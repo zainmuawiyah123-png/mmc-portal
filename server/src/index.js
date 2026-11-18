@@ -37,6 +37,7 @@ const mmcAiRiskRoutes = require('./routes/mmc-ai-risks');
 const mmcAiContractEventRoutes = require('./routes/mmc-ai-contract-events');
 const mmcAiBimRoutes = require('./routes/mmc-ai-bim');
 const mmcAiBimModelRoutes = require('./routes/mmc-ai-bim-models');
+const mmcAiAutoAnalysisRoutes = require('./routes/mmc-ai-auto-analysis');
 
 function createApp() {
   const app = express();
