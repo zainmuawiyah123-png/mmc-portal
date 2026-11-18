@@ -297,6 +297,58 @@ function buildSpatialElementCandidates(lines, dimensions, options = {}) {
   }).slice(0, 3000);
 }
 
+function spatialNativeLines(words, options = {}) {
+  if (!Array.isArray(words) || !words.length) return [];
+  const pageNumber = Number.isInteger(options.pageNumber) ? options.pageNumber : 1;
+  const pageWidth = Number(options.pageWidth), pageHeight = Number(options.pageHeight);
+  if (!(pageWidth > 0) || !(pageHeight > 0)) return [];
+  const targetWidth = 2000, scale = targetWidth / pageWidth;
+  const sorted = words.filter(word => word && typeof word.text === 'string' && word.text.trim() && word.box &&
+    [word.box.xMin,word.box.yMin,word.box.xMax,word.box.yMax].every(Number.isFinite))
+    .map(word => ({
+      text: word.text.trim(),
+      box: {
+        left: word.box.xMin * scale,
+        top: word.box.yMin * scale,
+        width: (word.box.xMax - word.box.xMin) * scale,
+        height: (word.box.yMax - word.box.yMin) * scale
+      }
+    })).filter(word => word.box.width > 0 && word.box.height > 0)
+    .sort((a,b) => (a.box.top+a.box.height/2)-(b.box.top+b.box.height/2) || a.box.left-b.box.left);
+  const groups = [];
+  for (const word of sorted) {
+    const cy = word.box.top + word.box.height / 2;
+    let best = null, bestDistance = Infinity;
+    for (const group of groups) {
+      const distance = Math.abs(cy - group.centerY);
+      const tolerance = Math.max(2, Math.min(word.box.height, group.maxHeight) * 0.55);
+      if (distance <= tolerance && distance < bestDistance) { best = group; bestDistance = distance; }
+    }
+    if (!best) {
+      best = { words: [], centers: [], maxHeight: word.box.height, centerY: cy };
+      groups.push(best);
+    }
+    best.words.push(word); best.centers.push(cy);
+    best.maxHeight = Math.max(best.maxHeight, word.box.height);
+    best.centerY = best.centers.reduce((sum,value)=>sum+value,0)/best.centers.length;
+  }
+  return groups.map(group => {
+    const lineWords = group.words.slice().sort((a,b)=>a.box.left-b.box.left);
+    const left = Math.min(...lineWords.map(word=>word.box.left));
+    const top = Math.min(...lineWords.map(word=>word.box.top));
+    const right = Math.max(...lineWords.map(word=>word.box.left+word.box.width));
+    const bottom = Math.max(...lineWords.map(word=>word.box.top+word.box.height));
+    let cursor = 0;
+    const wordBoxes = lineWords.map(word => {
+      const start=cursor; cursor+=word.text.length; const end=cursor; cursor++;
+      return {text:word.text,start,end,confidence:null,box:{...word.box}};
+    });
+    return {page:pageNumber,text:lineWords.map(word=>word.text).join(' '),confidence:null,
+      box:{left,top,width:right-left,height:bottom-top},coordinateSpace:'aligned_svg_page_normalized_2000px',
+      words:lineWords.length,wordBoxes,source:'native_pdf_text_bbox'};
+  }).sort((a,b)=>a.box.top-b.box.top||a.box.left-b.box.left).slice(0,5000);
+}
+
 function analyzePdfDrawingText(extraction, document = {}) {
   if (!extraction || typeof extraction.text !== 'string') {
     throw new TypeError('PDF text extraction result is required');
@@ -356,6 +408,28 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrWordCount: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.length : 0,
     ocrWordEvidence: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.slice(0, 20000).map(word => ({ page: word.page, text: word.text, confidence: word.confidence, box: word.box })) : [],
     ocrSpatialLines: spatialOcrLines(extraction.ocrWords).slice(0, 5000),
+    nativeSpatialLines: spatialNativeLines(extraction.nativeSpatialWords, {
+      pageNumber: extraction.nativeSpatialPageNumber,
+      pageWidth: extraction.nativeSpatialPageWidth,
+      pageHeight: extraction.nativeSpatialPageHeight
+    }),
+    nativeSpatialDimensionCandidates: extractSpatialDimensionCandidates(spatialNativeLines(extraction.nativeSpatialWords, {
+      pageNumber: extraction.nativeSpatialPageNumber,
+      pageWidth: extraction.nativeSpatialPageWidth,
+      pageHeight: extraction.nativeSpatialPageHeight
+    })).map(candidate => ({...candidate, source:'native_pdf_text_bbox; spatial callout candidate only'})),
+    nativeSpatialElementCandidates: buildSpatialElementCandidates(
+      spatialNativeLines(extraction.nativeSpatialWords, {
+        pageNumber: extraction.nativeSpatialPageNumber,
+        pageWidth: extraction.nativeSpatialPageWidth,
+        pageHeight: extraction.nativeSpatialPageHeight
+      }),
+      extractSpatialDimensionCandidates(spatialNativeLines(extraction.nativeSpatialWords, {
+        pageNumber: extraction.nativeSpatialPageNumber,
+        pageWidth: extraction.nativeSpatialPageWidth,
+        pageHeight: extraction.nativeSpatialPageHeight
+      }))
+    ).map(candidate => ({...candidate, source:'native PDF text and page-coordinate proximity; not verified geometry'})),
     ocrSpatialDimensionCandidates: extractSpatialDimensionCandidates(spatialOcrLines(extraction.ocrWords)),
     spatialEngineeringAnnotations: classifySpatialOcrAnnotations(spatialOcrLines(extraction.ocrWords)),
     spatialElementCandidates: buildSpatialElementCandidates(
@@ -401,4 +475,4 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ]
   };
 }
-module.exports = { analyzePdfDrawingText, spatialOcrLines, classifySpatialOcrAnnotations, buildSpatialElementCandidates };
+module.exports = { analyzePdfDrawingText, spatialOcrLines, spatialNativeLines, classifySpatialOcrAnnotations, buildSpatialElementCandidates };
