@@ -96,7 +96,7 @@ function normalizeHeader(value) {
   return String(value??'').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670]/g,'').replace(/[ـ]/g,'').replace(/[\s_\-./()]+/g,'').trim();
 }
 const ALIASES = {
-  description:['description','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','البيان','بيانالاعمال','العمل','وصفالعمل'],
+  description:['description','desc','dec','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','البيان','بيانالاعمال','العمل','وصفالعمل'],
   unit:['unit','uom','unitofmeasure','measurementunit','الوحدة','وحدة','وحدةالقياس'],
   quantity:['quantity','qty','qnty','amount','الكمية','كميه','العدد'],
   rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعر'],
