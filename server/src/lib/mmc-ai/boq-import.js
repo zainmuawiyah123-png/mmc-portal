@@ -16,9 +16,15 @@ function decodeText(buffer) {
   return buffer.toString('utf8').replace(/^\uFEFF/, '');
 }
 function csvRows(text) {
-  const first = text.split(/\r?\n/, 1)[0] || '';
-  const candidates = [',', ';', '\t'];
-  const delimiter = candidates.map(d => ({ d, n: first.split(d).length })).sort((a,b) => b.n-a.n)[0].d;
+  // Detect delimiters across several non-empty lines; exported BOQs may have a title row first.
+  const sample = text.split(/\\r?\\n/).filter(line=>line.trim()!=='').slice(0,20);
+  const candidates = [',', ';', '\\t'];
+  const delimiter = candidates.map(d => {
+    const counts=sample.map(line=>line.split(d).length-1).filter(n=>n>0);
+    const total=counts.reduce((x,y)=>x+y,0);
+    const consistency=counts.length?counts.length/sample.length:0;
+    return {d,score:total*consistency};
+  }).sort((x,y)=>y.score-x.score)[0].d;
   const rows = []; let row = [], field = '', quoted = false;
   for (let i=0;i<text.length;i++) {
     const c=text[i];
@@ -139,7 +145,7 @@ function parseNumber(value) {
 function normalizeRows(matrix) {
   if(!matrix.length) throw new Error('الملف فارغ.');
   let headerIndex=-1, mapping={};
-  for(let i=0;i<Math.min(matrix.length,20);i++){
+  for(let i=0;i<Math.min(matrix.length,100);i++){
     const cells=matrix[i].map(normalizeHeader), candidate={};
     for(const [field,names] of Object.entries(ALIASES)){
       const at=cells.findIndex(c=>names.some(a=>normalizeHeader(a)===c));
