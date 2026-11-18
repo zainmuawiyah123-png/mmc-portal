@@ -302,6 +302,13 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Event</th><th>FIDIC Clause</th><th>Notice Date</th><th>Event Date</th><th>Time Impact</th><th>Cost Impact</th><th>Currency</th><th>Status</th></tr></thead><tbody id="claimRows"><tr><td colspan="7" style="text-align:center;padding:18px">No events recorded.</td></tr></tbody></table></div>
    <p class="note">This register records facts, impacts and references. It does not provide legal opinions, determine entitlement or automatically assess FIDIC notice deadlines.</p>
   </div></section>
+  <section class="panel" id="integratedIntelligence" style="margin:18px 0 22px">
+   <div class="panelhead"><h2>Integrated Project Intelligence · التحليل المتكامل للمشروع</h2><button class="btn" id="refreshIntegratedAnalysis" type="button">Refresh analysis / تحديث التحليل</button></div>
+   <p class="note">تجميع نتائج BOQ والتكلفة والبرنامج والمخاطر والعقود والتخصصات من بيانات المشروع المحفوظة. لا يتم افتراض سعر أو مدة أو كمية غير موثقة.</p>
+   <div id="integratedAnalysisStatus" class="note">Select a project to load integrated analysis.</div>
+   <div id="integratedAnalysisMetrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:12px 0"></div>
+   <div id="integratedAnalysisDetails" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px"></div>
+  </section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>Quantity Takeoff Register</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Unit</th><th>Quantity</th><th>Status</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">No verified quantities yet. Results will appear here when the measurement engine and engineering verification are enabled.</td></tr></tbody></table></div></section>
    <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>UPLOAD BY ENGINEERING DISCIPLINE</span></div><div class="uploadbox">
@@ -497,7 +504,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'Could not load the claims register.');
    summary.textContent='Events: '+d.summary.total+' · Notices sent: '+d.summary.notices+' · Under review: '+d.summary.underReview+' · Total recorded time impact: '+d.summary.timeImpactDays+' days · total cost impact: '+d.summary.costImpact.toFixed(3);
    for(const x of d.events){const tr=document.createElement('tr');for(const v of [x.title,x.fidic_clause||'—',x.notice_date||'—',x.event_date||'—',x.time_impact_days,x.cost_impact.toFixed(3),x.currency]){const td=document.createElement('td');td.textContent=String(v);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}
-    const td=document.createElement('td'),select=document.createElement('select'),save=document.createElement('button');for(const [value,label] of [['draft','Draft'],['notice_sent','Notice Sent'],['submitted','Submitted'],['under_review','Under Review'],['agreed','Agreed'],['rejected','Rejected'],['closed','Closed']]){const o=document.createElement('option');o.value=value;o.textContent=label;select.appendChild(o);}select.value=x.status;select.style.cssText='max-width:125px;padding:5px;border:1px solid var(--line);border-radius:5px';save.type='button';save.textContent='Save';save.style.cssText='margin-inline-start:5px;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:#f5f8fb';save.addEventListener('click',async()=>{try{const rr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events/'+encodeURIComponent(x.id),{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:select.value})}),dd=await rr.json();if(!rr.ok)throw new Error(dd.message||'Could not update status.');await loadProjectClaims(id);await loadExecutiveDashboard(id);notify('Contract event status updated.');}catch(e){notify(e.message);}});td.append(select,save);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5;white-space:nowrap';tr.appendChild(td);body.appendChild(tr);}
+    const td=document.createElement('td'),select=document.createElement('select'),save=document.createElement('button');for(const [value,label] of [['draft','Draft'],['notice_sent','Notice Sent'],['submitted','Submitted'],['under_review','Under Review'],['agreed','Agreed'],['rejected','Rejected'],['closed','Closed']]){const o=document.createElement('option');o.value=value;o.textContent=label;select.appendChild(o);}select.value=x.status;select.style.cssText='max-width:125px;padding:5px;border:1px solid var(--line);border-radius:5px';save.type='button';save.textContent='Save';save.style.cssText='margin-inline-start:5px;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:#f5f8fb';save.addEventListener('click',async()=>{try{const rr=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events/'+encodeURIComponent(x.id),{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:select.value})}),dd=await rr.json();if(!rr.ok)throw new Error(dd.message||'Could not update status.');await loadProjectClaims(id);await loadIntegratedAnalysis(id);await loadExecutiveDashboard(id);notify('Contract event status updated.');}catch(e){notify(e.message);}});td.append(select,save);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5;white-space:nowrap';tr.appendChild(td);body.appendChild(tr);}
    if(!d.events.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='No contract events recorded for this project.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
@@ -533,6 +540,50 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const blob=new Blob([raw],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mmc-ai-project-data.json';a.click();URL.revokeObjectURL(url);
  });
  document.getElementById('refreshAllProjectData').addEventListener('click',()=>loadAllProjectData(activeProject?.project_id||activeProject?.id));
+ async function loadIntegratedAnalysis(id){
+  const status=document.getElementById('integratedAnalysisStatus'),metrics=document.getElementById('integratedAnalysisMetrics'),details=document.getElementById('integratedAnalysisDetails');
+  if(!id){status.textContent='Select a project to load integrated analysis.';metrics.replaceChildren();details.replaceChildren();return;}
+  status.textContent='Analyzing saved project data across all workstreams…';metrics.replaceChildren();details.replaceChildren();
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/auto-analysis',{credentials:'same-origin',cache:'no-store'});
+   const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Integrated analysis could not be loaded.');
+   const b=data.branches||{},fmt=n=>Number(n||0).toLocaleString(undefined,{maximumFractionDigits:3}),metric=(label,value,sub)=>{
+    const card=document.createElement('div');card.style.cssText='background:#10243d;border:1px solid #29435d;border-radius:10px;padding:13px;color:#e8f1fa';
+    const l=document.createElement('small');l.textContent=label;l.style.cssText='display:block;color:#9eb6cc;font-size:10px';
+    const v=document.createElement('strong');v.textContent=value;v.style.cssText='display:block;font-size:20px;margin:7px 0 4px;color:#fff';
+    const x=document.createElement('small');x.textContent=sub||'';x.style.cssText='color:#91a8bd;font-size:10px';card.append(l,v,x);metrics.appendChild(card);
+   };
+   const section=(title,branch,lines)=>{
+    const card=document.createElement('div');card.style.cssText='background:#f7f9fc;border:1px solid #e2e9f1;border-radius:10px;padding:13px;min-width:0';
+    const h=document.createElement('strong');h.textContent=title;h.style.cssText='display:block;color:#183654;margin-bottom:8px';card.appendChild(h);
+    const st=document.createElement('div');st.textContent=(branch?.status||'unknown')+' · '+(branch?.detail||'');st.style.cssText='font-size:11px;color:#2876c7;margin-bottom:8px';card.appendChild(st);
+    for(const line of lines||[]){const p=document.createElement('p');p.textContent=line;p.style.cssText='font-size:11px;color:#526579;margin:5px 0;overflow-wrap:anywhere';card.appendChild(p);}
+    if(branch?.missingInputs?.length){const p=document.createElement('p');p.textContent='Required: '+branch.missingInputs.join(' · ');p.style.cssText='font-size:10px;color:#9a6a27;margin:8px 0 0';card.appendChild(p);}
+    details.appendChild(card);
+   };
+   const q=b.boq?.summary||{},c=b.cost?.summary||{},sch=b.schedule?.summary||{},risk=b.risks?.summary||{},cl=b.contractsClaims?.summary||{},bm=b.bim?.summary||{};
+   metric('BOQ items',fmt(q.itemCount),'Priced '+fmt(q.pricedItemCount)+' · Unpriced '+fmt(q.unpricedItemCount));
+   metric('Known priced total',fmt(c.knownPricedTotal)+' '+(c.currency||''),'Only rows with recorded rates');
+   metric('Schedule candidates',fmt(sch.candidateCount),'Confirmed activities '+fmt(sch.taskCount));
+   metric('CPM duration',fmt(sch.projectDurationWorkingDays)+' days','Critical activities '+fmt(sch.criticalTaskCount));
+   metric('Risk register',fmt(risk.count),'Evidence signals '+fmt(risk.signalCount));
+   metric('Contract events',fmt(cl.count),'Time impact '+fmt(cl.timeImpactDays)+' days');
+   section('BOQ & Quantities',b.boq,[(q.itemCount||0)+' line items', (q.pricedItemCount||0)+' priced · '+(q.unpricedItemCount||0)+' missing unit rates','Total '+fmt(q.knownPricedTotal)+' '+(q.currency||'')]);
+   const candidates=(b.schedule?.candidates||[]).slice(0,8).map(x=>x.name+' · '+fmt(x.quantity)+' '+x.unit+' · duration not set');
+   section('Programme & CPM',b.schedule,[(sch.taskCount||0)+' saved tasks · '+(sch.candidateCount||0)+' BOQ-derived candidates',...candidates]);
+   const unpriced=(b.cost?.breakdown?.unpricedItems||[]).slice(0,8).map(x=>x.description+' · missing verified unit rate');
+   section('Cost estimate',b.cost,[(c.pricedItemCount||0)+' priced lines · '+(c.unpricedItemCount||0)+' unpriced lines',...unpriced]);
+   const signals=(b.risks?.signals||[]).map(x=>x.title+' · '+x.assessment);
+   section('Risks & Reports',b.risks,[(risk.count||0)+' registered risks',...signals]);
+   section('Contracts & Claims',b.contractsClaims,[(cl.count||0)+' recorded contract events','Time impact: '+fmt(cl.timeImpactDays)+' days','Cost impact: '+fmt(cl.costImpact)+' '+(data.project?.currency||'')]);
+   const coverage=(b.documents?.disciplineCoverage||[]).map(x=>x.discipline+': '+x.count+' files');
+   section('Engineering disciplines',b.documents,coverage);
+   section('BIM models',b.bim,[(bm.count||0)+' uploaded model files', (bm.ifc||0)+' IFC · '+(bm.glb||0)+' GLB','Model upload does not mean generated from drawings.']);
+   const missing=(data.nextRequiredInputs||[]);status.textContent='Analysis refreshed · '+new Date(data.generatedAt).toLocaleString()+' · '+missing.length+' outstanding input groups.';
+   if(missing.length){const p=document.createElement('p');p.textContent='Next required inputs: '+missing.join(' | ');p.style.cssText='font-size:11px;color:#9a6a27;margin:8px 0';status.appendChild(p);}
+  }catch(e){status.textContent=e.message;status.style.color='#b54736';}
+ }
+ document.getElementById('refreshIntegratedAnalysis').addEventListener('click',()=>loadIntegratedAnalysis(activeProject?.project_id||activeProject?.id));
  async function selectProject(id){
   if(!id){activeProject=null;showProject(null);return;}
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
