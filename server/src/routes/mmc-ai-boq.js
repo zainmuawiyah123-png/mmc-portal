@@ -118,9 +118,9 @@ function parseXlsx(buf){
  const relation={};for(const m of rels.matchAll(/<Relationship\b([^>]*)\/?>/g)){const a=m[1],id=(a.match(/\bId="([^"]+)"/)||[])[1],target=(a.match(/\bTarget="([^"]+)"/)||[])[1];if(id&&target)relation[id]=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');}
  const sheets=[...wb.matchAll(/<sheet\b([^>]*)\/?>/g)].map(m=>({name:(m[1].match(/\bname="([^"]+)"/)||[])[1],rid:(m[1].match(/r:id="([^"]+)"/)||[])[1]}));
  const aliases={
-  description:['description','itemdescription','workdescription','descriptionofwork','shortdescription','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسمالبند','البند'],
-  unit:['unit','uom','unitofmeasure','measurementunit','الوحده','وحدهالقياس'],
-  quantity:['quantity','qty','quantities','totalquantity','الكميه','كميه','كميهالبند','العدد']
+  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسمالبند','البند'],
+  unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحدهالقياس','وحدةالقياس'],
+  quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كميهالبند','كميةالبند','العدد']
  };
  let best=null,bestScore=0;
  for(const sh of sheets){
@@ -142,7 +142,7 @@ function parseXlsx(buf){
   let score=0;
   for(const row of rows.slice(0,20)){
    const keys=row.map(headerKey);
-   const rowScore=Object.values(aliases).filter(opts=>keys.some(k=>opts.includes(k))).length;
+   const rowScore=Object.values(aliases).filter(opts=>keys.some(k=>opts.some(a=>headerKey(a)===k))).length;
    score=Math.max(score,rowScore);
   }
   if(!best||score>bestScore){best={sheet:sh.name||'Sheet',rows};bestScore=score;}
@@ -176,9 +176,9 @@ function normalizeSpreadsheet(rows){
  if(!rows.length)throw E.validation('الملف لا يحتوي صفوفاً.');
  const aliases={
   code:['itemno','itemnumber','itemcode','code','رقمالبند','رقمالفقرة','الكود','رقمالعنصر'],
-  description:['description','itemdescription','workdescription','descriptionofwork','shortdescription','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسم البند','البند'],
-  unit:['unit','uom','unitofmeasure','measurementunit','الوحده','الوحدة','وحدهالقياس','وحدةالقياس'],
-  quantity:['quantity','qty','quantities','totalquantity','الكميه','الكمية','كميه','كميهالبند','كميةالبند','العدد'],
+  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسم البند','اسمالبند','البند'],
+  unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحدهالقياس','وحدةالقياس'],
+  quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كميهالبند','كميةالبند','العدد'],
   rate:['rate','unitrate','price','unitprice','سعرالوحده','سعرالوحدة','السعر','سعر'],
   discipline:['discipline','trade','section','التخصص','القسم','البندالرئيسي']
  };
@@ -187,7 +187,7 @@ function normalizeSpreadsheet(rows){
  const scan=Math.min(rows.length,20);
  for(let r=0;r<scan;r++){
   const candidate=(rows[r]||[]).map(headerKey),found={};
-  for(const [key,opts] of Object.entries(aliases))found[key]=candidate.findIndex(h=>opts.includes(h));
+  for(const [key,opts] of Object.entries(aliases))found[key]=candidate.findIndex(h=>opts.some(a=>headerKey(a)===h));
   const score=['description','unit','quantity'].filter(k=>found[k]>=0).length;
   if(score>['description','unit','quantity'].filter(k=>idx[k]>=0).length){headerIndex=r;headers=candidate;idx=found;}
   if(score===3)break;
