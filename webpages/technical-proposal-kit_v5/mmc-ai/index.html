@@ -236,6 +236,16 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      <input id="boqRate" type="number" min="0" step="any" placeholder="Unit Rate" style="flex:1;min-width:100px;padding:9px;border:1px solid var(--line);border-radius:7px">
      <button id="boqAdd" type="button" class="btn primary">＋ Add Item</button>
     </div>
+    <div style="margin:12px 0;padding:13px;border:1px dashed #47718f;border-radius:10px;background:#0c2036">
+     <strong style="display:block;color:#dceaf6;font-size:12px;margin-bottom:7px">Import BOQ from Excel / CSV</strong>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input id="boqImportFile" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="flex:1;min-width:220px">
+      <button id="boqPreviewImport" type="button" class="btn">Preview File</button>
+      <button id="boqConfirmImport" type="button" class="btn primary" disabled>Import Valid Items</button>
+     </div>
+     <div id="boqImportStatus" class="note">Supported: .xlsx and .csv · Required columns: Description, Unit, Quantity · Unit rate is optional.</div>
+     <div id="boqImportPreview" class="tablewrap" style="margin-top:9px;max-height:300px;overflow:auto"></div>
+    </div>
     <div id="boqSummary" class="note">Select a project to view Bill of Quantities.</div>
     <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Source / Traceability</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="8" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
     <p class="note">This project BOQ and cost estimate is separate from tender pricing in the Procurement Portal. Rates and quantities require review and approval by the responsible team.</p>
@@ -629,6 +639,43 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const payload={name:document.getElementById('scheduleTaskName').value,durationDays:document.getElementById('scheduleDuration').value,predecessors:pred?[pred]:[]};
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/schedule/tasks',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not add activity.');document.getElementById('scheduleTaskName').value='';document.getElementById('scheduleDuration').value='';await loadProjectSchedule(id);notify('Activity added and critical path recalculated.');}catch(e){notify(e.message);}
  });
+
+ let pendingBoqImport=null;
+ const importStatus=document.getElementById('boqImportStatus'),importPreview=document.getElementById('boqImportPreview'),importButton=document.getElementById('boqConfirmImport');
+ document.getElementById('boqPreviewImport').addEventListener('click',async()=>{
+  if(!activeProject){notify('Select a project first.');return;}
+  const file=document.getElementById('boqImportFile').files?.[0];if(!file){notify('Choose an XLSX or CSV file.');return;}
+  const fd=new FormData();fd.append('file',file);
+  importButton.disabled=true;pendingBoqImport=null;importPreview.replaceChildren();importStatus.textContent='Reading file and validating columns...';
+  try{
+   const id=activeProject.project_id||activeProject.id;
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/import-preview',{method:'POST',credentials:'same-origin',body:fd});
+   const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not read BOQ file.');
+   pendingBoqImport=d.items;importButton.disabled=!d.items.length;
+   importStatus.textContent='File: '+d.filename+' · Sheet: '+d.sheet+' · Rows: '+d.totalRows+' · Valid: '+d.validCount+' · Invalid: '+d.errorCount+' · With rates: '+d.pricedCount+' · Without rates: '+d.unpricedCount+'. Invalid rows will be skipped; verify the preview before importing.';
+   const table=document.createElement('table');table.style.width='100%';const head=document.createElement('tr');
+   for(const label of ['Row','Item No.','Description','Unit','Quantity','Rate','Discipline']){const th=document.createElement('th');th.textContent=label;head.appendChild(th);}const thead=document.createElement('thead');thead.appendChild(head);table.appendChild(thead);
+   const tbody=document.createElement('tbody');
+   for(const item of d.items.slice(0,100)){const tr=document.createElement('tr');for(const value of [item.sourceRow,item.itemCode||'—',item.description,item.unit,item.quantity,item.rate||'—',item.discipline||'—']){const td=document.createElement('td');td.textContent=String(value);tr.appendChild(td);}tbody.appendChild(tr);}
+   table.appendChild(tbody);importPreview.appendChild(table);
+   if(d.items.length>100){const note=document.createElement('p');note.className='note';note.textContent='Preview shows the first 100 valid rows. All '+d.items.length+' valid rows will be imported after confirmation.';importPreview.appendChild(note);}
+   if(d.errors.length){const err=document.createElement('p');err.className='note';err.style.color='#e0b46e';err.textContent='Rows requiring correction: '+d.errors.slice(0,20).map(x=>'#'+x.row+' ('+x.errors.join(', ')+')').join(' · ')+(d.errors.length>20?' · ...':'');importPreview.appendChild(err);}
+  }catch(e){importStatus.textContent=e.message;notify(e.message);}
+ });
+ importButton.addEventListener('click',async()=>{
+  if(!activeProject||!pendingBoqImport?.length)return;
+  if(!confirm('Import '+pendingBoqImport.length+' validated BOQ items into this project? Existing items will be preserved.'))return;
+  const id=activeProject.project_id||activeProject.id;importButton.disabled=true;
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/import',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:pendingBoqImport})});
+   const d=await r.json();if(!r.ok)throw new Error(d.message||'BOQ import failed.');
+   pendingBoqImport=null;document.getElementById('boqImportFile').value='';importPreview.replaceChildren();
+   importStatus.textContent='Imported '+d.imported+' items · '+d.priced+' priced · '+d.unpriced+' awaiting unit rates. Existing BOQ records were preserved.';
+   await loadProjectBoq(id);await loadIntegratedAnalysis(id);notify('BOQ import completed: '+d.imported+' items.');
+  }catch(e){importStatus.textContent=e.message;notify(e.message);}
+ });
+ document.getElementById('boqImportFile').addEventListener('change',()=>{pendingBoqImport=null;importButton.disabled=true;importPreview.replaceChildren();});
+
  document.getElementById('boqAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('Select a project first.');return;}
   const id=activeProject.project_id||activeProject.id;
