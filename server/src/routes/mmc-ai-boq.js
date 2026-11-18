@@ -117,10 +117,38 @@ function parseXlsx(buf){
  const wb=get('xl/workbook.xml'),rels=get('xl/_rels/workbook.xml.rels');
  const relation={};for(const m of rels.matchAll(/<Relationship\b([^>]*)\/?>/g)){const a=m[1],id=(a.match(/\bId="([^"]+)"/)||[])[1],target=(a.match(/\bTarget="([^"]+)"/)||[])[1];if(id&&target)relation[id]=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');}
  const sheets=[...wb.matchAll(/<sheet\b([^>]*)\/?>/g)].map(m=>({name:(m[1].match(/\bname="([^"]+)"/)||[])[1],rid:(m[1].match(/r:id="([^"]+)"/)||[])[1]}));
- for(const sh of sheets){const path=relation[sh.rid];if(!path||!files[path])continue;const xml=files[path].toString('utf8'),rows=[];
-  for(const rm of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)){const cells=[];for(const cm of rm[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)){const attrs=cm[1],body=cm[2],ref=(attrs.match(/\br="([A-Z]+)\d+"/)||[])[1]||'',type=(attrs.match(/\bt="([^"]+)"/)||[])[1],idx=ref.split('').reduce((n,ch)=>n*26+ch.charCodeAt(0)-64,0)-1;let val='';const v=(body.match(/<v>([\s\S]*?)<\/v>/)||[])[1];if(type==='s')val=shared[Number(v)]??'';else if(type==='inlineStr')val=[...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(x=>xmlText(x[1])).join('');else val=v==null?'':xmlText(v);cells[idx]=val;}rows.push(cells);}
-  if(rows.some(row=>row.some(v=>String(v??'').trim())))return {sheet:sh.name||'Sheet',rows};
+ const aliases={
+  description:['description','itemdescription','workdescription','descriptionofwork','shortdescription','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسمالبند','البند'],
+  unit:['unit','uom','unitofmeasure','measurementunit','الوحده','وحدهالقياس'],
+  quantity:['quantity','qty','quantities','totalquantity','الكميه','كميه','كميهالبند','العدد']
+ };
+ let best=null,bestScore=0;
+ for(const sh of sheets){
+  const path=relation[sh.rid];if(!path||!files[path])continue;
+  const xml=files[path].toString('utf8'),rows=[];
+  for(const rm of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)){
+   const cells=[];
+   for(const cm of rm[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)){
+    const attrs=cm[1],body=cm[2],ref=(attrs.match(/\br="([A-Z]+)\d+"/)||[])[1]||'',type=(attrs.match(/\bt="([^"]+)"/)||[])[1],idx=ref.split('').reduce((n,ch)=>n*26+ch.charCodeAt(0)-64,0)-1;
+    let val='';const v=(body.match(/<v>([\s\S]*?)<\/v>/)||[])[1];
+    if(type==='s')val=shared[Number(v)]??'';
+    else if(type==='inlineStr')val=[...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(x=>xmlText(x[1])).join('');
+    else val=v==null?'':xmlText(v);
+    cells[idx]=val;
+   }
+   rows.push(cells);
+  }
+  if(!rows.some(row=>row.some(v=>String(v??'').trim())))continue;
+  let score=0;
+  for(const row of rows.slice(0,20)){
+   const keys=row.map(headerKey);
+   const rowScore=Object.values(aliases).filter(opts=>keys.some(k=>opts.includes(k))).length;
+   score=Math.max(score,rowScore);
+  }
+  if(!best||score>bestScore){best={sheet:sh.name||'Sheet',rows};bestScore=score;}
+  if(score===3)return best;
  }
+ if(best)return best;
  throw E.validation('لم يتم العثور على ورقة تحتوي بيانات في ملف XLSX.');
 }
 function parseCsv(text){
