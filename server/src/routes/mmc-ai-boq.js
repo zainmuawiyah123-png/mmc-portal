@@ -118,7 +118,7 @@ function parseXlsx(buf){
  const relation={};for(const m of rels.matchAll(/<Relationship\b([^>]*)\/?>/g)){const a=m[1],id=(a.match(/\bId="([^"]+)"/)||[])[1],target=(a.match(/\bTarget="([^"]+)"/)||[])[1];if(id&&target)relation[id]=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');}
  const sheets=[...wb.matchAll(/<sheet\b([^>]*)\/?>/g)].map(m=>({name:(m[1].match(/\bname="([^"]+)"/)||[])[1],rid:(m[1].match(/r:id="([^"]+)"/)||[])[1]}));
  const aliases={
-  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','نوعالعمل','نوعالاعمال','نوعالعملالرئيسي','الوصف','وصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','بيانالعمل','البيان','تفاصيلالبند','تفاصيلالاعمال','اسمالبند','البند','الاعمال'],
+  description:['description','itemdescription','descriptionofitem','workdescription','descriptionofwork','shortdescription','itemdetails','workitem','scope','item','نوعالعمل','نوعالاعمال','نوعالاعمال','نوعالعملالرئيسي','الوصف','وصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','بيانالعمل','البيان','تفاصيلالبند','تفاصيلالاعمال','اسمالبند','البند','الاعمال'],
   unit:['unit','uom','unitofmeasure','unitofmeasurement','measurementunit','الوحده','الوحدة','وحده','وحدة','وحدهالقياس','وحدةالقياس'],
   quantity:['quantity','qty','quantities','totalquantity','qtym3','qtym2','qtynos','quantitym3','quantitym2','الكميه','الكمية','كميه','كمية','كميهالبند','كميةالبند','العدد','اجماليالكميه','اجماليالكمية','المقدار']
  };
@@ -200,7 +200,13 @@ function normalizeSpreadsheet(rows){
  let headerIndex=-1,headers=[],idx={};
  const scan=Math.min(rows.length,20);
  for(let r=0;r<scan;r++){
-  const candidate=(rows[r]||[]).map(headerKey),found={};
+  // Many Arabic tender BOQs split the column labels over two adjacent header rows.
+  // Merge labels by column from the current row and the two rows immediately above it.
+  const width=Math.max(0,...rows.slice(Math.max(0,r-2),r+1).map(x=>x.length));
+  const candidate=Array.from({length:width},(_,col)=>{
+   for(let rr=r;rr>=Math.max(0,r-2);rr--){const v=String(rows[rr]?.[col]??'').trim();if(v)return headerKey(v);}
+   return '';
+  }),found={};
   for(const [key,opts] of Object.entries(aliases))found[key]=candidate.findIndex(h=>opts.some(a=>headerKey(a)===h));
   const score=['description','unit','quantity'].filter(k=>found[k]>=0).length;
   if(score>['description','unit','quantity'].filter(k=>idx[k]>=0).length){headerIndex=r;headers=candidate;idx=found;}
