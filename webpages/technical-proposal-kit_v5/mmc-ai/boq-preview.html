@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MMC AI · Public BOQ Preview</title>
+<style>
+:root{color-scheme:dark;--bg:#081522;--panel:#102438;--line:#29445d;--text:#e8f1f8;--muted:#9db1c3;--accent:#54c6d8}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#071421,#10283b);color:var(--text);font:15px/1.5 Arial,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:32px 20px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}.brand{letter-spacing:.16em;color:var(--accent);font-size:12px;font-weight:bold}h1{font-size:30px;margin:8px 0}p{color:var(--muted)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin:18px 0}.upload{display:flex;gap:10px;flex-wrap:wrap;align-items:center}input[type=file]{padding:12px;background:#0a1a29;border:1px solid var(--line);border-radius:8px;flex:1;min-width:240px;color:var(--text)}button{background:var(--accent);color:#06202b;border:0;border-radius:8px;padding:12px 18px;font-weight:bold;cursor:pointer}button:disabled{opacity:.45;cursor:wait}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.stat{padding:16px;background:#0a1c2b;border:1px solid var(--line);border-radius:10px}.stat small{color:var(--muted);display:block}.stat strong{font-size:24px}.tablewrap{overflow:auto;max-height:520px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{position:sticky;top:0;background:#142e43}.status{margin-top:12px;color:var(--accent);white-space:pre-wrap}.warning{border-left:3px solid #d6a84f;padding:10px 14px;background:#332b1b;color:#f1dfb7;border-radius:6px}.hidden{display:none}.footer{font-size:12px;color:var(--muted);margin-top:28px}
+</style>
+</head>
+<body><main>
+<div class="top"><div><div class="brand">MMC / CONSTRUCTION INTELLIGENCE</div><h1>BOQ · Public Preview Lab</h1><p>Upload a bill of quantities and inspect the extracted work items, cost coverage and planning inputs.</p></div><div>PUBLIC DEMO · NO SIGN-IN</div></div>
+<section class="panel">
+<h2>1. Upload spreadsheet</h2><p>Supported formats: XLSX and CSV. Required columns: Description, Unit, Quantity. Unit Rate and Discipline are optional. The first non-empty worksheet is read.</p>
+<div class="upload"><input id="file" type="file" accept=".xlsx,.csv"><button id="run">Analyze BOQ</button></div><div id="status" class="status" role="status">Choose a spreadsheet to begin.</div>
+</section>
+<section id="results" class="hidden">
+<div class="panel"><h2>2. Extracted BOQ overview</h2><div id="stats" class="stats"></div></div>
+<div class="panel"><h2>3. Imported item preview</h2><div class="tablewrap"><table><thead><tr><th>Row</th><th>Item code</th><th>Discipline</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit rate</th><th>Line total</th></tr></thead><tbody id="items"></tbody></table></div></div>
+<div class="panel"><h2>4. Programme activity candidates</h2><p>Activities are extracted from BOQ descriptions only. Durations and dependencies are deliberately left blank until productivity, resources, working calendar and logic are supplied.</p><div class="tablewrap"><table><thead><tr><th>#</th><th>Discipline</th><th>Candidate activity</th><th>Quantity</th><th>Unit</th><th>Duration</th><th>Status</th></tr></thead><tbody id="schedule"></tbody></table></div></div>
+<div class="panel"><h2>5. Data quality & risk signals</h2><div id="risks"></div><div id="errors"></div></div>
+</section>
+<div class="warning">Public preview only: uploaded content is processed in memory for this response and is not saved to a project. To preserve items in a private project, use the authenticated workspace. No project login is required to test this preview.</div>
+<div class="footer">MMC AI · Staging environment · Do not upload confidential or personal information to this public preview.</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+$('run').addEventListener('click',async()=>{
+ const f=$('file').files[0];if(!f){$('status').textContent='Please choose an XLSX or CSV file.';return;}
+ $('run').disabled=true;$('status').textContent='Reading and validating spreadsheet…';$('results').classList.add('hidden');
+ try{
+  const fd=new FormData();fd.append('file',f);
+  const r=await fetch('/api/mmc-ai/projects/public-boq-preview',{method:'POST',body:fd});
+  const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not analyze spreadsheet.');
+  $('status').textContent='Analysis complete · '+d.filename+' · worksheet: '+d.sheet+' · '+d.totalRows+' source rows.';
+  const s=d.summary;
+  const cards=[['Valid BOQ items',s.itemCount],['With unit rates',s.pricedCount],['Awaiting rates',s.unpricedCount],['Known priced total',s.knownPricedTotal.toLocaleString(undefined,{maximumFractionDigits:3})]];
+  $('stats').innerHTML=cards.map(([k,v])=>'<div class="stat"><small>'+k+'</small><strong>'+v+'</strong></div>').join('');
+  $('items').innerHTML=d.items.map(x=>'<tr><td>'+x.sourceRow+'</td><td>'+esc(x.itemCode||'—')+'</td><td>'+esc(x.discipline||'Unclassified')+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.unit)+'</td><td>'+x.quantity+'</td><td>'+(x.rate||'—')+'</td><td>'+(x.quantity*x.rate).toFixed(3)+'</td></tr>').join('');
+  $('schedule').innerHTML=d.scheduleCandidates.map(x=>'<tr><td>'+x.sequence+'</td><td>'+esc(x.discipline||'Unclassified')+'</td><td>'+esc(x.activity)+'</td><td>'+x.quantity+'</td><td>'+esc(x.unit)+'</td><td>Not calculated</td><td>Requires productivity, resources and logic</td></tr>').join('');
+  $('risks').innerHTML=(d.riskSignals.length?d.riskSignals.map(x=>'<p>'+esc(x.type.replaceAll('_',' '))+': <b>'+x.count+'</b> · '+esc(x.severity)+'</p>').join(''):'<p>No basic data-quality signals detected in the imported rows.</p>')+'<p><b>Discipline counts:</b> '+s.disciplineBreakdown.map(x=>esc(x.discipline)+': '+x.count).join(' · ')+'</p>';
+  $('errors').innerHTML=d.errors.length?'<h3>Rows requiring correction</h3><ul>'+d.errors.map(x=>'<li>Row '+x.row+': '+esc(x.errors.join(', '))+'</li>').join('')+'</ul>':'';
+  $('results').classList.remove('hidden');
+ }catch(e){$('status').textContent='Error: '+e.message;}finally{$('run').disabled=false;}
+});
+function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+</script></body></html>
