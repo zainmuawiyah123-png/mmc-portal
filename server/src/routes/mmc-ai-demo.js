@@ -106,7 +106,13 @@ router.post('/demo/analyze',(req,res)=>{
       characterCount:(nativeText?.text||'').length+ocrText.length,
       ocrPerformed:ocrWords.length>0,
       ocrPageCount:ocrPages.filter(page=>page.wordCount>0).length,
-      ocrWords
+      ocrWords,
+      nativeSpatialWords:spatialText?.page &&
+        ['dimensions_verified_translation_only','dimensions_and_pdf_rotation_verified'].includes(spatialText.page.frameAlignment)
+          ? spatialText.page.words : [],
+      nativeSpatialPageNumber:spatialText?.pageNumber||1,
+      nativeSpatialPageWidth:spatialText?.page?.width||null,
+      nativeSpatialPageHeight:spatialText?.page?.height||null
     }:null;
     if(textForIntelligence){
       try{textIntelligence=analyzePdfDrawingText(textForIntelligence);}catch(e){diagnostics.push({stage:'drawing_text_intelligence',error:e.message});}
