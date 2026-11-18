@@ -5,8 +5,8 @@ const {getDB,uid}=require('../db');
 const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const router=express.Router();
-
-// Auth gate is installed after the stateless public preview route.
+const publicRouter=express.Router();
+router.use(A.requireAuth);
 const EDIT=new Set(['owner','project_manager','engineer','quantity_surveyor']);
 function member(projectId,userId){return getDB().prepare(`SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?`).get(projectId,userId)||null;}
 function access(req,edit=false){const m=member(req.params.projectId,req.user.id);if(!m||m.status!=='active')throw E.notFound('المشروع غير موجود.');if(edit&&!EDIT.has(m.role))throw E.forbidden('لا تملك صلاحية تعديل جدول الكميات.');return m;}
@@ -176,7 +176,7 @@ router.post('/projects/:projectId/boq/import',wrap(async(req,res)=>{
 
 // Public, isolated BOQ sandbox: parses a spreadsheet in memory without login or project access.
 // Nothing is persisted; this endpoint cannot read or modify private project records.
-router.post('/public-boq-preview',upload.single('file'),wrap(async(req,res)=>{
+publicRouter.post('/public-boq-preview',upload.single('file'),wrap(async(req,res)=>{
  if(!req.file)throw E.validation('اختر ملف XLSX أو CSV أولاً.');
  const parsed=readBoqUpload(req.file);
  const priced=parsed.items.filter(x=>x.rate>0),unpriced=parsed.items.filter(x=>x.rate===0);
@@ -187,6 +187,4 @@ router.post('/public-boq-preview',upload.single('file'),wrap(async(req,res)=>{
 }));
 
 
-router.use(A.requireAuth);
-
-module.exports=router;
+module.exports={router,publicRouter};
