@@ -171,7 +171,7 @@ function inferDiscipline(description){
  if(/demolition|dismantling|removal|remove |take down|ceiling removal|هدم|ازاله|إزالة|فك |تفكيك|قص الاسوار|قص الأسوار/.test(d))return 'Demolition & Removal';
  if(/window|windows|glazing|window frame|نوافذ|شبابيك|شباك|اطار الشباك|إطار الشباك|ستائر رول|ستارة رول|ستائر زيبرا|زيبرا/.test(d))return 'Windows & Glazing';
  if(/furniture|sofa|chair|chairs|table|tables|upholster|curtain|roller blind|zebra blind|اثاث|أثاث|كنب|كرسي|كراسي|طاولة|طاولات|ستائر|ستاره|ستارة/.test(d))return 'Furniture & Fixtures';
- if(/cabinet|counter|reception desk|wardrobe|shelves|shelf|خزانة|خزانه|كاونتر|كونتر|رفوف|رف خشبي|خزائن|نجارة|نجاره|m\\.?d\\.?f|hdf|melamine|ميلامين|فورمايكا|خشب|خشبية|خشبيه/.test(d))return 'Joinery & Cabinetry';
+ if(/cabinet|counter|reception desk|wardrobe|shelves|shelf|خزانة|خزانه|كاونتر|كونتر|رفوف|رف خشبي|خزائن|نجارة|نجاره|m\.?d\.?f|hdf|melamine|ميلامين|فورمايكا|خشب|خشبية|خشبيه/.test(d))return 'Joinery & Cabinetry';
  if(/insulation|insulated panel|foam concrete|polystyrene|thermal|acoustic|عازل حراري|عزل حراري|ألواح عازلة|الواح عازله|فلين|بولسترين|بوليسترين|خرسانة رغوية|خرسانه رغويه/.test(d))return 'Insulation & Wall Systems';
  if(/door|doors|door frame|ابواب|أبواب|باب|حلوق الابواب|حلق باب/.test(d))return 'Doors & Joinery';
  if(/marble|granite|basalt|stone cladding|natural stone|رخام|بازلت|حجر طبيعي|كسوة حجرية|تلبيس حجر/.test(d))return 'Stone & Marble';
@@ -194,7 +194,7 @@ function inferDiscipline(description){
  if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك|بناء جدران|بناء بلوك/.test(d))return 'Masonry';
  if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|اعمال معدنية|أعمال معدنية/.test(d))return 'Metalwork';
  if(/roof covering|roofing|roof membrane|تسقيف/.test(d))return 'Roofing';
- if(/concrete|\\bpcc\\b|\\brcc\\b|footing|column|beam|\\bslab\\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
+ if(/concrete|\bpcc\b|\brcc\b|footing|column|beam|\bslab\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
  return null;
 }
 function normalizeSpreadsheet(rows){
@@ -286,4 +286,4 @@ publicRouter.post('/public-boq-preview',upload.single('file'),wrap(async(req,res
 }));
 
 
-module.exports={router,publicRouter};
+module.exports={router,publicRouter,_test:{inferDiscipline,parseBoqNumber}};
