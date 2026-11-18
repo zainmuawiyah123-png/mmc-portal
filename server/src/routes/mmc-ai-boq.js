@@ -180,7 +180,7 @@ function inferDiscipline(description){
  if(/waterproof|water proof|bitumen|damp proof|عزل مائي|مائي|بيتومين|لفائف عزل|دهان عازل/.test(d))return 'Waterproofing';
  if(/landscap|planting|shrubs|flowers|seedlings|garden|irrigation|شجيرات|ازهار|أزهار|اشتال|أشتال|زراعة|زراعه|تربة زراعية|تربه زراعيه|حصى سيل/.test(d))return 'Landscaping';
  if(/furniture|sofa|chair|chairs|table|tables|upholster|curtain|roller blind|zebra blind|اثاث|أثاث|كنب|كرسي|كراسي|طاولة|طاولات|ستائر|ستاره|ستارة/.test(d))return 'Furniture & Fixtures';
- if(/cabinet|counter|reception desk|wardrobe|shelves|shelf|خزانة|خزانه|كاونتر|كونتر|رفوف|رف خشبي|خزائن|نجارة|نجاره|m\\.?d\\.?f|hdf|melamine|ميلامين|فورمايكا/.test(d))return 'Joinery & Cabinetry';
+ if(/cabinet|counter|reception desk|wardrobe|shelves|shelf|خزانة|خزانه|كاونتر|كونتر|رفوف|رف خشبي|خزائن|نجارة|نجاره|m\.?d\.?f|hdf|melamine|ميلامين|فورمايكا/.test(d))return 'Joinery & Cabinetry';
  if(/signage|sign board|illuminated sign|led sign|ارمة|أرمة|لوحة مضيئة|لوحه مضيئه|يافطة/.test(d))return 'Signage';
  if(/road|pavement|asphalt|roadwork|طريق|طرق|اسفلت|أسفلت|تعبيد/.test(d))return 'Roadworks';
  if(/waste|debris|rubbish|disposal|cart away|مخلفات|نفايات|انقاض|أنقاض|ترحيل/.test(d))return 'Waste Removal';
