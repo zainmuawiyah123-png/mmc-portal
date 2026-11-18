@@ -1235,6 +1235,7 @@ function upgradeMmcAiProjects(db) {
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
       item_code TEXT,
+      discipline TEXT,
       description TEXT NOT NULL,
       unit TEXT NOT NULL,
       quantity REAL NOT NULL CHECK(quantity >= 0),
@@ -1336,6 +1337,8 @@ function upgradeMmcAiProjects(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_ai_bim_models_project ON ai_bim_models(project_id,created_at DESC);
   `);
+  const boqColumns = new Set(db.prepare('PRAGMA table_info(ai_boq_items)').all().map((c) => c.name));
+  if (!boqColumns.has('discipline')) db.exec('ALTER TABLE ai_boq_items ADD COLUMN discipline TEXT');
 }
 
 /** Additive, repeatable discipline classification for MMC AI project drawings. */
