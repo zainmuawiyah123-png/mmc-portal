@@ -129,7 +129,7 @@ function parseCsv(text){
  row.push(cell);if(row.some(v=>v.trim()))rows.push(row);return rows;
 }
 function headerKey(v){
- return String(v||'').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\\s_\\-./()\\[\\]{}:：]+/g,'').replace(/[^\\p{L}\\p{N}]/gu,'');
+ return String(v||'').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[^\p{L}\p{N}]/gu,'');
 }
 function normalizeSpreadsheet(rows){
  if(!rows.length)throw E.validation('الملف لا يحتوي صفوفاً.');
