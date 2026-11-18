@@ -26,8 +26,10 @@ function verifyToken(token) {
 function setSessionCookie(res, token) {
   res.cookie(config.COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: config.CORS_ORIGIN ? 'none' : 'lax',
-    secure: config.COOKIE_SECURE,
+    // MMC AI and its API share the Render origin; Lax keeps the session cookie first-party.
+    // Do not switch to SameSite=None merely because an optional CORS origin is configured.
+    sameSite: 'lax',
+    secure: config.IS_PROD || config.COOKIE_SECURE,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/'
   });
