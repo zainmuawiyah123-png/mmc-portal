@@ -193,7 +193,7 @@ function inferDiscipline(description){
  if(/masonry|blockwork|brickwork|block wall|brick wall|مباني|طوب|بلوك|بناء جدران|بناء بلوك/.test(d))return 'Masonry';
  if(/railing|balustrade|handrail|metalwork|steelwork|canopy|درابزين|اعمال معدنية|أعمال معدنية/.test(d))return 'Metalwork';
  if(/roof covering|roofing|roof membrane|تسقيف/.test(d))return 'Roofing';
- if(/concrete|\\bpcc\\b|\\brcc\\b|footing|column|beam|\\bslab\\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
+ if(/concrete|\bpcc\b|\brcc\b|footing|column|beam|\bslab\b|stair|blinding|خرسانه|خرسانة|قواعد|اعمده|أعمدة|كمرات|بلاطه|بلاطة/.test(d))return 'Concrete & Structural';
  return null;
 }
 function normalizeSpreadsheet(rows){
