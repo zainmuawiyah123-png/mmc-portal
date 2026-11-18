@@ -86,17 +86,17 @@ function rotateBboxToSvgFrame(box, pageWidth, pageHeight, rotationDegrees) {
 }
 
 function parseSvgPageFrame(svg) {
-  const root = String(svg || '').match(/<svg\\b[^>]*>/i)?.[0];
+  const root = String(svg || '').match(/<svg\b[^>]*>/i)?.[0];
   if (!root) return null;
   const attrs = {};
-  const attrRe = /([a-zA-Z_:][\\w:.-]*)\\s*=\\s*(?:"([^"]*)"|'([^']*)')/g;
+  const attrRe = /([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
   let match;
   while ((match = attrRe.exec(root))) attrs[match[1]] = match[2] ?? match[3] ?? '';
   const parseLength = value => {
-    const found = String(value || '').trim().match(/^([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)(?:pt|px|mm|cm|in)?$/i);
+    const found = String(value || '').trim().match(/^([+-]?(?:\d*\.)?\d+(?:[eE][+-]?\d+)?)(?:pt|px|mm|cm|in)?$/i);
     return found ? Number(found[1]) : null;
   };
-  const viewBox = attrs.viewBox ? attrs.viewBox.trim().split(/[\\s,]+/).map(Number) : [];
+  const viewBox = attrs.viewBox ? attrs.viewBox.trim().split(/[\s,]+/).map(Number) : [];
   if (viewBox.length !== 4 || !viewBox.every(Number.isFinite) || viewBox[2] <= 0 || viewBox[3] <= 0) return null;
   return {
     width: viewBox[2], height: viewBox[3], viewBox,
