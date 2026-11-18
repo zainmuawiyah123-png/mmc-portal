@@ -149,13 +149,14 @@ function createApp() {
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
+  // Public BOQ spreadsheet preview must be mounted before any MMC AI router that enforces a user session.
+  app.use('/api/mmc-ai', mmcAiBoqRoutes.publicRouter); // Stateless, in-memory preview only
   app.use('/api/mmc-ai', mmcAiDemoRoutes); // Public stateless demo endpoint before authenticated workspace
   app.use('/api/mmc-ai', mmcAiRoutes);
   app.use('/api/mmc-ai', mmcAiDocumentRoutes);
   app.use('/api/mmc-ai', mmcAiOcrRoutes);
   app.use('/api/mmc-ai', mmcAiImageRoutes);
   app.use('/api/mmc-ai', mmcAiTakeoffRoutes);
-  app.use('/api/mmc-ai', mmcAiBoqRoutes.publicRouter); // Stateless spreadsheet preview; no project access
   app.use('/api/mmc-ai', mmcAiBoqRoutes.router); // All project BOQ routes require authentication
   app.use('/api/mmc-ai', mmcAiScheduleRoutes);
   app.use('/api/mmc-ai', mmcAiRiskRoutes);
