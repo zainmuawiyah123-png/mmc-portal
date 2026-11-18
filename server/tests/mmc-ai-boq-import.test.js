@@ -32,6 +32,14 @@ test('supports quoted commas and semicolon-delimited CSV', () => {
   assert.equal(rows[1][2], '2.5');
 });
 
+test('detects CSV delimiter when a title row appears before the headings', () => {
+  const csv = 'Project Bill of Quantities\\n\\nDescription;Unit;Quantity\\nConcrete;m3;12.5\\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'boq.csv' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'Concrete');
+  assert.equal(result.items[0].quantity, 12.5);
+});
+
 test('normalizes decimal separators and rejects ambiguous text', () => {
   assert.equal(parseNumber('1,25'), 1.25);
   assert.equal(parseNumber('١٢٫٥'), 12.5);
