@@ -135,7 +135,12 @@ function normalizeRows(matrix) {
     const rateRaw=get('rate'), rate=rateRaw===''?null:parseNumber(rateRaw);
     if(rateRaw!==''&&(rate===null||Number.isNaN(rate)||rate<0)) issue.push('سعر الوحدة غير صالح');
     const item={rowNumber:i+1,itemCode:get('itemCode')||null,description,unit,quantity,rate,discipline:get('discipline')||null};
-    if(issue.length) errors.push({rowNumber:i+1,issues:issue,source:item}); else {\n      const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');\n      if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:i+1,duplicateOfRowNumber:seen.get(key),item});}\n      else seen.set(key,i+1);\n      items.push(item);\n    }
+    if(issue.length) errors.push({rowNumber:i+1,issues:issue,source:item}); else {
+      const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
+      if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:i+1,duplicateOfRowNumber:seen.get(key),item});}
+      else seen.set(key,i+1);
+      items.push(item);
+    }
   }
   return {headerRow:headerIndex+1,items,errors,duplicates,summary:{rowsRead:matrix.length-headerIndex-1,validItems:items.length,errorRows:errors.length,duplicateRows:duplicates.length}};
 }
