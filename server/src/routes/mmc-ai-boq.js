@@ -165,7 +165,7 @@ router.post('/projects/:projectId/boq/import',wrap(async(req,res)=>{
   const key=itemCode?itemCode.toLowerCase():null;if(key&&seen.has(key))throw E.validation('رقم البند مكرر داخل الملف: '+itemCode);if(key)seen.add(key);
   return {description,unit,quantity,rate,itemCode,sourceRow:Number(x.sourceRow)||i+1,discipline:clean(x.discipline,80)||null};
  });
- const db=getDB(),insert=db.prepare('INSERT INTO ai_boq_items(id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by) VALUES(?,?,?,?,?,?,?,?,?)');
+ const db=getDB(),insert=db.prepare('INSERT INTO ai_boq_items(id,project_id,item_code,discipline,description,unit,quantity,rate,source_takeoff_item_id,created_by) VALUES(?,?,?,?,?,?,?,?,?,?)');
  const auditInsert=db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)');
  const transaction=db.transaction(()=>{for(const x of cleaned){const id=uid('aiboq_');insert.run(id,req.params.projectId,x.itemCode,x.discipline,x.description,x.unit,x.quantity,x.rate,null,req.user.id);auditInsert.run(uid('aial_'),req.params.projectId,req.user.id,'boq_item_imported','boq_item',id,JSON.stringify({sourceRow:x.sourceRow,discipline:x.discipline,rateProvided:x.rate>0}));}});
  transaction();
