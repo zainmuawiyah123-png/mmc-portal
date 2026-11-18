@@ -128,14 +128,33 @@ function parseCsv(text){
  for(let i=0;i<text.length;i++){const ch=text[i];if(ch==='"'&&quoted&&text[i+1]==='"'){cell+='"';i++;}else if(ch==='"')quoted=!quoted;else if(ch===delim&&!quoted){row.push(cell);cell='';}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell='';}else cell+=ch;}
  row.push(cell);if(row.some(v=>v.trim()))rows.push(row);return rows;
 }
-function headerKey(v){return String(v||'').trim().toLowerCase().replace(/[\s_\-./()]+/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه');}
+function headerKey(v){
+ return String(v||'').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\\s_\\-./()\\[\\]{}:：]+/g,'').replace(/[^\\p{L}\\p{N}]/gu,'');
+}
 function normalizeSpreadsheet(rows){
  if(!rows.length)throw E.validation('الملف لا يحتوي صفوفاً.');
- const aliases={code:['itemno','itemcode','code','رقمالبند','رقمالفقرة','الكود'],description:['description','itemdescription','workdescription','scope','الوصف','وصفالبند','البيان','بيانالاعمال'],unit:['unit','uom','الوحده','الوحدة'],quantity:['quantity','qty','quantities','الكميه','الكمية'],rate:['rate','unitrate','price','unitprice','سعرالوحده','سعرالوحدة','السعر'],discipline:['discipline','trade','section','التخصص','القسم']};
- const headers=rows[0].map(headerKey),idx={};for(const [key,opts] of Object.entries(aliases))idx[key]=headers.findIndex(h=>opts.includes(h));
- if(idx.description<0||idx.unit<0||idx.quantity<0)throw E.validation('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم عناوين: Description, Unit, Quantity (أو العناوين العربية المكافئة).');
+ const aliases={
+  code:['itemno','itemnumber','itemcode','code','رقمالبند','رقمالفقرة','الكود','رقمالعنصر'],
+  description:['description','itemdescription','workdescription','descriptionofwork','shortdescription','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','بيان','بيانالاعمال','البيان','تفاصيلالبند','اسم البند','البند'],
+  unit:['unit','uom','unitofmeasure','measurementunit','الوحده','الوحدة','وحدهالقياس','وحدةالقياس'],
+  quantity:['quantity','qty','quantities','totalquantity','الكميه','الكمية','كميه','كميهالبند','كميةالبند','العدد'],
+  rate:['rate','unitrate','price','unitprice','سعرالوحده','سعرالوحدة','السعر','سعر'],
+  discipline:['discipline','trade','section','التخصص','القسم','البندالرئيسي']
+ };
+ // Header rows are not always the first row: BOQs often start with a project title or blank lines.
+ let headerIndex=-1,headers=[],idx={};
+ const scan=Math.min(rows.length,20);
+ for(let r=0;r<scan;r++){
+  const candidate=(rows[r]||[]).map(headerKey),found={};
+  for(const [key,opts] of Object.entries(aliases))found[key]=candidate.findIndex(h=>opts.includes(h));
+  const score=['description','unit','quantity'].filter(k=>found[k]>=0).length;
+  if(score>['description','unit','quantity'].filter(k=>idx[k]>=0).length){headerIndex=r;headers=candidate;idx=found;}
+  if(score===3)break;
+ }
+ if(headerIndex<0||['description','unit','quantity'].some(k=>idx[k]<0))
+  throw E.validation('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم Description, Unit, Quantity أو: وصف البند، الوحدة، الكمية. تأكد أن عناوين الأعمدة موجودة في أول 20 صفاً.');
  const items=[],errors=[];
- for(let i=1;i<rows.length;i++){const row=rows[i],get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';if(!row.some(v=>String(v??'').trim()))continue;
+ for(let i=headerIndex+1;i<rows.length;i++){const row=rows[i]||[],get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';if(!row.some(v=>String(v??'').trim()))continue;
   const description=get('description'),unit=get('unit'),q=Number(get('quantity').replace(/,/g,'')),rateRaw=get('rate'),rate=rateRaw===''?0:Number(rateRaw.replace(/,/g,''));
   const err=[];if(description.length<3)err.push('وصف البند مفقود أو قصير');if(!unit)err.push('الوحدة مفقودة');if(!get('quantity')||!Number.isFinite(q)||q<0)err.push('الكمية غير صالحة');if(rateRaw!==''&&(!Number.isFinite(rate)||rate<0))err.push('سعر الوحدة غير صالح');
   if(err.length)errors.push({row:i+1,errors:err});
@@ -143,7 +162,7 @@ function normalizeSpreadsheet(rows){
  }
  if(!items.length)throw E.validation('لم يتم استخراج أي بنود صالحة من الملف.');
  if(items.length>3000)throw E.validation('الملف يتجاوز الحد المسموح وهو 3,000 بند لكل عملية استيراد.');
- return {items,errors,headers:rows[0].map(x=>String(x||'')),totalRows:rows.length-1};
+ return {items,errors,headers:rows[headerIndex].map(x=>String(x||'')),headerRow:headerIndex+1,totalRows:rows.length-headerIndex-1};
 }
 function readBoqUpload(file){
  const name=String(file.originalname||'').toLowerCase(),mime=String(file.mimetype||'');
