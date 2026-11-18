@@ -5,6 +5,19 @@ const {getDB,uid}=require('../db');
 const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const router=express.Router();
+
+// Public, isolated BOQ sandbox: parses a spreadsheet in memory without login or project access.
+// Nothing is persisted; this endpoint cannot read or modify private project records.
+router.post('/public-boq-preview',upload.single('file'),wrap(async(req,res)=>{
+ if(!req.file)throw E.validation('اختر ملف XLSX أو CSV أولاً.');
+ const parsed=readBoqUpload(req.file);
+ const priced=parsed.items.filter(x=>x.rate>0),unpriced=parsed.items.filter(x=>x.rate===0);
+ const knownTotal=Number(parsed.items.reduce((s,x)=>s+x.quantity*x.rate,0).toFixed(3));
+ const disciplines=Object.entries(parsed.items.reduce((a,x)=>{const k=x.discipline||'غير مصنف';a[k]=(a[k]||0)+1;return a;},{})).map(([discipline,count])=>({discipline,count}));
+ res.setHeader('Cache-Control','no-store');
+ res.json({mode:'public_preview_only',persisted:false,filename:req.file.originalname,sheet:parsed.sheet,totalRows:parsed.totalRows,items:parsed.items,errors:parsed.errors,summary:{itemCount:parsed.items.length,pricedCount:priced.length,unpricedCount:unpriced.length,knownPricedTotal:knownTotal,disciplineBreakdown:disciplines},scheduleCandidates:parsed.items.map((x,i)=>({sequence:i+1,code:x.itemCode,activity:x.description,discipline:x.discipline||null,quantity:x.quantity,unit:x.unit,durationDays:null,status:'requires_productivity_resources_and_logic'})),riskSignals:[...(unpriced.length?[{type:'missing_unit_rates',count:unpriced.length,severity:'commercial_input_required'}]:[]),...(parsed.items.some(x=>!x.discipline)?[{type:'unclassified_discipline',count:parsed.items.filter(x=>!x.discipline).length,severity:'classification_required'}]:[]),...(parsed.errors.length?[{type:'invalid_rows',count:parsed.errors.length,severity:'data_quality'}]:[])]});
+}));
+
 router.use(A.requireAuth);
 const EDIT=new Set(['owner','project_manager','engineer','quantity_surveyor']);
 function member(projectId,userId){return getDB().prepare(`SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?`).get(projectId,userId)||null;}
