@@ -573,8 +573,15 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   button.disabled=true;report.textContent='Reading and importing file…';
   try{
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/import',{method:'POST',credentials:'same-origin',body:fd});
-   const d=await r.json();
-   if(!r.ok)throw new Error(d.message||d.error||'BOQ import failed.');
+   const d=await r.json().catch(async()=>({message:await r.text().catch(()=>'')})).catch(()=>({}));
+   if(!r.ok){
+    const apiError=d.error;
+    const message=(apiError&&typeof apiError==='object'?(apiError.message||apiError.code):null)||d.message||(typeof apiError==='string'?apiError:null)||'BOQ import failed (HTTP '+r.status+').';
+    const details=apiError&&typeof apiError==='object'?apiError.details:null;
+    const detailText=details?(typeof details==='string'?details:JSON.stringify(details)): '';
+    throw new Error(message+(detailText?' — '+detailText:''));
+   }
+   if(d.error)throw new Error(typeof d.error==='string'?d.error:(d.error.message||JSON.stringify(d.error)));
    const s=d.summary||{};
    const lines=['Imported: '+(s.imported??0),'Valid rows: '+(s.validItems??0),'Invalid rows: '+(s.errorRows??0),'Duplicate rows: '+(s.duplicateRows??0),'Missing rates (stored as zero by current database schema): '+(s.missingRates??0)];
    if(d.errors?.length)lines.push('','ROWS NEEDING CORRECTION:',...d.errors.map(x=>'Row '+x.rowNumber+': '+x.issues.join('، ')));
