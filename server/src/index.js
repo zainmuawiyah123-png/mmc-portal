@@ -161,6 +161,7 @@ function createApp() {
   app.use('/api/mmc-ai', mmcAiContractEventRoutes.router);
   app.use('/api/mmc-ai', mmcAiBimRoutes);
   app.use('/api/mmc-ai', mmcAiBimModelRoutes);
+  app.use('/api/mmc-ai', mmcAiAutoAnalysisRoutes);
   app.use('/api/committee', require('./routes/committee'));
 
   app.use('/api', (req, res) => {
