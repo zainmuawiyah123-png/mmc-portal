@@ -23,15 +23,19 @@ function durationInput(db,pid,body,old){
   const item=db.prepare('SELECT id,unit,quantity FROM ai_boq_items WHERE id=? AND project_id=?').get(boqItemId,pid);
   if(!item)throw E.validation('بند الكميات المختار غير موجود في هذا المشروع.');
   if(!(item.quantity>0))throw E.validation('كمية بند BOQ يجب أن تكون أكبر من صفر لحساب المدة.');
-  if(!Number.isFinite(productivity)||productivity<=0)throw E.validation('أدخل إنتاجية يومية صحيحة وبنفس وحدة بند الكميات ('+item.unit+').');
-  proposed=Math.ceil(item.quantity/productivity);
+  if(productivity!==null){
+   if(!Number.isFinite(productivity)||productivity<=0)throw E.validation('أدخل إنتاجية يومية صحيحة وبنفس وحدة بند الكميات ('+item.unit+').');
+   proposed=Math.ceil(item.quantity/productivity);
+  } else if(body.durationDays===undefined&&!old){
+   throw E.validation('أدخل إنتاجية يومية لحساب المدة المقترحة، أو أدخل مدة معتمدة يدوياً.');
+  }
   if(!Number.isSafeInteger(proposed)||proposed<1)throw E.validation('تعذر حساب المدة المقترحة من الكمية والإنتاجية.');
  } else productivity=null;
  const supplied=body.durationDays!==undefined;
  let duration=supplied?Number(body.durationDays):(old?.duration_days??proposed);
  if(source==='manual'&&!supplied&&!old)throw E.validation('أدخل مدة النشاط يدوياً أو اربطه ببند من جدول الكميات.');
  if(!Number.isInteger(duration)||duration<0||duration>36500)throw E.validation('مدة النشاط يجب أن تكون أيام عمل صحيحة.');
- const override=source==='boq'&&duration!==proposed?1:0;
+ const override=source==='boq'&&(proposed===null||duration!==proposed)?1:0;
  const reason=body.durationOverrideReason===undefined?(old?.duration_override_reason||null):String(body.durationOverrideReason||'').trim().slice(0,500)||null;
  return {boqItemId,source,productivity,proposed,duration,override,reason};
 }
