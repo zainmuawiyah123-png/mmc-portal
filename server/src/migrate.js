@@ -1330,7 +1330,7 @@ function upgradeMmcAiProjects(db) {
   `);
   // Additive BOQ provenance and explicit missing-rate state.
   const boqColumns = new Set(db.prepare('PRAGMA table_info(ai_boq_items)').all().map(c => c.name));
-  const additions = [['source_sheet','TEXT'],['source_row','INTEGER'],['source_amount','REAL'],['rate_missing','INTEGER NOT NULL DEFAULT 0'],['validation_json',"TEXT NOT NULL DEFAULT '[]'"],['section_label','TEXT']];
+  const additions = [['source_sheet','TEXT'],['source_row','INTEGER'],['source_amount','REAL'],['rate_missing','INTEGER NOT NULL DEFAULT 0'],['validation_json',"TEXT NOT NULL DEFAULT '[]'"],['section_label','TEXT'],['source_takeoff_run_id','TEXT REFERENCES ai_takeoff_runs(id) ON DELETE SET NULL'],['source_proposal_key','TEXT'],['source_detail_json','TEXT']];
   for (const [name, definition] of additions) {
     if (!boqColumns.has(name)) db.exec('ALTER TABLE ai_boq_items ADD COLUMN ' + name + ' ' + definition);
   }
@@ -1359,18 +1359,23 @@ function upgradeMmcAiProjects(db) {
           source_amount REAL,
           rate_missing INTEGER NOT NULL DEFAULT 0,
           validation_json TEXT NOT NULL DEFAULT '[]',
-          section_label TEXT
+          section_label TEXT,
+          source_takeoff_run_id TEXT REFERENCES ai_takeoff_runs(id) ON DELETE SET NULL,
+          source_proposal_key TEXT,
+          source_detail_json TEXT
         );
         INSERT INTO ai_boq_items_new (
           id,project_id,item_code,description,unit,quantity,rate,
           source_takeoff_item_id,created_by,updated_at,created_at,
-          source_sheet,source_row,source_amount,rate_missing,validation_json,section_label
+          source_sheet,source_row,source_amount,rate_missing,validation_json,section_label,
+          source_takeoff_run_id,source_proposal_key,source_detail_json
         )
         SELECT
           id,project_id,item_code,description,unit,quantity,
           CASE WHEN rate_missing=1 THEN NULL ELSE rate END,
           source_takeoff_item_id,created_by,updated_at,created_at,
-          source_sheet,source_row,source_amount,rate_missing,validation_json,section_label
+          source_sheet,source_row,source_amount,rate_missing,validation_json,section_label,
+          source_takeoff_run_id,source_proposal_key,source_detail_json
         FROM ai_boq_items;
         DROP TABLE ai_boq_items;
         ALTER TABLE ai_boq_items_new RENAME TO ai_boq_items;
@@ -1379,6 +1384,8 @@ function upgradeMmcAiProjects(db) {
     });
     rebuild();
   }
+
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_boq_takeoff_proposal ON ai_boq_items(project_id,source_takeoff_run_id,source_proposal_key) WHERE source_takeoff_run_id IS NOT NULL AND source_proposal_key IS NOT NULL;');
 
   // Additive schedule-to-BOQ linkage and subscriber-controlled duration decisions.
   const scheduleColumns = new Set(db.prepare('PRAGMA table_info(ai_schedule_tasks)').all().map(c => c.name));
