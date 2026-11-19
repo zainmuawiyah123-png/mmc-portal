@@ -147,6 +147,22 @@ const ALIASES = {
   itemCode:['itemcode','code','ref','reference','رقمالبند','الكود','الرمز'],
   discipline:['discipline','trade','category','التخصص','القسم','الفئة']
 };
+const UNIT_MAP = Object.freeze({
+  m:'m', meter:'m', metre:'m', meters:'m', metres:'m', lm:'m', 'م':'m', 'متر':'m', 'متر طولي':'m',
+  m2:'m2', 'm²':'m2', sqm:'m2', 'sq m':'m2', 'م2':'m2', 'م²':'m2', 'متر مربع':'m2',
+  m3:'m3', 'm³':'m3', cum:'m3', 'م3':'m3', 'م³':'m3', 'متر مكعب':'m3',
+  nr:'nr', no:'nr', nos:'nr', ea:'nr', each:'nr', pcs:'nr', pc:'nr', 'عدد':'nr', 'حبة':'nr',
+  kg:'kg', kgs:'kg', kilogram:'kg', kilograms:'kg', 'كجم':'kg', 'كغم':'kg', 'كغ':'kg', 'كيلوغرام':'kg', 'كيلوجرام':'kg',
+  ton:'ton', tonne:'ton', tons:'ton', tonnes:'ton', 'طن':'ton',
+  ls:'ls', lsum:'ls', 'lump sum':'ls', 'مقطوعية':'ls'
+});
+function normalizeUnit(raw) {
+  if (raw === null || raw === undefined || String(raw).trim() === '') return { unit:null, known:false, raw:null };
+  const text = String(raw).normalize('NFKC').trim();
+  const key = normalizeHeader(text).replace(/\\s+/g, '');
+  const direct = UNIT_MAP[text.toLowerCase()] || UNIT_MAP[key];
+  return direct ? {unit:direct,known:true,raw:text} : {unit:text.slice(0,24),known:false,raw:text};
+}
 function parseNumber(value) {
   let s=String(value??'').trim().replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
   if(!s) return null;
@@ -178,7 +194,7 @@ function normalizeRows(matrix) {
     if(quantity===null||Number.isNaN(quantity)||quantity<0) issue.push('الكمية غير صالحة أو مفقودة');
     const rateRaw=get('rate'), rate=rateRaw===''?null:parseNumber(rateRaw);
     if(rateRaw!==''&&(rate===null||Number.isNaN(rate)||rate<0)) issue.push('سعر الوحدة غير صالح');
-    const item={rowNumber:i+1,itemCode:get('itemCode')||null,description,unit,quantity,rate,discipline:get('discipline')||null};
+    const unitInfo=normalizeUnit(unit);\n    const item={rowNumber:i+1,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,discipline:get('discipline')||null};
     if(issue.length) errors.push({rowNumber:i+1,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
       if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:i+1,duplicateOfRowNumber:seen.get(key),item});}
@@ -196,4 +212,4 @@ function parseBoqFile({buffer,filename}) {
   else throw new Error('الصيغ المدعومة: XLSX وCSV فقط.');
   return {...normalizeRows(matrix),sourceFormat:ext};
 }
-module.exports={parseBoqFile,normalizeRows,csvRows,xlsxRows,parseNumber};
+module.exports={parseBoqFile,normalizeRows,csvRows,xlsxRows,parseNumber,normalizeUnit,UNIT_MAP};
