@@ -43,7 +43,7 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/pdf',wrap(async(
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
    VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_structural_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,textEngine:extracted.engine,pages:extracted.pageCount,items:result.rows.length}));
  })();
- res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,textEngine:extracted.engine,status:'needs_review',units:result.units,summary:enrichedSummary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
+ res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,textEngine:extracted.engine,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
 }));
 router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(req,res)=>{
  const m=requireMember(req);
