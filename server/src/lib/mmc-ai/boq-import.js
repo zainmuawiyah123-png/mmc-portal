@@ -140,6 +140,7 @@ function xlsxRows(buffer) {
   for (const name of sheetNames) {
     const displayName = namedSheets.find(x => x.target === name)?.name || name.split('/').pop().replace(/\.xml$/i, '');
     const rows = readSheet(files.get(name) || '', displayName);
+    if (process.env.NODE_ENV === 'test') console.log('[boq-xlsx-debug]', displayName, JSON.stringify(rows.slice(0,3).map(row => Array.from(row))));
     const hasSingleHeader = rows.some(row => hasBoqHeader(row));
     const hasSplitHeader = rows.some((row, i) => i + 1 < rows.length &&
       hasBoqHeader([...row, ...rows[i + 1]]));
