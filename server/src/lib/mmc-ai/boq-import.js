@@ -73,7 +73,7 @@ function xmlDecode(s) {
   return String(s||'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 }
 function attr(tag,name) {
-  const m=tag.match(new RegExp('(?:^|\\s)'+name+'="([^"]*)"'));
+  const m=tag.match(new RegExp('(?:^|\s)'+name+'="([^"]*)"'));
   return m?xmlDecode(m[1]):'';
 }
 function colIndex(ref) {
@@ -318,7 +318,7 @@ function normalizeRows(matrix) {
     const item={rowNumber:row._sourceRow||i+1,sourceSheet:row._sourceSheet||null,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,sourceAmount:Number.isFinite(sourceAmount)?sourceAmount:null,discipline:get('discipline')||null,sectionLabel:currentSection};
     item.validationIssues=[];
     if(Number.isFinite(sourceAmount)&&Number.isFinite(quantity)&&Number.isFinite(rate)&&Math.abs(sourceAmount-(quantity*rate))>Math.max(0.01,Math.abs(sourceAmount)*0.005)) item.validationIssues.push('قيمة البند لا تطابق الكمية × سعر الوحدة');
-    if(unitInfo.unit==='m2' && /متر\\s*طولي|متر\\s*طول|طولي.{0,12}متر/.test(description)) item.validationIssues.push('الوصف يشير إلى متر طولي بينما وحدة الجدول متر مربع');
+    if(unitInfo.unit==='m2' && /متر\s*طولي|متر\s*طول|طولي.{0,12}متر/.test(description)) item.validationIssues.push('الوصف يشير إلى متر طولي بينما وحدة الجدول متر مربع');
     if(issue.length) errors.push({rowNumber:item.rowNumber,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
       if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:item.rowNumber,duplicateOfRowNumber:seen.get(key),item});}
