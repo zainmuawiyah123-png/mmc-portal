@@ -7,6 +7,8 @@ const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const storage=require('../lib/storage');
 const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
+const {classifyLayer,summarizeByDiscipline}=require('../lib/mmc-ai/discipline-layer-classifier');
+const {proposeDisciplineQuantities}=require('../lib/mmc-ai/discipline-quantity-rules');
 const {extractPdfTextPoppler}=require('../lib/mmc-ai/pdf-poppler-text');
 const {parseStructuralScheduleText}=require('../lib/mmc-ai/pdf-structural-takeoff');
 const router=express.Router();
@@ -34,14 +36,14 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/pdf',wrap(async(
  const runId=uid('aitake_'),savedRows=[];
  db.transaction(()=>{
   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
-   VALUES(?,?,?,?,?,'needs_review',?,?,?)`).run(runId,doc.project_id,doc.id,req.user.id,result.engine,JSON.stringify(result.units),JSON.stringify(result.summary),JSON.stringify(result.unsupported));
+   VALUES(?,?,?,?,?,'needs_review',?,?,?)`).run(runId,doc.project_id,doc.id,req.user.id,result.engine,JSON.stringify(result.units),JSON.stringify(enrichedSummary),JSON.stringify(result.unsupported));
   const add=db.prepare(`INSERT INTO ai_takeoff_items(id,run_id,entity_index,entity_type,layer_name,quantity,unit,detail_json)
    VALUES(?,?,?,?,?,?,?,?)`);
   for(const row of result.rows){const itemId=uid('aitem_');add.run(itemId,runId,row.entityIndex,row.entity,row.layer,row.quantity,row.unit,JSON.stringify(row.detail));savedRows.push({...row,id:itemId,review_status:'needs_review'});}
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
    VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_structural_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,textEngine:extracted.engine,pages:extracted.pageCount,items:result.rows.length}));
  })();
- res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,textEngine:extracted.engine,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
+ res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,textEngine:extracted.engine,status:'needs_review',units:result.units,summary:enrichedSummary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
 }));
 router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(req,res)=>{
  const m=requireMember(req);
@@ -54,15 +56,20 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(
  const raw=await store.get(doc.storage_key);
  if(!Buffer.isBuffer(raw))throw E.validation('تعذر قراءة ملف DXF من التخزين.');
  const result=takeoffDxf(raw.toString('utf8'));
+ const layerMap=req.body?.layerMap && typeof req.body.layerMap==='object' && !Array.isArray(req.body.layerMap) ? req.body.layerMap : {};
+ const classifiedRows=result.rows.map(row=>{const classification=classifyLayer(row.layer||'0',layerMap);return {...row,discipline:classification.discipline,disciplineCategory:classification.category,disciplineBasis:classification.basis,disciplineSource:classification.source};});
+ const disciplineSummary=summarizeByDiscipline(classifiedRows,layerMap);
+ const quantityProposals=proposeDisciplineQuantities(classifiedRows,{layerMap,defaults:req.body?.defaults||{},byCategory:req.body?.byCategory||{},byDiscipline:req.body?.byDiscipline||{}});
+ const enrichedSummary={...result.summary,disciplineSummary,quantityProposals};
  const runId=uid('aitake_'),savedRows=[];
  db.transaction(()=>{
   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
    VALUES(?,?,?,?,?,'needs_review',?,?,?)`).run(runId,doc.project_id,doc.id,req.user.id,result.engine,JSON.stringify(result.units),JSON.stringify(result.summary),JSON.stringify(result.unsupported));
   const add=db.prepare(`INSERT INTO ai_takeoff_items(id,run_id,entity_index,entity_type,layer_name,quantity,unit,detail_json)
    VALUES(?,?,?,?,?,?,?,?)`);
-  for(const row of result.rows){const itemId=uid('aitem_');add.run(itemId,runId,row.entityIndex,row.entity,row.layer||'0',row.quantity,row.unit,JSON.stringify(row));savedRows.push({...row,id:itemId,review_status:'needs_review'});}
+  for(const row of classifiedRows){const itemId=uid('aitem_');add.run(itemId,runId,row.entityIndex,row.entity,row.layer||'0',row.quantity,row.unit,JSON.stringify(row));savedRows.push({...row,id:itemId,review_status:'needs_review'});}
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
-   VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'dxf_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,items:result.rows.length}));
+   VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'dxf_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,items:result.rows.length,classified:disciplineSummary.reduce((n,d)=>n+d.categories.reduce((m,x)=>m+x.entities,0),0),proposedCategories:quantityProposals.summary.proposed,incompleteCategories:quantityProposals.summary.incomplete}));
  })();
  res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
 }));
