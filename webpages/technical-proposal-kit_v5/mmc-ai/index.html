@@ -252,6 +252,10 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
      <p class="note" style="margin:7px 0 0">Supports Arabic and English column headings. XLSX / CSV · Maximum 10 MB. Only valid rows are imported; invalid rows and duplicates are reported below. Review imported rates before approval.</p>
      <div id="boqImportReport" class="note" aria-live="polite" style="margin-top:8px;white-space:pre-wrap"></div>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+     <button id="boqExportCsv" type="button" class="btn">Export BOQ · Excel / CSV</button>
+     <button id="boqPrint" type="button" class="btn primary">Print BOQ / Save PDF</button>
+    </div>
     <div id="boqSummary" class="note">Select a project to view Bill of Quantities.</div>
     <div class="tablewrap"><table style="width:100%"><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th><th>Action</th></tr></thead><tbody id="boqRows"><tr><td colspan="7" style="text-align:center;padding:18px">No BOQ items yet.</td></tr></tbody></table></div>
     <p class="note">This project BOQ and cost estimate is separate from tender pricing in the Procurement Portal. Rates and quantities require review and approval by the responsible team.</p>
@@ -704,6 +708,25 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    notify('BOQ import completed. Review the import report.');
   }catch(e){report.textContent='Import not completed: '+e.message;notify(e.message);}
   finally{button.disabled=false;}
+ });
+ const exportBoqItems=()=>{const id=activeProject?.project_id||activeProject?.id;return id?projectBoqCache.get(id)||[]:[];};
+ const boqCsvCell=value=>{let s=String(value??'');if(/^[=+@\\-\\t\\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+ document.getElementById('boqExportCsv').addEventListener('click',()=>{
+  const items=exportBoqItems();if(!items.length){notify('Select a project with BOQ items before exporting.');return;}
+  const rows=[['Item No.','Section','Description','Unit','Quantity','Unit Rate','Total']];
+  for(const item of items)rows.push([item.item_code||'',item.section_label||'',item.description||'',item.unit||'',item.quantity??'',item.rateMissing?'':(item.rate??''),item.rateMissing?'':(item.line_total??'')]);
+  const csv='\\uFEFF'+rows.map(row=>row.map(boqCsvCell).join(',')).join('\\r\\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='MMC-BOQ-'+String(activeProject?.name||'Project').replace(/[^a-z0-9-_]+/gi,'-')+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ });
+ document.getElementById('boqPrint').addEventListener('click',()=>{
+  const items=exportBoqItems();if(!items.length){notify('Select a project with BOQ items before printing.');return;}
+  const esc=v=>String(v??'—').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const rows=items.map(x=>'<tr><td>'+esc(x.item_code||'—')+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.unit)+'</td><td class="num">'+esc(x.quantity)+'</td><td class="num">'+(x.rateMissing?'Not quoted':esc(Number(x.rate).toFixed(3)))+'</td><td class="num">'+(x.rateMissing?'—':esc(Number(x.line_total).toFixed(3)))+'</td></tr>').join('');
+  const total=items.reduce((sum,x)=>sum+(x.rateMissing?0:Number(x.line_total)||0),0),missing=items.filter(x=>x.rateMissing).length;
+  const w=window.open('','_blank');if(!w){notify('Allow pop-ups for this site, then try printing again.');return;}
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>MMC BOQ</title><style>body{font:12px Arial,sans-serif;color:#172b40;margin:18mm}header{display:flex;justify-content:space-between;border-bottom:2px solid #183653;padding-bottom:12px;margin-bottom:16px}.brand{font-weight:700;font-size:18px;color:#183653}h1{font-size:20px;margin:8px 0}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5df;padding:7px;text-align:left;vertical-align:top}th{background:#eaf1f8}.num{text-align:right;white-space:nowrap}.summary{margin:12px 0;padding:10px;background:#f3f6f9}.foot{margin-top:20px;font-size:10px;color:#667}@page{size:A4 landscape;margin:12mm}thead{display:table-header-group}tr{break-inside:avoid}</style></head><body><header><div><div class="brand">MMC AI | CONSTRUCTION INTELLIGENCE</div><div>Bill of Quantities</div></div><div style="text-align:right"><b>'+esc(activeProject?.name||'Project')+'</b><br>Printed: '+esc(new Date().toLocaleString())+'</div></header><h1>Bill of Quantities & Cost Estimate</h1><div class="summary">Items: '+items.length+' · Priced total: '+total.toFixed(3)+' '+esc(activeProject?.currency||'')+' · Missing rates: '+missing+'</div><table><thead><tr><th>Item No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Unit Rate</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table><p class="foot">Rates marked Not quoted were not provided in the source BOQ and are excluded from the priced total. This report reflects the saved project BOQ at print time.</p></body></html>');
+  w.document.close();w.focus();setTimeout(()=>w.print(),350);
  });
  document.getElementById('boqAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('Select a project first.');return;}
