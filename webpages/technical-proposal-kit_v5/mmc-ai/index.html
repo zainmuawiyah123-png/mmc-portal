@@ -631,7 +631,7 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
     const values=[item.item_code||'—',item.description,item.unit,item.quantity,item.rateMissing?'MISSING':item.rate,item.rateMissing?'—':Number(item.line_total).toFixed(3)];
     for(let index=0;index<values.length;index++){
      const td=document.createElement('td');td.textContent=String(values[index]);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';
-     if(index===1){td.title=[item.source_sheet?('Source sheet: '+item.source_sheet):'',item.source_row?('Source row: '+item.source_row):'',...(item.validationIssues||[])].filter(Boolean).join(' · ');if(item.validationIssues?.length){td.textContent+=' ⚠';td.style.color='#b45309';}}
+     if(index===1){td.title=[item.source_sheet?('Source sheet: '+item.source_sheet):'',item.source_row?('Source row: '+item.source_row):'',item.source_takeoff_run_id?('Takeoff run: '+item.source_takeoff_run_id):'',item.sourceDetail?.formula?('Formula: '+item.sourceDetail.formula):'',...(item.sourceDetail?.sourceLayers||[]).map(x=>'CAD layer: '+x),...(item.sourceDetail?.assumptions||[]),...(item.validationIssues||[])].filter(Boolean).join(' · ');if(item.validationIssues?.length){td.textContent+=' ⚠';td.style.color='#b45309';}}
      if(index===4&&item.rateMissing){td.style.color='#b45309';td.title='No unit rate was entered in the source workbook; this is not a zero price.';}
      tr.appendChild(td);
     }
