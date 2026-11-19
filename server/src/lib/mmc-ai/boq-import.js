@@ -235,7 +235,7 @@ const ALIASES = {
   discipline:['discipline','trade','category','التخصص','القسم','الفئة']
 };
 const UNIT_MAP = Object.freeze({
-  m:'m', meter:'m', metre:'m', meters:'m', metres:'m', lm:'m', 'م':'m', 'متر':'m', 'متر طولي':'m', 'بالمتر الطولي':'m',
+  m:'m', meter:'m', metre:'m', meters:'m', metres:'m', lm:'m', 'م':'m', 'مط':'m', 'متر':'m', 'متر طولي':'m', 'بالمتر الطولي':'m',
   m2:'m2', 'm²':'m2', sqm:'m2', 'sq m':'m2', 'م2':'m2', 'م²':'m2', 'متر مربع':'m2', 'بالمتر المربع':'m2',
   m3:'m3', 'm³':'m3', cum:'m3', 'م3':'m3', 'م³':'m3', 'متر مكعب':'m3',
   nr:'nr', no:'nr', nos:'nr', ea:'nr', each:'nr', pcs:'nr', pc:'nr', 'عدد':'nr', 'بالعدد':'nr', 'وحدة':'nr', 'بالوحدة':'nr', 'حبة':'nr',
