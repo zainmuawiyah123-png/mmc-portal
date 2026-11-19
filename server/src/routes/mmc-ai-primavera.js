@@ -163,7 +163,7 @@ router.post('/projects/:projectId/primavera/export',wrap(async(req,res)=>{
  '<APIBusinessObjects xmlns="http://xmlns.oracle.com/Primavera/P6/V23.12/API/BusinessObjects" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'+
  '<NotebookTopic>\n'+p6Leaf('AvailableForActivity',1)+'\n'+p6Leaf('AvailableForEPS',0)+'\n'+
  p6Leaf('AvailableForProject',0)+'\n'+p6Leaf('AvailableForWBS',0)+'\n'+p6Leaf('Name','MMC BOQ Reference')+'\n'+
- p6Leaf('ObjectId',1)+'\n</NotebookTopic>\n<Project>\n'+p6Leaf('Id',p6ProjectId)+'\n'+p6Leaf('Name',p6ProjectName)+'\n'+
+ p6Leaf('ObjectId',1)+'\n</NotebookTopic>\n<Calendar>\n'+p6Leaf('HoursPerDay',8)+'\n'+p6Leaf('HoursPerMonth',173.333333)+'\n'+p6Leaf('HoursPerWeek',40)+'\n'+p6Leaf('HoursPerYear',2080)+'\n'+p6Leaf('Name','MMC 5 Day 8 Hour Calendar')+'\n'+p6Leaf('ObjectId',10)+'\n'+p6Leaf('Type','Project')+'\n<StandardWorkWeek>\n'+['Monday','Tuesday','Wednesday','Thursday','Friday'].map(day=>'<StandardWorkHours>'+p6Leaf('DayOfWeek',day)+'<WorkTime>'+p6Leaf('Start','08:00')+p6Leaf('Finish','16:00')+'</WorkTime></StandardWorkHours>').join('\n')+'\n'+['Saturday','Sunday'].map(day=>'<StandardWorkHours>'+p6Leaf('DayOfWeek',day)+'<WorkTime xsi:nil="true" /></StandardWorkHours>').join('\n')+'\n</StandardWorkWeek>\n</Calendar>\n<Project>\n'+p6Leaf('ActivityDefaultCalendarObjectId',10)+'\n'+p6Leaf('Id',p6ProjectId)+'\n'+p6Leaf('Name',p6ProjectName)+'\n'+
  p6Leaf('ObjectId',projectObjectId)+'\n<WBS>\n'+p6Leaf('Code','MMC-WBS')+'\n'+p6Leaf('Name','MMC AI Schedule')+'\n'+
  p6Leaf('ObjectId',wbsObjectId)+'\n'+p6Leaf('ProjectObjectId',projectObjectId)+'\n'+p6Leaf('SequenceNumber',1)+
  '\n</WBS>\n'+activities+'\n'+relationships.join('\n')+'\n</Project>\n</APIBusinessObjects>';
