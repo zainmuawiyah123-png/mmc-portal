@@ -136,11 +136,11 @@ function xlsxRows(buffer) {
   // Read every worksheet with a recognizable BOQ table. Some tenders contain
   // several sections and repeat their column headings throughout the sheet.
   const combined = [];
-  const acceptedSheets = [], skippedSheets = [], inferredSheets = [];
+  const acceptedSheets = [], skippedSheets = [], inferredSheets = [], debugSheets = [];
   for (const name of sheetNames) {
     const displayName = namedSheets.find(x => x.target === name)?.name || name.split('/').pop().replace(/\.xml$/i, '');
     const rows = readSheet(files.get(name) || '', displayName);
-    if (process.env.NODE_ENV === 'test') console.log('[boq-xlsx-debug]', displayName, JSON.stringify(rows.slice(0,3).map(row => Array.from(row))));
+    debugSheets.push({name:displayName,rowCount:rows.length,firstRows:rows.slice(0,3).map(row=>Array.from(row))});
     const hasSingleHeader = rows.some(row => hasBoqHeader(row));
     const hasSplitHeader = rows.some((row, i) => i + 1 < rows.length &&
       hasBoqHeader([...row, ...rows[i + 1]]));
@@ -189,7 +189,7 @@ function xlsxRows(buffer) {
     }
     combined.push([]);
   }
-  if (!acceptedSheets.length) throw new Error('لم أتمكن من العثور على ورقة تحتوي عناوين جدول كميات واضحة.');
+  if (!acceptedSheets.length) throw new Error('لم أتمكن من العثور على ورقة تحتوي عناوين جدول كميات واضحة. ' + JSON.stringify(debugSheets));
   combined.sourceSheets = acceptedSheets;
   combined.skippedSheets = skippedSheets;
   combined.inferredSheets = inferredSheets;
