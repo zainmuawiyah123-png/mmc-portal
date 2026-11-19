@@ -120,3 +120,12 @@ test('reads an XLSX workbook and selects the worksheet containing Arabic BOQ hea
   assert.equal(result.items[0].unit, 'm3');
   assert.equal(result.items[0].quantity, 125.5);
 });
+
+test('recognizes common Arabic BOQ heading variations and RTL marks', () => {
+  const csv = '\u200fوصف الأعمال,وحدة القياس,إجمالي الكمية\nخرسانة,م3,١٢٫٥\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'arabic-variations.csv' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'خرسانة');
+  assert.equal(result.items[0].unit, 'م3');
+  assert.equal(result.items[0].quantity, 12.5);
+});
