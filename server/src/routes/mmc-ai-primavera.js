@@ -101,4 +101,80 @@ router.post('/projects/:projectId/primavera/preview',wrap(async(req,res)=>{
  audit(db,req,'primavera_export_preview',runId,summary);
  res.setHeader('Cache-Control','no-store');res.json({runId,format:cfg.transfer_format,project:{mmcProjectId:pid,p6ProjectId:cfg.p6_project_id,p6ProjectName:cfg.p6_project_name},summary,blockers,warnings,information,generatedActivityCodes:generatedCodes,activities,exportAvailable:false,message:'هذه معاينة تحقق وربط فقط؛ لا يتم إرسال بيانات إلى برنامج Primavera المكتبي في هذه المرحلة.'});
 }));
+// Conservative Primavera P6 API Business Objects XML export.
+// P6 stores activity durations in hours; MMC approved working days are converted at 8 hours/day.
+function xmlEscape(value){
+ return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+function p6Leaf(tag,value){
+ return value===undefined||value===null||value===''?'':'<'+tag+'>'+xmlEscape(value)+'</'+tag+'>';
+}
+function p6Date(day){return day?String(day).slice(0,10)+'T08:00:00':'';}
+function p6SafeId(value,fallback,max=40){
+ const s=String(value||'').trim().replace(/[|<>]/g,'-').replace(/\s+/g,'-');
+ return (s||fallback).slice(0,max);
+}
+router.post('/projects/:projectId/primavera/export',wrap(async(req,res)=>{
+ access(req,true);
+ const db=getDB(),pid=req.params.projectId,cfg=ensure(db,pid,req.user.id);
+ if(!cfg.enabled)throw E.validation('فعّل إعدادات تكامل Primavera واحفظها قبل التصدير.');
+ const all=db.prepare("SELECT t.*,b.item_code AS boq_item_code,b.description AS boq_description,b.unit AS boq_unit,b.quantity AS boq_quantity FROM ai_schedule_tasks t LEFT JOIN ai_boq_items b ON b.id=t.boq_item_id WHERE t.project_id=? ORDER BY t.created_at,t.id").all(pid);
+ const tasks=cfg.sync_mode==='approved_only'?all.filter(t=>!!t.duration_approved_at):all;
+ const excluded=all.length-tasks.length, included=new Set(tasks.map(t=>t.id));
+ const blockers=[],used=new Set();
+ for(const t of tasks){
+  const code=String(t.task_code||'').trim();
+  if(!code)blockers.push('يوجد نشاط بلا Activity ID.');
+  else if(used.has(code))blockers.push('يوجد Activity ID مكرر: '+code);
+  used.add(code);
+  if(!t.duration_approved_at)blockers.push('المدة غير معتمدة للنشاط: '+t.name);
+  if(!Number.isInteger(Number(t.duration_days))||Number(t.duration_days)<0)blockers.push('مدة غير صالحة للنشاط: '+t.name);
+  for(const pred of JSON.parse(t.predecessors_json||'[]'))if(!included.has(pred))blockers.push('النشاط السابق غير موجود ضمن الأنشطة المصدّرة للنشاط: '+t.name);
+ }
+ if(blockers.length)throw E.validation('تعذر إنشاء ملف P6 بسبب موانع التحقق:\n'+[...new Set(blockers)].join('\n'));
+ if(!tasks.length)throw E.validation('لا توجد أنشطة مؤهلة للتصدير.');
+ const project=db.prepare('SELECT name FROM ai_projects WHERE id=?').get(pid);
+ const p6ProjectId=p6SafeId(cfg.p6_project_id,'MMC-'+pid);
+ const p6ProjectName=String(cfg.p6_project_name||project?.name||'MMC AI Project').replace(/[|<>]/g,' ').slice(0,100);
+ const projectObjectId=1,wbsObjectId=2,activityObjectId=new Map(tasks.map((t,i)=>[t.id,100+i]));
+ const activities=tasks.map(t=>{
+  const id=String(t.task_code).slice(0,40),name=String(t.name||'Activity').slice(0,120),hours=Number(t.duration_days)*8;
+  const start=p6Date(t.planned_start);
+  const note=t.boq_item_id?'MMC BOQ '+(t.boq_item_code||'')+' | '+(t.boq_description||'')+' | Quantity: '+(t.boq_quantity??'')+' '+(t.boq_unit||''):'';
+  return '<Activity>\n'+
+   p6Leaf('Id',id)+'\n'+p6Leaf('Name',name)+'\n'+p6Leaf('ObjectId',activityObjectId.get(t.id))+'\n'+
+   p6Leaf('PercentCompleteType','Duration')+'\n'+p6Leaf('PlannedDuration',hours)+'\n'+
+   (start?p6Leaf('PlannedStartDate',start)+'\n':'')+
+   p6Leaf('ProjectObjectId',projectObjectId)+'\n'+p6Leaf('RemainingDuration',hours)+'\n'+
+   p6Leaf('Status','Not Started')+'\n'+p6Leaf('Type','Task Dependent')+'\n'+
+   p6Leaf('WBSObjectId',wbsObjectId)+'\n</Activity>'+
+   (note?'\n<ActivityNote>\n'+p6Leaf('ActivityObjectId',activityObjectId.get(t.id))+'\n'+p6Leaf('Note',note)+'\n'+
+    p6Leaf('NotebookTopicObjectId',1)+'\n'+p6Leaf('ObjectId',1000+activityObjectId.get(t.id))+'\n'+
+    p6Leaf('ProjectObjectId',projectObjectId)+'\n</ActivityNote>':'');
+ }).join('\n');
+ let relObjectId=2000;const relationships=[];
+ for(const t of tasks)for(const pred of JSON.parse(t.predecessors_json||'[]')){
+  relationships.push('<Relationship>\n'+p6Leaf('Lag',0)+'\n'+p6Leaf('ObjectId',relObjectId++)+'\n'+
+   p6Leaf('PredecessorActivityObjectId',activityObjectId.get(pred))+'\n'+p6Leaf('PredecessorProjectObjectId',projectObjectId)+'\n'+
+   p6Leaf('SuccessorActivityObjectId',activityObjectId.get(t.id))+'\n'+p6Leaf('SuccessorProjectObjectId',projectObjectId)+'\n'+
+   p6Leaf('Type','Finish to Start')+'\n</Relationship>');
+ }
+ const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+ '<APIBusinessObjects xmlns="http://xmlns.oracle.com/Primavera/P6/V23.12/API/BusinessObjects" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'+
+ '<NotebookTopic>\n'+p6Leaf('AvailableForActivity',1)+'\n'+p6Leaf('AvailableForEPS',0)+'\n'+
+ p6Leaf('AvailableForProject',0)+'\n'+p6Leaf('AvailableForWBS',0)+'\n'+p6Leaf('Name','MMC BOQ Reference')+'\n'+
+ p6Leaf('ObjectId',1)+'\n</NotebookTopic>\n<Project>\n'+p6Leaf('Id',p6ProjectId)+'\n'+p6Leaf('Name',p6ProjectName)+'\n'+
+ p6Leaf('ObjectId',projectObjectId)+'\n<WBS>\n'+p6Leaf('Code','MMC-WBS')+'\n'+p6Leaf('Name','MMC AI Schedule')+'\n'+
+ p6Leaf('ObjectId',wbsObjectId)+'\n'+p6Leaf('ProjectObjectId',projectObjectId)+'\n'+p6Leaf('SequenceNumber',1)+
+ '\n</WBS>\n'+activities+'\n'+relationships.join('\n')+'\n</Project>\n</APIBusinessObjects>';
+ const runId=uid('p6run_');
+ const summary={activities:tasks.length,excludedUnapproved:excluded,relationships:relationships.length,format:'P6 XML',durationConversion:'8 hours per approved working day',p6ProjectId:p6ProjectId};
+ db.prepare("INSERT INTO ai_primavera_sync_runs(id,project_id,actor_user_id,direction,status,format,summary_json,finished_at) VALUES(?,?,?,'mmc_to_p6','succeeded','XML',?,unixepoch())").run(runId,pid,req.user.id,JSON.stringify(summary));
+ audit(db,req,'primavera_xml_export_created',runId,summary);
+ res.setHeader('Content-Type','application/xml; charset=utf-8');
+ res.setHeader('Content-Disposition','attachment; filename="'+p6ProjectId.replace(/[^A-Za-z0-9._-]/g,'_')+'.xml"');
+ res.setHeader('Cache-Control','no-store');res.setHeader('X-MMC-P6-Activities',String(tasks.length));
+ res.send(xml);
+}));
+
 module.exports=router;
