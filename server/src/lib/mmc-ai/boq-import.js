@@ -202,7 +202,7 @@ const UNIT_MAP = Object.freeze({
   m:'m', meter:'m', metre:'m', meters:'m', metres:'m', lm:'m', 'م':'m', 'متر':'m', 'متر طولي':'m', 'بالمتر الطولي':'m',
   m2:'m2', 'm²':'m2', sqm:'m2', 'sq m':'m2', 'م2':'m2', 'م²':'m2', 'متر مربع':'m2', 'بالمتر المربع':'m2',
   m3:'m3', 'm³':'m3', cum:'m3', 'م3':'m3', 'م³':'m3', 'متر مكعب':'m3',
-  nr:'nr', no:'nr', nos:'nr', ea:'nr', each:'nr', pcs:'nr', pc:'nr', 'عدد':'nr', 'بالعدد':'nr', 'حبة':'nr',
+  nr:'nr', no:'nr', nos:'nr', ea:'nr', each:'nr', pcs:'nr', pc:'nr', 'عدد':'nr', 'بالعدد':'nr', 'وحدة':'nr', 'بالوحدة':'nr', 'حبة':'nr',
   kg:'kg', kgs:'kg', kilogram:'kg', kilograms:'kg', 'كجم':'kg', 'كغم':'kg', 'كغ':'kg', 'كيلوغرام':'kg', 'كيلوجرام':'kg',
   ton:'ton', tonne:'ton', tons:'ton', tonnes:'ton', 'طن':'ton',
   ls:'ls', lsum:'ls', 'lump sum':'ls', 'مقطوعية':'ls', 'مقطوع':'ls'
