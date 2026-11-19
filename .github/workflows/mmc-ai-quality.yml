@@ -14,6 +14,10 @@ on:
       - 'server/tests/mmc-ai-*.test.js'
       - 'server/package.json'
       - 'webpages/mmc-ai/**'
+      - 'webpages/technical-proposal-kit_v5/mmc-ai/**'
+      - 'server/src/routes/mmc-ai-takeoff.js'
+      - 'server/src/routes/mmc-ai-boq.js'
+      - 'server/src/migrate.js'
       - '.github/workflows/mmc-ai-quality.yml'
 
 permissions:
