@@ -114,14 +114,31 @@ function xlsxRows(buffer) {
   // Read every worksheet with a recognizable BOQ table. Some tenders contain
   // several sections and repeat their column headings throughout the sheet.
   const combined = [];
-  const acceptedSheets = [], skippedSheets = [];
+  const acceptedSheets = [], skippedSheets = [], inferredSheets = [];
   for (const name of sheetNames) {
     const rows = readSheet(files.get(name) || '');
     const hasSingleHeader = rows.some(row => hasBoqHeader(row));
     const hasSplitHeader = rows.some((row, i) => i + 1 < rows.length &&
       hasBoqHeader([...row, ...rows[i + 1]]));
     if (!hasSingleHeader && !hasSplitHeader) {
-      skippedSheets.push(name);
+      // A headerless tender tab may still expose a verifiable fixed layout:
+      // description in B, recognized unit in C, numeric quantity in D.
+      const inferred = rows.filter(row => {
+        const description = String(row[1] ?? '').trim();
+        const unit = normalizeUnit(row[2]);
+        const quantity = parseNumber(row[3]);
+        return description.length > 0 && unit.known && quantity !== null &&
+          Number.isFinite(quantity) && quantity >= 0;
+      });
+      if (!inferred.length) {
+        skippedSheets.push(name);
+        continue;
+      }
+      acceptedSheets.push(name);
+      inferredSheets.push(name);
+      combined.push(['Item Code','Description','Unit','Quantity','Unit Rate','Amount']);
+      for (const row of inferred) combined.push(['',row[1],row[2],row[3],row[4] ?? '',row[5] ?? '']);
+      combined.push([]);
       continue;
     }
     acceptedSheets.push(name);
@@ -144,6 +161,7 @@ function xlsxRows(buffer) {
   if (!acceptedSheets.length) throw new Error('لم أتمكن من العثور على ورقة تحتوي عناوين جدول كميات واضحة.');
   combined.sourceSheets = acceptedSheets;
   combined.skippedSheets = skippedSheets;
+  combined.inferredSheets = inferredSheets;
   return combined;
 }
 function hasBoqHeader(row) {
@@ -259,6 +277,6 @@ function parseBoqFile({buffer,filename}) {
   else if(ext==='xlsx') matrix=xlsxRows(buffer);
   else throw new Error('الصيغ المدعومة: XLSX وCSV فقط.');
   const parsed = normalizeRows(matrix);
-  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين وصف/وحدة/كمية واضحة؛ لم يتم تخمين الأعمدة.'}))};
+  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:[...(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين أو نمط أعمدة موثوق؛ لم يتم تخمين البيانات.'})),...(matrix.inferredSheets||[]).map(name=>({code:'HEADERLESS_LAYOUT_INFERRED',sheet:name,message:'تم التعرف على ترتيب الوصف والوحدة والكمية من نمط الأعمدة B/C/D بعد التحقق من وصف ووحدة معروفة وكمية رقمية.'}))]};
 }
 module.exports={parseBoqFile,normalizeRows,csvRows,xlsxRows,parseNumber,normalizeUnit,UNIT_MAP};
