@@ -1506,6 +1506,30 @@ function upgradeMmcAiContractManagement(db) {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_ai_claim_steps ON ai_claim_procedure_steps(project_id,claim_id,due_date);
+    CREATE TABLE IF NOT EXISTS ai_claim_engineer_responses (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      claim_id TEXT NOT NULL REFERENCES ai_contract_claims(id) ON DELETE CASCADE,
+      response_no TEXT,
+      response_type TEXT NOT NULL DEFAULT 'initial_response' CHECK(response_type IN ('acknowledgement','request_particulars','initial_response','recommendation','determination','agreement','rejection','other')),
+      responder_role TEXT NOT NULL DEFAULT 'engineer' CHECK(responder_role IN ('engineer','consultant','employer_representative')),
+      fidic_clause TEXT,
+      received_date TEXT,
+      response_date TEXT,
+      follow_up_due_date TEXT,
+      assessment_status TEXT NOT NULL DEFAULT 'issued' CHECK(assessment_status IN ('draft','issued','for_information','pending_documents','recommended','determined','agreed','rejected','disputed')),
+      findings TEXT NOT NULL,
+      reasons TEXT,
+      time_assessed_days INTEGER NOT NULL DEFAULT 0,
+      amount_assessed REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'JOD',
+      reservations TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_claim_engineer_responses ON ai_claim_engineer_responses(project_id,claim_id,response_date,created_at);
+
 
   `);
 }
