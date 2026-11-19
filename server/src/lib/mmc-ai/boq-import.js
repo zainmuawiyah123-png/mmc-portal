@@ -131,10 +131,15 @@ function xlsxRows(buffer) {
 }
 function normalizeHeader(value) {
   return String(value??'').normalize('NFKC').toLowerCase()
-    .replace(/[\u064B-\u065F\u0670]/g,'')
+    .replace(/[\\u064B-\\u065F\\u0670]/g,'')
     .replace(/[ـ]/g,'')
-    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\u200b\u200c\u200d\ufeff]/g,'')
-    .replace(/[\s_\-./()\[\]{}:：،؛]+/g,'').trim();
+    // Normalize common Arabic spelling variants in spreadsheet headings.
+    .replace(/[أإآٱ]/g,'ا')
+    .replace(/ى/g,'ي')
+    .replace(/ة/g,'ه')
+    // Remove bidi controls copied from right-to-left Excel cells.
+    .replace(/[\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069\\u200b\\u200c\\u200d\\ufeff]/g,'')
+    .replace(/[\\s_\\-./()\\[\\]{}:：،؛]+/g,'').trim();
 }
 const ALIASES = {
   description:['description','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','البيان','بيانالاعمال','بيانالعمل','اسم البند','البند','تفاصيلالبند','العمل'],
