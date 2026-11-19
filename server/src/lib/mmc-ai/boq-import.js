@@ -144,7 +144,9 @@ function xlsxRows(buffer) {
     acceptedSheets.push(name);
     // Join a two-line heading (description on one row, unit/quantity on next).
     for (let i = 0; i < rows.length; i++) {
-      if (i + 1 < rows.length && hasSplitHeaderPair(rows[i], rows[i + 1])) {
+      if (i + 1 < rows.length &&
+          (hasSplitHeaderPair(rows[i], rows[i + 1]) ||
+           hasSupplementalFinancialHeaderPair(rows[i], rows[i + 1]))) {
         const merged = [];
         const width = Math.max(rows[i].length, rows[i + 1].length);
         for (let c = 0; c < width; c++) {
@@ -180,6 +182,11 @@ function hasSplitHeaderPair(first, second) {
     b.some(cell => ALIASES.quantity.some(alias => normalizeHeader(alias) === cell));
   return desc && unit && qty && !hasBoqHeader(first) && !hasBoqHeader(second);
 }
+function hasSupplementalFinancialHeaderPair(first, second) {
+  if (!hasBoqHeader(first)) return false;
+  const financialLabels = new Set(['دينار','jod','usd','sar','aed','gbp','eur']);
+  return second.some(value => financialLabels.has(normalizeHeader(value)));
+}
 function normalizeHeader(value) {
   return String(value??'').normalize('NFKC').toLowerCase()
     .replace(/[\u064B-\u065F\u0670]/g,'')
@@ -192,7 +199,7 @@ function normalizeHeader(value) {
 }
 const ALIASES = {
   description:['description','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','البيان','بيانالاعمال','بيانالعمل','اسم البند','البند','تفاصيلالبند','العمل','نوعالعمل'],
-  unit:['unit','uom','unitofmeasure','measurementunit','الوحدة','وحدة','وحدةالقياس','وحدة القياس'],
+  unit:['unit','uom','unitofmeasure','measurementunit','الوحدة','وحدة','وحدةالقياس','وحدة القياس','الكيل'],
   quantity:['quantity','qty','qnty','amount','الكمية','كميه','كمية','كميات','العدد','الكميةالاجمالية','اجماليالكمية','الكميةالمطلوبة','كميةالبند'],
   rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعر'],
   itemCode:['itemcode','code','ref','reference','رقم','الرقم','رقمالبند','الكود','الرمز'],
@@ -259,7 +266,7 @@ function normalizeRows(matrix) {
     }
     const get=k=>mapping[k]===undefined?'':String(row[mapping[k]]??'').trim();
     const description=get('description'), unit=get('unit'), rawQty=get('quantity');
-    if(!description&&!unit&&!rawQty) continue;
+    if (!description && !get('itemCode')) continue;
     // Section titles and explanatory paragraphs in tender workbooks often
     // occupy the description column only. Keep them out of the invalid-item
     // count unless there is an item reference, unit, or quantity to validate.
