@@ -129,3 +129,25 @@ test('recognizes common Arabic BOQ heading variations and RTL marks', () => {
   assert.equal(result.items[0].unit, 'م3');
   assert.equal(result.items[0].quantity, 12.5);
 });
+
+test('normalizes Arabic and English BOQ units without losing the original label', () => {
+  const { normalizeUnit } = require('../src/lib/mmc-ai/boq-import');
+  for (const [raw, expected] of [['كغم','kg'],['كجم','kg'],['م3','m3'],['م³','m3'],['م²','m2'],['م2','m2'],['طن','ton'],['متر','m'],['متر طولي','m']]) {
+    const result = normalizeUnit(raw);
+    assert.equal(result.unit, expected, raw);
+    assert.equal(result.known, true, raw);
+    assert.equal(result.raw, raw, raw);
+  }
+  const unknown = normalizeUnit('صندوق');
+  assert.equal(unknown.known, false);
+  assert.equal(unknown.raw, 'صندوق');
+  assert.equal(unknown.unit, 'صندوق');
+});
+
+test('Arabic unit normalization is exposed on imported rows while preserving source unit', () => {
+  const csv = 'وصف البند,الوحدة,الكمية\\nحديد تسليح,كغم,١٢٫٥\\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'units.csv' });
+  assert.equal(result.items[0].unit, 'كغم');
+  assert.equal(result.items[0].unitNormalized, 'kg');
+  assert.equal(result.items[0].unitKnown, true);
+});
