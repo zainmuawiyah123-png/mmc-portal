@@ -65,7 +65,7 @@ router.get('/projects/:projectId/data-overview',wrap(async(req,res)=>{
  // Full project-scoped register. Storage keys, file bytes, credentials and private URLs are intentionally excluded.
  const data={
   project:{id:pid,name:m.name,description:m.description,country:m.country,currency:m.currency,status:m.status,role:m.role,created_at:m.created_at,updated_at:m.updated_at},
-  boq:db.prepare('SELECT id,item_code,description,unit,quantity,rate,(quantity*rate) AS amount,created_at,updated_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at').all(pid),
+  boq:db.prepare('SELECT id,item_code,description,unit,quantity,CASE WHEN rate_missing=1 THEN NULL ELSE rate END AS rate,CASE WHEN rate_missing=1 THEN NULL ELSE quantity*rate END AS amount,source_sheet,source_row,source_amount,rate_missing,validation_json,section_label,created_at,updated_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id').all(pid),
   schedule:db.prepare('SELECT id,task_code,name,duration_days,predecessors_json,percent_complete,status,created_at,updated_at FROM ai_schedule_tasks WHERE project_id=? ORDER BY created_at').all(pid),
   risks:db.prepare('SELECT id,title,category,probability,impact,mitigation,status,created_at,updated_at FROM ai_project_risks WHERE project_id=? ORDER BY created_at').all(pid),
   contractEvents:db.prepare('SELECT id,title,fidic_clause,notice_date,event_date,time_impact_days,cost_impact,currency,status,created_at,updated_at FROM ai_contract_events WHERE project_id=? ORDER BY created_at').all(pid),
