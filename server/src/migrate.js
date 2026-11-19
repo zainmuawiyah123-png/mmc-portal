@@ -1426,6 +1426,73 @@ function upgradeMmcAiContracts(db) {
   `);
 }
 
+/** Additive contract conditions, variation orders and formal claims registers. */
+function upgradeMmcAiContractManagement(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_contract_conditions (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      contract_id TEXT REFERENCES ai_project_contracts(id) ON DELETE SET NULL,
+      condition_type TEXT NOT NULL DEFAULT 'particular' CHECK(condition_type IN ('particular','general_reference','amendment','appendix','specification')),
+      clause_ref TEXT,
+      title TEXT NOT NULL,
+      condition_text TEXT NOT NULL,
+      source_doc_name TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','superseded','archived')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_contract_conditions_project ON ai_contract_conditions(project_id,status,sort_order);
+    CREATE TABLE IF NOT EXISTS ai_variation_orders (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      variation_no TEXT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      origin_event_id TEXT,
+      fidic_clause TEXT,
+      instruction_date TEXT,
+      submitted_date TEXT,
+      approved_date TEXT,
+      amount_impact REAL NOT NULL DEFAULT 0 CHECK(amount_impact>=0),
+      currency TEXT NOT NULL DEFAULT 'JOD',
+      time_impact_days INTEGER NOT NULL DEFAULT 0 CHECK(time_impact_days>=0),
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','submitted','under_review','approved','rejected','withdrawn','implemented')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_variations_project ON ai_variation_orders(project_id,status,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_contract_claims (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      claim_no TEXT,
+      title TEXT NOT NULL,
+      claim_type TEXT NOT NULL DEFAULT 'contractor_claim',
+      fidic_clause TEXT,
+      event_id TEXT,
+      variation_id TEXT REFERENCES ai_variation_orders(id) ON DELETE SET NULL,
+      event_date TEXT,
+      notice_date TEXT,
+      submission_date TEXT,
+      particulars TEXT NOT NULL,
+      relief_sought TEXT,
+      amount_claimed REAL NOT NULL DEFAULT 0 CHECK(amount_claimed>=0),
+      currency TEXT NOT NULL DEFAULT 'JOD',
+      time_extension_days INTEGER NOT NULL DEFAULT 0 CHECK(time_extension_days>=0),
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','notice_prepared','notice_sent','particulars_due','particulars_submitted','under_review','determined','agreed','rejected','disputed','closed')),
+      determination_date TEXT,
+      determination_note TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_claims_project ON ai_contract_claims(project_id,status,created_at DESC);
+  `);
+}
+
 /** Email ownership verification for newly registered accounts. Existing accounts remain unaffected. */
 function upgradeEmailVerification(db) {
   db.exec(`
@@ -1583,6 +1650,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
   upgradeMmcAiContracts(db);
+  upgradeMmcAiContractManagement(db);
   upgradePrimaveraP6(db);
   upgradeMSProject(db);
   upgradeEmailVerification(db);
