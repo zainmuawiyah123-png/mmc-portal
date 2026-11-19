@@ -647,13 +647,15 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
  document.getElementById('scheduleAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('Select a project first.');return;}
   const id=activeProject.project_id||activeProject.id,pred=document.getElementById('schedulePredecessor').value,boqItemId=document.getElementById('scheduleBoqItem').value,productivity=document.getElementById('scheduleProductivity').value,duration=document.getElementById('scheduleDuration').value;
-  const boqItems=projectBoqCache.get(id)||[],boqItem=boqItems.find(x=>String(x.id)===String(boqItemId)),rate=Number(productivity),proposed=boqItem&&rate>0?Math.ceil(Number(boqItem.quantity)/rate):0;
+  const boqItems=projectBoqCache.get(id)||[],boqItem=boqItems.find(x=>String(x.id)===String(boqItemId)),rate=productivity.trim()===''?null:Number(productivity),manualDuration=duration.trim()===''?null:Number(duration),proposed=boqItem&&rate!==null&&rate>0?Math.ceil(Number(boqItem.quantity)/rate):null;
   if(!document.getElementById('scheduleTaskName').value.trim()){notify('Enter an activity name.');return;}
-  if(!boqItem){notify('Select a BOQ item. Manual-only activities are not accepted in this programme.');return;}
-  if(!(rate>0)||!Number.isFinite(rate)){notify('Enter a valid productivity greater than zero in '+boqItem.unit+' per working day.');return;}
-  if(!(Number(boqItem.quantity)>0)||!Number.isSafeInteger(proposed)||proposed<1){notify('The BOQ quantity is missing or invalid. Correct the BOQ item; no duration will be guessed.');return;}
-  if(duration!==''&&(!Number.isInteger(Number(duration))||Number(duration)<1)){notify('Approved duration override must be a whole number of working days greater than zero.');return;}
-  const payload={name:document.getElementById('scheduleTaskName').value.trim(),predecessors:pred?[pred]:[],boqItemId,productivityPerDay:rate,durationDays:duration!==''?Number(duration):proposed};
+  if(!boqItem){notify('Select a BOQ item.');return;}
+  if(!(Number(boqItem.quantity)>0)){notify('The BOQ quantity is missing or invalid. Correct the BOQ item; no duration will be guessed.');return;}
+  if(rate!==null&&(!Number.isFinite(rate)||rate<=0)){notify('Enter a valid productivity greater than zero in '+boqItem.unit+' per working day, or leave it blank and enter an approved duration.');return;}
+  if(manualDuration!==null&&(!Number.isInteger(manualDuration)||manualDuration<1)){notify('Approved duration must be a whole number of working days greater than zero.');return;}
+  if(manualDuration===null&&rate===null){notify('Enter an approved duration, or enter productivity to calculate a proposed duration.');return;}
+  if(rate!==null&&(!Number.isSafeInteger(proposed)||proposed<1)){notify('Could not calculate a valid proposed duration from the BOQ quantity and productivity.');return;}
+  const payload={name:document.getElementById('scheduleTaskName').value.trim(),predecessors:pred?[pred]:[],boqItemId,productivityPerDay:rate,durationDays:manualDuration!==null?manualDuration:proposed};
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/schedule/tasks',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.message||'Could not add activity.');for(const field of ['scheduleTaskName','scheduleDuration','scheduleProductivity','scheduleProposedDuration'])document.getElementById(field).value='';document.getElementById('scheduleBoqItem').value='';await loadProjectSchedule(id);notify('Activity added; BOQ-based duration calculated and CPM recalculated.');}catch(e){notify(e.message);}
  });
  document.getElementById('boqImportButton').addEventListener('click',async()=>{
