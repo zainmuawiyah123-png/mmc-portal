@@ -49,26 +49,35 @@ router.patch('/projects/:projectId/primavera',wrap(async(req,res)=>{
 }));
 router.post('/projects/:projectId/primavera/preview',wrap(async(req,res)=>{
  access(req,true);const db=getDB(),pid=req.params.projectId,cfg=ensure(db,pid,req.user.id);
- const tasks=db.prepare(`SELECT t.*,l.external_activity_id,l.sync_status AS link_status
+ const allTasks=db.prepare(`SELECT t.*,l.external_activity_id,l.sync_status AS link_status
  FROM ai_schedule_tasks t LEFT JOIN ai_primavera_activity_links l ON l.project_id=t.project_id AND l.schedule_task_id=t.id
  WHERE t.project_id=? ORDER BY t.created_at,t.id`).all(pid);
+ const tasks=cfg.sync_mode==='approved_only'?allTasks.filter(t=>!!t.duration_approved_at):allTasks;
+ const excludedUnapproved=allTasks.length-tasks.length;
+ const includedIds=new Set(tasks.map(t=>t.id));
  const boqLinks=db.prepare(`SELECT x.boq_item_id,x.schedule_task_id,b.item_code,b.description,b.unit,b.quantity
  FROM ai_primavera_boq_links x JOIN ai_boq_items b ON b.id=x.boq_item_id
  WHERE x.project_id=? ORDER BY x.boq_item_id,x.schedule_task_id`).all(pid);
  const boqByTask=new Map();
  for(const x of boqLinks){if(!boqByTask.has(x.schedule_task_id))boqByTask.set(x.schedule_task_id,[]);boqByTask.get(x.schedule_task_id).push(x);}
- const blockers=[],warnings=[];
+ const blockers=[],warnings=[],codes=new Set();
  const activities=tasks.map((t,i)=>{
   const code=String(t.task_code||'').trim();
   if(!code)blockers.push({taskId:t.id,issue:'missing_activity_code',message:'أدخل Activity ID/Code ثابتاً قبل التصدير إلى P6.'});
+  else if(codes.has(code))blockers.push({taskId:t.id,issue:'duplicate_activity_code',message:'يوجد Activity ID/Code مكرر؛ يجب أن يكون فريداً في المشروع.'});
+  if(code)codes.add(code);
   if(!Number.isInteger(Number(t.duration_days))||Number(t.duration_days)<0)blockers.push({taskId:t.id,issue:'invalid_duration',message:'مدة النشاط غير صالحة.'});
   if(!t.duration_approved_at)blockers.push({taskId:t.id,issue:'duration_not_approved',message:'المدة غير معتمدة صراحةً.'});
   const predecessors=JSON.parse(t.predecessors_json||'[]');
+  for(const predecessorId of predecessors){
+   if(!allTasks.some(x=>x.id===predecessorId))blockers.push({taskId:t.id,issue:'missing_predecessor',message:'علاقة سابقة تشير إلى نشاط غير موجود.'});
+   else if(!includedIds.has(predecessorId))blockers.push({taskId:t.id,issue:'excluded_predecessor',message:'النشاط السابق غير معتمد ومستبعد من وضع Approved activities only.'});
+  }
   return {mmcTaskId:t.id,activityId:code||null,name:t.name,durationDays:t.duration_days,durationBasis:'approved_working_days',plannedStart:t.planned_start||null,predecessorMmcTaskIds:predecessors,existingP6ActivityId:t.external_activity_id||null,linkStatus:t.link_status||'not_synced',boqItems:boqByTask.get(t.id)||[]};
  });
  if(!cfg.p6_project_id)warnings.push({issue:'p6_project_not_mapped',message:'لم يتم تحديد Project ID المقابل في Primavera بعد.'});
  if(!cfg.enabled)warnings.push({issue:'integration_disabled',message:'التكامل غير مفعّل.'});
- const summary={activities:activities.length,ready:activities.length-blockers.filter(x=>x.issue==='missing_activity_code'||x.issue==='invalid_duration'||x.issue==='duration_not_approved').length,blockers:blockers.length,warnings:warnings.length,boqMappings:boqLinks.length,alreadyLinked:activities.filter(x=>x.existingP6ActivityId).length};
+ const summary={activities:activities.length,excludedUnapproved,ready:Math.max(0,activities.length-new Set(blockers.map(x=>x.taskId)).size),blockers:blockers.length,warnings:warnings.length,boqMappings:boqLinks.length,alreadyLinked:activities.filter(x=>x.existingP6ActivityId).length};
  const runId=uid('p6run_');
  db.prepare(`INSERT INTO ai_primavera_sync_runs(id,project_id,actor_user_id,direction,status,format,summary_json,finished_at) VALUES(?,?,?,'mmc_to_p6','preview',?,?,unixepoch())`).run(runId,pid,req.user.id,cfg.transfer_format,JSON.stringify(summary));
  audit(db,req,'primavera_export_preview',runId,summary);
