@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/mmc-ai-construction-intelligence
+      - feature/mmc-ai-boq-import-foundation
   pull_request:
     branches:
       - main
