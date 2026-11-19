@@ -23,7 +23,7 @@ test('DXF layer classification and measurement rules are connected end-to-end', 
   const summary = summarizeByDiscipline(rows);
   const proposals = proposeDisciplineQuantities(rows);
   assert.equal(summary.find(x => x.discipline === 'architectural').categories.some(x => x.category === 'floors'), true);
-  assert.equal(proposals.summary.proposed, 1);
+  assert.equal(proposals.summary.proposed, 2);
   assert.equal(proposals.summary.incomplete, 1);
   assert.equal(proposals.results.find(x => x.category === 'floors').proposed[0].value, 12);
   assert.equal(proposals.results.find(x => x.category === 'walls').status, 'incomplete');
