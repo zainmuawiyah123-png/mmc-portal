@@ -148,3 +148,18 @@ test('server only transfers complete proposals from reviewer-approved runs and p
  assert.match(migration,/idx_ai_boq_takeoff_proposal/);
  assert.match(migration,/source_takeoff_run_id TEXT REFERENCES ai_takeoff_runs/);
 });
+
+test('DXF takeoff route persists discipline proposals and CAD source details in the reviewable run',()=>{
+ const route=fs.readFileSync(path.join(__dirname,'../src/routes/mmc-ai-takeoff.js'),'utf8');
+ assert.match(route,/proposeDisciplineQuantities\(classifiedRows/);
+ assert.match(route,/summary:enrichedSummary/);
+ assert.match(route,/JSON\.stringify\(row\)/);
+ assert.match(route,/status:'needs_review'/);
+ assert.match(route,/disciplineSummary,quantityProposals/);
+});
+test('DXF reviewer approval unlocks proposal transfer controls in the UI',()=>{
+ const dxfHandler=html.slice(html.indexOf("if(d.file_ext==='.dxf')"),html.indexOf("row.append(meta,actions)",html.indexOf("if(d.file_ext==='.dxf')")));
+ assert.match(dxfHandler,/setProposalApproval\(choice\.status==='approved'\)/);
+ assert.match(dxfHandler,/setProposalApproval\(enabled\)/);
+ assert.match(dxfHandler,/button\.disabled=!enabled/);
+});
