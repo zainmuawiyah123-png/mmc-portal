@@ -145,7 +145,7 @@ test('normalizes Arabic and English BOQ units without losing the original label'
 });
 
 test('Arabic unit normalization is exposed on imported rows while preserving source unit', () => {
-  const csv = 'وصف البند,الوحدة,الكمية\\nحديد تسليح,كغم,١٢٫٥\\n';
+  const csv = 'وصف البند,الوحدة,الكمية\nحديد تسليح,كغم,١٢٫٥\n';
   const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'units.csv' });
   assert.equal(result.items[0].unit, 'كغم');
   assert.equal(result.items[0].unitNormalized, 'kg');
