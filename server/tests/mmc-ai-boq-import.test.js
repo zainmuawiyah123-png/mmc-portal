@@ -344,6 +344,22 @@ test('preserves repeated source BOQ rows and reports them as review duplicates',
   assert.equal(result.items[1].duplicateOfRowNumber, 2);
 });
 
+
+test('classifies Arabic section headings and financial total rows separately from BOQ items', () => {
+  const result = normalizeRows([
+    ['رقم','وصف الأعمال والمواصفات','الوحدة','الكمية','سعر الوحدة (د.أ)','الإجمالي (د.أ)'],
+    ['', 'الحادي عشر: الأعمال الكهربائية', '', '', '', '0'],
+    ['48','لوحة كهرباء منزلية كاملة','عدد','1','80','80'],
+    ['', 'المجموع', '', '', '', '18235.4'],
+    ['', 'مجموع اعمال الحفرة الامتصاصية', '', '', '', '3297']
+  ]);
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].sectionLabel, 'الحادي عشر: الأعمال الكهربائية');
+  assert.equal(result.errors.length, 0);
+  assert.equal(result.summaryRows.length, 2);
+  assert.deepEqual(result.summaryRows.map(row => row.amount), [18235.4, 3297]);
+});
+
 test('imports the uploaded Damkhi-Qatrane Arabic BOQ with all 58 source items and 12 sections', () => {
   const fs = require('node:fs');
   const path = require('node:path');
