@@ -85,12 +85,12 @@ function workbookSheetNames(files) {
   const workbook = files.get('xl/workbook.xml') || '';
   const relsXml = files.get('xl/_rels/workbook.xml.rels') || '';
   const targets = new Map();
-  for (const match of relsXml.matchAll(/<Relationship\\b([^>]*)\\/?\s*>/g)) {
+  for (const match of relsXml.matchAll(/<Relationship\b([^>]*)\\/?\s*>/g)) {
     const tag = match[1], id = attr(tag, 'Id'), target = attr(tag, 'Target');
-    if (id && target) targets.set(id, target.replace(/^\\//, '').startsWith('xl/') ? target.replace(/^\\//, '') : 'xl/' + target.replace(/^\\//, ''));
+    if (id && target) targets.set(id, target.replace(/^\//, '').startsWith('xl/') ? target.replace(/^\//, '') : 'xl/' + target.replace(/^\//, ''));
   }
   const names = [];
-  for (const match of workbook.matchAll(/<sheet\\b([^>]*)\\/?\s*>/g)) {
+  for (const match of workbook.matchAll(/<sheet\b([^>]*)\\/?\s*>/g)) {
     const tag = match[1], name = attr(tag, 'name'), rid = attr(tag, 'r:id');
     const target = targets.get(rid);
     if (name && target) names.push({ name, target });
@@ -111,6 +111,8 @@ function xlsxRows(buffer) {
     const rows = [];
     for (const rm of xml.matchAll(/<(?:\w+:)?row(?:\s[^>]*)?>([\s\S]*?)<\/(?:\w+:)?row>/g)) {
       const row = [];
+      const rowTagEnd = rm[0].indexOf('>');
+      const sourceRow = Number(attr(rowTagEnd >= 0 ? rm[0].slice(0, rowTagEnd + 1) : '', 'r')) || rows.length + 1;
       for (const cm of rm[1].matchAll(/<(?:\w+:)?c(?:\s[^>]*)?(?:\/>|>([\s\S]*?)<\/(?:\w+:)?c>)/g)) {
         const tagEnd = cm[0].indexOf('>');
         const tag = tagEnd >= 0 ? cm[0].slice(0, tagEnd + 1) : cm[0];
