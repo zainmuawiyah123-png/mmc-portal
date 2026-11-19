@@ -271,3 +271,16 @@ test('imports headerless mechanical sheet only from validated description, unit 
   assert.equal(result.items[0].quantity, 4);
   assert.equal(result.items[0].rate, 3000);
 });
+
+test('skips discipline headings but retains incomplete referenced BOQ items for review', () => {
+  const result = normalizeRows([
+    ['Item No','Description','Unit','Quantity'],
+    ['A','Civil works','',''],
+    ['A/1','Excavation','',''],
+    ['A/2','Concrete','m3','10']
+  ]);
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'Concrete');
+  assert.equal(result.errors.length, 1);
+  assert.equal(result.errors[0].source.itemCode, 'A/1');
+});
