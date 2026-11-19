@@ -1129,7 +1129,7 @@ h>Score</th><th>Status</th><th>Mitigation</th></tr></thead><tbody>'+rows+'</tbod
        output.append(heading,detail);
        const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;margin-top:12px;font-size:10px;color:#dce8f3';
        const thead=document.createElement('thead'),trh=document.createElement('tr');
-       for(const label of ['Entity','Layer','Quantity','Unit','Status']){const th=document.createElement('th');th.textContent=label;th.style.cssText='text-align:left;padding:8px;border-bottom:1px solid var(--line)';trh.appendChild(th);}thead.appendChild(trh);table.appendChild(thead);
+       for(const label of ['Entity','Layer','Quantity','Unit','Status','BOQ route']){const th=document.createElement('th');th.textContent=label;th.style.cssText='text-align:left;padding:8px;border-bottom:1px solid var(--line)';trh.appendChild(th);}thead.appendChild(trh);table.appendChild(thead);
        const tbody=document.createElement('tbody');
        for(const item of (result.run.items||[])){const tr=document.createElement('tr');for(const val of [item.entity,item.layer,item.quantity,item.unit,'Pending Review']){const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);}const actionCell=document.createElement('td');actionCell.textContent='Use discipline proposal below';actionCell.style.cssText='padding:8px;color:#9bb0c3;font-size:10px';tr.appendChild(actionCell);tbody.appendChild(tr);}table.appendChild(tbody);output.appendChild(table);
        const proposals=summary.quantityProposals?.results||[];let runApproved=false;
