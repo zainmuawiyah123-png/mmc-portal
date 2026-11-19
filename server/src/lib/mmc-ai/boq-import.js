@@ -154,11 +154,11 @@ function xlsxRows(buffer) {
           Number.isFinite(quantity) && quantity >= 0;
       });
       if (!inferred.length) {
-        skippedSheets.push(name);
+        skippedSheets.push(displayName);
         continue;
       }
-      acceptedSheets.push(name);
-      inferredSheets.push(name);
+      acceptedSheets.push(displayName);
+      inferredSheets.push(displayName);
       combined.push(['Item Code','Description','Unit','Quantity','Unit Rate','Amount']);
       for (const row of inferred) {
         const normalized = ['',row[1],row[2],row[3],row[4] ?? '',row[5] ?? ''];
@@ -287,6 +287,7 @@ function normalizeRows(matrix) {
   }
   if(headerIndex<0) throw new Error('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم Description / Unit / Quantity أو العناوين العربية المكافئة.');
   const items=[], errors=[], duplicates=[], seen=new Map();
+  let currentSection=null;
   for(let i=headerIndex+1;i<matrix.length;i++){
     const row=matrix[i];
     if (!row || !row.some(v => String(v ?? '').trim())) continue;
@@ -304,6 +305,7 @@ function normalizeRows(matrix) {
     // occupy the description column only. Keep them out of the invalid-item
     // count unless there is an item reference, unit, or quantity to validate.
     if (description && !unit && rawQty === '' && !get('itemCode')) continue;
+    if (description && !unit && rawQty === '' && /^[A-Z]$/i.test(itemCode)) { currentSection=description; continue; }
     const quantity=parseNumber(rawQty);
     const issue=[];
     if(!description) issue.push('الوصف مفقود');
@@ -313,9 +315,10 @@ function normalizeRows(matrix) {
     if(rateRaw!==''&&(rate===null||Number.isNaN(rate)||rate<0)) issue.push('سعر الوحدة غير صالح');
     const unitInfo=normalizeUnit(unit);
     const sourceAmountRaw=get('amount'), sourceAmount=sourceAmountRaw===''?null:parseNumber(sourceAmountRaw);
-    const item={rowNumber:row._sourceRow||i+1,sourceSheet:row._sourceSheet||null,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,sourceAmount:Number.isFinite(sourceAmount)?sourceAmount:null,discipline:get('discipline')||null};
+    const item={rowNumber:row._sourceRow||i+1,sourceSheet:row._sourceSheet||null,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,sourceAmount:Number.isFinite(sourceAmount)?sourceAmount:null,discipline:get('discipline')||null,sectionLabel:currentSection};
     item.validationIssues=[];
     if(Number.isFinite(sourceAmount)&&Number.isFinite(quantity)&&Number.isFinite(rate)&&Math.abs(sourceAmount-(quantity*rate))>Math.max(0.01,Math.abs(sourceAmount)*0.005)) item.validationIssues.push('قيمة البند لا تطابق الكمية × سعر الوحدة');
+    if(unitInfo.unit==='m2' && /متر\\s*طولي|متر\\s*طول|طولي.{0,12}متر/.test(description)) item.validationIssues.push('الوصف يشير إلى متر طولي بينما وحدة الجدول متر مربع');
     if(issue.length) errors.push({rowNumber:item.rowNumber,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
       if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:item.rowNumber,duplicateOfRowNumber:seen.get(key),item});}
