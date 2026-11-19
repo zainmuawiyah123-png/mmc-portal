@@ -36,6 +36,7 @@ const mmcAiPrimaveraRoutes = require('./routes/mmc-ai-primavera');
 const mmcAiMsProjectRoutes = require('./routes/mmc-ai-ms-project');
 const mmcAiRiskRoutes = require('./routes/mmc-ai-risks');
 const mmcAiContractEventRoutes = require('./routes/mmc-ai-contract-events');
+const mmcAiContractManagementRoutes = require('./routes/mmc-ai-contract-management');
 const mmcAiBimRoutes = require('./routes/mmc-ai-bim');
 const mmcAiBimModelRoutes = require('./routes/mmc-ai-bim-models');
 
@@ -125,6 +126,7 @@ function createApp() {
   app.use('/api/mmc-ai', mmcAiMsProjectRoutes);
   app.use('/api/mmc-ai', mmcAiRiskRoutes);
   app.use('/api/mmc-ai', mmcAiContractEventRoutes.router);
+  app.use('/api/mmc-ai', mmcAiContractManagementRoutes);
   app.use('/api/mmc-ai', mmcAiBimRoutes);
   app.use('/api/mmc-ai', mmcAiBimModelRoutes);
   app.use('/api/committee', require('./routes/committee'));
