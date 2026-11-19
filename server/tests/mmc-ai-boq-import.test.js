@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseBoqFile, parseNumber, csvRows } = require('../src/lib/mmc-ai/boq-import');
+const { parseBoqFile, parseNumber, csvRows, normalizeRows } = require('../src/lib/mmc-ai/boq-import');
 
 test('imports English CSV headings and decimal quantities', () => {
   const csv = 'Description,Unit,Quantity,Unit Rate\nConcrete,m3,12.75,85.5\nRebar,kg,1000,0.92\n';
@@ -248,8 +248,11 @@ test('merges a supplemental currency header row and preserves the civil unit rat
 });
 
 test('ignores currency-only and measurement-header rows instead of reporting them as invalid BOQ items', () => {
-  const csv = 'Description,Unit,Quantity,Unit Rate\n,الكيل,,دينار\nبند صحيح,متر مربع,2,10\n';
-  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'header-noise.csv' });
+  const result = normalizeRows([
+    ['Description','Unit','Quantity','Unit Rate'],
+    ['', 'الكيل', '', 'دينار'],
+    ['بند صحيح','متر مربع','2','10']
+  ]);
   assert.equal(result.items.length, 1);
   assert.equal(result.items[0].rate, 10);
   assert.equal(result.errors.length, 0);
