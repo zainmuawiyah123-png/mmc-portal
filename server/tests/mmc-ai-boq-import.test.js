@@ -361,3 +361,37 @@ test('imports the uploaded Damkhi-Qatrane Arabic BOQ with all 58 source items an
   const sourceTotal = result.items.reduce((sum, item) => sum + item.sourceAmount, 0);
   assert.equal(Number(sourceTotal.toFixed(3)), 18235.4);
 });
+
+test('reads all uploaded Damkhi-Qatrane BOQ rows through the XLSX worksheet reader', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const matrix = csvRows(fs.readFileSync(path.join(__dirname, 'fixtures', 'damkhi-qatrane-boq.csv'), 'utf8'));
+  const colName = index => {
+    let n = index + 1, name = '';
+    while (n) { const rem = (n - 1) % 26; name = String.fromCharCode(65 + rem) + name; n = Math.floor((n - 1) / 26); }
+    return name;
+  };
+  const escapeXml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  const rowsXml = matrix.map((row, r) => {
+    const cells = row.map((value, col) => {
+      if (value === '') return '';
+      const ref = colName(col) + (r + 1);
+      return /^-?\\d+(?:\\.\\d+)?$/.test(String(value))
+        ? '<c r="' + ref + '"><v>' + value + '</v></c>'
+        : '<c r="' + ref + '" t="inlineStr"><is><t>' + escapeXml(value) + '</t></is></c>';
+    }).join('');
+    return '<row r="' + (r + 1) + '">' + cells + '</row>';
+  }).join('');
+  const sheet = '<worksheet><sheetData>' + rowsXml + '</sheetData></worksheet>';
+  const buffer = makeStoredZip({
+    'xl/workbook.xml': '<workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="جدول الكميات" sheetId="1" r:id="rId1"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels': '<Relationships><Relationship Id="rId1" Type="worksheet" Target="worksheets/sheet1.xml"/></Relationships>',
+    'xl/worksheets/sheet1.xml': sheet
+  });
+  const result = parseBoqFile({ buffer, filename: 'damkhi-qatrane-boq.xlsx' });
+  assert.equal(result.items.length, 58);
+  assert.equal(result.errors.length, 0);
+  assert.equal(result.sourceSheets[0], 'جدول الكميات');
+  assert.equal(result.items.find(item => item.itemCode === '25').unitNormalized, 'm');
+  assert.equal(Number(result.items.reduce((sum, item) => sum + item.quantity * item.rate, 0).toFixed(3)), 18235.4);
+});
