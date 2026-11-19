@@ -589,7 +589,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    if(d.notice)lines.push('',d.notice);
    report.textContent=lines.join('\n');
    document.getElementById('boqImportFile').value='';
-   await loadProjectBoq(id);await loadExecutiveDashboard(id);
+   await loadProjectBoq(id);await loadExecutiveDashboard(id);await loadAllProjectData(id);
    notify('BOQ import completed. Review the import report.');
   }catch(e){report.textContent='Import not completed: '+e.message;notify(e.message);}
   finally{button.disabled=false;}
