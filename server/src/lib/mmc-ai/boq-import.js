@@ -226,12 +226,12 @@ function normalizeHeader(value) {
     .replace(/[\s_\-./()\[\]{}:：،؛]+/g,'').trim();
 }
 const ALIASES = {
-  description:['description','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','البيان','بيانالاعمال','بيانالعمل','اسم البند','البند','تفاصيلالبند','العمل','نوعالعمل'],
+  description:['description','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','وصفالاعمال','وصفالاعمالوالمواصفات','وصفالعمل','البيان','بيانالاعمال','بيانالعمل','اسم البند','البند','تفاصيلالبند','العمل','نوعالعمل'],
   unit:['unit','uom','unitofmeasure','measurementunit','الوحدة','وحدة','وحدةالقياس','وحدة القياس','الكيل'],
   quantity:['quantity','qty','qnty','amount','الكمية','كميه','كمية','كميات','العدد','الكميةالاجمالية','اجماليالكمية','الكميةالمطلوبة','كميةالبند'],
-  rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعر'],
+  rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعرالوحدةدا','سعرالوحدهدأ','سعر'],
   itemCode:['itemcode','code','ref','reference','رقم','الرقم','رقمالبند','الكود','الرمز'],
-  amount:['amount','lineamount','totalamount','مبلغ','المبلغ','الاجمالي','الإجمالي','قيمةالبند'],
+  amount:['amount','lineamount','totalamount','مبلغ','المبلغ','الاجمالي','الإجمالي','الاجماليدا','الاجماليدأ','قيمةالبند'],
   discipline:['discipline','trade','category','التخصص','القسم','الفئة']
 };
 const UNIT_MAP = Object.freeze({
@@ -305,7 +305,7 @@ function normalizeRows(matrix) {
     // Section titles and explanatory paragraphs in tender workbooks often
     // occupy the description column only. Keep them out of the invalid-item
     // count unless there is an item reference, unit, or quantity to validate.
-    if (description && !unit && rawQty === '' && !get('itemCode')) continue;
+    if (description && !unit && rawQty === '' && !get('itemCode')) { currentSection=description; continue; }
     if (description && !unit && rawQty === '' && /^[A-Z]$/i.test(itemCode)) { currentSection=description; continue; }
     const quantity=parseNumber(rawQty);
     const issue=[];
