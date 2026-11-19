@@ -51,6 +51,33 @@ router.get('/projects/:projectId/boq',wrap(async(req,res)=>{
  res.setHeader('Cache-Control','no-store');
  res.json({items:rows,summary:{itemCount:rows.length,total,missingRates:rows.filter(x=>x.rate_missing).length}});
 }));
+router.post('/projects/:projectId/boq/from-takeoff',wrap(async(req,res)=>{
+ access(req,true);
+ const runId=clean(req.body?.runId,100),category=clean(req.body?.category,80),proposalKey=clean(req.body?.proposalKey,100);
+ if(!runId||!category||!proposalKey)throw E.validation('معرّف الحصر والتخصص ومفتاح الكمية المقترحة مطلوبة.');
+ const db=getDB();
+ const run=db.prepare('SELECT id,status,summary_json FROM ai_takeoff_runs WHERE id=? AND project_id=?').get(runId,req.params.projectId);
+ if(!run)throw E.notFound('نتيجة الحصر غير موجودة في هذا المشروع.');
+ if(run.status!=='approved')throw E.conflict('يجب اعتماد نتيجة الحصر من المراجع قبل ترحيل أي كمية إلى BOQ.');
+ let summary;
+ try{summary=JSON.parse(run.summary_json||'{}');}catch{throw E.validation('ملخص الحصر غير صالح.');}
+ const categoryResult=(summary.quantityProposals?.results||[]).find(x=>x.category===category);
+ if(!categoryResult||categoryResult.status!=='proposed')throw E.conflict('هذه الفئة غير مكتملة ولا تحتوي على كمية قابلة للترحيل.');
+ const proposal=(categoryResult.proposed||[]).find(x=>x.key===proposalKey);
+ if(!proposal||!Number.isFinite(Number(proposal.value))||Number(proposal.value)<0||!proposal.unit)throw E.validation('مفتاح الكمية غير موجود أو لا يحتوي على كمية ووحدة صالحتين.');
+ const duplicate=db.prepare('SELECT * FROM ai_boq_items WHERE project_id=? AND source_takeoff_run_id=? AND source_proposal_key=?').get(req.params.projectId,runId,category+':'+proposalKey);
+ if(duplicate)throw E.conflict('تم ترحيل هذه الكمية إلى BOQ مسبقاً.');
+ const disciplineName=categoryResult.name?.en||categoryResult.discipline||category;
+ const label=proposal.label?.en||proposal.label?.ar||proposalKey;
+ const description=clean(disciplineName+' - '+label,1000);
+ const sourceDetail={category,discipline:categoryResult.discipline,proposal,ruleId:categoryResult.ruleId,formula:categoryResult.formula,method:categoryResult.method,sourceLayers:categoryResult.sourceLayers||[],sourceEntityCount:categoryResult.sourceEntityCount,assumptions:categoryResult.assumptions||[],limitations:categoryResult.limitations||[],reviewState:'approved_run_proposal'};
+ const id=uid('aiboq_');
+ db.prepare(`INSERT INTO ai_boq_items(id,project_id,item_code,description,unit,quantity,rate,rate_missing,source_takeoff_run_id,source_proposal_key,source_detail_json,created_by)
+ VALUES(?,?,?,?,?,?,NULL,1,?,?,?,?)`).run(id,req.params.projectId,null,description,proposal.unit,Number(proposal.value),runId,category+':'+proposalKey,JSON.stringify(sourceDetail),req.user.id);
+ audit(db,req,'boq_item_created_from_takeoff',id,{runId,category,proposalKey,quantity:Number(proposal.value),unit:proposal.unit});
+ const row=db.prepare('SELECT * FROM ai_boq_items WHERE id=?').get(id);
+ res.status(201).json({item:itemView(row),source:{runId,category,proposalKey,detail:sourceDetail},notice:'تم إنشاء بند BOQ بسعر وحدة غير محدد. راجع الوصف والكمية وأدخل السعر بعد مراجعة المهندس.'});
+}));
 router.post('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req,true);
  const description=clean(req.body?.description,1000),unit=clean(req.body?.unit,24);
