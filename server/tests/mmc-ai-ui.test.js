@@ -163,3 +163,12 @@ test('DXF reviewer approval unlocks proposal transfer controls in the UI',()=>{
  assert.match(dxfHandler,/setProposalApproval\(enabled\)/);
  assert.match(dxfHandler,/button\.disabled=!enabled/);
 });
+
+test('DXF raw geometry rows cannot bypass discipline proposal review into BOQ',()=>{
+ const start=html.indexOf("if(d.file_ext==='.dxf')");
+ const end=html.indexOf("row.append(meta,actions)",start);
+ const dxf=html.slice(start,end);
+ assert.match(dxf,/Use discipline proposal below/);
+ assert.doesNotMatch(dxf,/selectedTakeoffSourceId=item\.id/);
+ assert.doesNotMatch(dxf,/textContent='Add to BOQ'/);
+});
