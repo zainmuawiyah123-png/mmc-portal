@@ -46,7 +46,7 @@ router.post('/projects/:projectId/boq/import',importUpload.single('file'),wrap(a
 }));
 router.get('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req);
- const rows=getDB().prepare(`SELECT id,project_id,item_code,description,unit,quantity,rate,source_takeoff_item_id,created_by,updated_at,created_at FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id`).all(req.params.projectId).map(itemView);
+ const rows=getDB().prepare(`SELECT * FROM ai_boq_items WHERE project_id=? ORDER BY created_at,id`).all(req.params.projectId).map(itemView);
  const total=Number(rows.reduce((s,x)=>s+x.line_total,0).toFixed(3));
  res.setHeader('Cache-Control','no-store');
  res.json({items:rows,summary:{itemCount:rows.length,total,missingRates:rows.filter(x=>x.rate_missing).length}});
