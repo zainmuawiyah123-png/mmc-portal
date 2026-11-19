@@ -20,7 +20,7 @@ function access(req,edit=false){const m=member(req.params.projectId,req.user.id)
 function audit(db,req,action,itemId,detail){db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),req.params.projectId,req.user.id,action,'boq_item',itemId,JSON.stringify(detail||{}));}
 function clean(v,max){return String(v==null?'':v).trim().slice(0,max);}
 function number(v,label){const n=Number(v);if(!Number.isFinite(n)||n<0||n>1e12)throw E.validation(label+' يجب أن يكون رقماً موجباً صالحاً.');return n;}
-function itemView(x){const rateMissing=Boolean(x.rate_missing)||x.rate===null||x.rate===undefined;return {...x,rate:rateMissing?null:Number(x.rate),rateMissing,line_total:rateMissing?null:Number((x.quantity*x.rate).toFixed(3)),validationIssues:JSON.parse(x.validation_json||'[]')};}
+function itemView(x){const rateMissing=Boolean(x.rate_missing)||x.rate===null||x.rate===undefined;let sourceDetail={};try{sourceDetail=JSON.parse(x.source_detail_json||'{}');}catch{}return {...x,rate:rateMissing?null:Number(x.rate),rateMissing,line_total:rateMissing?null:Number((x.quantity*x.rate).toFixed(3)),validationIssues:JSON.parse(x.validation_json||'[]'),sourceDetail};}
 function nullableRate(value,label='سعر الوحدة'){if(value===null||value===undefined||String(value).trim()==='')return null;return number(value,label);}
 router.post('/projects/:projectId/boq/import',importUpload.single('file'),wrap(async(req,res)=>{
  access(req,true);
