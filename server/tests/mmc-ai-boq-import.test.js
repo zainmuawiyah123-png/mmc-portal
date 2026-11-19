@@ -151,3 +151,5 @@ test('Arabic unit normalization is exposed on imported rows while preserving sou
   assert.equal(result.items[0].unitNormalized, 'kg');
   assert.equal(result.items[0].unitKnown, true);
 });
+
+// Regression coverage includes Arabic unit aliases merged from v15.
