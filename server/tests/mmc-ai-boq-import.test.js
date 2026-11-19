@@ -232,3 +232,39 @@ test('imports electrical tender with description in E and quantity in C', () => 
   assert.equal(result.items[0].quantity, 204);
   assert.equal(result.items[0].rate, 40);
 });
+
+test('merges a supplemental currency header row and preserves the civil unit rate', () => {
+  const sheet = '<worksheet><sheetData>' +
+    '<row r="1"><c r="A1" t="inlineStr"><is><t>الرقم</t></is></c><c r="B1" t="inlineStr"><is><t>نوع العمل</t></is></c><c r="C1" t="inlineStr"><is><t>وحدة</t></is></c><c r="D1" t="inlineStr"><is><t>الكمية</t></is></c></row>' +
+    '<row r="2"><c r="C2" t="inlineStr"><is><t>الكيل</t></is></c><c r="E2" t="inlineStr"><is><t>دينار</t></is></c><c r="F2" t="inlineStr"><is><t>دينار</t></is></c></row>' +
+    '<row r="3"><c r="A3" t="inlineStr"><is><t>A/1</t></is></c><c r="B3" t="inlineStr"><is><t>بند مدني تجريبي</t></is></c><c r="C3" t="inlineStr"><is><t>متر مربع</t></is></c><c r="D3"><v>12</v></c><c r="E3"><v>25</v></c><c r="F3"><v>300</v></c></row>' +
+    '</sheetData></worksheet>';
+  const buffer = makeStoredZip({'xl/worksheets/sheet1.xml': sheet});
+  const result = parseBoqFile({ buffer, filename: 'civil-financial-header.xlsx' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'بند مدني تجريبي');
+  assert.equal(result.items[0].quantity, 12);
+  assert.equal(result.items[0].rate, 25);
+});
+
+test('ignores currency-only and measurement-header rows instead of reporting them as invalid BOQ items', () => {
+  const csv = 'Description,Unit,Quantity,Unit Rate\\n,الكيل,,دينار\\nبند صحيح,متر مربع,2,10\\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'header-noise.csv' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].rate, 10);
+  assert.equal(result.errors.length, 0);
+});
+
+test('imports headerless mechanical sheet only from validated description, unit and quantity columns', () => {
+  const sheet = '<worksheet><sheetData>' +
+    '<row r="1"><c r="B1" t="inlineStr"><is><t>اعمال التكييف الميكانيكيه</t></is></c></row>' +
+    '<row r="2"><c r="B2" t="inlineStr"><is><t>تقديم وتركيب وحدات تكيف كاسيت</t></is></c><c r="C2" t="inlineStr"><is><t>عدد</t></is></c><c r="D2"><v>4</v></c><c r="E2"><v>3000</v></c><c r="F2"><v>12000</v></c></row>' +
+    '</sheetData></worksheet>';
+  const buffer = makeStoredZip({'xl/worksheets/sheet1.xml': sheet});
+  const result = parseBoqFile({ buffer, filename: 'mechanical-headerless.xlsx' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'تقديم وتركيب وحدات تكيف كاسيت');
+  assert.equal(result.items[0].unit, 'عدد');
+  assert.equal(result.items[0].quantity, 4);
+  assert.equal(result.items[0].rate, null);
+});
