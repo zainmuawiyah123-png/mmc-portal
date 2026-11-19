@@ -341,6 +341,32 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    <p class="note">Risk score = Likelihood × Impact (1–25). Category is an initial management indicator and requires Project Manager approval.</p>
   </div></section>
   <section class="panel" id="claimsPanel" style="margin:18px 0"><div class="panelhead"><h2>Contract Events & Claims</h2><span>FIDIC · CONTRACT & CLAIMS INTELLIGENCE</span></div><div style="padding:14px">
+
+   <section class="panel" id="contractMasterPanel" style="margin:0 0 16px;border:1px solid var(--line)">
+    <div class="panelhead"><h3>Contract Particulars · بيانات العقد</h3><span>PROJECT CONTRACT REGISTER</span></div>
+    <div style="padding:12px">
+     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+      <input id="contractNumber" placeholder="Contract No. / رقم العقد">
+      <input id="contractTitle" placeholder="Contract Title / اسم العقد" required>
+      <input id="contractEmployer" placeholder="Employer / صاحب العمل">
+      <input id="contractContractor" placeholder="Contractor / المقاول">
+      <input id="contractEngineer" placeholder="Engineer / المهندس">
+      <select id="contractForm"><option value="">Contract Form / نموذج العقد</option><option>FIDIC Red Book</option><option>FIDIC Yellow Book</option><option>FIDIC Silver Book</option><option>FIDIC Green Book</option><option>Other / Bespoke</option></select>
+      <input id="contractEdition" placeholder="FIDIC Edition (e.g. 1999 / 2017)">
+      <input id="contractValue" type="number" min="0" step="any" placeholder="Contract Value / قيمة العقد">
+      <select id="contractCurrency"><option>JOD</option><option>USD</option><option>SAR</option><option>AED</option><option>GBP</option><option>EUR</option></select>
+      <label>Commencement / المباشرة<input id="contractCommencement" type="date"></label>
+      <label>Completion / الإنجاز<input id="contractCompletion" type="date"></label>
+      <input id="contractDefects" type="number" min="0" max="600" step="1" placeholder="Defects period (months)">
+      <select id="contractStatus"><option value="draft">Draft</option><option value="active" selected>Active</option><option value="suspended">Suspended</option><option value="completed">Completed</option><option value="terminated">Terminated</option></select>
+     </div>
+     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
+      <button id="contractSave" type="button" class="btn primary">Save Contract Particulars</button>
+      <span id="contractSaveStatus" class="note">No contract particulars saved yet.</span>
+     </div>
+    </div>
+   </section>
+
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
     <input id="claimTitle" placeholder="Event / Claim Title" style="flex:2;min-width:190px;padding:9px;border:1px solid var(--line);border-radius:7px">
     <input id="claimClause" placeholder="FIDIC Clause Reference (optional)" style="flex:1;min-width:150px;padding:9px;border:1px solid var(--line);border-radius:7px">
@@ -595,6 +621,20 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    if(!d.risks.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='No risks recorded for this project.';td.style.cssText='text-align:center;padding:18px';tr.appendChild(td);body.appendChild(tr);}
   }catch(e){summary.textContent=e.message;}
  }
+
+ async function loadProjectContract(id){
+  const status=document.getElementById('contractSaveStatus');
+  if(!id){status.textContent='Select a project to view contract particulars.';return;}
+  try{
+   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract',{credentials:'same-origin',cache:'no-store'}),d=await r.json();
+   if(!r.ok)throw new Error(d.message||'Could not load contract particulars.');
+   const c=d.contract||{};
+   const fields={contractNumber:c.contract_number,contractTitle:c.title,contractEmployer:c.employer,contractContractor:c.contractor,contractEngineer:c.engineer,contractForm:c.contract_form,contractEdition:c.fidic_edition,contractValue:c.contract_value,contractCurrency:c.currency||'JOD',contractCommencement:c.commencement_date,contractCompletion:c.completion_date,contractDefects:c.defects_period_months,contractStatus:c.status||'active'};
+   for(const [id,value] of Object.entries(fields)){const el=document.getElementById(id);if(el)el.value=value??'';}
+   status.textContent=c.id?'Saved · Updated '+new Date(Number(c.updated_at)*1000).toLocaleString():'No contract particulars saved yet.';
+  }catch(e){status.textContent=e.message;}
+ }
+
  async function loadProjectClaims(id){
   const body=document.getElementById('claimRows'),summary=document.getElementById('claimSummary');body.replaceChildren();if(!id){summary.textContent='Select a project to view contract events.';return;}
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract-events',{credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d.message||'Could not load the claims register.');
@@ -640,7 +680,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   if(!id){activeProject=null;rememberProject('');showProject(null);return;}rememberProject(id);
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('Could not open the selected project.');
-  const data=await r.json();activeProject=data.project;window.mmcActiveProjectId=id;window.dispatchEvent(new Event('mmc-project-selected'));showProject(activeProject);await loadProjectDocuments(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
+  const data=await r.json();activeProject=data.project;window.mmcActiveProjectId=id;window.dispatchEvent(new Event('mmc-project-selected'));showProject(activeProject);await loadProjectDocuments(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectContract(id);await loadProjectClaims(id);
   const list=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/images',{credentials:'same-origin'});
   if(!list.ok)throw new Error('Could not load project photos.');
   const images=(await list.json()).images||[];
@@ -670,6 +710,15 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   const payload={title:document.getElementById('riskTitle').value,category:document.getElementById('riskCategory').value,probability:document.getElementById('riskProbability').value,impact:document.getElementById('riskImpact').value,description:document.getElementById('riskDescription').value,mitigation:document.getElementById('riskMitigation').value};
   try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/risks',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'Could not log risk.');for(const k of ['riskTitle','riskDescription','riskMitigation'])document.getElementById(k).value='';await loadProjectRisks(id);notify('Risk logged and scored.');}catch(e){notify(e.message);}
  });
+
+ document.getElementById('contractSave').addEventListener('click',async()=>{
+  if(!activeProject){notify('Select a project first.');return;}
+  const id=activeProject.project_id||activeProject.id;
+  const value=document.getElementById('contractValue').value,defects=document.getElementById('contractDefects').value;
+  const payload={contractNumber:document.getElementById('contractNumber').value,title:document.getElementById('contractTitle').value,employer:document.getElementById('contractEmployer').value,contractor:document.getElementById('contractContractor').value,engineer:document.getElementById('contractEngineer').value,contractForm:document.getElementById('contractForm').value,fidicEdition:document.getElementById('contractEdition').value,contractValue:value===''?null:Number(value),currency:document.getElementById('contractCurrency').value,commencementDate:document.getElementById('contractCommencement').value||null,completionDate:document.getElementById('contractCompletion').value||null,defectsPeriodMonths:defects===''?null:Number(defects),status:document.getElementById('contractStatus').value};
+  try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/contract',{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'Could not save contract particulars.');document.getElementById('contractSaveStatus').textContent='Contract particulars saved · '+new Date(Number(d.contract.updated_at)*1000).toLocaleString();await loadExecutiveDashboard(id);notify('Contract particulars saved to this project.');}catch(e){notify(e.message);}
+ });
+
  document.getElementById('claimAdd').addEventListener('click',async()=>{
   if(!activeProject){notify('Select a project first.');return;}const id=activeProject.project_id||activeProject.id;
   const payload={title:document.getElementById('claimTitle').value,fidicClause:document.getElementById('claimClause').value,noticeDate:document.getElementById('claimNoticeDate').value||null,eventDate:document.getElementById('claimEventDate').value||null,particulars:document.getElementById('claimParticulars').value,timeImpactDays:document.getElementById('claimDays').value||0,costImpact:document.getElementById('claimCost').value||0,currency:document.getElementById('claimCurrency').value};
