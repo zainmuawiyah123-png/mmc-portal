@@ -8,7 +8,7 @@ const router=express.Router();router.use(A.requireAuth);
 const EDIT=new Set(['owner','project_manager','engineer']);
 function access(req,edit=false){const m=getDB().prepare('SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?').get(req.params.projectId,req.user.id);if(!m||m.status!=='active')throw E.notFound('المشروع غير موجود.');if(edit&&!EDIT.has(m.role))throw E.forbidden('لا تملك صلاحية تعديل سجل العقد.');return m;}
 function clean(v,n){return String(v??'').trim().slice(0,n);}
-function date(v,label){if(v==null||v==='')return null;const s=String(v);if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(s)||!Number.isFinite(Date.parse(s))||new Date(s).toISOString().slice(0,10)!==s)throw E.validation(label+' يجب أن يكون بصيغة YYYY-MM-DD.');return s;}
+function date(v,label){if(v==null||v==='')return null;const s=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||!Number.isFinite(Date.parse(s))||new Date(s).toISOString().slice(0,10)!==s)throw E.validation(label+' يجب أن يكون بصيغة YYYY-MM-DD.');return s;}
 function money(v,label){if(v==null||v==='')return 0;const n=Number(v);if(!Number.isFinite(n)||n<0||n>1e12)throw E.validation(label+' غير صالح.');return n;}
 function days(v,label){if(v==null||v==='')return 0;const n=Number(v);if(!Number.isInteger(n)||n<0||n>36500)throw E.validation(label+' غير صالح.');return n;}
 function audit(db,req,action,type,id,detail={}){db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)').run(uid('aial_'),req.params.projectId,req.user.id,action,type,id,JSON.stringify(detail));}
