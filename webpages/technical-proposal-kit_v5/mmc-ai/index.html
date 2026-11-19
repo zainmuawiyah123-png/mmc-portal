@@ -376,7 +376,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
  const toast=document.getElementById('toast');let timer;
  function notify(msg){toast.textContent=msg;toast.style.display='block';clearTimeout(timer);timer=setTimeout(()=>toast.style.display='none',3800)}
 
- let activeProject=null,selectedTakeoffSourceId=null;
+ let activeProject=null,selectedTakeoffSourceId=null;const projectBoqCache=new Map();
  async function loadProjects(preferred){
   const sel=document.getElementById('projectSelect');
   try{
@@ -432,6 +432,8 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   try{
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq',{credentials:'same-origin'}),data=await r.json();
    if(!r.ok)throw new Error(data.message||'Could not load BOQ.');
+   if(!Array.isArray(data.items))throw new Error('BOQ API returned an unexpected response format.');
+   projectBoqCache.set(id,data.items);
    summary.textContent='Items: '+data.summary.itemCount+' · Estimated total of priced items: '+Number(data.summary.total).toFixed(3)+' (project currency) · Missing rates: '+(data.summary.missingRates||0);
    let previousSection=Symbol('initial');
     for(const item of data.items){
@@ -451,14 +453,15 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     td.appendChild(del);tr.appendChild(td);body.appendChild(tr);
    }
    if(!data.items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='No BOQ items yet. Add the first item using the form above.';td.style.cssText='text-align:center;padding:18px;color:#8998a8';tr.appendChild(td);body.appendChild(tr);}
-  }catch(e){summary.textContent=e.message;}
+   return data.items;
+  }catch(e){summary.textContent=e.message;return null;}
  }
  async function loadProjectSchedule(id){
   const body=document.getElementById('scheduleRows'),summary=document.getElementById('scheduleSummary'),pred=document.getElementById('schedulePredecessor'),boqSelect=document.getElementById('scheduleBoqItem');body.replaceChildren();pred.innerHTML='<option value="">No predecessor</option>';boqSelect.innerHTML='<option value="">Manual activity (no BOQ link)</option>';
   if(!id){summary.textContent='Select a project to view the schedule.';return;}
   try{
-   const [r,br]=await Promise.all([fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/schedule',{credentials:'same-origin'}),fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq',{credentials:'same-origin'})]),data=await r.json(),boq=await br.json();if(!r.ok)throw new Error(data.message||'Could not load the schedule.');if(!br.ok)throw new Error(boq.message||'Could not load project BOQ.');
-   const boqItems=boq.items||[];for(const item of boqItems){const opt=document.createElement('option');opt.value=item.id;opt.textContent=(item.item_code?item.item_code+' · ':'')+item.description+' — '+item.quantity+' '+item.unit;boqSelect.appendChild(opt);}
+   const [r,boqItemsFromCache]=await Promise.all([fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/schedule',{credentials:'same-origin'}),projectBoqCache.has(id)?Promise.resolve(projectBoqCache.get(id)):loadProjectBoq(id)]),data=await r.json();if(!r.ok)throw new Error(data.message||'Could not load the schedule.');if(!Array.isArray(boqItemsFromCache))throw new Error('تعذر تحميل بنود جدول الكميات. حدّث جدول BOQ ثم أعد فتح البرنامج الزمني.');
+   const boqItems=boqItemsFromCache;for(const item of boqItems){const opt=document.createElement('option');opt.value=item.id;opt.textContent=(item.item_code?item.item_code+' · ':'')+item.description+' — '+item.quantity+' '+item.unit;boqSelect.appendChild(opt);}
    summary.textContent='CPM project duration: '+data.analysis.projectDurationWorkingDays+' working days · Critical Activities: '+data.analysis.criticalTaskCount+' · BOQ items available: '+boqItems.length;
    const updateHint=()=>{const item=boqItems.find(x=>x.id===boqSelect.value),p=Number(document.getElementById('scheduleProductivity').value),hint=document.getElementById('scheduleDurationHint');if(!item){hint.textContent='Manual mode: enter the activity duration. No BOQ quantity is assumed.';return;}if(!(p>0)){hint.textContent='Selected BOQ quantity: '+item.quantity+' '+item.unit+'. Enter productivity in '+item.unit+' per day; the system will calculate the proposed duration.';return;}hint.textContent='Proposed duration: '+Math.ceil(Number(item.quantity)/p)+' working days ('+item.quantity+' '+item.unit+' ÷ '+p+' '+item.unit+'/day). You may approve this or enter a different duration.';};
    boqSelect.onchange=updateHint;document.getElementById('scheduleProductivity').oninput=updateHint;updateHint();
