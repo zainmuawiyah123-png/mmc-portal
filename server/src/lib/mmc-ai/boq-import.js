@@ -85,12 +85,12 @@ function workbookSheetNames(files) {
   const workbook = files.get('xl/workbook.xml') || '';
   const relsXml = files.get('xl/_rels/workbook.xml.rels') || '';
   const targets = new Map();
-  for (const match of relsXml.matchAll(/<Relationship\b([^>]*)\\/?\s*>/g)) {
+  for (const match of relsXml.matchAll(/<Relationship\b([^>]*)\/?\s*>/g)) {
     const tag = match[1], id = attr(tag, 'Id'), target = attr(tag, 'Target');
     if (id && target) targets.set(id, target.replace(/^\//, '').startsWith('xl/') ? target.replace(/^\//, '') : 'xl/' + target.replace(/^\//, ''));
   }
   const names = [];
-  for (const match of workbook.matchAll(/<sheet\b([^>]*)\\/?\s*>/g)) {
+  for (const match of workbook.matchAll(/<sheet\b([^>]*)\/?\s*>/g)) {
     const tag = match[1], name = attr(tag, 'name'), rid = attr(tag, 'r:id');
     const target = targets.get(rid);
     if (name && target) names.push({ name, target });
@@ -272,7 +272,10 @@ function normalizeRows(matrix) {
     if (candidate.rate === undefined && candidate.quantity !== undefined) {
       const currency = new Set(['دينار','jod','usd','sar','aed','gbp','eur']);
       const q = candidate.quantity, first = cells[q + 1], second = cells[q + 2];
-      if (currency.has(first) && currency.has(second)) candidate.rate = q + 1;
+      if (currency.has(first) && currency.has(second)) {
+        candidate.rate = q + 1;
+        candidate.amount = q + 2;
+      }
     }
     return candidate;
   };
@@ -313,9 +316,9 @@ function normalizeRows(matrix) {
     const item={rowNumber:row._sourceRow||i+1,sourceSheet:row._sourceSheet||null,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,sourceAmount:Number.isFinite(sourceAmount)?sourceAmount:null,discipline:get('discipline')||null};
     item.validationIssues=[];
     if(Number.isFinite(sourceAmount)&&Number.isFinite(quantity)&&Number.isFinite(rate)&&Math.abs(sourceAmount-(quantity*rate))>Math.max(0.01,Math.abs(sourceAmount)*0.005)) item.validationIssues.push('قيمة البند لا تطابق الكمية × سعر الوحدة');
-    if(issue.length) errors.push({rowNumber:i+1,issues:issue,source:item}); else {
+    if(issue.length) errors.push({rowNumber:item.rowNumber,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
-      if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:i+1,duplicateOfRowNumber:seen.get(key),item});}
+      if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:item.rowNumber,duplicateOfRowNumber:seen.get(key),item});}
       else { seen.set(key,i+1); items.push(item); }
     }
   }
