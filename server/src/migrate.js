@@ -1400,6 +1400,39 @@ function upgradeMmcAiProjects(db) {
 
 
 /** Project contract master record. Additive migration; preserves existing events and project data. */
+function upgradeMmcAiRiskManagement(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_risk_controls (
+      risk_id TEXT PRIMARY KEY REFERENCES ai_project_risks(id) ON DELETE CASCADE,
+      response_strategy TEXT NOT NULL DEFAULT 'mitigate' CHECK(response_strategy IN ('avoid','mitigate','transfer','accept','exploit','enhance','share')),
+      residual_probability INTEGER CHECK(residual_probability IS NULL OR residual_probability BETWEEN 1 AND 5),
+      residual_impact INTEGER CHECK(residual_impact IS NULL OR residual_impact BETWEEN 1 AND 5),
+      trigger_condition TEXT NOT NULL DEFAULT '',
+      contingency_plan TEXT NOT NULL DEFAULT '',
+      due_date TEXT,
+      next_review_date TEXT,
+      related_reference TEXT,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS ai_risk_actions (
+      id TEXT PRIMARY KEY,
+      risk_id TEXT NOT NULL REFERENCES ai_project_risks(id) ON DELETE CASCADE,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      action_title TEXT NOT NULL,
+      action_owner TEXT,
+      due_date TEXT,
+      completed_date TEXT,
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','in_progress','completed','overdue','cancelled')),
+      notes TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_risk_actions_project ON ai_risk_actions(project_id,status,due_date);
+    CREATE INDEX IF NOT EXISTS idx_ai_risk_actions_risk ON ai_risk_actions(risk_id,created_at DESC);
+  `);
+}
+
 function upgradeMmcAiContracts(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS ai_project_contracts (
@@ -1690,6 +1723,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
+  upgradeMmcAiRiskManagement(db);
   upgradeMmcAiContracts(db);
   upgradeMmcAiContractManagement(db);
   upgradePrimaveraP6(db);
