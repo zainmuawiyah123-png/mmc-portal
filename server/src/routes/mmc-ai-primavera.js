@@ -5,6 +5,7 @@
  * It does NOT claim a live desktop connection or emit Oracle-certified XML/XER yet.
  */
 const express=require('express');
+const crypto=require('crypto');
 const {getDB,uid}=require('../db');
 const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
@@ -52,6 +53,22 @@ router.post('/projects/:projectId/primavera/preview',wrap(async(req,res)=>{
  const allTasks=db.prepare(`SELECT t.*,l.external_activity_id,l.sync_status AS link_status
  FROM ai_schedule_tasks t LEFT JOIN ai_primavera_activity_links l ON l.project_id=t.project_id AND l.schedule_task_id=t.id
  WHERE t.project_id=? ORDER BY t.created_at,t.id`).all(pid);
+ // Stable MMC Activity IDs are derived deterministically from the immutable schedule-task ID,
+ // then persisted once. This avoids asking planners to type integration identifiers manually.
+ const generatedCodes=[];
+ const saveCodes=db.transaction(()=>{
+  for(const task of allTasks){
+   if(String(task.task_code||'').trim())continue;
+   const code='MMC'+crypto.createHash('sha256').update(String(task.id)).digest('hex').slice(0,17).toUpperCase();
+   const collision=db.prepare('SELECT id FROM ai_schedule_tasks WHERE project_id=? AND task_code=? AND id<>?').get(pid,code,task.id);
+   if(collision)throw E.conflict('تعذر إنشاء رمز نشاط فريد تلقائياً؛ راجع رموز الأنشطة المتكررة.');
+   db.prepare("UPDATE ai_schedule_tasks SET task_code=?,updated_at=unixepoch() WHERE project_id=? AND id=? AND (task_code IS NULL OR TRIM(task_code)='')").run(code,pid,task.id);
+   task.task_code=code;
+   generatedCodes.push({taskId:task.id,activityId:code});
+  }
+ });
+ saveCodes();
+ if(generatedCodes.length)audit(db,req,'primavera_activity_codes_generated',pid,{generated:generatedCodes});
  const tasks=cfg.sync_mode==='approved_only'?allTasks.filter(t=>!!t.duration_approved_at):allTasks;
  const excludedUnapproved=allTasks.length-tasks.length;
  const includedIds=new Set(tasks.map(t=>t.id));
@@ -75,12 +92,13 @@ router.post('/projects/:projectId/primavera/preview',wrap(async(req,res)=>{
   }
   return {mmcTaskId:t.id,activityId:code||null,name:t.name,durationDays:t.duration_days,durationBasis:'approved_working_days',plannedStart:t.planned_start||null,predecessorMmcTaskIds:predecessors,existingP6ActivityId:t.external_activity_id||null,linkStatus:t.link_status||'not_synced',boqItems:boqByTask.get(t.id)||[]};
  });
- if(!cfg.p6_project_id)warnings.push({issue:'p6_project_not_mapped',message:'لم يتم تحديد Project ID المقابل في Primavera بعد.'});
+ const information=[];
+ if(!cfg.p6_project_id)information.push({issue:'p6_project_not_mapped',message:'لم يتم ربط Project ID خارجي بعد. هذا ليس مانعاً للمعاينة؛ يُحدد عند إنشاء/اختيار المشروع داخل Primavera قبل التصدير الفعلي.'});
  if(!cfg.enabled)warnings.push({issue:'integration_disabled',message:'التكامل غير مفعّل.'});
  const summary={activities:activities.length,excludedUnapproved,ready:Math.max(0,activities.length-new Set(blockers.map(x=>x.taskId)).size),blockers:blockers.length,warnings:warnings.length,boqMappings:boqLinks.length,alreadyLinked:activities.filter(x=>x.existingP6ActivityId).length};
  const runId=uid('p6run_');
  db.prepare(`INSERT INTO ai_primavera_sync_runs(id,project_id,actor_user_id,direction,status,format,summary_json,finished_at) VALUES(?,?,?,'mmc_to_p6','preview',?,?,unixepoch())`).run(runId,pid,req.user.id,cfg.transfer_format,JSON.stringify(summary));
  audit(db,req,'primavera_export_preview',runId,summary);
- res.setHeader('Cache-Control','no-store');res.json({runId,format:cfg.transfer_format,project:{mmcProjectId:pid,p6ProjectId:cfg.p6_project_id,p6ProjectName:cfg.p6_project_name},summary,blockers,warnings,activities,exportAvailable:false,message:'هذه معاينة تحقق وربط فقط؛ لا يتم إرسال بيانات إلى برنامج Primavera المكتبي في هذه المرحلة.'});
+ res.setHeader('Cache-Control','no-store');res.json({runId,format:cfg.transfer_format,project:{mmcProjectId:pid,p6ProjectId:cfg.p6_project_id,p6ProjectName:cfg.p6_project_name},summary,blockers,warnings,information,generatedActivityCodes:generatedCodes,activities,exportAvailable:false,message:'هذه معاينة تحقق وربط فقط؛ لا يتم إرسال بيانات إلى برنامج Primavera المكتبي في هذه المرحلة.'});
 }));
 module.exports=router;
