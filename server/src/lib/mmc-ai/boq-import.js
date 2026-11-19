@@ -300,12 +300,12 @@ function normalizeRows(matrix) {
     const get=k=>mapping[k]===undefined?'':String(row[mapping[k]]??'').trim();
     const description=get('description'), unit=get('unit'), rawQty=get('quantity');
     const itemCode = get('itemCode');
+    if (description && !unit && rawQty === '' && !itemCode) { currentSection=description; continue; }
     if ((!description && !itemCode) ||
         (!unit && rawQty === '' && (!itemCode || (!/[\\/]/.test(itemCode) && !/^[A-Z]$/i.test(itemCode))))) continue;
     // Section titles and explanatory paragraphs in tender workbooks often
     // occupy the description column only. Keep them out of the invalid-item
     // count unless there is an item reference, unit, or quantity to validate.
-    if (description && !unit && rawQty === '' && !get('itemCode')) { currentSection=description; continue; }
     if (description && !unit && rawQty === '' && /^[A-Z]$/i.test(itemCode)) { currentSection=description; continue; }
     const quantity=parseNumber(rawQty);
     const issue=[];
@@ -323,7 +323,7 @@ function normalizeRows(matrix) {
     if(issue.length) errors.push({rowNumber:item.rowNumber,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
       if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:item.rowNumber,duplicateOfRowNumber:seen.get(key),item});}
-      else { seen.set(key,i+1); items.push(item); }
+      else { seen.set(key,item.rowNumber); items.push(item); }
     }
   }
   return {headerRow:headerIndex+1,items,errors,duplicates,summary:{rowsRead:matrix.length-headerIndex-1,validItems:items.length,errorRows:errors.length,duplicateRows:duplicates.length}};
