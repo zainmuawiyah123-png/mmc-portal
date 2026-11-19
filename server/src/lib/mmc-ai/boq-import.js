@@ -195,7 +195,7 @@ const ALIASES = {
   unit:['unit','uom','unitofmeasure','measurementunit','الوحدة','وحدة','وحدةالقياس','وحدة القياس'],
   quantity:['quantity','qty','qnty','amount','الكمية','كميه','كمية','كميات','العدد','الكميةالاجمالية','اجماليالكمية','الكميةالمطلوبة','كميةالبند'],
   rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعر'],
-  itemCode:['itemcode','code','ref','reference','رقمالبند','الكود','الرمز'],
+  itemCode:['itemcode','code','ref','reference','رقم','الرقم','رقمالبند','الكود','الرمز'],
   discipline:['discipline','trade','category','التخصص','القسم','الفئة']
 };
 const UNIT_MAP = Object.freeze({
@@ -231,6 +231,14 @@ function normalizeRows(matrix) {
       const at = cells.findIndex(c => names.some(a => normalizeHeader(a) === c));
       if (at >= 0) candidate[field] = at;
     }
+    // Civil schedules in this tender label both financial columns only as
+    // "دينار". When two adjacent currency columns follow quantity, the first
+    // is unit rate and the second is line amount. Never infer from one column.
+    if (candidate.rate === undefined && candidate.quantity !== undefined) {
+      const currency = new Set(['دينار','jod','usd','sar','aed','gbp','eur']);
+      const q = candidate.quantity, first = cells[q + 1], second = cells[q + 2];
+      if (currency.has(first) && currency.has(second)) candidate.rate = q + 1;
+    }
     return candidate;
   };
   for(let i=0;i<Math.min(matrix.length,1000);i++){
@@ -252,6 +260,10 @@ function normalizeRows(matrix) {
     const get=k=>mapping[k]===undefined?'':String(row[mapping[k]]??'').trim();
     const description=get('description'), unit=get('unit'), rawQty=get('quantity');
     if(!description&&!unit&&!rawQty) continue;
+    // Section titles and explanatory paragraphs in tender workbooks often
+    // occupy the description column only. Keep them out of the invalid-item
+    // count unless there is an item reference, unit, or quantity to validate.
+    if (description && !unit && rawQty === '' && !get('itemCode')) continue;
     const quantity=parseNumber(rawQty);
     const issue=[];
     if(!description) issue.push('الوصف مفقود');
