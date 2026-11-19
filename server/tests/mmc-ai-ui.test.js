@@ -137,3 +137,14 @@ test('BOQ item details expose takeoff provenance and calculation assumptions',()
  assert.match(html,/item\.sourceDetail\?\.formula/);
  assert.match(html,/item\.sourceDetail\?\.assumptions/);
 });
+
+test('server only transfers complete proposals from reviewer-approved runs and preserves provenance',()=>{
+ const boqRoute=fs.readFileSync(path.join(__dirname,'../src/routes/mmc-ai-boq.js'),'utf8');
+ const migration=fs.readFileSync(path.join(__dirname,'../src/migrate.js'),'utf8');
+ assert.match(boqRoute,/run\.status!=='approved'/);
+ assert.match(boqRoute,/categoryResult\.status!=='proposed'/);
+ assert.match(boqRoute,/source_takeoff_run_id,source_proposal_key,source_detail_json/);
+ assert.match(boqRoute,/boq_item_created_from_takeoff/);
+ assert.match(migration,/idx_ai_boq_takeoff_proposal/);
+ assert.match(migration,/source_takeoff_run_id TEXT REFERENCES ai_takeoff_runs/);
+});
