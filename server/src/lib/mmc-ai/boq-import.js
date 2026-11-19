@@ -287,7 +287,7 @@ function normalizeRows(matrix) {
     }
   }
   if(headerIndex<0) throw new Error('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم Description / Unit / Quantity أو العناوين العربية المكافئة.');
-  const items=[], errors=[], duplicates=[], seen=new Map();
+  const items=[], errors=[], duplicates=[], summaryRows=[], seen=new Map();
   let currentSection=null;
   for(let i=headerIndex+1;i<matrix.length;i++){
     const row=matrix[i];
@@ -300,7 +300,19 @@ function normalizeRows(matrix) {
     const get=k=>mapping[k]===undefined?'':String(row[mapping[k]]??'').trim();
     const description=get('description'), unit=get('unit'), rawQty=get('quantity');
     const itemCode = get('itemCode');
-    if (description && !unit && rawQty === '' && !itemCode) { currentSection=description; continue; }
+    // Summary/total rows are financial source records, not measured BOQ items.
+    // Keep their stated values for reconciliation instead of treating them as sections or errors.
+    const amountRaw=get('amount'), amount=amountRaw===''?null:parseNumber(amountRaw);
+    const normalizedDescription=normalizeHeader(description);
+    const isSummaryRow=/^(?:المجموع|مجموع|الاجمالي|اجمالي|الاجماليالعام|المجموعالعام)/.test(normalizedDescription);
+    if (description && !unit && rawQty === '' && !itemCode && isSummaryRow) {
+      summaryRows.push({rowNumber:row._sourceRow||i+1,sourceSheet:row._sourceSheet||null,description,amount:Number.isFinite(amount)?amount:null});
+      continue;
+    }
+    const sectionKey=normalizedDescription;
+    const isSectionHeading=/^(?:اولا|ثانيا|ثالثا|رابعا|خامسا|سادسا|سابعا|ثامنا|تاسعا|عاشرا|الحاديعشر|الثانيعشر|الثالثعشر|الرابععشر|الخامسعشر|السادسعشر|السابععشر|الثامنعشر|التاسععشر|العشرون)/.test(sectionKey);
+    if (description && !unit && rawQty === '' && !itemCode && isSectionHeading) { currentSection=description; continue; }
+    if (description && !unit && rawQty === '' && !itemCode) continue;
     if ((!description && !itemCode) ||
         (!unit && rawQty === '' && (!itemCode || (!/[\\/]/.test(itemCode) && !/^[A-Z]$/i.test(itemCode))))) continue;
     // Section titles and explanatory paragraphs in tender workbooks often
@@ -329,7 +341,7 @@ function normalizeRows(matrix) {
       items.push(item);
     }
   }
-  return {headerRow:headerIndex+1,items,errors,duplicates,summary:{rowsRead:matrix.length-headerIndex-1,validItems:items.length,errorRows:errors.length,duplicateRows:duplicates.length}};
+  return {headerRow:headerIndex+1,items,errors,duplicates,summaryRows,summary:{rowsRead:matrix.length-headerIndex-1,validItems:items.length,errorRows:errors.length,duplicateRows:duplicates.length,summaryRows:summaryRows.length}};
 }
 function parseBoqFile({buffer,filename}) {
   if(!Buffer.isBuffer(buffer)||!buffer.length) throw new Error('لم يتم استلام ملف.');
@@ -340,6 +352,7 @@ function parseBoqFile({buffer,filename}) {
   else throw new Error('الصيغ المدعومة: XLSX وCSV فقط.');
   const parsed = normalizeRows(matrix);
   const arithmeticWarnings=parsed.items.filter(x=>x.validationIssues?.length).map(x=>({code:'AMOUNT_RATE_MISMATCH',sheet:x.sourceSheet,rowNumber:x.rowNumber,itemCode:x.itemCode,message:x.validationIssues.join('، ')}));
-  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:[...arithmeticWarnings,...(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين أو نمط أعمدة موثوق؛ لم يتم تخمين البيانات.'})),...(matrix.inferredSheets||[]).map(name=>({code:'HEADERLESS_LAYOUT_INFERRED',sheet:name,message:'تم التعرف على ترتيب الوصف والوحدة والكمية من نمط الأعمدة B/C/D بعد التحقق من وصف ووحدة معروفة وكمية رقمية.'}))]};
+  const summaryWarnings=parsed.summaryRows.map(row=>({code:'SOURCE_TOTAL_ROW',sheet:row.sourceSheet,rowNumber:row.rowNumber,label:row.description,amount:row.amount,message:'صف إجمالي مالي من المصدر؛ محفوظ للمراجعة ولم يُدرج كبند كميات.'}));
+  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:[...summaryWarnings,...arithmeticWarnings,...(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين أو نمط أعمدة موثوق؛ لم يتم تخمين البيانات.'})),...(matrix.inferredSheets||[]).map(name=>({code:'HEADERLESS_LAYOUT_INFERRED',sheet:name,message:'تم التعرف على ترتيب الوصف والوحدة والكمية من نمط الأعمدة B/C/D بعد التحقق من وصف ووحدة معروفة وكمية رقمية.'}))]};
 }
 module.exports={parseBoqFile,normalizeRows,csvRows,xlsxRows,parseNumber,normalizeUnit,UNIT_MAP};
