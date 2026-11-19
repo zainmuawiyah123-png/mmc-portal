@@ -399,6 +399,9 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
  function notify(msg){toast.textContent=msg;toast.style.display='block';clearTimeout(timer);timer=setTimeout(()=>toast.style.display='none',3800)}
 
  let activeProject=null,selectedTakeoffSourceId=null;const projectBoqCache=new Map();
+ const ACTIVE_PROJECT_KEY='mmc-ai-active-project-v1';
+ function rememberedProject(){try{return localStorage.getItem(ACTIVE_PROJECT_KEY)||'';}catch(_){return '';}}
+ function rememberProject(id){try{if(id)localStorage.setItem(ACTIVE_PROJECT_KEY,String(id));else localStorage.removeItem(ACTIVE_PROJECT_KEY);}catch(_){}}
  async function loadProjects(preferred){
   const sel=document.getElementById('projectSelect');
   try{
@@ -408,8 +411,8 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    sel.innerHTML='';
    if(!items.length){sel.innerHTML='<option value="">No projects yet</option>';activeProject=null;showProject(null);return;}
    for(const p of items){const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o);}
-   const chosen=items.find(p=>p.id===preferred)||items[0];sel.value=chosen.id;await selectProject(chosen.id);
-  }catch(e){sel.innerHTML='<option value="">Could not load projects</option>';showProject(null);notify(e.message);}
+   const requested=preferred||rememberedProject();const chosen=items.find(p=>String(p.id)===String(requested))||items[0];sel.value=chosen.id;await selectProject(chosen.id);
+  }catch(e){if(e.status===401||/sign in again|session.*expired/i.test(e.message||'')){window.location.assign('/portal/pt-9f3c7a1e5b2d/login.html?next='+encodeURIComponent('/mmc-ai/'));return;}sel.innerHTML='<option value="">Could not load projects</option>';showProject(null);notify(e.message);}
  }
  function showProject(p){
   const photo=document.getElementById('projectPhoto'),img=document.getElementById('projectCover');
@@ -618,7 +621,7 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
  });
  document.getElementById('refreshAllProjectData').addEventListener('click',()=>loadAllProjectData(activeProject?.project_id||activeProject?.id));
  async function selectProject(id){
-  if(!id){activeProject=null;showProject(null);return;}
+  if(!id){activeProject=null;rememberProject('');showProject(null);return;}rememberProject(id);
   const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id),{credentials:'same-origin'});
   if(!r.ok)throw new Error('Could not open the selected project.');
   const data=await r.json();activeProject=data.project;window.mmcActiveProjectId=id;window.dispatchEvent(new Event('mmc-project-selected'));showProject(activeProject);await loadProjectDocuments(id);await loadAllProjectData(id);await loadExecutiveDashboard(id);await loadProjectBoq(id);await loadProjectSchedule(id);await loadProjectBim(id);await loadProjectBimModels(id);await loadProjectRisks(id);await loadProjectClaims(id);
