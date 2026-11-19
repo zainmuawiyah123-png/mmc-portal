@@ -111,23 +111,56 @@ function xlsxRows(buffer) {
     }
     return rows;
   }
-  // Inspect worksheets rather than assuming the first sheet contains the BOQ.
-  let bestRows = [], bestScore = 0;
+  // Read every worksheet with a recognizable BOQ table. Some tenders contain
+  // several sections and repeat their column headings throughout the sheet.
+  const combined = [];
+  const acceptedSheets = [], skippedSheets = [];
   for (const name of sheetNames) {
     const rows = readSheet(files.get(name) || '');
-    let score = 0;
-    for (const row of rows.slice(0, 100)) {
-      const cells = row.map(normalizeHeader);
-      const found = ['description', 'unit', 'quantity'].filter(field =>
-        cells.some(cell => (ALIASES[field] || []).some(alias => normalizeHeader(alias) === cell))
-      ).length;
-      score = Math.max(score, found);
+    const hasSingleHeader = rows.some(row => hasBoqHeader(row));
+    const hasSplitHeader = rows.some((row, i) => i + 1 < rows.length &&
+      hasBoqHeader([...row, ...rows[i + 1]]));
+    if (!hasSingleHeader && !hasSplitHeader) {
+      skippedSheets.push(name);
+      continue;
     }
-    if (score > bestScore) { bestScore = score; bestRows = rows; }
-    if (score === 3) return rows;
+    acceptedSheets.push(name);
+    // Join a two-line heading (description on one row, unit/quantity on next).
+    for (let i = 0; i < rows.length; i++) {
+      if (i + 1 < rows.length && hasSplitHeaderPair(rows[i], rows[i + 1])) {
+        const merged = [];
+        const width = Math.max(rows[i].length, rows[i + 1].length);
+        for (let c = 0; c < width; c++) {
+          merged[c] = normalizeHeader(rows[i][c]) ? rows[i][c] : (rows[i + 1][c] || '');
+        }
+        combined.push(merged);
+        i++;
+      } else {
+        combined.push(rows[i]);
+      }
+    }
+    combined.push([]);
   }
-  if (bestRows.length) return bestRows;
-  throw new Error('لم أتمكن من قراءة صفوف جدول Excel. تأكد أن الملف بصيغة XLSX غير محمية.');
+  if (!acceptedSheets.length) throw new Error('لم أتمكن من العثور على ورقة تحتوي عناوين جدول كميات واضحة.');
+  combined.sourceSheets = acceptedSheets;
+  combined.skippedSheets = skippedSheets;
+  return combined;
+}
+function hasBoqHeader(row) {
+  const cells = row.map(normalizeHeader);
+  return ['description','unit','quantity'].every(field =>
+    cells.some(cell => (ALIASES[field] || []).some(alias => normalizeHeader(alias) === cell))
+  );
+}
+function hasSplitHeaderPair(first, second) {
+  const a = first.map(normalizeHeader), b = second.map(normalizeHeader);
+  const desc = a.some(cell => ALIASES.description.some(alias => normalizeHeader(alias) === cell)) ||
+    b.some(cell => ALIASES.description.some(alias => normalizeHeader(alias) === cell));
+  const unit = a.some(cell => ALIASES.unit.some(alias => normalizeHeader(alias) === cell)) ||
+    b.some(cell => ALIASES.unit.some(alias => normalizeHeader(alias) === cell));
+  const qty = a.some(cell => ALIASES.quantity.some(alias => normalizeHeader(alias) === cell)) ||
+    b.some(cell => ALIASES.quantity.some(alias => normalizeHeader(alias) === cell));
+  return desc && unit && qty && !hasBoqHeader(first) && !hasBoqHeader(second);
 }
 function normalizeHeader(value) {
   return String(value??'').normalize('NFKC').toLowerCase()
@@ -140,7 +173,7 @@ function normalizeHeader(value) {
     .replace(/[\s_\-./()\[\]{}:：،؛]+/g,'').trim();
 }
 const ALIASES = {
-  description:['description','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','البيان','بيانالاعمال','بيانالعمل','اسم البند','البند','تفاصيلالبند','العمل'],
+  description:['description','itemdescription','workdescription','item','name','details','scope','الوصف','وصفالبند','وصفالاعمال','وصفالعمل','البيان','بيانالاعمال','بيانالعمل','اسم البند','البند','تفاصيلالبند','العمل','نوعالعمل'],
   unit:['unit','uom','unitofmeasure','measurementunit','الوحدة','وحدة','وحدةالقياس','وحدة القياس'],
   quantity:['quantity','qty','qnty','amount','الكمية','كميه','كمية','كميات','العدد','الكميةالاجمالية','اجماليالكمية','الكميةالمطلوبة','كميةالبند'],
   rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعر'],
@@ -174,18 +207,31 @@ function parseNumber(value) {
 function normalizeRows(matrix) {
   if(!matrix.length) throw new Error('الملف فارغ.');
   let headerIndex=-1, mapping={};
-  for(let i=0;i<Math.min(matrix.length,100);i++){
-    const cells=matrix[i].map(normalizeHeader), candidate={};
-    for(const [field,names] of Object.entries(ALIASES)){
-      const at=cells.findIndex(c=>names.some(a=>normalizeHeader(a)===c));
-      if(at>=0) candidate[field]=at;
+  const findMapping = row => {
+    const cells = row.map(normalizeHeader), candidate = {};
+    for (const [field,names] of Object.entries(ALIASES)) {
+      const at = cells.findIndex(c => names.some(a => normalizeHeader(a) === c));
+      if (at >= 0) candidate[field] = at;
     }
-    if(candidate.description!==undefined&&candidate.unit!==undefined&&candidate.quantity!==undefined){headerIndex=i;mapping=candidate;break;}
+    return candidate;
+  };
+  for(let i=0;i<Math.min(matrix.length,1000);i++){
+    const candidate=findMapping(matrix[i]);
+    if(candidate.description!==undefined&&candidate.unit!==undefined&&candidate.quantity!==undefined){
+      headerIndex=i; mapping=candidate; break;
+    }
   }
   if(headerIndex<0) throw new Error('لم أتعرف على أعمدة الوصف والوحدة والكمية. استخدم Description / Unit / Quantity أو العناوين العربية المكافئة.');
   const items=[], errors=[], duplicates=[], seen=new Map();
   for(let i=headerIndex+1;i<matrix.length;i++){
-    const row=matrix[i], get=k=>mapping[k]===undefined?'':String(row[mapping[k]]??'').trim();
+    const row=matrix[i];
+    if (!row || !row.some(v => String(v ?? '').trim())) continue;
+    const repeated = findMapping(row);
+    if (repeated.description!==undefined&&repeated.unit!==undefined&&repeated.quantity!==undefined) {
+      mapping = repeated;
+      continue;
+    }
+    const get=k=>mapping[k]===undefined?'':String(row[mapping[k]]??'').trim();
     const description=get('description'), unit=get('unit'), rawQty=get('quantity');
     if(!description&&!unit&&!rawQty) continue;
     const quantity=parseNumber(rawQty);
@@ -212,6 +258,6 @@ function parseBoqFile({buffer,filename}) {
   if(ext==='csv'||ext==='txt') matrix=csvRows(decodeText(buffer));
   else if(ext==='xlsx') matrix=xlsxRows(buffer);
   else throw new Error('الصيغ المدعومة: XLSX وCSV فقط.');
-  return {...normalizeRows(matrix),sourceFormat:ext};
+  const parsed = normalizeRows(matrix);\n  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين وصف/وحدة/كمية واضحة؛ لم يتم تخمين الأعمدة.'}))};
 }
 module.exports={parseBoqFile,normalizeRows,csvRows,xlsxRows,parseNumber,normalizeUnit,UNIT_MAP};
