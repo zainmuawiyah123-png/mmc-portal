@@ -1027,7 +1027,15 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
  el('msProjectSave')?.addEventListener('click',async()=>{try{const id=project();if(!id)throw new Error('Select a project first.');const d=await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/ms-project',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:el('msProjectEnabled').checked,externalProjectName:el('msProjectName').value,externalProjectUid:el('msProjectUid').value,syncMode:el('msProjectMode').value})});report.textContent='Settings saved. File-based integration is not a live connection.';status.textContent='File-based · Not connected';}catch(e){report.textContent=e.message;}});
  el('msProjectPreview')?.addEventListener('click',async()=>{try{const id=project();if(!id)throw new Error('Select a project first.');const d=await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/ms-project/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});report.textContent='Validation: '+d.summary.ready+'/'+d.summary.activities+' ready · Blockers: '+d.summary.blockers+' · Warnings: '+d.summary.warnings+'\n'+[...d.blockers,...d.warnings].map(x=>x.message).join('\n');el('msProjectExport').disabled=!d.exportAvailable;}catch(e){report.textContent=e.message;el('msProjectExport').disabled=true;}});
  el('msProjectExport')?.addEventListener('click',async()=>{try{const id=project();if(!id)throw new Error('Select a project first.');const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/ms-project/export',{method:'POST',credentials:'same-origin'});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||'XML export failed.');}const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mmc-ms-project.xml';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);report.textContent='XML file generated from approved MMC activities. Open it in Microsoft Project and review the imported programme.';}catch(e){report.textContent=e.message;}});
- el('projectSelect')?.addEventListener('change',load);document.addEventListener('DOMContentLoaded',load);setTimeout(load,500);
+ const projectSelect=el('projectSelect');
+  if(projectSelect){
+   projectSelect.addEventListener('change',load);
+   const observer=new MutationObserver(()=>{
+    if(project()){observer.disconnect();load();}
+   });
+   observer.observe(projectSelect,{childList:true});
+   if(project())load();
+  }
 })();
 </script>
 </body></html>");doc.close();printWindow.focus();setTimeout(()=>{try{printWindow.print();}catch(error){notify("Could not open the print dialog: "+(error?.message||"unknown error"));}},500);
