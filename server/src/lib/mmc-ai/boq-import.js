@@ -73,7 +73,7 @@ function xmlDecode(s) {
   return String(s||'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 }
 function attr(tag,name) {
-  const m=tag.match(new RegExp('(?:^|\s)'+name+'="([^"]*)"'));
+  const m=tag.match(new RegExp('(?:^|\\s)'+name+'="([^"]*)"'));
   return m?xmlDecode(m[1]):'';
 }
 function colIndex(ref) {
@@ -136,11 +136,10 @@ function xlsxRows(buffer) {
   // Read every worksheet with a recognizable BOQ table. Some tenders contain
   // several sections and repeat their column headings throughout the sheet.
   const combined = [];
-  const acceptedSheets = [], skippedSheets = [], inferredSheets = [], debugSheets = [];
+  const acceptedSheets = [], skippedSheets = [], inferredSheets = [];
   for (const name of sheetNames) {
     const displayName = namedSheets.find(x => x.target === name)?.name || name.split('/').pop().replace(/\.xml$/i, '');
     const rows = readSheet(files.get(name) || '', displayName);
-    debugSheets.push({name:displayName,rowCount:rows.length,firstRows:rows.slice(0,3).map(row=>Array.from(row))});
     const hasSingleHeader = rows.some(row => hasBoqHeader(row));
     const hasSplitHeader = rows.some((row, i) => i + 1 < rows.length &&
       hasBoqHeader([...row, ...rows[i + 1]]));
@@ -170,7 +169,7 @@ function xlsxRows(buffer) {
       combined.push([]);
       continue;
     }
-    acceptedSheets.push(name);
+    acceptedSheets.push(displayName);
     // Join a two-line heading (description on one row, unit/quantity on next).
     for (let i = 0; i < rows.length; i++) {
       if (i + 1 < rows.length &&
@@ -189,7 +188,7 @@ function xlsxRows(buffer) {
     }
     combined.push([]);
   }
-  if (!acceptedSheets.length) throw new Error('لم أتمكن من العثور على ورقة تحتوي عناوين جدول كميات واضحة. ' + JSON.stringify(debugSheets));
+  if (!acceptedSheets.length) throw new Error('لم أتمكن من العثور على ورقة تحتوي عناوين جدول كميات واضحة.');
   combined.sourceSheets = acceptedSheets;
   combined.skippedSheets = skippedSheets;
   combined.inferredSheets = inferredSheets;
