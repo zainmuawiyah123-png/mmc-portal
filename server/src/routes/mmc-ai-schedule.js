@@ -32,8 +32,8 @@ function durationInput(db,pid,body,old){
   if(!Number.isSafeInteger(proposed)||proposed<1)throw E.validation('تعذر حساب المدة المقترحة من الكمية والإنتاجية.');
  } else productivity=null;
  const supplied=body.durationDays!==undefined;
- let duration=supplied?Number(body.durationDays):(old?.duration_days??proposed);
- if(source==='manual'&&!supplied&&!old)throw E.validation('أدخل مدة النشاط يدوياً أو اربطه ببند من جدول الكميات.');
+ let duration=supplied?Number(body.durationDays):(old?.duration_days??null);
+ if(!Number.isInteger(duration))throw E.validation('المدة المقترحة ليست مدة معتمدة. أدخل مدة أيام العمل التي اعتمدها المخطط صراحةً.');
  if(!Number.isInteger(duration)||duration<0||duration>36500)throw E.validation('مدة النشاط يجب أن تكون أيام عمل صحيحة.');
  const override=source==='boq'&&(proposed===null||duration!==proposed)?1:0;
  const reason=body.durationOverrideReason===undefined?(old?.duration_override_reason||null):String(body.durationOverrideReason||'').trim().slice(0,500)||null;
