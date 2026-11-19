@@ -6,6 +6,9 @@ COPY server/package*.json ./server/
 RUN cd server && npm ci --omit=dev
 COPY . .
 
+# Gate staging releases on the BOQ parser syntax and real CSV/XLSX regression tests.
+RUN cd server && node --check src/lib/mmc-ai/boq-import.js && node --test tests/mmc-ai-boq-import.test.js
+
 # يوقف البناء بدل أن يصدر 404 صامتاً إن غابت واجهات البوابات عن الصورة
 RUN test -f webpages/technical-proposal-kit_v5/portal/pt-9f3c7a1e5b2d/login.html \
  && test -f webpages/technical-proposal-kit_v5/procurement/index.html \
