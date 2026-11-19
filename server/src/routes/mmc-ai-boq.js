@@ -84,7 +84,7 @@ router.patch('/projects/:projectId/boq/:itemId',wrap(async(req,res)=>{
   if(Math.abs(quantity-Number(src.quantity))>Math.max(1e-9,Math.abs(Number(src.quantity))*1e-9)||unit!==src.unit)throw E.validation('لا يمكن تغيير كمية أو وحدة بند مرتبط بحصر معتمد؛ أنشئ بنداً مستقلاً للتعديل.');
  }
  const code=req.body?.itemCode===undefined?old.item_code:(clean(req.body.itemCode,80)||null);
- db.prepare('UPDATE ai_boq_items SET item_code=?,description=?,unit=?,quantity=?,rate=?,updated_at=unixepoch() WHERE id=? AND project_id=?').run(code,description,unit,quantity,rate,old.id,req.params.projectId);
+ db.prepare('UPDATE ai_boq_items SET item_code=?,description=?,unit=?,quantity=?,rate=?,rate_missing=?,updated_at=unixepoch() WHERE id=? AND project_id=?').run(code,description,unit,quantity,rate,req.body?.rate===undefined?Number(old.rate_missing||0):0,old.id,req.params.projectId);
  audit(db,req,'boq_item_updated',old.id,{quantity,rate});
  res.json({item:itemView(db.prepare('SELECT * FROM ai_boq_items WHERE id=?').get(old.id))});
 }));
