@@ -1415,6 +1415,63 @@ function upgradeEmailVerification(db) {
   `);
 }
 
+
+/** P6 Professional desktop bridge metadata. Additive only; no schedule/BOQ rows are rewritten. */
+function upgradePrimaveraP6(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_primavera_projects (
+      project_id TEXT PRIMARY KEY REFERENCES ai_projects(id) ON DELETE CASCADE,
+      enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
+      p6_project_id TEXT,
+      p6_project_name TEXT,
+      transfer_format TEXT NOT NULL DEFAULT 'XML' CHECK(transfer_format IN ('XML','XER')),
+      sync_mode TEXT NOT NULL DEFAULT 'manual' CHECK(sync_mode IN ('manual','approved_only')),
+      bridge_id TEXT,
+      bridge_version TEXT,
+      bridge_last_seen_at INTEGER,
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS ai_primavera_activity_links (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      schedule_task_id TEXT NOT NULL REFERENCES ai_schedule_tasks(id) ON DELETE CASCADE,
+      external_activity_id TEXT,
+      external_wbs_id TEXT,
+      last_export_hash TEXT,
+      last_synced_at INTEGER,
+      sync_status TEXT NOT NULL DEFAULT 'not_synced' CHECK(sync_status IN ('not_synced','pending','synced','conflict','failed')),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(project_id,schedule_task_id),
+      UNIQUE(project_id,external_activity_id)
+    );
+    CREATE TABLE IF NOT EXISTS ai_primavera_boq_links (
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      boq_item_id TEXT NOT NULL REFERENCES ai_boq_items(id) ON DELETE CASCADE,
+      schedule_task_id TEXT NOT NULL REFERENCES ai_schedule_tasks(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY(project_id,boq_item_id,schedule_task_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_primavera_boq_task
+      ON ai_primavera_boq_links(project_id,schedule_task_id);
+    CREATE TABLE IF NOT EXISTS ai_primavera_sync_runs (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      direction TEXT NOT NULL CHECK(direction IN ('mmc_to_p6','p6_to_mmc','handshake')),
+      status TEXT NOT NULL CHECK(status IN ('preview','queued','running','succeeded','partial','failed','conflict')),
+      format TEXT,
+      summary_json TEXT NOT NULL DEFAULT '{}',
+      error_text TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      finished_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_primavera_runs_project
+      ON ai_primavera_sync_runs(project_id,created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1456,6 +1513,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
+  upgradePrimaveraP6(db);
   upgradeEmailVerification(db);
 
   return db;
