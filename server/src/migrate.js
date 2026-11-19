@@ -1398,6 +1398,34 @@ function upgradeMmcAiProjects(db) {
   db.exec('CREATE INDEX IF NOT EXISTS idx_ai_schedule_boq_item ON ai_schedule_tasks(project_id,boq_item_id)');
 }
 
+
+/** Project contract master record. Additive migration; preserves existing events and project data. */
+function upgradeMmcAiContracts(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_project_contracts (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL UNIQUE REFERENCES ai_projects(id) ON DELETE CASCADE,
+      contract_number TEXT,
+      title TEXT NOT NULL,
+      employer TEXT,
+      contractor TEXT,
+      engineer TEXT,
+      contract_form TEXT,
+      fidic_edition TEXT,
+      contract_value REAL CHECK(contract_value IS NULL OR contract_value >= 0),
+      currency TEXT NOT NULL DEFAULT 'JOD',
+      commencement_date TEXT,
+      completion_date TEXT,
+      defects_period_months INTEGER CHECK(defects_period_months IS NULL OR defects_period_months >= 0),
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('draft','active','suspended','completed','terminated')),
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_project_contracts_status ON ai_project_contracts(status,updated_at DESC);
+  `);
+}
+
 /** Email ownership verification for newly registered accounts. Existing accounts remain unaffected. */
 function upgradeEmailVerification(db) {
   db.exec(`
@@ -1554,6 +1582,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
+  upgradeMmcAiContracts(db);
   upgradePrimaveraP6(db);
   upgradeMSProject(db);
   upgradeEmailVerification(db);
