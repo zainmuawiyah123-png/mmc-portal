@@ -273,6 +273,18 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="msProjectSave" type="button" class="btn">Save Integration Settings</button><button id="msProjectPreview" type="button" class="btn">Validate Schedule</button><button id="msProjectExport" type="button" class="btn primary">Export MS Project XML</button></div>
     <div id="msProjectReport" class="note" aria-live="polite" style="white-space:pre-wrap;margin-top:9px">Select a project to load integration settings.</div>
    </section>
+   <section id="primaveraIntegration" style="margin:0 0 14px;padding:14px;border:1px solid #34516e;border-radius:10px;background:#10243d">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><strong>Primavera P6 Professional · Integration</strong><span id="primaveraStatus" class="note">File-based · Not connected</span></div>
+    <p class="note">MMC AI → Primavera P6. This stage supports project mapping and schedule validation only. P6 XML export remains disabled until a real P6-compatible file is generated and verified; no live desktop connection is claimed.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:10px 0">
+     <input id="primaveraProjectName" placeholder="Primavera P6 project name" style="padding:9px;border:1px solid var(--line);border-radius:7px">
+     <input id="primaveraProjectId" placeholder="P6 Project ID (optional)" style="padding:9px;border:1px solid var(--line);border-radius:7px">
+     <select id="primaveraMode" style="padding:9px;border:1px solid var(--line);border-radius:7px"><option value="manual">Validate all activities</option><option value="approved_only">Approved activities only</option></select>
+     <label style="display:flex;align-items:center;gap:8px;font-size:12px"><input id="primaveraEnabled" type="checkbox"> Enable Primavera integration settings</label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="primaveraSave" type="button" class="btn">Save P6 Settings</button><button id="primaveraPreview" type="button" class="btn primary">Validate for Primavera P6</button><button id="primaveraExport" type="button" class="btn" disabled title="P6 XML exporter is not implemented or verified yet">P6 Export · Not available yet</button></div>
+    <div id="primaveraReport" class="note" aria-live="polite" style="white-space:pre-wrap;margin-top:9px">Select a project to load Primavera integration settings.</div>
+   </section>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:8px">
     <input id="scheduleTaskName" placeholder="Activity name (auto-filled from BOQ; editable)" style="padding:9px;border:1px solid var(--line);border-radius:7px">
     <select id="scheduleBoqItem" required style="padding:9px;border:1px solid var(--line);border-radius:7px"><option value="" selected disabled>Select a BOQ item (required)</option></select>
@@ -1086,6 +1098,18 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    if(project())load();
   }
   if(project())load();
+})();
+</script><script id="mmc-primavera-integration-ui">
+(()=>{
+ const el=id=>document.getElementById(id),project=()=>window.mmcActiveProjectId||el('projectSelect')?.value||'';
+ const report=el('primaveraReport'),status=el('primaveraStatus');
+ async function api(path,options={}){const r=await fetch(path,{credentials:'same-origin',...options});const d=await r.json().catch(()=>({message:'Invalid server response'}));if(!r.ok)throw new Error(d.message||d.error?.message||('HTTP '+r.status));return d;}
+ async function load(){const id=project();if(!id)return;try{const d=await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/primavera'),x=d.integration;el('primaveraProjectName').value=x.projectName||'';el('primaveraProjectId').value=x.projectId||'';el('primaveraMode').value=x.syncMode||'manual';el('primaveraEnabled').checked=!!x.enabled;status.textContent='File-based · Not connected · '+x.linkedActivities+' mapped';report.textContent='Primavera settings loaded. P6 XML/XER export is not available in this build.';}catch(e){report.textContent=e.message;}}
+ window.addEventListener('mmc-project-selected',load);
+ el('primaveraSave')?.addEventListener('click',async()=>{try{const id=project();if(!id)throw new Error('Select a project first.');await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/primavera',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:el('primaveraEnabled').checked,p6ProjectName:el('primaveraProjectName').value,p6ProjectId:el('primaveraProjectId').value,format:'XML',syncMode:el('primaveraMode').value})});report.textContent='P6 settings saved. This does not create or send a Primavera file.';status.textContent='File-based · Not connected';}catch(e){report.textContent=e.message;}});
+ el('primaveraPreview')?.addEventListener('click',async()=>{try{const id=project();if(!id)throw new Error('Select a project first.');const d=await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/primavera/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});report.textContent='Validation: '+d.summary.ready+'/'+d.summary.activities+' ready · Excluded unapproved: '+(d.summary.excludedUnapproved||0)+' · Blockers: '+d.summary.blockers+' · Warnings: '+d.summary.warnings+'\n'+[...d.blockers,...d.warnings].map(x=>x.message).join('\n')+'\n\nP6 export is intentionally disabled until the generated file is validated against Primavera P6.';el('primaveraExport').disabled=true;}catch(e){report.textContent=e.message;el('primaveraExport').disabled=true;}});
+ const sel=el('projectSelect');if(sel){sel.addEventListener('change',load);const observer=new MutationObserver(()=>{if(project()){observer.disconnect();load();}});observer.observe(sel,{childList:true});}
+ if(project())load();
 })();
 </script>
 </body></html>
