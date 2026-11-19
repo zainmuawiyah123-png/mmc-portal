@@ -142,7 +142,7 @@ router.post('/projects/:projectId/primavera/export',wrap(async(req,res)=>{
   const start=p6Date(t.planned_start);
   const note=t.boq_item_id?'MMC BOQ '+(t.boq_item_code||'')+' | '+(t.boq_description||'')+' | Quantity: '+(t.boq_quantity??'')+' '+(t.boq_unit||''):'';
   return '<Activity>\n'+
-   p6Leaf('Id',id)+'\n'+p6Leaf('Name',name)+'\n'+p6Leaf('ObjectId',activityObjectId.get(t.id))+'\n'+
+   p6Leaf('CalendarObjectId',10)+'\n'+p6Leaf('Id',id)+'\n'+p6Leaf('Name',name)+'\n'+p6Leaf('ObjectId',activityObjectId.get(t.id))+'\n'+
    p6Leaf('PercentCompleteType','Duration')+'\n'+p6Leaf('PlannedDuration',hours)+'\n'+
    (start?p6Leaf('PlannedStartDate',start)+'\n':'')+
    p6Leaf('ProjectObjectId',projectObjectId)+'\n'+p6Leaf('RemainingDuration',hours)+'\n'+
