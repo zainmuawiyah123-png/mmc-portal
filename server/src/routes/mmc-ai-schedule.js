@@ -43,10 +43,10 @@ function durationInput(db,pid,body,old){
 // Provisional planning productivity library for test use only. Values are editable by the planner
 // and are never presented as measured site productivity or a guaranteed production rate.
 const PRODUCTIVITY_RULES=[
- {key:'excavation',label:'Excavation (generic backhoe reference)',units:['m3','m³','cum','م3','م³'],terms:['excavat','حفريات','حفر'],rate:50,low:40,high:60},
+ {key:'excavation',label:'Excavation (generic backhoe reference)',units:['m3','m³','cum','م3','م³','متر مكعب','بالمتر المكعب'],terms:['excavat','حفريات','حفر'],rate:50,low:40,high:60},
  {key:'concrete',label:'Concrete placement (generic planning reference)',units:['m3','m³','cum','م3','م³'],terms:['concrete','خرسانة','صب'],rate:16,low:12,high:20},
  {key:'rebar',label:'Reinforcement fixing (generic planning reference)',units:['ton','tonne','t','طن'],terms:['reinforc','rebar','حديد تسليح'],rate:0.7,low:0.5,high:0.9},
- {key:'formwork',label:'Formwork fixing (generic planning reference)',units:['m2','m²','sqm','م2','م²'],terms:['formwork','shutter','قوالب','طوبار'],rate:12,low:9,high:15},
+ {key:'formwork',label:'Formwork fixing (generic planning reference)',units:['m2','m²','sqm','م2','م²','متر مربع','بالمتر المربع'],terms:['formwork','shutter','قوالب','طوبار'],rate:12,low:9,high:15},
  {key:'masonry',label:'Blockwork (generic planning reference)',units:['m2','m²','sqm','م2','م²'],terms:['block','masonry','بلوك','طوب','بناء'],rate:12,low:7,high:17.5},
  {key:'plaster',label:'Plastering (generic planning reference)',units:['m2','m²','sqm','م2','م²'],terms:['plaster','لياسة','قصارة'],rate:12,low:10,high:16}
 ];
