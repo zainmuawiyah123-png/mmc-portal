@@ -39,6 +39,38 @@ function durationInput(db,pid,body,old){
  const reason=body.durationOverrideReason===undefined?(old?.duration_override_reason||null):String(body.durationOverrideReason||'').trim().slice(0,500)||null;
  return {boqItemId,source,productivity,proposed,duration,override,reason};
 }
+
+// Provisional planning productivity library for test use only. Values are editable by the planner
+// and are never presented as measured site productivity or a guaranteed production rate.
+const PRODUCTIVITY_RULES=[
+ {key:'excavation',label:'Earth excavation',units:['m3','m³','cum','م3','م³'],terms:['excavat','حفريات','حفر','excavation'],rate:35,low:20,high:60},
+ {key:'backfill',label:'Backfilling and compaction',units:['m3','m³','cum','م3','م³'],terms:['backfill','ردم','دفان'],rate:30,low:18,high:50},
+ {key:'concrete',label:'Cast-in-place concrete',units:['m3','m³','cum','م3','م³'],terms:['concrete','خرسانة','صب'],rate:18,low:10,high:30},
+ {key:'rebar',label:'Reinforcement steel',units:['ton','tonne','t','طن'],terms:['reinforc','rebar','حديد تسليح','حديد'],rate:2,low:1,high:3.5},
+ {key:'formwork',label:'Formwork',units:['m2','m²','sqm','م2','م²'],terms:['formwork','shutter','قوالب','طوبار'],rate:25,low:15,high:40},
+ {key:'masonry',label:'Blockwork / masonry',units:['m2','m²','sqm','م2','م²'],terms:['block','masonry','بلوك','طوب','بناء'],rate:18,low:10,high:28},
+ {key:'plaster',label:'Plastering',units:['m2','m²','sqm','م2','م²'],terms:['plaster','لياسة','قصارة'],rate:35,low:20,high:50},
+ {key:'tiling',label:'Floor or wall tiling',units:['m2','m²','sqm','م2','م²'],terms:['tile','tiling','بلاط','تبليط','سيراميك'],rate:25,low:15,high:35},
+ {key:'painting',label:'Painting',units:['m2','m²','sqm','م2','م²'],terms:['paint','دهان','صبغ'],rate:60,low:35,high:90},
+ {key:'waterproofing',label:'Waterproofing',units:['m2','m²','sqm','م2','م²'],terms:['waterproof','عزل مائي','عزل'],rate:40,low:25,high:60},
+ {key:'pipes',label:'Pipe installation',units:['m','lm','lin.m','م','م.ط'],terms:['pipe','piping','أنابيب','مواسير','تمديدات صحية'],rate:30,low:15,high:45},
+ {key:'cables',label:'Cable installation',units:['m','lm','lin.m','م','م.ط'],terms:['cable','كابل','كيبل','أسلاك'],rate:120,low:60,high:180}
+];
+function estimateProductivity(description,unit){
+ const d=String(description||'').toLowerCase().normalize('NFKC');
+ const u=String(unit||'').toLowerCase().replace(/\\s+/g,'').replace(/²/g,'2').replace(/³/g,'3');
+ const rule=PRODUCTIVITY_RULES.find(x=>x.units.some(v=>v.toLowerCase().replace(/\\s+/g,'').replace(/²/g,'2').replace(/³/g,'3')===u)&&x.terms.some(term=>d.includes(term)));
+ if(!rule)return {available:false,reason:'لم أجد تصنيفاً موثوقاً لهذا الوصف والوحدة ضمن مكتبة التقديرات التجريبية. لا توجد إنتاجية مفترضة.'};
+ return {available:true,productivityPerDay:rule.rate,range:{low:rule.low,high:rule.high},unitPerDay:String(unit)+'/day',classification:rule.label,source:'MMC provisional test benchmark',confidence:'initial',notice:'قيمة تخطيطية أولية للاختبار وليست إنتاجية موقع مقاسة أو مضمونة. راجعها وعدّلها وفق ظروف المشروع قبل الاعتماد.'};
+}
+router.post('/projects/:projectId/schedule/productivity-estimate',wrap(async(req,res)=>{
+ access(req);const db=getDB(),item=db.prepare('SELECT id,description,unit,quantity FROM ai_boq_items WHERE id=? AND project_id=?').get(String(req.body?.boqItemId||''),req.params.projectId);
+ if(!item)throw E.validation('بند BOQ المختار غير موجود في هذا المشروع.');
+ if(!(Number(item.quantity)>0))throw E.validation('كمية بند BOQ غير صالحة للتقدير.');
+ const estimate=estimateProductivity(item.description,item.unit);
+ res.setHeader('Cache-Control','no-store');res.json({item:{id:item.id,description:item.description,unit:item.unit,quantity:item.quantity},estimate:estimate.available?{...estimate,proposedDurationDays:Math.ceil(Number(item.quantity)/estimate.productivityPerDay)}:estimate});
+}));
+
 router.get('/projects/:projectId/schedule',wrap(async(req,res)=>{access(req);const db=getDB(),tasks=getTasks(db,req.params.projectId),cpm=calculateCriticalPath(tasks);res.setHeader('Cache-Control','no-store');res.json({tasks:tasks.map(t=>({...t,cpm:cpm.tasks.find(x=>x.id===t.id)||null})),analysis:{projectDurationWorkingDays:cpm.projectDuration,criticalTaskCount:cpm.criticalTaskCount,method:'CPM · working days · no calendar/holiday adjustment'}});}));
 router.post('/projects/:projectId/schedule/tasks',wrap(async(req,res)=>{
  access(req,true);const db=getDB(),name=String(req.body?.name||'').trim().slice(0,240),pred=Array.isArray(req.body?.predecessors)?[...new Set(req.body.predecessors.map(String))]:[];
