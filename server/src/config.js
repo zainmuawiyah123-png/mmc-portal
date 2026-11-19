@@ -53,7 +53,7 @@ const config = {
   VERIFICATION_DAYS: Number(v('VERIFICATION_DAYS', 365)),
   JWT_TTL: v('JWT_TTL', '7d'),
   COOKIE_NAME: v('COOKIE_NAME', 'tpkit_session'),
-  COOKIE_SECURE: v('COOKIE_SECURE', 'false') === 'true',
+  COOKIE_SECURE: v('COOKIE_SECURE', v('NODE_ENV', 'development') === 'production' ? 'true' : 'false') === 'true',
 
   MAX_FILE_BYTES: Number(v('MAX_FILE_BYTES', String(25 * 1024 * 1024))),
   MAX_FILES_PER_REQUEST: Number(v('MAX_FILES_PER_REQUEST', 10)),
