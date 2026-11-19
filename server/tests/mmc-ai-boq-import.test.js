@@ -222,3 +222,13 @@ test('recognizes Arabic civil tender split heading in an XLSX sheet', () => {
   assert.equal(result.items[0].unit, 'مقطوع');
   assert.equal(result.items[0].quantity, 1);
 });
+
+test('imports electrical tender with description in E and quantity in C', () => {
+  const csv = 'المبلــغ,السعـــر,الكميــة,وحدة,نــوع العمـــل,,الرقم\\n8160,40,204,عدد,نقطة انارة داخلية حسب المخططات,,1\\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'guesthouse-electrical.csv' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'نقطة انارة داخلية حسب المخططات');
+  assert.equal(result.items[0].unit, 'عدد');
+  assert.equal(result.items[0].quantity, 204);
+  assert.equal(result.items[0].rate, 40);
+});
