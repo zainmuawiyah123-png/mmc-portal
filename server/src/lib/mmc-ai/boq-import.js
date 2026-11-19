@@ -81,6 +81,22 @@ function colIndex(ref) {
   for(const c of letters)n=n*26+c.charCodeAt(0)-64;
   return n-1;
 }
+function workbookSheetNames(files) {
+  const workbook = files.get('xl/workbook.xml') || '';
+  const relsXml = files.get('xl/_rels/workbook.xml.rels') || '';
+  const targets = new Map();
+  for (const match of relsXml.matchAll(/<Relationship\\b([^>]*)\\/?\s*>/g)) {
+    const tag = match[1], id = attr(tag, 'Id'), target = attr(tag, 'Target');
+    if (id && target) targets.set(id, target.replace(/^\\//, '').startsWith('xl/') ? target.replace(/^\\//, '') : 'xl/' + target.replace(/^\\//, ''));
+  }
+  const names = [];
+  for (const match of workbook.matchAll(/<sheet\\b([^>]*)\\/?\s*>/g)) {
+    const tag = match[1], name = attr(tag, 'name'), rid = attr(tag, 'r:id');
+    const target = targets.get(rid);
+    if (name && target) names.push({ name, target });
+  }
+  return names;
+}
 function xlsxRows(buffer) {
   const files = zipEntries(buffer);
   const sharedXml = files.get('xl/sharedStrings.xml') || '';
@@ -90,7 +106,7 @@ function xlsxRows(buffer) {
   }
   const sheetNames = [...files.keys()].filter(name => /^xl\/worksheets\/sheet\d+\.xml$/.test(name));
   if (!sheetNames.length) throw new Error('ملف Excel لا يحتوي ورقة عمل قابلة للقراءة.');
-  function readSheet(xml) {
+  function readSheet(xml, sheetName) {
     const rows = [];
     for (const rm of xml.matchAll(/<(?:\w+:)?row(?:\s[^>]*)?>([\s\S]*?)<\/(?:\w+:)?row>/g)) {
       const row = [];
@@ -107,7 +123,10 @@ function xlsxRows(buffer) {
         const index = colIndex(ref);
         if (index >= 0) row[index] = value;
       }
-      rows.push(row.map(value => value ?? ''));
+      const values = row.map(value => value ?? '');
+      values._sourceSheet = sheetName || null;
+      values._sourceRow = sourceRow;
+      rows.push(values);
     }
     return rows;
   }
@@ -137,7 +156,12 @@ function xlsxRows(buffer) {
       acceptedSheets.push(name);
       inferredSheets.push(name);
       combined.push(['Item Code','Description','Unit','Quantity','Unit Rate','Amount']);
-      for (const row of inferred) combined.push(['',row[1],row[2],row[3],row[4] ?? '',row[5] ?? '']);
+      for (const row of inferred) {
+        const normalized = ['',row[1],row[2],row[3],row[4] ?? '',row[5] ?? ''];
+        normalized._sourceSheet = row._sourceSheet || displayName;
+        normalized._sourceRow = row._sourceRow || null;
+        combined.push(normalized);
+      }
       combined.push([]);
       continue;
     }
@@ -203,7 +227,7 @@ const ALIASES = {
   quantity:['quantity','qty','qnty','amount','الكمية','كميه','كمية','كميات','العدد','الكميةالاجمالية','اجماليالكمية','الكميةالمطلوبة','كميةالبند'],
   rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعر'],
   itemCode:['itemcode','code','ref','reference','رقم','الرقم','رقمالبند','الكود','الرمز'],
-  discipline:['discipline','trade','category','التخصص','القسم','الفئة']
+  amount:['amount','lineamount','totalamount','مبلغ','المبلغ','الاجمالي','الإجمالي','قيمةالبند'],\n  discipline:['discipline','trade','category','التخصص','القسم','الفئة']
 };
 const UNIT_MAP = Object.freeze({
   m:'m', meter:'m', metre:'m', meters:'m', metres:'m', lm:'m', 'م':'m', 'متر':'m', 'متر طولي':'m', 'بالمتر الطولي':'m',
@@ -281,7 +305,10 @@ function normalizeRows(matrix) {
     const rateRaw=get('rate'), rate=rateRaw===''?null:parseNumber(rateRaw);
     if(rateRaw!==''&&(rate===null||Number.isNaN(rate)||rate<0)) issue.push('سعر الوحدة غير صالح');
     const unitInfo=normalizeUnit(unit);
-    const item={rowNumber:i+1,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,discipline:get('discipline')||null};
+    const sourceAmountRaw=get('amount'), sourceAmount=sourceAmountRaw===''?null:parseNumber(sourceAmountRaw);
+    const item={rowNumber:row._sourceRow||i+1,sourceSheet:row._sourceSheet||null,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,sourceAmount:Number.isFinite(sourceAmount)?sourceAmount:null,discipline:get('discipline')||null};
+    item.validationIssues=[];
+    if(Number.isFinite(sourceAmount)&&Number.isFinite(quantity)&&Number.isFinite(rate)&&Math.abs(sourceAmount-(quantity*rate))>Math.max(0.01,Math.abs(sourceAmount)*0.005)) item.validationIssues.push('قيمة البند لا تطابق الكمية × سعر الوحدة');
     if(issue.length) errors.push({rowNumber:i+1,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
       if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:i+1,duplicateOfRowNumber:seen.get(key),item});}
@@ -298,6 +325,7 @@ function parseBoqFile({buffer,filename}) {
   else if(ext==='xlsx') matrix=xlsxRows(buffer);
   else throw new Error('الصيغ المدعومة: XLSX وCSV فقط.');
   const parsed = normalizeRows(matrix);
-  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:[...(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين أو نمط أعمدة موثوق؛ لم يتم تخمين البيانات.'})),...(matrix.inferredSheets||[]).map(name=>({code:'HEADERLESS_LAYOUT_INFERRED',sheet:name,message:'تم التعرف على ترتيب الوصف والوحدة والكمية من نمط الأعمدة B/C/D بعد التحقق من وصف ووحدة معروفة وكمية رقمية.'}))]};
+  const arithmeticWarnings=parsed.items.filter(x=>x.validationIssues?.length).map(x=>({code:'AMOUNT_RATE_MISMATCH',sheet:x.sourceSheet,rowNumber:x.rowNumber,itemCode:x.itemCode,message:x.validationIssues.join('، ')}));
+  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:[...arithmeticWarnings,...(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين أو نمط أعمدة موثوق؛ لم يتم تخمين البيانات.'})),...(matrix.inferredSheets||[]).map(name=>({code:'HEADERLESS_LAYOUT_INFERRED',sheet:name,message:'تم التعرف على ترتيب الوصف والوحدة والكمية من نمط الأعمدة B/C/D بعد التحقق من وصف ووحدة معروفة وكمية رقمية.'}))]};
 }
 module.exports={parseBoqFile,normalizeRows,csvRows,xlsxRows,parseNumber,normalizeUnit,UNIT_MAP};
