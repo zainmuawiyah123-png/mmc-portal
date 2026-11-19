@@ -5,7 +5,7 @@ const {getDB,uid}=require('../db');
 const {E,wrap}=require('../lib/errors');
 const A=require('../lib/auth');
 const router=express.Router();router.use(A.requireAuth);
-const EDIT=new Set(['owner','project_manager','engineer']);
+const EDIT=new Set(['owner','project_manager','engineer','consultant']);
 function access(req,edit=false){const m=getDB().prepare('SELECT m.role,p.status FROM ai_project_members m JOIN ai_projects p ON p.id=m.project_id WHERE m.project_id=? AND m.user_id=?').get(req.params.projectId,req.user.id);if(!m||m.status!=='active')throw E.notFound('المشروع غير موجود.');if(edit&&!EDIT.has(m.role))throw E.forbidden('لا تملك صلاحية تعديل سجل العقد.');return m;}
 function clean(v,n){return String(v??'').trim().slice(0,n);}
 function date(v,label){if(v==null||v==='')return null;const s=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||!Number.isFinite(Date.parse(s))||new Date(s).toISOString().slice(0,10)!==s)throw E.validation(label+' يجب أن يكون بصيغة YYYY-MM-DD.');return s;}
