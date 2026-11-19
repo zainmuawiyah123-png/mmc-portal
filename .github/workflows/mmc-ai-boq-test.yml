@@ -1,0 +1,30 @@
+name: MMC AI BOQ parser tests
+
+on:
+  push:
+    branches:
+      - feature/mmc-ai-boq-import-foundation
+    paths:
+      - "server/src/lib/mmc-ai/boq-import.js"
+      - "server/tests/mmc-ai-boq-import.test.js"
+      - ".github/workflows/mmc-ai-boq-test.yml"
+  pull_request:
+    paths:
+      - "server/src/lib/mmc-ai/boq-import.js"
+      - "server/tests/mmc-ai-boq-import.test.js"
+      - ".github/workflows/mmc-ai-boq-test.yml"
+
+jobs:
+  boq-parser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check parser syntax
+        working-directory: server
+        run: node --check src/lib/mmc-ai/boq-import.js
+      - name: Run BOQ import tests
+        working-directory: server
+        run: node --test tests/mmc-ai-boq-import.test.js
