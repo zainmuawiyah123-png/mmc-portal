@@ -36,6 +36,6 @@ test('explicit layer mapping overrides automatic classification', () => {
   assert.equal(mapped.source, 'user_map');
 });
 test('unknown and annotation layers are not promoted into quantity proposals', () => {
-  assert.equal(classifyLayer('DIMENSIONS').basis, 'excluded');
+  assert.equal(classifyLayer('DIM-TEXT').basis, 'excluded');
   assert.equal(classifyLayer('MYSTERY_LAYER').discipline, 'unclassified');
 });
