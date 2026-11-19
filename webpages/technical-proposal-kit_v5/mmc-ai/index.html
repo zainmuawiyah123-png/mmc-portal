@@ -267,6 +267,15 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    </div>
    <div id="scheduleDurationHint" class="note" style="margin-bottom:12px">Choose a BOQ item and enter its daily productivity to calculate a proposed duration, or enter a duration manually.</div>
    <div id="scheduleSummary" class="note">Select a project to view the schedule.</div>
+   <section id="scheduleGanttPanel" style="margin:14px 0;padding:13px;border:1px solid var(--line);border-radius:10px;background:#0b1e33">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><strong>Programme Gantt · CPM working days</strong><span id="scheduleGanttMeta" class="note">No calculated activities yet.</span></div>
+    <div id="scheduleGantt" style="overflow:auto;margin-top:10px"><div class="note">Activities will appear here after they are created and assigned durations.</div></div>
+   </section>
+   <section id="scheduleBoqCoveragePanel" style="margin:14px 0;padding:13px;border:1px solid var(--line);border-radius:10px;background:#10243d">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><strong>BOQ Coverage Register · All imported items</strong><span id="scheduleBoqCoverageMeta" class="note">Waiting for project BOQ…</span></div>
+    <div class="tablewrap" style="margin-top:9px"><table style="width:100%;min-width:760px"><thead><tr><th>Item No.</th><th>Section</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Schedule Link</th><th>Action</th></tr></thead><tbody id="scheduleBoqCoverageRows"><tr><td colspan="7">Select a project to load BOQ items.</td></tr></tbody></table></div>
+    <p class="note">Every imported BOQ item is listed as a reference. No activity duration or execution sequence is invented; create an activity only after entering an approved productivity or manual duration.</p>
+   </section>
    <div class="tablewrap"><table style="width:100%"><thead><tr><th>Activity</th><th>Duration</th><th>Predecessors</th><th>Early Start</th><th>Early Finish</th><th>Float</th><th>Critical Path</th><th>Progress & Status</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" style="text-align:center;padding:18px">No activities yet.</td></tr></tbody></table></div>
    <p class="note">Current CPM analysis calculates working days and dependencies only; public holidays, shift calendars and resource constraints are not applied.</p>
   </div></section>
@@ -467,6 +476,44 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    const updateHint=()=>{const item=boqItems.find(x=>x.id===boqSelect.value),p=Number(productivityInput.value),hint=document.getElementById('scheduleDurationHint');if(!item){hint.textContent='Manual mode: enter the activity duration. No BOQ quantity is assumed.';return;}if(!(p>0)){if(durationInput.dataset.autoProposed==='true'){durationInput.value='';durationInput.dataset.autoProposed='';}hint.textContent='Selected BOQ quantity: '+item.quantity+' '+item.unit+'. Enter productivity in '+item.unit+' per day; the system will calculate the proposed duration.';return;}const proposed=Math.ceil(Number(item.quantity)/p);if(Number.isSafeInteger(proposed)&&proposed>0&&durationInput.dataset.autoProposed!=='false'){durationInput.value=String(proposed);durationInput.dataset.autoProposed='true';}hint.textContent='Proposed duration: '+proposed+' working days ('+item.quantity+' '+item.unit+' ÷ '+p+' '+item.unit+'/day). You may approve this or enter a different duration.';};
    boqSelect.onchange=()=>{durationInput.value='';durationInput.dataset.autoProposed='';updateHint();};productivityInput.oninput=updateHint;durationInput.oninput=()=>{durationInput.dataset.autoProposed='false';};updateHint();
    for(const task of data.tasks){const opt=document.createElement('option');opt.value=task.id;opt.textContent=task.name;pred.appendChild(opt);}
+   // Full BOQ coverage: preserve every valid imported item, whether scheduled or not.
+   const coverage=document.getElementById('scheduleBoqCoverageRows'),coverageMeta=document.getElementById('scheduleBoqCoverageMeta');
+   coverage.replaceChildren();
+   const linkedByBoq=new Map();for(const task of data.tasks){if(task.boq_item_id){if(!linkedByBoq.has(task.boq_item_id))linkedByBoq.set(task.boq_item_id,[]);linkedByBoq.get(task.boq_item_id).push(task);}}
+   coverageMeta.textContent=boqItems.length+' BOQ items · '+linkedByBoq.size+' items linked to activities · '+(boqItems.length-linkedByBoq.size)+' not yet scheduled';
+   for(const item of boqItems){
+    const tr=document.createElement('tr');
+    const vals=[item.item_code||'—',item.section_label||'—',item.description,item.unit,item.quantity];
+    for(const value of vals){const td=document.createElement('td');td.textContent=String(value??'—');td.style.cssText='padding:8px;border-bottom:1px solid #29435d;white-space:normal';tr.appendChild(td);}
+    const linkCell=document.createElement('td'),linked=linkedByBoq.get(item.id)||[];
+    linkCell.textContent=linked.length?linked.map(t=>t.name+' ('+t.duration_days+'d)').join(' · '):'Not scheduled';
+    linkCell.style.cssText='padding:8px;border-bottom:1px solid #29435d;white-space:normal';tr.appendChild(linkCell);
+    const actionCell=document.createElement('td');
+    if(!linked.length){
+     const create=document.createElement('button');create.type='button';create.className='btn';create.textContent='Create activity';
+     create.addEventListener('click',()=>{document.getElementById('scheduleTaskName').value=item.description;boqSelect.value=item.id;productivityInput.value='';durationInput.value='';durationInput.dataset.autoProposed='';updateHint();document.getElementById('scheduleTaskName').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('scheduleTaskName').focus();});
+     actionCell.appendChild(create);
+    }else actionCell.textContent='Linked';
+    actionCell.style.cssText='padding:8px;border-bottom:1px solid #29435d;white-space:nowrap';tr.appendChild(actionCell);coverage.appendChild(tr);
+   }
+   if(!boqItems.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='No imported BOQ items are available for this project.';tr.appendChild(td);coverage.appendChild(tr);}
+   // Gantt bars use CPM early-start/early-finish values only; no dates or calendars are inferred.
+   const gantt=document.getElementById('scheduleGantt'),ganttMeta=document.getElementById('scheduleGanttMeta');gantt.replaceChildren();
+   const projectDays=Number(data.analysis.projectDurationWorkingDays)||0;
+   ganttMeta.textContent=data.tasks.length+' activities · '+projectDays+' working days · '+data.analysis.criticalTaskCount+' critical';
+   if(data.tasks.length&&projectDays>0){
+    const scale=Math.max(48,Math.min(100,Math.floor(900/projectDays)));
+    const grid=document.createElement('div');grid.style.cssText='min-width:'+(260+projectDays*scale)+'px';
+    const axis=document.createElement('div');axis.style.cssText='display:flex;margin-left:220px;border-bottom:1px solid #34516e;color:#9bb0c4;font-size:10px';
+    for(let day=0;day<=projectDays;day++){const tick=document.createElement('span');tick.textContent=String(day);tick.style.cssText='width:'+scale+'px;flex:0 0 '+scale+'px;text-align:left;padding:4px 0';axis.appendChild(tick);}grid.appendChild(axis);
+    for(const task of data.tasks){const v=task.cpm||{},row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:220px '+(projectDays*scale)+'px;align-items:center;min-height:31px;border-bottom:1px solid #203b56';
+     const label=document.createElement('div');label.textContent=task.name;label.title=task.name;label.style.cssText='font-size:10px;color:#dce8f3;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';row.appendChild(label);
+     const track=document.createElement('div');track.style.cssText='position:relative;height:24px;background:repeating-linear-gradient(90deg,transparent 0,transparent '+(scale-1)+'px,#29435d '+(scale-1)+'px,#29435d '+scale+'px)';
+     const bar=document.createElement('div');const start=Math.max(0,Number(v.es)||0),duration=Math.max(0,Number(task.duration_days)||0);
+     bar.style.cssText='position:absolute;left:'+(start*scale)+'px;top:5px;height:14px;width:'+Math.max(duration?5:2,duration*scale-2)+'px;border-radius:5px;background:'+(v.critical?'#e3a13b':'#328fc8')+';box-shadow:0 2px 6px #0004';
+     bar.title=task.name+' · '+duration+' days · '+(v.critical?'Critical':'Non-critical');track.appendChild(bar);row.appendChild(track);grid.appendChild(row);
+    }gantt.appendChild(grid);
+   }else{const empty=document.createElement('div');empty.className='note';empty.textContent='No timed activities yet. BOQ items remain visible above until activities are created and durations are approved.';gantt.appendChild(empty);}
    for(const task of data.tasks){const tr=document.createElement('tr'),prev=task.predecessors.map(pid=>data.tasks.find(x=>x.id===pid)?.name||pid).join('; ')||'—',v=task.cpm||{},titleCell=document.createElement('td');titleCell.textContent=task.name+(task.boq_item_id?' | '+task.boq_item_description+' · '+task.boq_quantity+' '+task.boq_unit+' · proposed '+(task.proposed_duration_days??'—')+'d':' | Manual');titleCell.style.cssText='padding:8px;border-bottom:1px solid #edf1f5;min-width:190px';tr.appendChild(titleCell);
     for(const value of [task.duration_days+' days',prev,v.es??'—',v.ef??'—',v.totalFloat??'—',v.critical?'Critical':'Non-critical']){const td=document.createElement('td');td.textContent=String(value);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';if(v.critical&&value==='Critical')td.style.color='#b45309';tr.appendChild(td);}
     const cell=document.createElement('td'),pct=document.createElement('input'),status=document.createElement('select'),save=document.createElement('button'),edit=document.createElement('button');pct.type='number';pct.min='0';pct.max='100';pct.step='1';pct.value=String(task.percent_complete||0);pct.title='Progress %';pct.style.cssText='width:62px;padding:5px;border:1px solid var(--line);border-radius:5px';for(const [value,label] of [['planned','Planned'],['in_progress','In Progress'],['completed','Completed'],['blocked','Blocked']]){const opt=document.createElement('option');opt.value=value;opt.textContent=label;status.appendChild(opt);}status.value=task.status||'planned';status.style.cssText='max-width:105px;padding:5px;border:1px solid var(--line);border-radius:5px;margin:0 4px';
