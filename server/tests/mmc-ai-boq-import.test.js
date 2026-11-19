@@ -197,7 +197,7 @@ test('imports a headerless mechanical BOQ row only when description, known unit 
 test('recognizes all unit labels present in the guesthouse BOQ workbook', () => {
   const { normalizeUnit } = require('../src/lib/mmc-ai/boq-import');
   const cases = [
-    ['متر مربع','m2'], ['بالمتر المربع','m2'], ['متر طولي','m'],
+    ['متر مربع','m2'], ['بالمتر المربع','m2'], ['متر طولي','m'], ['م.ط','m'],
     ['بالمتر الطولي','m'], ['بالعدد','nr'], ['عدد','nr'],
     ['مقطوع','ls'], ['متر مكعب','m3']
   ];
