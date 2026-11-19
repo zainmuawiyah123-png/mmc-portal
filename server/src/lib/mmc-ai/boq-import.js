@@ -194,7 +194,8 @@ function normalizeRows(matrix) {
     if(quantity===null||Number.isNaN(quantity)||quantity<0) issue.push('الكمية غير صالحة أو مفقودة');
     const rateRaw=get('rate'), rate=rateRaw===''?null:parseNumber(rateRaw);
     if(rateRaw!==''&&(rate===null||Number.isNaN(rate)||rate<0)) issue.push('سعر الوحدة غير صالح');
-    const unitInfo=normalizeUnit(unit);\n    const item={rowNumber:i+1,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,discipline:get('discipline')||null};
+    const unitInfo=normalizeUnit(unit);
+    const item={rowNumber:i+1,itemCode:get('itemCode')||null,description,unit,unitNormalized:unitInfo.unit,unitKnown:unitInfo.known,quantity,rate,discipline:get('discipline')||null};
     if(issue.length) errors.push({rowNumber:i+1,issues:issue,source:item}); else {
       const key=[normalizeHeader(description),normalizeHeader(unit),String(quantity)].join('|');
       if(seen.has(key)){item.duplicateOfRowNumber=seen.get(key);duplicates.push({rowNumber:i+1,duplicateOfRowNumber:seen.get(key),item});}
