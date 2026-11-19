@@ -18,7 +18,7 @@ router.put('/projects/:projectId/risks/:riskId/control',wrap(async(req,res)=>{
  const b=req.body||{},strategy=String(b.responseStrategy||'mitigate'),allowed=['avoid','mitigate','transfer','accept','exploit','enhance','share'];
  if(!allowed.includes(strategy))throw E.validation('استراتيجية الاستجابة غير صالحة.');
  const rating=v=>v===null||v===undefined||v===''?null:valid5(v),rp=rating(b.residualProbability),ri=rating(b.residualImpact);
- const date=v=>{if(v===null||v===undefined||v==='')return null;const s=String(v);if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(s)||Number.isNaN(Date.parse(s)))throw E.validation('صيغة التاريخ يجب أن تكون YYYY-MM-DD.');return s;};
+ const date=v=>{if(v===null||v===undefined||v==='')return null;const s=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||Number.isNaN(Date.parse(s)))throw E.validation('صيغة التاريخ يجب أن تكون YYYY-MM-DD.');return s;};
  db.prepare(`INSERT INTO ai_risk_controls(risk_id,response_strategy,residual_probability,residual_impact,trigger_condition,contingency_plan,due_date,next_review_date,related_reference,updated_at) VALUES(?,?,?,?,?,?,?,?,?,unixepoch()) ON CONFLICT(risk_id) DO UPDATE SET response_strategy=excluded.response_strategy,residual_probability=excluded.residual_probability,residual_impact=excluded.residual_impact,trigger_condition=excluded.trigger_condition,contingency_plan=excluded.contingency_plan,due_date=excluded.due_date,next_review_date=excluded.next_review_date,related_reference=excluded.related_reference,updated_at=unixepoch()`).run(risk.id,strategy,rp,ri,clean(b.triggerCondition,2000),clean(b.contingencyPlan,4000),date(b.dueDate),date(b.nextReviewDate),clean(b.relatedReference,240));
  audit(db,req,'risk_control_updated',risk.id,{strategy,residualScore:rp&&ri?rp*ri:null});res.json({ok:true});
 }));
@@ -26,7 +26,7 @@ router.get('/projects/:projectId/risks/:riskId/actions',wrap(async(req,res)=>{ac
 router.post('/projects/:projectId/risks/:riskId/actions',wrap(async(req,res)=>{
  access(req,true);const db=getDB(),risk=db.prepare('SELECT id FROM ai_project_risks WHERE id=? AND project_id=?').get(req.params.riskId,req.params.projectId);if(!risk)throw E.notFound('الخطر غير موجود.');
  const b=req.body||{},title=clean(b.title,240);if(title.length<3)throw E.validation('عنوان إجراء المعالجة مطلوب.');
- const date=v=>{if(!v)return null;const s=String(v);if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(s)||Number.isNaN(Date.parse(s)))throw E.validation('صيغة التاريخ يجب أن تكون YYYY-MM-DD.');return s;};
+ const date=v=>{if(!v)return null;const s=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||Number.isNaN(Date.parse(s)))throw E.validation('صيغة التاريخ يجب أن تكون YYYY-MM-DD.');return s;};
  const id=uid('airact_');db.prepare('INSERT INTO ai_risk_actions(id,risk_id,project_id,action_title,action_owner,due_date,status,notes,created_by) VALUES(?,?,?,?,?,?,?,?,?)').run(id,risk.id,req.params.projectId,title,clean(b.owner,160)||null,date(b.dueDate),['open','in_progress','completed','overdue','cancelled'].includes(b.status)?b.status:'open',clean(b.notes,2000),req.user.id);audit(db,req,'risk_action_created',id,{riskId:risk.id});res.status(201).json({action:db.prepare('SELECT * FROM ai_risk_actions WHERE id=?').get(id)});
 }));
 router.patch('/projects/:projectId/risks/:riskId/actions/:actionId',wrap(async(req,res)=>{
