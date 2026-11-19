@@ -1328,6 +1328,12 @@ function upgradeMmcAiProjects(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_ai_bim_models_project ON ai_bim_models(project_id,created_at DESC);
   `);
+  // Additive BOQ provenance and explicit missing-rate state.
+  const boqColumns = new Set(db.prepare('PRAGMA table_info(ai_boq_items)').all().map(c => c.name));
+  const additions = [['source_sheet','TEXT'],['source_row','INTEGER'],['source_amount','REAL'],['rate_missing','INTEGER NOT NULL DEFAULT 0'],['validation_json',"TEXT NOT NULL DEFAULT '[]'"],['section_label','TEXT']];
+  for (const [name, definition] of additions) {
+    if (!boqColumns.has(name)) db.exec('ALTER TABLE ai_boq_items ADD COLUMN ' + name + ' ' + definition);
+  }
 }
 
 /** Email ownership verification for newly registered accounts. Existing accounts remain unaffected. */
