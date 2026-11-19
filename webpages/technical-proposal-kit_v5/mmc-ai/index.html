@@ -898,70 +898,9 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
  document.getElementById('riskControlSave').addEventListener('click',async()=>{if(!selectedRiskId||!activeProject)return;const id=activeProject.project_id||activeProject.id,payload={responseStrategy:document.getElementById('riskStrategy').value,residualProbability:document.getElementById('riskResidualP').value||null,residualImpact:document.getElementById('riskResidualI').value||null,dueDate:document.getElementById('riskDueDate').value||null,nextReviewDate:document.getElementById('riskReviewDate').value||null,triggerCondition:document.getElementById('riskTrigger').value,contingencyPlan:document.getElementById('riskContingency').value,relatedReference:document.getElementById('riskRelated').value};try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/risks/'+encodeURIComponent(selectedRiskId)+'/control',{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'Could not save risk treatment.');await loadProjectRisks(id);notify('Risk treatment plan saved.');}catch(e){notify(e.message);}});
  document.getElementById('riskActionAdd').addEventListener('click',async()=>{if(!selectedRiskId||!activeProject)return;const id=activeProject.project_id||activeProject.id,payload={title:document.getElementById('riskActionTitle').value,owner:document.getElementById('riskActionOwner').value,dueDate:document.getElementById('riskActionDue').value||null,notes:document.getElementById('riskActionNotes').value};try{const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/risks/'+encodeURIComponent(selectedRiskId)+'/actions',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.message||'Could not add mitigation action.');for(const k of ['riskActionTitle','riskActionOwner','riskActionDue','riskActionNotes'])document.getElementById(k).value='';await loadRiskActions(selectedRiskId);notify('Mitigation action added.');}catch(e){notify(e.message);}});
  document.getElementById('riskExportCsv').addEventListener('click',()=>{if(!projectRiskRows.length){notify('No risk records to export.');return;}const cols=['risk_code','title','category','description','probability','impact','score','level','response_strategy','residual_probability','residual_impact','mitigation','trigger_condition','contingency_plan','owner_name','due_date','next_review_date','status','related_reference'];const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const csv='\\ufeff'+[cols.join(','),...projectRiskRows.map(x=>cols.map(k=>q(k==='score'?x.probability*x.impact:k==='level'?(x.probability*x.impact>=15?'critical':x.probability*x.impact>=10?'high':x.probability*x.impact>=5?'moderate':'low'):x[k])).join(','))].join('\\r\\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='MMC-Risk-Register.csv';a.click();URL.revokeObjectURL(url);});
- document.getElementById('riskPrint').addEventListener('click',()=>{if(!activeProject){notify('Select a project first.');return;}const rows=projectRiskRows.map(x=>'<tr>'+[x.title,x.category,x.probability,x.impact,x.probability*x.impact,x.status,x.mitigation].map(v=>'<td>'+String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</td>').join('')+'</tr>').join('');const w=window.open('','_blank');if(!w){notify('Allow pop-ups to print the risk report.');return;}w.document.write('<html><head><title>MMC Risk Report</title><style>body{font:13px Arial;padding:24px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #bbb;padding:7px;text-align:left}h1{font-size:20px}</style></head><body><h1>MMC AI · Risk Register Report</h1><p>Project: '+String(activeProject.name||'').replace(/[&<>"]/g,'')+' · Generated: '+new Date().toLocaleString()+'</p><p>Recorded risks only; no inferred or forecast figures.</p><table><thead><tr><th>Risk</th><th>Category</th><th>P</th><th>I</th><t<script id="mmc-project-correspondence-ui">
-(()=>{
- const el=id=>document.getElementById(id),project=()=>window.mmcActiveProjectId||el('projectSelect')?.value||'';
- const note=el('corrStatusNote'),rows=el('corrRows');
- async function api(path,options={}){const r=await fetch(path,{credentials:'same-origin',...options});const d=await r.json().catch(()=>({message:'Invalid server response'}));if(!r.ok)throw new Error(d.message||d.error?.message||('HTTP '+r.status));return d;}
- function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
- async function load(){const id=project();if(!id)return;try{const d=await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/correspondence');const list=d.correspondence||[];rows.innerHTML=list.length?list.map(x=>'<tr><td>'+esc(x.communication_date||'—')+'</td><td>'+esc(x.correspondence_no||'—')+'</td><td>'+esc(x.direction==='incoming'?'Incoming':'Outgoing')+'</td><td>'+esc(x.sender)+'<br>→ '+esc(x.recipient)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(x.reference_type||'—')+' '+esc(x.reference_text||'')+'</td><td>'+esc(x.response_status)+(x.response_due_date?' · Due '+esc(x.response_due_date):'')+'</td></tr>').join(''):'<tr><td colspan="7" style="text-align:center;padding:16px">No correspondence registered for this project.</td></tr>';note.textContent=list.length+' correspondence record(s) loaded.';}catch(e){note.textContent=e.message;}}
- el('corrSave')?.addEventListener('click',async()=>{try{const id=project();if(!id)throw new Error('Select a project first.');const p={direction:el('corrDirection').value,correspondenceNo:el('corrNo').value,communicationDate:el('corrDate').value||null,sender:el('corrSender').value,recipient:el('corrRecipient').value,subject:el('corrSubject').value,referenceType:el('corrRefType').value||null,referenceText:el('corrRefText').value,body:el('corrBody').value,responseDueDate:el('corrDue').value||null,responseStatus:el('corrStatus').value};await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/correspondence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});['corrNo','corrDate','corrSender','corrRecipient','corrSubject','corrRefText','corrDue','corrBody'].forEach(k=>el(k).value='');note.textContent='Correspondence registered.';await load();}catch(e){note.textContent=e.message;}});
- window.addEventListener('mmc-project-selected',load);el('projectSelect')?.addEventListener('change',load);if(project())load();
-})();
-</script>
-h>Score</th><th>Status</th><th>Mitigation</th></tr></thead><tbody>'+rows+'</tbody></table><datalist id="fidicClauseSuggestions"><option value="1.9 — Delayed Drawings or Instructions (1999)"></option><option value="1.9 — Delayed Drawings or Instructions (2017)"></option><option value="2.1 — Right of Access to the Site"></option><option value="3.5 — Determinations (1999)"></option><option value="3.7 — Agreement or Determination (2017)"></option><option value="4.12 — Unforeseeable Physical Conditions"></option><option value="8.4 — Extension of Time (1999)"></option><option value="8.5 — Extension of Time for Completion (2017)"></option><option value="13.1 — Right to Vary"></option><option value="13.3 — Variation Procedure (2017)"></option><option value="13.3 — Variation Procedure / Evaluation (1999)"></option><option value="13.7 — Adjustments for Changes in Legislation"></option><option value="13.8 — Adjustments for Changes in Cost"></option><option value="20.1 — Contractor Claims (1999)"></option><option value="20.2 — Claims for Payment and/or EOT (2017)"></option><option value="21 — Disputes and Arbitration (2017)"></option></datalist>
-<script id="mmc-independent-module-pages">
-(()=>{
- const modules=[
-  {key:'dashboard',title:'Dashboard',desc:'Project overview and workspace shortcuts',icon:'⌂',ids:[]},
-  {key:'drawings',title:'Engineering Drawings',desc:'Drawing files, engineering review and drawing viewer',icon:'▤',ids:['drawings']},
-  {key:'takeoff',title:'Quantity Takeoff',desc:'Verified quantity results and measurement register',icon:'⌁',ids:['takeoff']},
-  {key:'boq',title:'BOQ & Cost Estimate',desc:'Bill of quantities, rates, cost totals and imports',icon:'▦',ids:['boqPanel']},
-  {key:'bim',title:'BIM Models',desc:'BIM coordination, model references and issue review',icon:'◇',ids:['bimPanel']},
-  {key:'schedule',title:'Project Schedule',desc:'Activities, productivity, CPM, Gantt and exports',icon:'◷',ids:['schedulePanel']},
-  {key:'claims',title:'Contracts & Claims',desc:'Contract particulars, variations, claims and engineer responses',icon:'§',ids:['claimsPanel']},
-  {key:'correspondence',title:'Project Correspondence',desc:'Incoming and outgoing project communications and response tracking',icon:'✉',ids:['correspondencePanel']},
-  {key:'risk',title:'Risks & Reports',desc:'Risk register, controls, mitigation actions and reports',icon:'⚑',ids:['riskPanel']},
-  {key:'projects',title:'Projects',desc:'Project details, cover image, gallery and project records',icon:'▣',ids:['projectShowcase','projectGallery','allProjectDataPanel']},
-  {key:'plans',title:'Plans & Pricing',desc:'MMC AI plans and subscription information',icon:'✦',ids:['plans']}
- ];
- const byId=id=>document.getElementById(id);
- const content=byId('overview'),main=document.querySelector('.main'),sidebar=document.querySelector('.sidebar');
- if(!content||!main)return;
- let host=byId('mmcPageHost');
- if(!host){host=document.createElement('section');host.id='mmcPageHost';host.className='content hidden';main.appendChild(host);}
- const originalTargets={};
- modules.forEach(m=>m.ids.forEach(id=>{const node=byId(id);if(node){originalTargets[id]=node;const view=document.createElement('div');view.className='mmc-page-view';view.dataset.module=m.key;view.appendChild(node);host.appendChild(view);}}));
- const heading=document.createElement('div');heading.className='mmc-page-heading';heading.id='mmcPageHeading';
- const cardMarkup=modules.filter(m=>m.key!=='dashboard').map(m=>'<a class="mmc-module-card" href="?page='+m.key+'" data-mmc-route="'+m.key+'"><span class="module-icon">'+m.icon+'</span><strong>'+m.title+'</strong><small>'+m.desc+'</small></a>').join('');
- const homeCards=document.createElement('section');homeCards.className='mmc-home-modules';homeCards.innerHTML='<div class="eyebrow">MMC WORKSPACE</div><h2 style="margin:0 0 6px;color:var(--ink);font-size:19px">Project Modules</h2><p style="margin:0;color:var(--muted);font-size:12px">Open each work area as a separate page. Your project records remain shared across modules.</p><div class="mmc-page-grid">'+cardMarkup+'</div>';
- content.appendChild(homeCards);
- const navLinks=[...document.querySelectorAll('.sidebar .nav a')];
- const routeByHash={'#overview':'dashboard','#drawings':'drawings','#takeoff':'takeoff','#boq':'boq','#bim':'bim','#schedule':'schedule','#claimsPanel':'claims','#correspondencePanel':'correspondence','#riskPanel':'risk','#projects':'projects','#team':'team','#plans':'plans','#settings':'settings'};
- navLinks.forEach(a=>{const key=routeByHash[a.getAttribute('href')];if(key){a.dataset.mmcRoute=key;a.href='?page='+key;}});
- function render(){
-  const requested=new URLSearchParams(location.search).get('page')||'dashboard';
-  const active=modules.some(m=>m.key===requested)?requested:'dashboard';
-  content.classList.toggle('hidden',active!=='dashboard');
-  host.classList.toggle('hidden',active==='dashboard');
-  host.querySelectorAll('.mmc-page-view').forEach(v=>v.classList.toggle('hidden',v.dataset.module!==active));
-  host.querySelectorAll('#mmcPageHeading').forEach(n=>n.remove());
-  if(active!=='dashboard'){
-   const m=modules.find(x=>x.key===active);
-   heading.innerHTML='<div><div class="eyebrow">MMC AI · CONSTRUCTION INTELLIGENCE</div><h1>'+m.title+'</h1><p>'+m.desc+'</p></div><a class="btn primary" href="?page=dashboard">← Back to Dashboard</a>';
-   host.insertBefore(heading,host.firstChild);
-   if(!m.ids.some(id=>originalTargets[id])){const empty=document.createElement('div');empty.className='panel';empty.style.padding='22px';empty.innerHTML='<h2 style="margin-top:0">This workspace is being prepared</h2><p class="note">This section does not yet have a standalone working module. It will be added without changing the existing project records.</p>';host.appendChild(empty);}
-  }
-  navLinks.forEach(a=>a.classList.toggle('active',a.dataset.mmcRoute===active));
-  const crumb=document.querySelector('.crumb');if(crumb)crumb.innerHTML='MMC / <b>Construction Intelligence</b> / '+(modules.find(m=>m.key===active)?.title||active);
-  document.title='MMC AI | '+(modules.find(m=>m.key===active)?.title||'Construction Intelligence');
-  window.scrollTo({top:0,behavior:'auto'});
- }
- document.addEventListener('click',e=>{const a=e.target.closest('[data-mmc-route]');if(!a)return;e.preventDefault();const key=a.dataset.mmcRoute;history.pushState({},'', '?page='+encodeURIComponent(key));render();});
- window.addEventListener('popstate',render);
- render();
-})();
-</script>
+ document.getElementById('riskPrint').addEventListener('click',()=>{if(!activeProject){notify('Select a project first.');return;}const rows=projectRiskRows.map(x=>'<tr>'+[x.title,x.category,x.probability,x.impact,x.probability*x.impact,x.status,x.mitigation].map(v=>'<td>'+String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</td>').join('')+'</tr>').join('');const w=window.open('','_blank');if(!w){notify('Allow pop-ups to print the risk report.');return;}w.document.write('<html><head><title>MMC Risk Report</title><style>body{font:13px Arial;padding:24px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #bbb;padding:7px;text-align:left}h1{font-size:20px}</style></head><body><h1>MMC AI · Risk Register Report</h1><p>Project: '+String(activeProject.name||'').replace(/[&<>"]/g,'')+' · Generated: '+new Date().toLocaleString()+'</p><p>Recorded risks only; no inferred or forecast figures.</p><table><thead><tr><th>Risk</th><th>Category</th><th>P</th><th>I</th><t
+h>Score</th><th>Status</th><th>Mitigation</th></tr></thead><tbody>'+rows+'</tbody></table>
+
 </body></html>');w.document.close();w.focus();w.print();});
 
  document.getElementById('riskAdd').addEventListener('click',async()=>{
@@ -1237,6 +1176,71 @@ h>Score</th><th>Status</th><th>Mitigation</th></tr></thead><tbody>'+rows+'</tbod
 }));
 })();
 </script>
+<script id="mmc-project-correspondence-ui">
+(()=>{
+ const el=id=>document.getElementById(id),project=()=>window.mmcActiveProjectId||el('projectSelect')?.value||'';
+ const note=el('corrStatusNote'),rows=el('corrRows');
+ async function api(path,options={}){const r=await fetch(path,{credentials:'same-origin',...options});const d=await r.json().catch(()=>({message:'Invalid server response'}));if(!r.ok)throw new Error(d.message||d.error?.message||('HTTP '+r.status));return d;}
+ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ async function load(){const id=project();if(!id)return;try{const d=await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/correspondence');const list=d.correspondence||[];rows.innerHTML=list.length?list.map(x=>'<tr><td>'+esc(x.communication_date||'—')+'</td><td>'+esc(x.correspondence_no||'—')+'</td><td>'+esc(x.direction==='incoming'?'Incoming':'Outgoing')+'</td><td>'+esc(x.sender)+'<br>→ '+esc(x.recipient)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(x.reference_type||'—')+' '+esc(x.reference_text||'')+'</td><td>'+esc(x.response_status)+(x.response_due_date?' · Due '+esc(x.response_due_date):'')+'</td></tr>').join(''):'<tr><td colspan="7" style="text-align:center;padding:16px">No correspondence registered for this project.</td></tr>';note.textContent=list.length+' correspondence record(s) loaded.';}catch(e){note.textContent=e.message;}}
+ el('corrSave')?.addEventListener('click',async()=>{try{const id=project();if(!id)throw new Error('Select a project first.');const p={direction:el('corrDirection').value,correspondenceNo:el('corrNo').value,communicationDate:el('corrDate').value||null,sender:el('corrSender').value,recipient:el('corrRecipient').value,subject:el('corrSubject').value,referenceType:el('corrRefType').value||null,referenceText:el('corrRefText').value,body:el('corrBody').value,responseDueDate:el('corrDue').value||null,responseStatus:el('corrStatus').value};await api('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/correspondence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});['corrNo','corrDate','corrSender','corrRecipient','corrSubject','corrRefText','corrDue','corrBody'].forEach(k=>el(k).value='');note.textContent='Correspondence registered.';await load();}catch(e){note.textContent=e.message;}});
+ window.addEventListener('mmc-project-selected',load);el('projectSelect')?.addEventListener('change',load);if(project())load();
+})();
+</script>
+<datalist id="fidicClauseSuggestions"><option value="1.9 — Delayed Drawings or Instructions (1999)"></option><option value="1.9 — Delayed Drawings or Instructions (2017)"></option><option value="2.1 — Right of Access to the Site"></option><option value="3.5 — Determinations (1999)"></option><option value="3.7 — Agreement or Determination (2017)"></option><option value="4.12 — Unforeseeable Physical Conditions"></option><option value="8.4 — Extension of Time (1999)"></option><option value="8.5 — Extension of Time for Completion (2017)"></option><option value="13.1 — Right to Vary"></option><option value="13.3 — Variation Procedure (2017)"></option><option value="13.3 — Variation Procedure / Evaluation (1999)"></option><option value="13.7 — Adjustments for Changes in Legislation"></option><option value="13.8 — Adjustments for Changes in Cost"></option><option value="20.1 — Contractor Claims (1999)"></option><option value="20.2 — Claims for Payment and/or EOT (2017)"></option><option value="21 — Disputes and Arbitration (2017)"></option></datalist>
+<script id="mmc-independent-module-pages">
+(()=>{
+ const modules=[
+  {key:'dashboard',title:'Dashboard',desc:'Project overview and workspace shortcuts',icon:'⌂',ids:[]},
+  {key:'drawings',title:'Engineering Drawings',desc:'Drawing files, engineering review and drawing viewer',icon:'▤',ids:['drawings']},
+  {key:'takeoff',title:'Quantity Takeoff',desc:'Verified quantity results and measurement register',icon:'⌁',ids:['takeoff']},
+  {key:'boq',title:'BOQ & Cost Estimate',desc:'Bill of quantities, rates, cost totals and imports',icon:'▦',ids:['boqPanel']},
+  {key:'bim',title:'BIM Models',desc:'BIM coordination, model references and issue review',icon:'◇',ids:['bimPanel']},
+  {key:'schedule',title:'Project Schedule',desc:'Activities, productivity, CPM, Gantt and exports',icon:'◷',ids:['schedulePanel']},
+  {key:'claims',title:'Contracts & Claims',desc:'Contract particulars, variations, claims and engineer responses',icon:'§',ids:['claimsPanel']},
+  {key:'correspondence',title:'Project Correspondence',desc:'Incoming and outgoing project communications and response tracking',icon:'✉',ids:['correspondencePanel']},
+  {key:'risk',title:'Risks & Reports',desc:'Risk register, controls, mitigation actions and reports',icon:'⚑',ids:['riskPanel']},
+  {key:'projects',title:'Projects',desc:'Project details, cover image, gallery and project records',icon:'▣',ids:['projectShowcase','projectGallery','allProjectDataPanel']},
+  {key:'plans',title:'Plans & Pricing',desc:'MMC AI plans and subscription information',icon:'✦',ids:['plans']}
+ ];
+ const byId=id=>document.getElementById(id);
+ const content=byId('overview'),main=document.querySelector('.main'),sidebar=document.querySelector('.sidebar');
+ if(!content||!main)return;
+ let host=byId('mmcPageHost');
+ if(!host){host=document.createElement('section');host.id='mmcPageHost';host.className='content hidden';main.appendChild(host);}
+ const originalTargets={};
+ modules.forEach(m=>m.ids.forEach(id=>{const node=byId(id);if(node){originalTargets[id]=node;const view=document.createElement('div');view.className='mmc-page-view';view.dataset.module=m.key;view.appendChild(node);host.appendChild(view);}}));
+ const heading=document.createElement('div');heading.className='mmc-page-heading';heading.id='mmcPageHeading';
+ const cardMarkup=modules.filter(m=>m.key!=='dashboard').map(m=>'<a class="mmc-module-card" href="?page='+m.key+'" data-mmc-route="'+m.key+'"><span class="module-icon">'+m.icon+'</span><strong>'+m.title+'</strong><small>'+m.desc+'</small></a>').join('');
+ const homeCards=document.createElement('section');homeCards.className='mmc-home-modules';homeCards.innerHTML='<div class="eyebrow">MMC WORKSPACE</div><h2 style="margin:0 0 6px;color:var(--ink);font-size:19px">Project Modules</h2><p style="margin:0;color:var(--muted);font-size:12px">Open each work area as a separate page. Your project records remain shared across modules.</p><div class="mmc-page-grid">'+cardMarkup+'</div>';
+ content.appendChild(homeCards);
+ const navLinks=[...document.querySelectorAll('.sidebar .nav a')];
+ const routeByHash={'#overview':'dashboard','#drawings':'drawings','#takeoff':'takeoff','#boq':'boq','#bim':'bim','#schedule':'schedule','#claimsPanel':'claims','#correspondencePanel':'correspondence','#riskPanel':'risk','#projects':'projects','#team':'team','#plans':'plans','#settings':'settings'};
+ navLinks.forEach(a=>{const key=routeByHash[a.getAttribute('href')];if(key){a.dataset.mmcRoute=key;a.href='?page='+key;}});
+ function render(){
+  const requested=new URLSearchParams(location.search).get('page')||'dashboard';
+  const active=modules.some(m=>m.key===requested)?requested:'dashboard';
+  content.classList.toggle('hidden',active!=='dashboard');
+  host.classList.toggle('hidden',active==='dashboard');
+  host.querySelectorAll('.mmc-page-view').forEach(v=>v.classList.toggle('hidden',v.dataset.module!==active));
+  host.querySelectorAll('#mmcPageHeading').forEach(n=>n.remove());
+  if(active!=='dashboard'){
+   const m=modules.find(x=>x.key===active);
+   heading.innerHTML='<div><div class="eyebrow">MMC AI · CONSTRUCTION INTELLIGENCE</div><h1>'+m.title+'</h1><p>'+m.desc+'</p></div><a class="btn primary" href="?page=dashboard">← Back to Dashboard</a>';
+   host.insertBefore(heading,host.firstChild);
+   if(!m.ids.some(id=>originalTargets[id])){const empty=document.createElement('div');empty.className='panel';empty.style.padding='22px';empty.innerHTML='<h2 style="margin-top:0">This workspace is being prepared</h2><p class="note">This section does not yet have a standalone working module. It will be added without changing the existing project records.</p>';host.appendChild(empty);}
+  }
+  navLinks.forEach(a=>a.classList.toggle('active',a.dataset.mmcRoute===active));
+  const crumb=document.querySelector('.crumb');if(crumb)crumb.innerHTML='MMC / <b>Construction Intelligence</b> / '+(modules.find(m=>m.key===active)?.title||active);
+  document.title='MMC AI | '+(modules.find(m=>m.key===active)?.title||'Construction Intelligence');
+  window.scrollTo({top:0,behavior:'auto'});
+ }
+ document.addEventListener('click',e=>{const a=e.target.closest('[data-mmc-route]');if(!a)return;e.preventDefault();const key=a.dataset.mmcRoute;history.pushState({},'', '?page='+encodeURIComponent(key));render();});
+ window.addEventListener('popstate',render);
+ render();
+})();
+</script>
+
 
 <script id="mmc-ai-language-switch">
 (()=>{
