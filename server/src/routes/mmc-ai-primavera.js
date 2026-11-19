@@ -81,6 +81,7 @@ router.post('/projects/:projectId/primavera/preview',wrap(async(req,res)=>{
  const activities=tasks.map((t,i)=>{
   const code=String(t.task_code||'').trim();
   if(!code)blockers.push({taskId:t.id,issue:'missing_activity_code',message:'أدخل Activity ID/Code ثابتاً قبل التصدير إلى P6.'});
+  else if(code.length>40)blockers.push({taskId:t.id,issue:'activity_code_too_long',message:'Activity ID يتجاوز حد Primavera P6 وهو 40 حرفاً.'});
   else if(codes.has(code))blockers.push({taskId:t.id,issue:'duplicate_activity_code',message:'يوجد Activity ID/Code مكرر؛ يجب أن يكون فريداً في المشروع.'});
   if(code)codes.add(code);
   if(!Number.isInteger(Number(t.duration_days))||Number(t.duration_days)<0)blockers.push({taskId:t.id,issue:'invalid_duration',message:'مدة النشاط غير صالحة.'});
@@ -93,13 +94,13 @@ router.post('/projects/:projectId/primavera/preview',wrap(async(req,res)=>{
   return {mmcTaskId:t.id,activityId:code||null,name:t.name,durationDays:t.duration_days,durationBasis:'approved_working_days',plannedStart:t.planned_start||null,predecessorMmcTaskIds:predecessors,existingP6ActivityId:t.external_activity_id||null,linkStatus:t.link_status||'not_synced',boqItems:boqByTask.get(t.id)||[]};
  });
  const information=[];
- if(!cfg.p6_project_id)information.push({issue:'p6_project_not_mapped',message:'لم يتم ربط Project ID خارجي بعد. هذا ليس مانعاً للمعاينة؛ يُحدد عند إنشاء/اختيار المشروع داخل Primavera قبل التصدير الفعلي.'});
+ if(!cfg.p6_project_id)information.push({issue:'p6_project_not_mapped',message:'لم يتم إدخال Project ID خارجي؛ سيستخدم ملف التصدير معرف MMC مؤقتاً للمشروع ويمكن مطابقته لاحقاً داخل Primavera.'});
  if(!cfg.enabled)warnings.push({issue:'integration_disabled',message:'التكامل غير مفعّل.'});
  const summary={activities:activities.length,excludedUnapproved,ready:Math.max(0,activities.length-new Set(blockers.map(x=>x.taskId)).size),blockers:blockers.length,warnings:warnings.length,boqMappings:boqLinks.length,alreadyLinked:activities.filter(x=>x.existingP6ActivityId).length};
  const runId=uid('p6run_');
  db.prepare(`INSERT INTO ai_primavera_sync_runs(id,project_id,actor_user_id,direction,status,format,summary_json,finished_at) VALUES(?,?,?,'mmc_to_p6','preview',?,?,unixepoch())`).run(runId,pid,req.user.id,cfg.transfer_format,JSON.stringify(summary));
  audit(db,req,'primavera_export_preview',runId,summary);
- res.setHeader('Cache-Control','no-store');res.json({runId,format:cfg.transfer_format,project:{mmcProjectId:pid,p6ProjectId:cfg.p6_project_id,p6ProjectName:cfg.p6_project_name},summary,blockers,warnings,information,generatedActivityCodes:generatedCodes,activities,exportAvailable:false,message:'هذه معاينة تحقق وربط فقط؛ لا يتم إرسال بيانات إلى برنامج Primavera المكتبي في هذه المرحلة.'});
+ res.setHeader('Cache-Control','no-store');res.json({runId,format:cfg.transfer_format,project:{mmcProjectId:pid,p6ProjectId:cfg.p6_project_id,p6ProjectName:cfg.p6_project_name},summary,blockers,warnings,information,generatedActivityCodes:generatedCodes,activities,exportAvailable:!blockers.length&&!!cfg.enabled,message:'المعاينة لا ترسل البيانات إلى برنامج Primavera المكتبي؛ استخدم زر تنزيل ملف P6 XML.'});
 }));
 // Conservative Primavera P6 API Business Objects XML export.
 // P6 stores activity durations in hours; MMC approved working days are converted at 8 hours/day.
