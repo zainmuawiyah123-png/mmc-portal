@@ -1490,6 +1490,23 @@ function upgradeMmcAiContractManagement(db) {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_ai_claims_project ON ai_contract_claims(project_id,status,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_claim_procedure_steps (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      claim_id TEXT NOT NULL REFERENCES ai_contract_claims(id) ON DELETE CASCADE,
+      step_type TEXT NOT NULL DEFAULT 'other' CHECK(step_type IN ('notice','detailed_particulars','interim_update','final_submission','response','determination','dispute_referral','other')),
+      title TEXT NOT NULL,
+      fidic_clause TEXT,
+      due_date TEXT,
+      completed_date TEXT,
+      status TEXT NOT NULL DEFAULT 'planned' CHECK(status IN ('planned','due','submitted','completed','overdue','not_required')),
+      notes TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_claim_steps ON ai_claim_procedure_steps(project_id,claim_id,due_date);
+
   `);
 }
 
