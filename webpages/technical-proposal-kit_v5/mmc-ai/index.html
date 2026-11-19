@@ -429,11 +429,15 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
   try{
    const r=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq',{credentials:'same-origin'}),data=await r.json();
    if(!r.ok)throw new Error(data.message||'Could not load BOQ.');
-   summary.textContent='Items: '+data.summary.itemCount+' · Estimated total: '+Number(data.summary.total).toFixed(3)+' (project currency)';
+   summary.textContent='Items: '+data.summary.itemCount+' · Estimated total of priced items: '+Number(data.summary.total).toFixed(3)+' (project currency) · Missing rates: '+(data.summary.missingRates||0);
    for(const item of data.items){
     const tr=document.createElement('tr');
-    for(const val of [item.item_code||'—',item.description,item.unit,item.quantity,item.rate, item.line_total.toFixed(3)]){
-     const td=document.createElement('td');td.textContent=String(val);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';tr.appendChild(td);
+    const values=[item.item_code||'—',item.description,item.unit,item.quantity,item.rateMissing?'MISSING':item.rate,item.rateMissing?'—':Number(item.line_total).toFixed(3)];
+    for(let index=0;index<values.length;index++){
+     const td=document.createElement('td');td.textContent=String(values[index]);td.style.cssText='padding:8px;border-bottom:1px solid #edf1f5';
+     if(index===1){td.title=[item.source_sheet?('Source sheet: '+item.source_sheet):'',item.source_row?('Source row: '+item.source_row):'',...(item.validationIssues||[])].filter(Boolean).join(' · ');if(item.validationIssues?.length){td.textContent+=' ⚠';td.style.color='#b45309';}}
+     if(index===4&&item.rateMissing){td.style.color='#b45309';td.title='No unit rate was entered in the source workbook; this is not a zero price.';}
+     tr.appendChild(td);
     }
     const td=document.createElement('td'),del=document.createElement('button');del.type='button';del.textContent='Delete';del.style.cssText='border:1px solid #e6caca;border-radius:6px;padding:5px 8px;color:#9a4545;background:#10243d;cursor:pointer';
     del.addEventListener('click',async()=>{if(!confirm('Delete this BOQ item?'))return;const d=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/boq/'+encodeURIComponent(item.id),{method:'DELETE',credentials:'same-origin'});const x=await d.json();if(!d.ok){notify(x.message||'Could not delete');return;}loadProjectBoq(id);});
@@ -583,9 +587,10 @@ html[dir="rtl"] .plan-heading,html[dir="rtl"] .plan-count{direction:rtl}html[dir
    }
    if(d.error)throw new Error(typeof d.error==='string'?d.error:(d.error.message||JSON.stringify(d.error)));
    const s=d.summary||{};
-   const lines=['Imported: '+(s.imported??0),'Valid rows: '+(s.validItems??0),'Invalid rows: '+(s.errorRows??0),'Duplicate rows: '+(s.duplicateRows??0),'Missing rates (stored as zero by current database schema): '+(s.missingRates??0)];
+   const lines=['Imported: '+(s.imported??0),'Valid rows: '+(s.validItems??0),'Invalid rows: '+(s.errorRows??0),'Duplicate rows: '+(s.duplicateRows??0),'Missing rates (not quoted): '+(s.missingRates??0),'Source sheets: '+((d.sourceSheets||[]).join(' · ')||'CSV / not named')];
    if(d.errors?.length)lines.push('','ROWS NEEDING CORRECTION:',...d.errors.map(x=>'Row '+x.rowNumber+': '+x.issues.join('، ')));
    if(d.duplicates?.length)lines.push('','POSSIBLE DUPLICATES:',...d.duplicates.map(x=>'Row '+x.rowNumber+' duplicates row '+x.duplicateOfRowNumber));
+   if(d.warnings?.length)lines.push('','SOURCE WARNINGS:',...d.warnings.map(x=>(x.sheet||'')+' row '+(x.rowNumber||'—')+': '+x.message));
    if(d.notice)lines.push('',d.notice);
    report.textContent=lines.join('\n');
    document.getElementById('boqImportFile').value='';
