@@ -104,7 +104,8 @@ function xlsxRows(buffer) {
   for (const si of sharedXml.matchAll(/<(?:\w+:)?si(?:\s[^>]*)?>([\s\S]*?)<\/(?:\w+:)?si>/g)) {
     shared.push([...si[1].matchAll(/<(?:\w+:)?t(?:\s[^>]*)?>([\s\S]*?)<\/(?:\w+:)?t>/g)].map(m => xmlDecode(m[1])).join(''));
   }
-  const sheetNames = [...files.keys()].filter(name => /^xl\/worksheets\/sheet\d+\.xml$/.test(name));
+  const namedSheets = workbookSheetNames(files);
+  const sheetNames = namedSheets.length ? namedSheets.map(x => x.target) : [...files.keys()].filter(name => /^xl\/worksheets\/sheet\d+\.xml$/.test(name)).sort();
   if (!sheetNames.length) throw new Error('ملف Excel لا يحتوي ورقة عمل قابلة للقراءة.');
   function readSheet(xml, sheetName) {
     const rows = [];
@@ -135,7 +136,8 @@ function xlsxRows(buffer) {
   const combined = [];
   const acceptedSheets = [], skippedSheets = [], inferredSheets = [];
   for (const name of sheetNames) {
-    const rows = readSheet(files.get(name) || '');
+    const displayName = namedSheets.find(x => x.target === name)?.name || name.split('/').pop().replace(/\.xml$/i, '');
+    const rows = readSheet(files.get(name) || '', displayName);
     const hasSingleHeader = rows.some(row => hasBoqHeader(row));
     const hasSplitHeader = rows.some((row, i) => i + 1 < rows.length &&
       hasBoqHeader([...row, ...rows[i + 1]]));
