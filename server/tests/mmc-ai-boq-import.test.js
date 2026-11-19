@@ -313,3 +313,22 @@ test('flags a description that says linear metres while the table unit is square
   assert.equal(result.items[0].quantity, 45);
   assert.equal(result.items[0].unit, 'متر مربع');
 });
+
+
+test('recognizes the Arabic Jordanian BOQ header and preserves sections and explicit zero rates', () => {
+  const result = normalizeRows([
+    ['رقم','وصف الأعمال والمواصفات','الوحدة','الكمية','سعر الوحدة (د.أ)','الإجمالي (د.أ)'],
+    ['', 'أولاً: الأعمال الترابية وتجهيز الموقع', '', '', '', ''],
+    ['1','تسوية الأرض الطبيعية','م²','24','10','240'],
+    ['2','إعادة الطمم حول الأعمال الإنشائية','م³','15','0','0'],
+    ['', 'ثانياً: الخرسانة المسلحة والأعمال الإنشائية', '', '', '', ''],
+    ['5','خرسانة مسلحة C25','م³','2.4','200','480']
+  ]);
+  assert.equal(result.items.length, 3);
+  assert.equal(result.items[0].sectionLabel, 'أولاً: الأعمال الترابية وتجهيز الموقع');
+  assert.equal(result.items[1].rate, 0);
+  assert.equal(result.items[1].sourceAmount, 0);
+  assert.equal(result.items[2].sectionLabel, 'ثانياً: الخرسانة المسلحة والأعمال الإنشائية');
+  assert.equal(result.items[2].rowNumber, 6);
+  assert.equal(result.errors.length, 0);
+});
