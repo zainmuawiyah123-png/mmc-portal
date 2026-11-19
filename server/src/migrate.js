@@ -1472,6 +1472,47 @@ function upgradePrimaveraP6(db) {
   `);
 }
 
+
+/** Microsoft Project desktop file integration metadata. Additive; preserves all existing project data. */
+function upgradeMSProject(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_msproject_projects (
+      project_id TEXT PRIMARY KEY REFERENCES ai_projects(id) ON DELETE CASCADE,
+      enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
+      external_project_uid TEXT,
+      external_project_name TEXT,
+      transfer_format TEXT NOT NULL DEFAULT 'XML' CHECK(transfer_format IN ('XML')),
+      sync_mode TEXT NOT NULL DEFAULT 'manual' CHECK(sync_mode IN ('manual','approved_only')),
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS ai_msproject_activity_links (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      schedule_task_id TEXT NOT NULL REFERENCES ai_schedule_tasks(id) ON DELETE CASCADE,
+      external_task_uid TEXT,
+      last_export_hash TEXT,
+      last_synced_at INTEGER,
+      sync_status TEXT NOT NULL DEFAULT 'not_synced' CHECK(sync_status IN ('not_synced','pending','synced','conflict','failed')),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(project_id,schedule_task_id),
+      UNIQUE(project_id,external_task_uid)
+    );
+    CREATE TABLE IF NOT EXISTS ai_msproject_sync_runs (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      direction TEXT NOT NULL CHECK(direction IN ('mmc_to_msproject','msproject_to_mmc')),
+      status TEXT NOT NULL CHECK(status IN ('preview','exported','imported','failed')),
+      format TEXT NOT NULL DEFAULT 'XML',
+      summary_json TEXT NOT NULL DEFAULT '{}',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_msproject_runs_project ON ai_msproject_sync_runs(project_id,created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1514,6 +1555,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
   upgradePrimaveraP6(db);
+  upgradeMSProject(db);
   upgradeEmailVerification(db);
 
   return db;
