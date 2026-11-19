@@ -343,3 +343,21 @@ test('preserves repeated source BOQ rows and reports them as review duplicates',
   assert.equal(result.items[1].itemCode, '2');
   assert.equal(result.items[1].duplicateOfRowNumber, 2);
 });
+
+test('imports the uploaded Damkhi-Qatrane Arabic BOQ with all 58 source items and 12 sections', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const buffer = fs.readFileSync(path.join(__dirname, 'fixtures', 'damkhi-qatrane-boq.csv'));
+  const result = parseBoqFile({ buffer, filename: 'damkhi-qatrane-boq.csv' });
+  assert.equal(result.items.length, 58);
+  assert.equal(result.summary.validItems, 58);
+  assert.equal(result.errors.length, 0);
+  assert.equal(new Set(result.items.map(item => item.sectionLabel)).size, 12);
+  assert.equal(result.items.some(item => item.itemCode === '15'), false);
+  assert.equal(result.items.find(item => item.itemCode === '25').unitNormalized, 'm');
+  assert.equal(result.items.find(item => item.itemCode === '25').unitKnown, true);
+  const pricedTotal = result.items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+  assert.equal(Number(pricedTotal.toFixed(3)), 18235.4);
+  const sourceTotal = result.items.reduce((sum, item) => sum + item.sourceAmount, 0);
+  assert.equal(Number(sourceTotal.toFixed(3)), 18235.4);
+});
