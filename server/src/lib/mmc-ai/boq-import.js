@@ -158,10 +158,11 @@ const UNIT_MAP = Object.freeze({
 });
 function normalizeUnit(raw) {
   if (raw === null || raw === undefined || String(raw).trim() === '') return { unit:null, known:false, raw:null };
-  const text = String(raw).normalize('NFKC').trim();
-  const key = normalizeHeader(text).replace(/\\s+/g, '');
-  const direct = UNIT_MAP[text.toLowerCase()] || UNIT_MAP[key];
-  return direct ? {unit:direct,known:true,raw:text} : {unit:text.slice(0,24),known:false,raw:text};
+  const original = String(raw).trim();
+  const text = original.normalize('NFKC');
+  const key = normalizeHeader(text);
+  const direct = UNIT_MAP[original.toLowerCase()] || UNIT_MAP[text.toLowerCase()] || UNIT_MAP[key];
+  return direct ? {unit:direct,known:true,raw:original} : {unit:original.slice(0,24),known:false,raw:original};
 }
 function parseNumber(value) {
   let s=String(value??'').trim().replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
