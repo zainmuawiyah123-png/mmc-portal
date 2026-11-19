@@ -156,7 +156,7 @@ test('Arabic unit normalization is exposed on imported rows while preserving sou
 // Regression coverage includes Arabic unit aliases merged from v15.
 
 test('recognizes tender-style Arabic headers with reversed column order', () => {
-  const csv = 'المبلغ,السعر,الكمية,وحدة,نوع العمل,الرقم\\n12000,40,300,عدد,نقطة انارة داخلية,A1\\n';
+  const csv = 'المبلغ,السعر,الكمية,وحدة,نوع العمل,الرقم\n12000,40,300,عدد,نقطة انارة داخلية,A1\n';
   const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'tender-electrical.csv' });
   assert.equal(result.items.length, 1);
   assert.equal(result.items[0].description, 'نقطة انارة داخلية');
@@ -164,9 +164,14 @@ test('recognizes tender-style Arabic headers with reversed column order', () => 
   assert.equal(result.items[0].quantity, 300);
 });
 
-test('recognizes civil BOQ split header rows', () => {
-  const csv = 'الرقم,نوع العمل,,\\nA,أعمال الهدم والإزالة,الوحدة,الكمية\\nA1,إزالة أبواب,مقطوع,1\\n';
-  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'tender-civil.csv' });
+test('recognizes civil BOQ split header rows in XLSX worksheets', () => {
+  const sheet = '<worksheet><sheetData>' +
+    '<row r="1"><c r="A1" t="inlineStr"><is><t>الرقم</t></is></c><c r="B1" t="inlineStr"><is><t>نوع العمل</t></is></c></row>' +
+    '<row r="2"><c r="A2" t="inlineStr"><is><t>A</t></is></c><c r="B2" t="inlineStr"><is><t>أعمال الهدم والإزالة</t></is></c><c r="C2" t="inlineStr"><is><t>الوحدة</t></is></c><c r="D2" t="inlineStr"><is><t>الكمية</t></is></c></row>' +
+    '<row r="3"><c r="A3" t="inlineStr"><is><t>A1</t></is></c><c r="B3" t="inlineStr"><is><t>إزالة أبواب</t></is></c><c r="C3" t="inlineStr"><is><t>مقطوع</t></is></c><c r="D3"><v>1</v></c></row>' +
+    '</sheetData></worksheet>';
+  const buffer = makeStoredZip({'xl/worksheets/sheet1.xml': sheet});
+  const result = parseBoqFile({ buffer, filename: 'tender-civil.xlsx' });
   assert.equal(result.items.length, 1);
   assert.equal(result.items[0].description, 'إزالة أبواب');
   assert.equal(result.items[0].unit, 'مقطوع');
