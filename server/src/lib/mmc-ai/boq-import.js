@@ -231,7 +231,8 @@ const ALIASES = {
   quantity:['quantity','qty','qnty','amount','الكمية','كميه','كمية','كميات','العدد','الكميةالاجمالية','اجماليالكمية','الكميةالمطلوبة','كميةالبند'],
   rate:['unitrate','rate','price','unitprice','السعر','سعرالوحدة','سعرالوحده','سعر'],
   itemCode:['itemcode','code','ref','reference','رقم','الرقم','رقمالبند','الكود','الرمز'],
-  amount:['amount','lineamount','totalamount','مبلغ','المبلغ','الاجمالي','الإجمالي','قيمةالبند'],\n  discipline:['discipline','trade','category','التخصص','القسم','الفئة']
+  amount:['amount','lineamount','totalamount','مبلغ','المبلغ','الاجمالي','الإجمالي','قيمةالبند'],
+  discipline:['discipline','trade','category','التخصص','القسم','الفئة']
 };
 const UNIT_MAP = Object.freeze({
   m:'m', meter:'m', metre:'m', meters:'m', metres:'m', lm:'m', 'م':'m', 'متر':'m', 'متر طولي':'m', 'بالمتر الطولي':'m',
