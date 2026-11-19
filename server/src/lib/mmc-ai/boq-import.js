@@ -266,7 +266,9 @@ function normalizeRows(matrix) {
     }
     const get=k=>mapping[k]===undefined?'':String(row[mapping[k]]??'').trim();
     const description=get('description'), unit=get('unit'), rawQty=get('quantity');
-    if (!description && !get('itemCode')) continue;
+    const itemCode = get('itemCode');
+    if ((!description && !itemCode) ||
+        (!unit && rawQty === '' && (!itemCode || !/[\\/]/.test(itemCode))) continue;
     // Section titles and explanatory paragraphs in tender workbooks often
     // occupy the description column only. Keep them out of the invalid-item
     // count unless there is an item reference, unit, or quantity to validate.
