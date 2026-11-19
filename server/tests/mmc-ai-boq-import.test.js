@@ -274,7 +274,7 @@ test('imports headerless mechanical sheet only from validated description, unit 
 
 test('skips discipline headings but retains incomplete referenced BOQ items for review', () => {
   const result = normalizeRows([
-    ['Item No','Description','Unit','Quantity'],
+    ['Code','Description','Unit','Quantity'],
     ['A','Civil works','',''],
     ['A/1','Excavation','',''],
     ['A/2','Concrete','m3','10']
