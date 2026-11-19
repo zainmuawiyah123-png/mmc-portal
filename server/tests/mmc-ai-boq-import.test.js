@@ -209,16 +209,16 @@ test('recognizes all unit labels present in the guesthouse BOQ workbook', () => 
   }
 });
 
-test('recognizes Arabic civil tender split heading where work type is on first row', () => {
-  const rows = [
-    ['الرقم','نوع العمل','',''],
-    ['A','أعمال الهدم والإزالة','الوحدة','الكميــة'],
-    ['A\\1','هدم وقص السور','مقطوع',1],
-    ['المجموع','','','1']
-  ];
-  const result = normalizeRows(rows);
+test('recognizes Arabic civil tender split heading in an XLSX sheet', () => {
+  const sheet = '<worksheet><sheetData>' +
+    '<row r="1"><c r="A1" t="inlineStr"><is><t>الرقم</t></is></c><c r="B1" t="inlineStr"><is><t>نوع العمل</t></is></c></row>' +
+    '<row r="2"><c r="A2" t="inlineStr"><is><t>A</t></is></c><c r="B2" t="inlineStr"><is><t>أعمال الهدم والإزالة</t></is></c><c r="C2" t="inlineStr"><is><t>الوحدة</t></is></c><c r="D2" t="inlineStr"><is><t>الكميــة</t></is></c></row>' +
+    '<row r="3"><c r="A3" t="inlineStr"><is><t>A1</t></is></c><c r="B3" t="inlineStr"><is><t>هدم وقص السور</t></is></c><c r="C3" t="inlineStr"><is><t>مقطوع</t></is></c><c r="D3"><v>1</v></c></row>' +
+    '</sheetData></worksheet>';
+  const buffer = makeStoredZip({'xl/worksheets/sheet1.xml': sheet});
+  const result = parseBoqFile({ buffer, filename: 'civil-split-header.xlsx' });
   assert.equal(result.items.length, 1);
-  assert.equal(result.items[0].description, 'أعمال الهدم والإزالة');
-  assert.equal(result.items[0].unit, 'الوحدة');
+  assert.equal(result.items[0].description, 'هدم وقص السور');
+  assert.equal(result.items[0].unit, 'مقطوع');
   assert.equal(result.items[0].quantity, 1);
 });
