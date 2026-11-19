@@ -1379,6 +1379,23 @@ function upgradeMmcAiProjects(db) {
     });
     rebuild();
   }
+
+  // Additive schedule-to-BOQ linkage and subscriber-controlled duration decisions.
+  const scheduleColumns = new Set(db.prepare('PRAGMA table_info(ai_schedule_tasks)').all().map(c => c.name));
+  const scheduleAdditions = [
+    ['boq_item_id','TEXT REFERENCES ai_boq_items(id) ON DELETE SET NULL'],
+    ['productivity_per_day','REAL'],
+    ['proposed_duration_days','INTEGER'],
+    ['duration_source',"TEXT NOT NULL DEFAULT 'manual'"],
+    ['duration_override','INTEGER NOT NULL DEFAULT 0'],
+    ['duration_override_reason','TEXT'],
+    ['duration_approved_by','TEXT REFERENCES users(id) ON DELETE SET NULL'],
+    ['duration_approved_at','INTEGER']
+  ];
+  for (const [name, definition] of scheduleAdditions) {
+    if (!scheduleColumns.has(name)) db.exec('ALTER TABLE ai_schedule_tasks ADD COLUMN ' + name + ' ' + definition);
+  }
+  db.exec('CREATE INDEX IF NOT EXISTS idx_ai_schedule_boq_item ON ai_schedule_tasks(project_id,boq_item_id)');
 }
 
 /** Email ownership verification for newly registered accounts. Existing accounts remain unaffected. */
