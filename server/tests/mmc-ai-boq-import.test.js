@@ -177,3 +177,19 @@ test('recognizes civil BOQ split header rows in XLSX worksheets', () => {
   assert.equal(result.items[0].unit, 'مقطوع');
   assert.equal(result.items[0].quantity, 1);
 });
+
+test('imports a headerless mechanical BOQ row only when description, known unit and numeric quantity align', () => {
+  const sheet = '<worksheet><sheetData>' +
+    '<row r="1"><c r="B1" t="inlineStr"><is><t>اعمال التكييف الميكانيكي</t></is></c></row>' +
+    '<row r="2"><c r="B2" t="inlineStr"><is><t>تقديم وتركيب وحدات تكييف كاسيت</t></is></c><c r="C2" t="inlineStr"><is><t>عدد</t></is></c><c r="D2"><v>4</v></c><c r="E2"><v>3000</v></c><c r="F2"><v>12000</v></c></row>' +
+    '<row r="3"><c r="A3" t="inlineStr"><is><t>المجموع</t></is></c></row>' +
+    '</sheetData></worksheet>';
+  const buffer = makeStoredZip({'xl/worksheets/sheet1.xml': sheet});
+  const result = parseBoqFile({ buffer, filename: 'mechanical.xlsx' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'تقديم وتركيب وحدات تكييف كاسيت');
+  assert.equal(result.items[0].unit, 'عدد');
+  assert.equal(result.items[0].quantity, 4);
+  assert.equal(result.items[0].rate, 3000);
+  assert.equal(result.warnings[0].code, 'HEADERLESS_LAYOUT_INFERRED');
+});
