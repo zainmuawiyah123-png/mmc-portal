@@ -258,6 +258,7 @@ function parseBoqFile({buffer,filename}) {
   if(ext==='csv'||ext==='txt') matrix=csvRows(decodeText(buffer));
   else if(ext==='xlsx') matrix=xlsxRows(buffer);
   else throw new Error('الصيغ المدعومة: XLSX وCSV فقط.');
-  const parsed = normalizeRows(matrix);\n  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين وصف/وحدة/كمية واضحة؛ لم يتم تخمين الأعمدة.'}))};
+  const parsed = normalizeRows(matrix);
+  return {...parsed,sourceFormat:ext,sourceSheets:matrix.sourceSheets||[],warnings:(matrix.skippedSheets||[]).map(name=>({code:'SHEET_SKIPPED_NO_HEADERS',sheet:name,message:'لم تُستورد هذه الورقة لعدم وجود عناوين وصف/وحدة/كمية واضحة؛ لم يتم تخمين الأعمدة.'}))};
 }
 module.exports={parseBoqFile,normalizeRows,csvRows,xlsxRows,parseNumber,normalizeUnit,UNIT_MAP};
