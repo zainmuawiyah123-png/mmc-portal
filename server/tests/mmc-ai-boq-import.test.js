@@ -335,7 +335,7 @@ test('recognizes the Arabic Jordanian BOQ header and preserves sections and expl
 
 
 test('preserves repeated source BOQ rows and reports them as review duplicates', () => {
-  const csv = 'Item Code,Description,Unit,Quantity,Unit Rate\\n1,Concrete,m3,10,20\\n2,Concrete,m3,10,20\\n';
+  const csv = `Item Code,Description,Unit,Quantity,Unit Rate\n1,Concrete,m3,10,20\n2,Concrete,m3,10,20\n`;
   const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'repeated-lines.csv' });
   assert.equal(result.items.length, 2);
   assert.equal(result.summary.validItems, 2);
