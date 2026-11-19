@@ -1334,6 +1334,51 @@ function upgradeMmcAiProjects(db) {
   for (const [name, definition] of additions) {
     if (!boqColumns.has(name)) db.exec('ALTER TABLE ai_boq_items ADD COLUMN ' + name + ' ' + definition);
   }
+
+  // SQLite cannot drop NOT NULL from a column in place. Rebuild this table
+  // transactionally, preserving every BOQ field and converting only rows
+  // explicitly marked rate_missing=1 from the legacy placeholder zero to NULL.
+  const rateColumn = db.prepare('PRAGMA table_info(ai_boq_items)').all().find(c => c.name === 'rate');
+  if (rateColumn?.notnull) {
+    const rebuild = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE ai_boq_items_new (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+          item_code TEXT,
+          description TEXT NOT NULL,
+          unit TEXT NOT NULL,
+          quantity REAL NOT NULL CHECK(quantity >= 0),
+          rate REAL CHECK(rate IS NULL OR rate >= 0),
+          source_takeoff_item_id TEXT REFERENCES ai_takeoff_items(id) ON DELETE SET NULL,
+          created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          source_sheet TEXT,
+          source_row INTEGER,
+          source_amount REAL,
+          rate_missing INTEGER NOT NULL DEFAULT 0,
+          validation_json TEXT NOT NULL DEFAULT '[]',
+          section_label TEXT
+        );
+        INSERT INTO ai_boq_items_new (
+          id,project_id,item_code,description,unit,quantity,rate,
+          source_takeoff_item_id,created_by,updated_at,created_at,
+          source_sheet,source_row,source_amount,rate_missing,validation_json,section_label
+        )
+        SELECT
+          id,project_id,item_code,description,unit,quantity,
+          CASE WHEN rate_missing=1 THEN NULL ELSE rate END,
+          source_takeoff_item_id,created_by,updated_at,created_at,
+          source_sheet,source_row,source_amount,rate_missing,validation_json,section_label
+        FROM ai_boq_items;
+        DROP TABLE ai_boq_items;
+        ALTER TABLE ai_boq_items_new RENAME TO ai_boq_items;
+        CREATE INDEX idx_ai_boq_project ON ai_boq_items(project_id,created_at DESC);
+      `);
+    });
+    rebuild();
+  }
 }
 
 /** Email ownership verification for newly registered accounts. Existing accounts remain unaffected. */
