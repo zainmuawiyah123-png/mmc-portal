@@ -52,10 +52,10 @@ const PRODUCTIVITY_RULES=[
 ];
 function estimateProductivity(description,unit){
  const d=String(description||'').toLowerCase().normalize('NFKC');
- const u=String(unit||'').toLowerCase().replace(/\\s+/g,'').replace(/²/g,'2').replace(/³/g,'3');
- const rule=PRODUCTIVITY_RULES.find(x=>x.units.some(v=>v.toLowerCase().replace(/\\s+/g,'').replace(/²/g,'2').replace(/³/g,'3')===u)&&x.terms.some(term=>d.includes(term)));
+ const u=String(unit||'').toLowerCase().replace(/\s+/g,'').replace(/²/g,'2').replace(/³/g,'3');
+ const rule=PRODUCTIVITY_RULES.find(x=>x.units.some(v=>v.toLowerCase().replace(/\s+/g,'').replace(/²/g,'2').replace(/³/g,'3')===u)&&x.terms.some(term=>d.includes(term)));
  if(!rule)return {available:false,reason:'لم أجد تصنيفاً موثوقاً لهذا الوصف والوحدة ضمن مكتبة التقديرات التجريبية. لا توجد إنتاجية مفترضة.'};
- return {available:true,productivityPerDay:rule.rate,range:{low:rule.low,high:rule.high},unitPerDay:String(unit)+'/day',classification:rule.label,source:'International Productivity List · generic quick-reference average; not a Jordan-specific standard',confidence:'initial',notice:'قيمة تخطيطية أولية للاختبار وليست إنتاجية موقع مقاسة أو مضمونة. راجعها وعدّلها وفق ظروف المشروع قبل الاعتماد.'};
+ return {available:true,productivityPerDay:rule.rate,range:{low:rule.low,high:rule.high},unitPerDay:String(unit)+'/day',classification:rule.label,source:'MMC internal provisional test assumption; not independently source-validated or a Jordan-specific standard',confidence:'initial',notice:'قيمة تخطيطية أولية للاختبار وليست إنتاجية موقع مقاسة أو مضمونة. راجعها وعدّلها وفق ظروف المشروع قبل الاعتماد.'};
 }
 router.post('/projects/:projectId/schedule/productivity-estimate',wrap(async(req,res)=>{
  access(req);const db=getDB(),item=db.prepare('SELECT id,description,unit,quantity FROM ai_boq_items WHERE id=? AND project_id=?').get(String(req.body?.boqItemId||''),req.params.projectId);
