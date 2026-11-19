@@ -376,7 +376,7 @@ test('reads all uploaded Damkhi-Qatrane BOQ rows through the XLSX worksheet read
     const cells = row.map((value, col) => {
       if (value === '') return '';
       const ref = colName(col) + (r + 1);
-      return /^-?\\d+(?:\\.\\d+)?$/.test(String(value))
+      return /^-?\d+(?:\.\d+)?$/.test(String(value))
         ? '<c r="' + ref + '"><v>' + value + '</v></c>'
         : '<c r="' + ref + '" t="inlineStr"><is><t>' + escapeXml(value) + '</t></is></c>';
     }).join('');
