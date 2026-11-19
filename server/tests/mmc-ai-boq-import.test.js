@@ -154,3 +154,21 @@ test('Arabic unit normalization is exposed on imported rows while preserving sou
 });
 
 // Regression coverage includes Arabic unit aliases merged from v15.
+
+test('recognizes tender-style Arabic headers with reversed column order', () => {
+  const csv = 'المبلغ,السعر,الكمية,وحدة,نوع العمل,الرقم\\n12000,40,300,عدد,نقطة انارة داخلية,A1\\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'tender-electrical.csv' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'نقطة انارة داخلية');
+  assert.equal(result.items[0].unit, 'عدد');
+  assert.equal(result.items[0].quantity, 300);
+});
+
+test('recognizes civil BOQ split header rows', () => {
+  const csv = 'الرقم,نوع العمل,,\\nA,أعمال الهدم والإزالة,الوحدة,الكمية\\nA1,إزالة أبواب,مقطوع,1\\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'tender-civil.csv' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'إزالة أبواب');
+  assert.equal(result.items[0].unit, 'مقطوع');
+  assert.equal(result.items[0].quantity, 1);
+});
