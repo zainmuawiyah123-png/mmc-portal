@@ -122,3 +122,18 @@ test('plans modal is beside the language switch and preserves approved subscript
  assert.match(html,/\$30/);
  assert.match(html,/payment collection, account entitlement enforcement and automatic activation are not connected yet/i);
 });
+
+test('DXF discipline proposals are shown with source evidence and gated BOQ transfer',()=>{
+ assert.match(html,/Discipline quantities · Engineer review/);
+ assert.match(html,/Layers:/);
+ assert.match(html,/Missing information:/);
+ assert.match(html,/formula:category\.formula/);
+ assert.match(html,/Approve the takeoff run before creating BOQ items/);
+ assert.match(html,/\/boq\/from-takeoff/);
+ assert.match(html,/Unit rate is still missing/);
+});
+test('BOQ item details expose takeoff provenance and calculation assumptions',()=>{
+ assert.match(html,/item\.source_takeoff_run_id/);
+ assert.match(html,/item\.sourceDetail\?\.formula/);
+ assert.match(html,/item\.sourceDetail\?\.assumptions/);
+});
