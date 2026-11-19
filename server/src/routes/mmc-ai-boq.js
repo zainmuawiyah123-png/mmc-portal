@@ -20,7 +20,8 @@ function access(req,edit=false){const m=member(req.params.projectId,req.user.id)
 function audit(db,req,action,itemId,detail){db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),req.params.projectId,req.user.id,action,'boq_item',itemId,JSON.stringify(detail||{}));}
 function clean(v,max){return String(v==null?'':v).trim().slice(0,max);}
 function number(v,label){const n=Number(v);if(!Number.isFinite(n)||n<0||n>1e12)throw E.validation(label+' يجب أن يكون رقماً موجباً صالحاً.');return n;}
-function itemView(x){const rateMissing=Boolean(x.rate_missing);return {...x,rate:rateMissing?null:Number(x.rate),rateMissing,line_total:rateMissing?null:Number((x.quantity*x.rate).toFixed(3)),validationIssues:JSON.parse(x.validation_json||'[]')};}
+function itemView(x){const rateMissing=Boolean(x.rate_missing)||x.rate===null||x.rate===undefined;return {...x,rate:rateMissing?null:Number(x.rate),rateMissing,line_total:rateMissing?null:Number((x.quantity*x.rate).toFixed(3)),validationIssues:JSON.parse(x.validation_json||'[]')};}
+function nullableRate(value,label='سعر الوحدة'){if(value===null||value===undefined||String(value).trim()==='')return null;return number(value,label);}
 router.post('/projects/:projectId/boq/import',importUpload.single('file'),wrap(async(req,res)=>{
  access(req,true);
  if(!req.file) throw E.validation('اختر ملف Excel أو CSV أولاً.');
@@ -33,16 +34,15 @@ router.post('/projects/:projectId/boq/import',importUpload.single('file'),wrap(a
  const tx=db.transaction(()=>{
   for(const item of parsed.items){
    const id=uid('aiboq_');
-   // The current BOQ schema requires a numeric rate. Missing rates are stored as zero,
-   // and explicitly counted in the response so they are not mistaken for quoted prices.
-   insert.run(id,req.params.projectId,item.itemCode,item.description,item.unit,item.quantity,item.rate??0,req.user.id,item.sourceSheet||null,item.rowNumber||null,item.sourceAmount??null,item.rate===null?1:0,JSON.stringify(item.validationIssues||[]),item.sectionLabel||null);
+   // Preserve a missing source rate as SQL NULL; an explicitly quoted zero remains 0.
+   insert.run(id,req.params.projectId,item.itemCode,item.description,item.unit,item.quantity,item.rate,req.user.id,item.sourceSheet||null,item.rowNumber||null,item.sourceAmount??null,item.rate===null?1:0,JSON.stringify(item.validationIssues||[]),item.sectionLabel||null);
    created.push({id,...item,rate:item.rate,rateMissing:item.rate===null});
   }
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)`)
    .run(uid('aial_'),req.params.projectId,req.user.id,'boq_items_imported','boq_import',null,JSON.stringify({filename:req.file.originalname,format:parsed.sourceFormat,imported:created.length,errorRows:parsed.errors.length,duplicateRows:parsed.duplicates.length,missingRates:created.filter(x=>x.rateMissing).length,sourceSheets:parsed.sourceSheets,warningRows:parsed.warnings?.length||0}));
  });
  tx();
- res.status(201).json({items:created,summary:{...parsed.summary,imported:created.length,missingRates:created.filter(x=>x.rateMissing).length},errors:parsed.errors,duplicates:parsed.duplicates,warnings:parsed.warnings||[],sourceSheets:parsed.sourceSheets||[],notice:'تم استيراد البنود الصالحة فقط. الصفوف غير الصالحة معروضة في الأخطاء ولم تُسقط بصمت. السعر المفقود حُفظ بصفر بسبب قيد قاعدة البيانات ومُعلّم بأنه غير مدخل.'});
+ res.status(201).json({items:created,summary:{...parsed.summary,imported:created.length,missingRates:created.filter(x=>x.rateMissing).length},errors:parsed.errors,duplicates:parsed.duplicates,warnings:parsed.warnings||[],sourceSheets:parsed.sourceSheets||[],notice:'تم استيراد البنود الصالحة فقط. الصفوف غير الصالحة معروضة في الأخطاء ولم تُسقط بصمت. الأسعار غير الموجودة محفوظة كقيم NULL، والأسعار الصفرية الصريحة محفوظة كصفر.'});
 }));
 router.get('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req);
@@ -55,7 +55,7 @@ router.post('/projects/:projectId/boq',wrap(async(req,res)=>{
  access(req,true);
  const description=clean(req.body?.description,1000),unit=clean(req.body?.unit,24);
  if(description.length<3||!unit)throw E.validation('وصف البند ووحدته مطلوبان.');
- const quantity=number(req.body?.quantity,'الكمية'),rate=number(req.body?.rate,'سعر الوحدة');
+ const quantity=number(req.body?.quantity,'الكمية'),rate=nullableRate(req.body?.rate);
  const code=clean(req.body?.itemCode,80)||null,sourceId=clean(req.body?.sourceTakeoffItemId,100)||null;
  const db=getDB(),id=uid('aiboq_');
  if(sourceId){
@@ -77,14 +77,14 @@ router.patch('/projects/:projectId/boq/:itemId',wrap(async(req,res)=>{
  const unit=req.body?.unit===undefined?old.unit:clean(req.body.unit,24);
  if(description.length<3||!unit)throw E.validation('وصف البند ووحدته مطلوبان.');
  const quantity=req.body?.quantity===undefined?old.quantity:number(req.body.quantity,'الكمية');
- const rate=req.body?.rate===undefined?old.rate:number(req.body.rate,'سعر الوحدة');
+ const rate=req.body?.rate===undefined?old.rate:nullableRate(req.body.rate);
  if(old.source_takeoff_item_id){
   const src=db.prepare(`SELECT i.quantity,i.unit,r.status FROM ai_takeoff_items i JOIN ai_takeoff_runs r ON r.id=i.run_id WHERE i.id=? AND r.project_id=?`).get(old.source_takeoff_item_id,req.params.projectId);
   if(!src||src.status!=='approved')throw E.conflict('مصدر الحصر المرتبط غير متاح أو لم يعد معتمداً.');
   if(Math.abs(quantity-Number(src.quantity))>Math.max(1e-9,Math.abs(Number(src.quantity))*1e-9)||unit!==src.unit)throw E.validation('لا يمكن تغيير كمية أو وحدة بند مرتبط بحصر معتمد؛ أنشئ بنداً مستقلاً للتعديل.');
  }
  const code=req.body?.itemCode===undefined?old.item_code:(clean(req.body.itemCode,80)||null);
- db.prepare('UPDATE ai_boq_items SET item_code=?,description=?,unit=?,quantity=?,rate=?,rate_missing=?,updated_at=unixepoch() WHERE id=? AND project_id=?').run(code,description,unit,quantity,rate,req.body?.rate===undefined?Number(old.rate_missing||0):0,old.id,req.params.projectId);
+ db.prepare('UPDATE ai_boq_items SET item_code=?,description=?,unit=?,quantity=?,rate=?,rate_missing=?,updated_at=unixepoch() WHERE id=? AND project_id=?').run(code,description,unit,quantity,rate,(rate===null?1:0),old.id,req.params.projectId);
  audit(db,req,'boq_item_updated',old.id,{quantity,rate});
  res.json({item:itemView(db.prepare('SELECT * FROM ai_boq_items WHERE id=?').get(old.id))});
 }));
