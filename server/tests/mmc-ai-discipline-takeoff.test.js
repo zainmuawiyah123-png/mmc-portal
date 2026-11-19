@@ -39,3 +39,21 @@ test('unknown and annotation layers are not promoted into quantity proposals', (
   assert.equal(classifyLayer('DIM-TEXT').basis, 'excluded');
   assert.equal(classifyLayer('MYSTERY_LAYER').discipline, 'unclassified');
 });
+
+test('wall quantities remain incomplete until project dimensions are supplied', () => {
+  const measured = takeoffDxf(dxf(['0','LINE','8','A-WALL','10','0','20','0','11','4','21','0'].join('\\n')));
+  const classified = measured.rows.map(row => {
+    const c = classifyLayer(row.layer);
+    return { ...row, discipline: c.discipline, disciplineCategory: c.category, disciplineBasis: c.basis, disciplineSource: c.source };
+  });
+  const missing = proposeDisciplineQuantities(classified);
+  assert.equal(missing.results[0].status, 'incomplete');
+  const supplied = proposeDisciplineQuantities(classified, {
+    byCategory: { walls: { heightM: 3, thicknessMm: 200 } }
+  });
+  const wall = supplied.results.find(x => x.category === 'walls');
+  assert.equal(wall.status, 'proposed');
+  assert.equal(wall.proposed.find(x => x.key === 'grossAreaM2').value, 12);
+  assert.equal(wall.proposed.find(x => x.key === 'netVolumeM3').value, 2.4);
+  assert.equal(wall.approvalEligible, false);
+});
