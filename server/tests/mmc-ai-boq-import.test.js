@@ -284,3 +284,32 @@ test('skips discipline headings but retains incomplete referenced BOQ items for 
   assert.equal(result.errors.length, 1);
   assert.equal(result.errors[0].source.itemCode, 'A/1');
 });
+
+
+test('preserves workbook sheet names and original row numbers in parsed BOQ items', () => {
+  const sheet = '<worksheet><sheetData>' +
+    '<row r="7"><c r="A7" t="inlineStr"><is><t>الرقم</t></is></c><c r="B7" t="inlineStr"><is><t>نوع العمل</t></is></c><c r="C7" t="inlineStr"><is><t>وحدة</t></is></c><c r="D7" t="inlineStr"><is><t>الكمية</t></is></c></row>' +
+    '<row r="8"><c r="C8" t="inlineStr"><is><t>الكيل</t></is></c><c r="E8" t="inlineStr"><is><t>دينار</t></is></c><c r="F8" t="inlineStr"><is><t>دينار</t></is></c></row>' +
+    '<row r="19"><c r="A19" t="inlineStr"><is><t>A/1</t></is></c><c r="B19" t="inlineStr"><is><t>بند مدني تجريبي</t></is></c><c r="C19" t="inlineStr"><is><t>متر مربع</t></is></c><c r="D19"><v>12</v></c><c r="E19"><v>25</v></c><c r="F19"><v>300</v></c></row>' +
+    '</sheetData></worksheet>';
+  const buffer = makeStoredZip({
+    'xl/workbook.xml': '<workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="الأعمال المدنية" sheetId="1" r:id="rId1"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels': '<Relationships><Relationship Id="rId1" Type="worksheet" Target="worksheets/sheet1.xml"/></Relationships>',
+    'xl/worksheets/sheet1.xml': sheet
+  });
+  const result = parseBoqFile({ buffer, filename: 'source-provenance.xlsx' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].sourceSheet, 'الأعمال المدنية');
+  assert.equal(result.items[0].rowNumber, 19);
+  assert.equal(result.items[0].sourceAmount, 300);
+  assert.deepEqual(result.sourceSheets, ['الأعمال المدنية']);
+});
+
+test('flags a description that says linear metres while the table unit is square metres', () => {
+  const csv = 'الرقم,نوع العمل,وحدة,الكمية,السعر,المبلغ\nK,توريد بازلت كمية الجبه بالمتر الطولي قريبا 53 متر,متر مربع,45,25,1125\n';
+  const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'unit-conflict.csv' });
+  assert.equal(result.items.length, 1);
+  assert.ok(result.items[0].validationIssues.some(x => x.includes('الوصف يشير إلى متر طولي')));
+  assert.equal(result.items[0].quantity, 45);
+  assert.equal(result.items[0].unit, 'متر مربع');
+});
