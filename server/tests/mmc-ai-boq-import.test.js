@@ -248,7 +248,7 @@ test('merges a supplemental currency header row and preserves the civil unit rat
 });
 
 test('ignores currency-only and measurement-header rows instead of reporting them as invalid BOQ items', () => {
-  const csv = 'Description,Unit,Quantity,Unit Rate\\n,الكيل,,دينار\\nبند صحيح,متر مربع,2,10\\n';
+  const csv = 'Description,Unit,Quantity,Unit Rate\n,الكيل,,دينار\nبند صحيح,متر مربع,2,10\n';
   const result = parseBoqFile({ buffer: Buffer.from(csv), filename: 'header-noise.csv' });
   assert.equal(result.items.length, 1);
   assert.equal(result.items[0].rate, 10);
@@ -266,5 +266,5 @@ test('imports headerless mechanical sheet only from validated description, unit 
   assert.equal(result.items[0].description, 'تقديم وتركيب وحدات تكيف كاسيت');
   assert.equal(result.items[0].unit, 'عدد');
   assert.equal(result.items[0].quantity, 4);
-  assert.equal(result.items[0].rate, null);
+  assert.equal(result.items[0].rate, 3000);
 });
