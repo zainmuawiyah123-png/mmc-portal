@@ -193,3 +193,32 @@ test('imports a headerless mechanical BOQ row only when description, known unit 
   assert.equal(result.items[0].rate, 3000);
   assert.equal(result.warnings[0].code, 'HEADERLESS_LAYOUT_INFERRED');
 });
+
+test('recognizes all unit labels present in the guesthouse BOQ workbook', () => {
+  const { normalizeUnit } = require('../src/lib/mmc-ai/boq-import');
+  const cases = [
+    ['متر مربع','m2'], ['بالمتر المربع','m2'], ['متر طولي','m'],
+    ['بالمتر الطولي','m'], ['بالعدد','nr'], ['عدد','nr'],
+    ['مقطوع','ls'], ['متر مكعب','m3']
+  ];
+  for (const [raw, expected] of cases) {
+    const actual = normalizeUnit(raw);
+    assert.equal(actual.known, true, raw);
+    assert.equal(actual.unit, expected, raw);
+    assert.equal(actual.raw, raw, raw);
+  }
+});
+
+test('recognizes Arabic civil tender split heading where work type is on first row', () => {
+  const rows = [
+    ['الرقم','نوع العمل','',''],
+    ['A','أعمال الهدم والإزالة','الوحدة','الكميــة'],
+    ['A\\1','هدم وقص السور','مقطوع',1],
+    ['المجموع','','','1']
+  ];
+  const result = normalizeRows(rows);
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].description, 'أعمال الهدم والإزالة');
+  assert.equal(result.items[0].unit, 'الوحدة');
+  assert.equal(result.items[0].quantity, 1);
+});
