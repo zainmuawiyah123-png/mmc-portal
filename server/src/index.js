@@ -169,6 +169,13 @@ function createApp() {
     return sendFromWeb('tender-opportunities/index.html', res, next);
   });
 
+  // Route every MMC AI entry from the legacy portal to the current independent MMC AI workspace.
+  // Keep the legacy portal and its data untouched; only the MMC AI destination changes.
+  app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res) => {
+    return res.redirect(302, 'https://mmc-ai-staging.onrender.com/mmc-ai/index.html?page=dashboard');
+  });
+
+
   app.use(express.static(WEB_ROOT, {
     extensions: ['html'],
     setHeaders: (res, filePath) => {
@@ -220,13 +227,6 @@ function createApp() {
   app.get(['/admin', '/admin/', '/admin/index.html'], (req, res, next) => sendFromWeb('admin/index.html', res, next));
   app.get(['/consultant', '/consultant/', '/consultant/index.html'], (req, res, next) => sendFromWeb('consultant/index.html', res, next));
   app.get(['/org', '/org/', '/org/index.html'], (req, res, next) => sendFromWeb('org/index.html', res, next));
-
-  // Route every MMC AI entry from the legacy portal to the current independent MMC AI workspace.
-  // Keep the legacy portal and its data untouched; only the MMC AI destination changes.
-  app.get(['/mmc-ai', '/mmc-ai/', '/mmc-ai/index.html'], (req, res) => {
-    return res.redirect(302, 'https://mmc-ai-staging.onrender.com/mmc-ai/index.html?page=dashboard');
-  });
-
 
   app.get(/^\/portal(\/.*)?$/, (req, res, next) => {
     let rel = req.path.replace(/^\/portal\/?/, '') || 'pt-9f3c7a1e5b2d/login.html';
