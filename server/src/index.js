@@ -54,7 +54,8 @@ function createApp() {
   // ترويسات أمان أساسية
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    // Allow the MMC AI workspace to be embedded only by the official MMC Ecosystem site.
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://mmc-ecosystem-website.onrender.com");
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
     next();
