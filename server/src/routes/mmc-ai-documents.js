@@ -136,9 +136,9 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  if(shouldOcr){
   try{
    ocr=await ocrPdf(bytes,{maxPages:req.body?.maxPages||20,dpi:req.body?.dpi||180});
-   const recognized=ocr.pages.map(page=>'[OCR PAGE '+page.page+']\\n'+page.text).join('\\n');
+   const recognized=ocr.pages.map(page=>'[OCR PAGE '+page.page+']\n'+page.text).join('\n');
    const confidencePages=ocr.pages.filter(page=>Number.isFinite(page.averageConfidence));
-   extraction={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\\n'),
+   extraction={...extraction,text:[extraction.text,recognized].filter(Boolean).join('\n'),
     characterCount:extraction.characterCount+recognized.length,ocrEngine:ocr.engine,ocrPerformed:true,
     ocrPageCount:ocr.pagesProcessed,
     ocrAverageConfidence:confidencePages.length?Number((confidencePages.reduce((sum,page)=>sum+page.averageConfidence,0)/confidencePages.length).toFixed(2)):null,
