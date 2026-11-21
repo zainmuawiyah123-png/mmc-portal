@@ -93,6 +93,20 @@ router.get('/directory',wrap(async(req,res)=>{
   const rows=getDB().prepare(sql).all(...args);
   res.json({vendors:rows.map(p=>profileShape(p,false)),count:rows.length});
 }));
+/* Bank details are disclosed only to the owning procurement entity after its own approval, and only to finance/management roles. */
+router.get('/payment-details/:vendorId',wrap(async(req,res)=>{
+  if(req.user.role!=='buyer') throw E.forbidden('بيانات الدفع متاحة للجهة المشترية فقط.');
+  const m=O.ensureOrg(req.user);
+  if(!m||!['manager','finance'].includes(m.role)) throw E.forbidden('بيانات الدفع متاحة للمدير أو موظف المالية المخول فقط.');
+  const q=getDB().prepare(`SELECT q.id,q.status,v.id vendor_id,v.legal_name,v.bank_details_enc
+    FROM vendor_entity_qualifications q JOIN vendor_profiles v ON v.id=q.vendor_id
+    WHERE q.vendor_id=? AND q.entity_type='procurement_org' AND q.entity_id=? AND q.status='approved'
+    ORDER BY q.updated_at DESC LIMIT 1`).get(clip(req.params.vendorId,100),m.org_id);
+  if(!q) throw E.notFound('لا توجد موافقة اعتماد سارية لهذا المورد لدى جهتكم.');
+  res.setHeader('Cache-Control','no-store');
+  audit({action:'vendor_bank_details_viewed',entity:'vendor_profile',entityId:q.vendor_id,userId:req.user.id,ip:req.ip});
+  res.json({vendorId:q.vendor_id,legalName:q.legal_name,bankDetails:decryptBank(q.bank_details_enc)});
+}));
 router.get('/qualifications',wrap(async(req,res)=>{
   const entity=resolveEntity(req),rows=getDB().prepare(`SELECT q.*,v.legal_name,v.country,v.registration_number,v.contact_email,v.contact_phone FROM vendor_entity_qualifications q JOIN vendor_profiles v ON v.id=q.vendor_id WHERE q.entity_type=? AND q.entity_id=? ORDER BY q.updated_at DESC`).all(entity.type,entity.id);
   res.json({qualifications:rows});
