@@ -93,7 +93,7 @@ function card(o){var d=daysLeft(o),u=urg(d),closed=o.status==='closed'||(d!=null
 
 function drawGrid(){$('#grid').innerHTML=items.map(card).join('')||'<div class="empty" style="grid-column:1/-1">'+(S.saved?T('لا توجد عطاءات محفوظة بعد. اضغط ☆ على أي عطاء لحفظه.','No saved tenders yet. Press ☆ on any tender to save it.'):T('لا توجد عطاءات مطابقة. جرّب توسيع الفلاتر أو إعادة الضبط.','No matching tenders. Try widening the filters or reset.'))+'</div>';
  // Bind each freshly-rendered button directly. This avoids delegated-click failures after grid redraws.
- $('#grid').querySelectorAll('[data-det]').forEach(function(b){b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();detail(b.getAttribute('data-det'));});});
+ $('#grid').querySelectorAll('[data-det]').forEach(function(b){b.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()}var id=this.getAttribute('data-det');detail(id);return false;};});
  $('#grid').querySelectorAll('[data-prep]').forEach(function(b){b.onclick=function(){prepare(b.dataset.prep,b)}});$('#grid').querySelectorAll('[data-star]').forEach(function(b){b.onclick=function(){star(b.dataset.star)}})}
 function find(id){return items.filter(function(x){return x.id===id})[0]}
 function star(id){var o=find(id);if(!o)return;var was=o.saved;o.saved=!was;API.request(was?'DELETE':'POST','/opportunities/'+encodeURIComponent(id)+'/save').then(function(){if(S.saved&&was){load()}else{if(meta.stats)meta.stats.saved+=was?-1:1;drawStats();drawGrid()}}).catch(function(e){o.saved=was;note(e.message,'warn');drawGrid()})}
