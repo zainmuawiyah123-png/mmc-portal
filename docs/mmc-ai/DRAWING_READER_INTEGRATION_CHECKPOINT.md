@@ -8,11 +8,11 @@ Updated: 2026-11-21
 - Live URL: https://mmc-ai-staging.onrender.com/mmc-ai/index.html
 - Render service ID: `srv-dbqmo2m7bikc73aij5e0`
 - Render workspace ID: `tea-daslaiou01pc73cfa99g`
-- Current Render deployment: `dep-dc0bln4s728c738eknf0`
-- Current live commit: `d98d0ab99366114fd5a1c66569b0a3f9309a5c32`
+- Current Render deployment: `dep-dc0p44u1egvs738kgppg` (status `live`, verified 2026-11-21 12:45 UTC)
+- Current live commit: `51a484c215fc6dd4520922d0f722d0be7fb40ecd`
 - Current live source branch: `feature/mmc-ai-boq-import-foundation`
 - Current UI file: `webpages/technical-proposal-kit_v5/mmc-ai/index.html`
-- Current UI blob SHA: `47bc6eda19ad0c09d108cded1c5591c43bdde177`
+- Current UI file: `webpages/technical-proposal-kit_v5/mmc-ai/index.html` (contains `Read Drawing (OCR + Evidence)` action)
 
 ## Drawing-engine source work — preserve, do not overwrite
 
@@ -29,6 +29,16 @@ The drawing-reader source branch and the currently deployed branch are heavily d
 ## Verified current gap
 
 The live branch's `server/src/routes/mmc-ai-documents.js` stores uploaded documents but does not run automatic drawing analysis. The drawing-reader source branch has a richer document route and supporting modules, but its automatic PDF result still explicitly withholds quantities and 3D output in cases without verified geometry. Its OCR/evidence collection must not be described as a completed universal takeoff engine.
+
+## Latest staging deployment — important limitation
+
+- Render service branch remains `feature/mmc-ai-boq-import-foundation`; auto-deploy is disabled, so deploys are triggered explicitly.
+- Latest deployment `dep-dc0p44u1egvs738kgppg` is live; its Docker build completed successfully.
+- Added OCR runtime (Tesseract Arabic + English and Poppler), authenticated PDF drawing-text endpoint, persistent analysis/audit rows, and a separate UI action.
+- **This is not an engineering takeoff.** The endpoint currently extracts text/OCR clues, title-block candidates, dimension annotations and their OCR pixel boxes. It explicitly does not reconstruct drawing geometry, calibrate scale, calculate quantities or create a 3D model.
+- Upload currently only stores the document and explicitly reports “Engineering analysis has not started yet.” Preflight only checks PDF integrity. The new “Read Drawing (OCR + Evidence)” action must be invoked separately on a signed-in project document; it is not automatically run on upload.
+- The user has shown a preflight-only result for a 7.29 MB, 20-page PDF. That result confirms no engineering analysis has yet been run. Dashboard text “Project data appears after account sign-in” / “No live project data in this preview” also indicates the shown dashboard state is not presenting authenticated live project data.
+- The user is dissatisfied because the requested automatic drawing analysis and quantity takeoff are still not delivered. Do not claim otherwise.
 
 ## Next implementation sequence
 
