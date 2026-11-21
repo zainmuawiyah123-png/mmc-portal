@@ -83,6 +83,25 @@ router.post('/me',wrap(async(req,res)=>{
   audit({action:old?'vendor_profile_updated':'vendor_profile_submitted',entity:'vendor_profile',entityId:id,userId:req.user.id,ip:req.ip});
   res.status(old?200:201).json({profile:profileShape(db.prepare('SELECT * FROM vendor_profiles WHERE id=?').get(id),true),message:'تم حفظ الملف المركزي. الاعتماد لدى كل جهة يتم بصورة مستقلة.'});
 }));
+router.get('/contractors',wrap(async(req,res)=>{
+  if(req.user.role!=='admin') resolveEntity(req); // buyer manager/procurement only
+  const q=clip(req.query.q,120),specialty=clip(req.query.specialty,120),city=clip(req.query.city,100);
+  let sql=`SELECT v.* FROM vendor_profiles v JOIN users u ON u.id=v.user_id
+    WHERE v.profile_status IN ('submitted','verified')
+    AND (u.role='contractor' OR EXISTS (SELECT 1 FROM json_each(v.entity_types_json) WHERE value='contractor'))`;
+  const args=[];
+  if(q){sql+=` AND (v.legal_name LIKE ? OR v.trading_name LIKE ? OR v.registration_number LIKE ? OR v.contact_name LIKE ?)`;args.push('%'+q+'%','%'+q+'%','%'+q+'%','%'+q+'%');}
+  if(specialty){sql+=` AND v.specializations_json LIKE ?`;args.push('%'+specialty+'%');}
+  if(city){sql+=` AND v.city LIKE ?`;args.push('%'+city+'%');}
+  sql+=' ORDER BY v.legal_name LIMIT 200';
+  const rows=getDB().prepare(sql).all(...args);
+  res.setHeader('Cache-Control','no-store');
+  res.json({contractors:rows.map(p=>({id:p.id,legalName:p.legal_name,tradingName:p.trading_name,country:p.country,city:p.city,address:p.address,
+    registrationNumber:p.registration_number,website:p.website,contactName:p.contact_name,contactEmail:p.contact_email,contactPhone:p.contact_phone,
+    specializations:JSON.parse(p.specializations_json||'[]'),experienceSummary:p.experience_summary,profileStatus:p.profile_status,
+    classification:null,classificationStatus:'not_verified_from_official_source'})),count:rows.length,
+    notice:'هذه الشركات المسجلة في دليل MMC فقط. التصنيف الرسمي يجب التحقق منه لدى النقابة ودائرة العطاءات الحكومية.'});
+}));
 router.get('/directory',wrap(async(req,res)=>{
   const q=clip(req.query.q,120),country=clip(req.query.country,2).toUpperCase(),kind=clip(req.query.type,40);
   let sql=`SELECT * FROM vendor_profiles WHERE profile_status IN ('submitted','verified')`,args=[];
