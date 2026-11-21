@@ -8,8 +8,8 @@ Updated: 2026-11-21
 - Live URL: https://mmc-ai-staging.onrender.com/mmc-ai/index.html
 - Render service ID: `srv-dbqmo2m7bikc73aij5e0`
 - Render workspace ID: `tea-daslaiou01pc73cfa99g`
-- Current Render deployment: `dep-dc0p44u1egvs738kgppg` (status `live`, verified 2026-11-21 12:45 UTC)
-- Current live commit: `51a484c215fc6dd4520922d0f722d0be7fb40ecd`
+- Current Render deployment: `dep-dc0qk1u1egvs738otgd0` (status `live`, verified 2026-11-21 14:26 UTC)
+- Current live commit: `7f49e42df4223d445debce929185d93ed0e7bc3a`
 - Current live source branch: `feature/mmc-ai-boq-import-foundation`
 - Current UI file: `webpages/technical-proposal-kit_v5/mmc-ai/index.html`
 - Current UI file: `webpages/technical-proposal-kit_v5/mmc-ai/index.html` (contains `Read Drawing (OCR + Evidence)` action)
@@ -81,3 +81,15 @@ The live branch's `server/src/routes/mmc-ai-documents.js` stores uploaded docume
 - Commits: `5c55c27ac2fd976ed2a54a02b5786aa53b8eddd1` (route), `cbdfaf3656f7c1449b1c1a4d9b130fe2c4d9aa57` (UI), `00b953b8fd27a9715344357543f544f70633c250` (test).
 - Render deploy: `dep-dc0peue7bikc73bgevq0`; Docker test gate reported 68 tests passed, 0 failed. At checkpoint time deploy status was `update_in_progress`; do not claim the new UI is live until Render reports `live`.
 - This is a manually invoked, single-page vector extraction step. It is not automatic full-document drawing interpretation, scale-calibrated measurement, discipline classification, BOQ takeoff or 3D model generation.
+
+
+## 2026-11-21 — Live project dashboard KPI binding
+
+- Corrected the four legacy dashboard KPI cards that previously remained hard-coded as em dashes / “No live project data in this preview” even when a signed-in user had selected a project and loaded its documents.
+- The project list now supplies the active-project count. The selected-project dashboard API now includes the count of distinct documents with saved analysis records, the count of saved PDF vector page analyses, and a compact summary of the latest vector analysis (page, path count, closed path count, calibration flag and status).
+- The selected-project UI now binds BOQ item count and recorded engineering alerts (critical risks + open BIM issues) to the secured dashboard response. It labels vector extraction separately and explicitly says it is not verified quantity takeoff.
+- Completing a vector geometry extraction refreshes the dashboard KPIs immediately.
+- Existing project membership checks remain in place; no public data endpoint, project mutation, BOQ write or file-storage behavior was added by this change.
+- Commits: `b9c2f0d97083ae49ee581c7264a6dfa444079e01` (dashboard API), `14a7a474212b99f23eabe674b34e8d3e52385187` (UI), `7f49e42df4223d445debce929185d93ed0e7bc3a` (regression test).
+- Render deploy: `dep-dc0qk1u1egvs738otgd0`, status `live`; Docker build test gate reported 69 tests passed, 0 failed.
+- Remaining: validate the live dashboard with the signed-in user's existing project session; then implement page-level correlation between vector geometry and native/OCR text evidence. Do not treat distinct analysed documents as quantities or infer scale from vector/page dimensions.
