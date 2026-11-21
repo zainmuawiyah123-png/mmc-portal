@@ -1459,7 +1459,14 @@ function upgradeVendorServiceProviderRegistry(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_vendor_qualification_events ON vendor_qualification_events(qualification_id,created_at DESC);
   `);
-}
+  const sources = [
+    ['jcca-jo','JO','contractors_association','Jordanian Construction Contractors Association','https://www.jcca.org.jo/','public_directory',['company name','membership number','manager','phone','mobile','field','specialty','class','branch','contractor classification'],'The official website exposes a contractor database search form. Automated API access is not confirmed; begin with permitted directory lookup and request formal integration.'],
+    ['jea-jo','JO','engineers_syndicate','Jordan Engineers Association - Offices and Engineering Companies Authority','https://www.jea.org.jo/EN/Pages/About_the_Companies_and_Engineering_Offices_Authority','public_directory',['engineering office/company name','office category','rank','registered specialties','professional status'],'Official Authority for Offices and Engineering Companies; verify office status and classification with the Association. Automated API access is not confirmed.']
+  ];
+  const insertSource=db.prepare(`INSERT INTO vendor_directory_sources (id,country,source_type,source_name,source_url,access_mode,integration_status,fields_available_json,access_notes)
+    VALUES (?,?,?,?,?,?, 'identified',?,?) ON CONFLICT(country,source_type,source_name) DO UPDATE SET source_url=excluded.source_url,fields_available_json=excluded.fields_available_json,access_notes=excluded.access_notes,updated_at=unixepoch()`);
+  sources.forEach(s=>insertSource.run(s[0],s[1],s[2],s[3],s[4],s[5],JSON.stringify(s[6]),s[7]));
+}}
 
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
