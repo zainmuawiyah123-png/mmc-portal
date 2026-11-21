@@ -31,7 +31,7 @@ test('creates page-level engineering candidates while refusing unverified quanti
   {page:1,text:'DRAWING NO S-101 REV B',confidence:97,box:{left:1450,top:1800,width:360,height:30},coordinateSpace:'aligned_svg_page_normalized_2000px'},
   {page:1,text:'DETAIL 3/S-501',confidence:93,box:{left:1200,top:700,width:180,height:25},coordinateSpace:'aligned_svg_page_normalized_2000px'}
  ];
- const result=analyzeSpatialPageEvidence(lines,{maxDistancePx:160});
+ const result=analyzeSpatialPageEvidence(lines,{maxDistancePx:160,pageBounds:{width:2000,height:2000}});
  assert.ok(result.elements.some(item=>item.elementFamilyCandidate==='footing'));
  assert.ok(result.dimensions.some(item=>item.kind==='dimension_pair'));
  assert.ok(result.scaleCandidates.some(item=>item.raw.includes('1:100')));
