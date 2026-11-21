@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {analyzePdfDrawingText}=require('../src/lib/mmc-ai/pdf-drawing-text-intelligence');
+const {analyzePdfDrawingText,analyzeSpatialPageEvidence}=require('../src/lib/mmc-ai/pdf-drawing-text-intelligence');
 
 test('extracts drawing text clues without turning them into quantities',()=>{
  const result=analyzePdfDrawingText({
@@ -21,4 +21,22 @@ test('does not invent scale or quantities when the drawing has no explicit scale
  assert.deepEqual(result.metadata.textualScaleCandidates,[]);
  assert.ok(['text_clues_found','insufficient_text_clues'].includes(result.status));
  assert.ok(result.unresolved.some(x=>x.includes('No engineering element classification')));
+});
+
+test('creates page-level engineering candidates while refusing unverified quantities',()=>{
+ const lines=[
+  {page:1,text:'FOOTING F1',confidence:96,box:{left:900,top:500,width:180,height:28},coordinateSpace:'aligned_svg_page_normalized_2000px'},
+  {page:1,text:'2000 x 2000 x 500 mm',confidence:94,box:{left:905,top:545,width:240,height:26},coordinateSpace:'aligned_svg_page_normalized_2000px'},
+  {page:1,text:'SCALE 1:100',confidence:98,box:{left:1500,top:1750,width:140,height:24},coordinateSpace:'aligned_svg_page_normalized_2000px'},
+  {page:1,text:'DRAWING NO S-101 REV B',confidence:97,box:{left:1450,top:1800,width:360,height:30},coordinateSpace:'aligned_svg_page_normalized_2000px'},
+  {page:1,text:'DETAIL 3/S-501',confidence:93,box:{left:1200,top:700,width:180,height:25},coordinateSpace:'aligned_svg_page_normalized_2000px'}
+ ];
+ const result=analyzeSpatialPageEvidence(lines,{maxDistancePx:160});
+ assert.ok(result.elements.some(item=>item.elementFamilyCandidate==='footing'));
+ assert.ok(result.dimensions.some(item=>item.kind==='dimension_pair'));
+ assert.ok(result.scaleCandidates.some(item=>item.raw.includes('1:100')));
+ assert.ok(result.titleBlockCandidates.length>0);
+ assert.ok(result.detailReferenceCandidates.some(item=>item.raw.includes('DETAIL')));
+ assert.equal(result.elements[0].measurementEligible,false);
+ assert.ok(result.limitations.some(item=>item.includes('No quantity')));
 });
