@@ -89,6 +89,14 @@ router.get('/projects/:projectId/dashboard',wrap(async(req,res)=>{
  const photos=db.prepare('SELECT COUNT(*) AS total FROM ai_project_images WHERE project_id=?').get(pid);
  const bimModels=db.prepare('SELECT COUNT(*) AS total FROM ai_bim_models WHERE project_id=?').get(pid);
  const takeoff=db.prepare("SELECT COUNT(*) AS runs,MAX(created_at) AS last_run FROM ai_takeoff_runs WHERE project_id=?").get(pid);
+ const analyses=db.prepare('SELECT document_id,analysis_type,result_json,created_at FROM ai_document_analyses WHERE project_id=? ORDER BY created_at DESC').all(pid);
+ const analyzedDocuments=new Set(analyses.map(x=>x.document_id)).size;
+ const vectorAnalyses=analyses.filter(x=>x.analysis_type==='pdf_vector_geometry');
+ let latestVector=null;
+ if(vectorAnalyses.length){
+  try{const parsed=JSON.parse(vectorAnalyses[0].result_json||'{}');latestVector={pageNumber:parsed.pageNumber??null,pathCount:parsed.geometry?.pathCount??0,closedPathCount:(parsed.geometry?.paths||[]).filter(p=>p.closed).length,calibrated:Boolean(parsed.calibrated),status:parsed.status||null,createdAt:vectorAnalyses[0].created_at};}
+  catch(_){latestVector={pageNumber:null,pathCount:0,closedPathCount:0,calibrated:false,status:'stored_result_unreadable',createdAt:vectorAnalyses[0].created_at};}
+ }
  const tasks=db.prepare('SELECT * FROM ai_schedule_tasks WHERE project_id=?').all(pid);
  let cpm={projectDuration:0,criticalTaskCount:0};
  if(tasks.length){const {calculateCriticalPath}=require('../lib/mmc-ai/schedule-engine');cpm=calculateCriticalPath(tasks.map(t=>({...t,predecessors:JSON.parse(t.predecessors_json||'[]')})));}
@@ -96,7 +104,7 @@ router.get('/projects/:projectId/dashboard',wrap(async(req,res)=>{
  const progress=totalDuration?Number((tasks.reduce((s,t)=>s+Number(t.duration_days||0)*Number(t.percent_complete||0),0)/totalDuration).toFixed(1)):0;
  const completedTasks=tasks.filter(t=>t.status==='completed').length,blockedTasks=tasks.filter(t=>t.status==='blocked').length,inProgressTasks=tasks.filter(t=>t.status==='in_progress').length;
  res.setHeader('Cache-Control','no-store');
- res.json({project:{id:pid,name:m.name,country:m.country,currency:m.currency,status:m.status},summary:{boqItems:boq.count,estimatedCost:Number(boq.total||0),scheduleTasks:tasks.length,completedTasks,blockedTasks,inProgressTasks,projectDurationWorkingDays:cpm.projectDuration,criticalTasks:cpm.criticalTaskCount,averageTaskProgress:progress,risks:risks.total||0,criticalRisks:risks.critical||0,activeRisks:risks.active||0,contractEvents:events.total||0,recordedTimeImpactDays:events.time_days||0,recordedCostImpact:Number(events.cost_total||0),documents:docs.total||0,bimModels:bimModels.total||0,bimIssues:bim.total||0,openBimIssues:bim.open||0,criticalBimIssues:bim.critical||0,sitePhotos:photos.total||0,takeoffRuns:takeoff.runs||0,lastTakeoffAt:takeoff.last_run||null}});
+ res.json({project:{id:pid,name:m.name,country:m.country,currency:m.currency,status:m.status},summary:{boqItems:boq.count,estimatedCost:Number(boq.total||0),scheduleTasks:tasks.length,completedTasks,blockedTasks,inProgressTasks,projectDurationWorkingDays:cpm.projectDuration,criticalTasks:cpm.criticalTaskCount,averageTaskProgress:progress,risks:risks.total||0,criticalRisks:risks.critical||0,activeRisks:risks.active||0,contractEvents:events.total||0,recordedTimeImpactDays:events.time_days||0,recordedCostImpact:Number(events.cost_total||0),documents:docs.total||0,drawingsAnalyzed:analyzedDocuments,vectorAnalysisRuns:vectorAnalyses.length,latestVectorAnalysis:latestVector,bimModels:bimModels.total||0,bimIssues:bim.total||0,openBimIssues:bim.open||0,criticalBimIssues:bim.critical||0,sitePhotos:photos.total||0,takeoffRuns:takeoff.runs||0,lastTakeoffAt:takeoff.last_run||null}});
 }));
 router.get('/projects/:projectId',wrap(async(req,res)=>{
   const m=requireMember(req);
