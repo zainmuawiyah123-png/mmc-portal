@@ -18,7 +18,7 @@ test('extracts drawing text clues without turning them into quantities',()=>{
 
 test('does not invent scale or quantities when the drawing has no explicit scale',()=>{
  const result=analyzePdfDrawingText({engine:'test',pageCount:1,characterCount:45,text:'GROUND FLOOR PLAN\nFOUNDATION LAYOUT'}, {});
- assert.deepEqual(result.metadata.scales,[]);
+ assert.deepEqual(result.metadata.textualScaleCandidates,[]);
  assert.ok(['text_clues_found','insufficient_text_clues'].includes(result.status));
  assert.ok(result.unresolved.some(x=>x.includes('No engineering element classification')));
 });
