@@ -1108,8 +1108,8 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
      }catch(err){notify(err.message);}finally{vectorRead.disabled=false;vectorRead.textContent='Extract Vector Geometry (Page 1)';}});
      actions.appendChild(vectorRead);
      const drawingRead=document.createElement('button');drawingRead.type='button';drawingRead.textContent='Read Drawing (OCR + Evidence)';drawingRead.style.cssText='border:1px solid #8fb6d8;border-radius:7px;padding:7px 10px;background:#edf5fc;color:#245477;font-size:10px;cursor:pointer';
-     drawingRead.addEventListener('click',async()=>{drawingRead.disabled=true;drawingRead.textContent='Reading drawing...';try{
-      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({maxPages:20,dpi:180})});
+     drawingRead.addEventListener('click',async()=>{drawingRead.disabled=true;drawingRead.textContent='Reading drawing...';const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),90000);try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({maxPages:20,dpi:180}),signal:controller.signal});
       const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Drawing analysis failed.');
       const analysis=data.analysis||{},meta=analysis.metadata||{},evidence=analysis.evidence||{},ocr=data.ocr||{},output=document.getElementById('takeoffResult');output.replaceChildren();
       const heading=document.createElement('strong');heading.textContent='Drawing Reading Evidence — Not a Quantity Takeoff';heading.style.cssText='display:block;color:#31536f;margin-bottom:8px';
@@ -1118,7 +1118,7 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
       const unresolved=document.createElement('ul');unresolved.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';for(const item of (analysis.unresolved||[])){const li=document.createElement('li');li.textContent=item;unresolved.appendChild(li);}
       const note=document.createElement('p');note.textContent='Saved analysis ID: '+data.analysisId+' · No quantities or 3D model were generated. Scale and geometry remain unverified.';
       output.append(heading,summary,clues,unresolved,note);await loadExecutiveDashboard(id);notify('Drawing text, page geometry and spatial evidence saved; no quantities were assumed.');
-     }catch(err){notify(err.message);}finally{drawingRead.disabled=false;drawingRead.textContent='Read Drawing (OCR + Evidence)';}});
+     }catch(err){notify(err.name==='AbortError'?'Drawing analysis timed out after 90 seconds. The stored PDF was not changed; retry after the analysis worker is available.':err.message);}finally{clearTimeout(timeout);drawingRead.disabled=false;drawingRead.textContent='Read Drawing (OCR + Evidence)';}});
      actions.appendChild(drawingRead);
      const pdfTake=document.createElement('button');
 pdfTake.type='button';pdfTake.textContent='PDF Concrete + Rebar Takeoff (Pilot)';pdfTake.style.cssText='border:1px solid #b9d6c8;border-radius:7px;padding:7px 10px;background:#eef8f2;color:#17623e;font-size:10px;cursor:pointer';
