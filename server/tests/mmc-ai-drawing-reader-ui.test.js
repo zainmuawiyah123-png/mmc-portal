@@ -9,5 +9,5 @@ test('MMC AI document list exposes a separate saved drawing text and OCR evidenc
  assert.ok(html.includes("drawingRead.textContent='Read Drawing (OCR + Evidence)'"));
  assert.ok(html.includes("/analyze/drawing-text"));
  assert.ok(html.includes("No quantities or 3D model were generated."));
- assert.ok(html.includes("scale and geometry remain unverified"));
+ assert.ok(html.includes("Scale and geometry remain unverified"));
 });
