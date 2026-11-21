@@ -1485,7 +1485,7 @@ function upgradeVendorServiceProviderRegistry(db) {
   const insertSource=db.prepare(`INSERT INTO vendor_directory_sources (id,country,source_type,source_name,source_url,access_mode,integration_status,fields_available_json,access_notes)
     VALUES (?,?,?,?,?,?, 'identified',?,?) ON CONFLICT(country,source_type,source_name) DO UPDATE SET source_url=excluded.source_url,fields_available_json=excluded.fields_available_json,access_notes=excluded.access_notes,updated_at=unixepoch()`);
   sources.forEach(s=>insertSource.run(s[0],s[1],s[2],s[3],s[4],s[5],JSON.stringify(s[6]),s[7]));
-}}
+}
 
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
