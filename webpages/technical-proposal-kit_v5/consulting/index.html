@@ -5,13 +5,54 @@
 <title>بوابة المكاتب الاستشارية | MMC</title>
 <link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
 <style>
-body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;padding:0 20px}.panel{background:#fff;border:1px solid #dfe6ef;border-radius:13px;padding:22px;margin:16px 0;box-shadow:0 3px 12px rgba(20,40,70,.035)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}label{display:block;font-weight:650;margin:8px 0}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;margin-top:5px}textarea{min-height:90px}.muted{color:#64748b}.status{padding:12px 14px;border-radius:8px;background:#eff6ff;margin:12px 0}.request{border:1px solid #dfe6ef;border-radius:10px;padding:18px;margin:12px 0;background:#fff}.request h3{margin-top:0;color:#17365d}.request form{border-top:1px solid #e2e8f0;margin-top:14px;padding-top:12px}button{cursor:pointer}.mine{padding:10px;background:#f8fafc;border-radius:8px;margin:8px 0}.consult-nav{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #dfe6ef;border-radius:12px;padding:10px;margin:14px 0}.consult-nav a{padding:10px 14px;border-radius:8px;color:#25476d;text-decoration:none;font-weight:700}.consult-nav a:hover{background:#eaf1f8}.statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{background:#fff;border:1px solid #dfe6ef;border-radius:12px;padding:16px}.stat b{display:block;font-size:25px;color:#17365d;margin-top:5px}.eyebrow{color:#9a6a12;font-weight:800}.request h3{font-size:18px}@media(max-width:760px){.statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:0 12px}.panel{padding:16px}}
+body{background:#f3f6fa;color:#172b4d}
+.consult-layout{direction:ltr;display:grid;grid-template-columns:250px minmax(0,1fr);gap:18px;max-width:1560px;margin:0 auto;padding:18px 20px 50px;align-items:start}
+.consult-side{direction:rtl;text-align:right;background:#fff;border:1px solid #dfe6ef;border-radius:10px;padding:12px;position:sticky;top:72px;box-shadow:0 3px 12px rgba(20,40,70,.035)}
+.consult-side-title{font-weight:900;color:#172b4d;padding:8px 10px 12px;border-bottom:1px solid #dfe6ef;margin-bottom:7px}
+.consult-side a{display:block;padding:9px 10px;margin:3px 0;border-radius:7px;color:#52657d;font-weight:700;font-size:12.5px;text-decoration:none}
+.consult-side a:hover,.consult-side a.active{background:#eaf1f8;color:#17365d}
+.wrap{direction:rtl;text-align:right;max-width:none;min-width:0;margin:0;padding:8px 0 50px}
+.panel{background:#fff;border:1px solid #dfe6ef;border-radius:13px;padding:22px;margin:16px 0;box-shadow:0 3px 12px rgba(20,40,70,.035)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+label{display:block;font-weight:650;margin:8px 0}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;margin-top:5px}
+textarea{min-height:90px}.muted{color:#64748b}.status{padding:12px 14px;border-radius:8px;background:#eff6ff;margin:12px 0}
+.request{border:1px solid #dfe6ef;border-radius:10px;padding:18px;margin:12px 0;background:#fff}
+.request h3{margin-top:0;color:#17365d}.request form{border-top:1px solid #e2e8f0;margin-top:14px;padding-top:12px}
+button{cursor:pointer}.mine{padding:10px;background:#f8fafc;border-radius:8px;margin:8px 0}
+.statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{background:#fff;border:1px solid #dfe6ef;border-radius:12px;padding:16px}
+.stat b{display:block;font-size:25px;color:#17365d;margin-top:5px}
+.eyebrow{color:#9a6a12;font-weight:800}.request h3{font-size:18px}
+.plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.plan-card{border:1px solid #dfe6ef;border-radius:12px;padding:18px;background:#fff}
+.plan-price{font-size:26px;font-weight:900;color:#17365d;margin:8px 0}
+.workflow-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.workflow-steps>div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:12px}
+@media(max-width:900px){.consult-layout{grid-template-columns:1fr;padding:10px}.consult-side{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}.consult-side-title{grid-column:1/-1}.wrap{padding:0 2px 35px}}
+@media(max-width:760px){.statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:16px}.workflow-steps{grid-template-columns:1fr}}
+@media(max-width:480px){.consult-side{grid-template-columns:1fr}.plan-grid{grid-template-columns:1fr}}
+html[dir="ltr"] .consult-side,html[dir="ltr"] .wrap{direction:ltr;text-align:left}
 </style></head>
 <body>
 <header class="p-top"><div class="brand"><span class="mark">M</span><span><span>MMC / TenderWise</span><small>Consulting Office Management Portal</small></span></div><div class="spacer"></div><a class="btn ghost" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fconsulting%2F">تسجيل الدخول</a><a class="btn amber" href="/portal/pt-9f3c7a1e5b2d/register.html?role=consultant">تسجيل مكتب استشاري</a><span id="user"></span><button class="btn ghost" id="logout" type="button">خروج</button></header>
-<main class="wrap">
+<div class="consult-layout"><main class="wrap">
  <div class="p-head"><div class="eyebrow">بوابة مستقلة لإدارة المكاتب الاستشارية</div><h1>لوحة إدارة المكتب الاستشاري</h1><p class="muted">إدارة فرص الخدمات الاستشارية المنشورة عبر المنصة، عروض المكتب، العقود، ومتابعة التنفيذ. هذه البوابة مستقلة عن بوابة المقاولين وبوابة الجهة الطالبة.</p></div>
- <nav class="consult-nav"><a href="#dashboard">لوحة التحكم</a><a href="#market">فرص الجهات</a><a href="#firmTenderMarket">سوق عطاءات المكاتب</a><a href="#firmTenderProposalsMine">عروضي للمكاتب</a><a href="#firmTenders">عطاءاتي وطلباتي</a><a href="#myProposals">عروضي للجهات</a><a href="#myContracts">عقودي مع الجهات</a><a href="#firmSubcontracts">التعاقدات الفرعية</a><a href="#firmTeam">فريق المكتب</a><a href="#firmReports">التقارير</a><a href="/vendor-registry/">دليل الموردين ومقدمي الخدمات</a><a href="#existing">ملف المكتب والاشتراك</a></nav>
+ <aside class="consult-side"><div class="consult-side-title">أقسام المكتب الاستشاري</div>
+<a class="active" href="#dashboard">لوحة التحكم</a>
+<a href="#market">فرص الاستشارات لدى الجهات</a>
+<a href="#firmTenderMarket">عطاءات المكاتب الاستشارية فقط</a>
+<a href="#firmTenderProposalsMine">عروضي للمكاتب</a>
+<a href="#firmTenders">إصدار العطاءات والتقييم والترسية</a>
+<a href="#myProposals">عروضي للجهات</a>
+<a href="#myContracts">العقود ومتابعة التنفيذ</a>
+<a href="#firmSubcontracts">التعاقدات الاستشارية الفرعية</a>
+<a href="#financeWorkflow">أوامر الشراء والفواتير والمدفوعات</a>
+<a href="/vendor-registry/">سجل الموردين ومقدمي الخدمات</a>
+<a href="#firmTeam">فريق المكتب والصلاحيات</a>
+<a href="#firmReports">التقارير</a>
+<a href="#existing">ملف المكتب والتحقق</a>
+<a href="#plans">الباقات والاشتراك</a></aside>
  <section id="dashboard" class="statgrid"><div class="stat">الفرص الاستشارية المتاحة<b id="statOpen">—</b></div><div class="stat">العروض المقدمة<b id="statProposals">—</b></div><div class="stat">العقود المسندة<b id="statContracts">—</b></div><div class="stat">الاشتراك الاحترافي<b>20 USD / شهر</b></div></section>
  <div id="message" class="status">جارٍ تحميل بيانات الحساب…</div>
  <section id="existing" class="panel" hidden><h2>ملف المكتب الاستشاري</h2><h3 id="firmName"></h3><p id="firmInfo"></p><p id="firmStatus" class="status"></p><p class="muted">الباقة الاحترافية: 20 USD شهرياً. أول عطاء مجاني. بوابة الدفع والتفعيل الآلي لم يجرِ تشغيلهما بعد، ولن يتم احتساب رسوم قبل تفعيلهما رسمياً.</p><h3>الوثائق القانونية والمهنية للمكتب</h3><p class="muted">ارفع شهادة التسجيل والرخص المهنية والضريبية والتأمين وسابقة الأعمال. تظهر هذه الوثائق لمدير الإدارة ضمن ملف المراجعة فقط.</p><form id="firmDocumentsForm"><div class="grid"><label>تصنيف الوثيقة<select name="kind"><option value="registration">شهادة التسجيل</option><option value="professional_license">رخصة مهنية</option><option value="tax_certificate">شهادة ضريبية</option><option value="insurance">التأمين المهني</option><option value="portfolio">سابقة الأعمال</option><option value="authorization">تفويض/وكالة</option><option value="other">أخرى</option></select></label><label>الملفات<input name="files" type="file" multiple required></label></div><button class="btn amber" type="submit">رفع الوثائق إلى ملف المراجعة</button></form><div id="firmDocumentsList" class="mine"></div></section>
@@ -34,7 +75,8 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
 <section id="firmSubcontracts" class="panel" hidden><h2>التعاقدات الاستشارية الفرعية</h2><div id="firmSubcontractsList"></div></section><section id="firmTeam" class="panel" hidden><h2>فريق المكتب وصلاحياته</h2><p class="muted">أضف أعضاء لديهم حسابات استشارية مسجلة، وحدد مديراً أو موظفاً. يظل مالك المكتب وحده مخولاً بإدارة العضويات واعتماد قرارات التحقق.</p><form id="firmMemberForm"><div class="grid"><label>البريد الإلكتروني للعضو<input name="email" type="email" required></label><label>الدور<select name="role"><option value="manager">مدير</option><option value="staff">موظف</option></select></label></div><button class="btn amber" type="submit">إضافة عضو</button></form><div id="firmMembersList"></div></section>
 <section id="firmReports" class="panel" hidden><h2>تقارير أداء المكتب</h2><div id="firmReportsGrid" class="statgrid"></div><p class="muted">ملخص تشغيلي لحساب المكتب الحالي فقط، دون كشف بيانات أو عروض المكاتب المنافسة.</p></section><section id="myProposals" class="panel" hidden><h2>عروضي الفنية والمالية</h2><p class="muted">متابعة العروض التي قدمها هذا المكتب فقط، مع إتاحة الوثائق الخاصة به.</p><div id="myProposalsList"></div></section>
  <section id="myContracts" class="panel" hidden><h2>العقود ومتابعة التنفيذ</h2><div id="myContractsList"></div></section>
- <section class="panel"><h3>معلومات الباقة</h3><ul><li>الأساسية: مجانية لملف المكتب.</li><li>الاحترافية: 20 USD شهرياً، ويظل تفعيلها مغلقاً حتى استكمال الفوترة المستقلة.</li><li>التقديم على طلبات السوق متاح للمكاتب التي اكتمل التحقق القانوني منها.</li></ul></section>
+ <section id="plans" class="panel"><h2>الباقات والاشتراك · Plans & Subscription</h2><p class="muted">الباقات خاصة بالمكتب الاستشاري فقط، ولا تُفرض على الجهات الحكومية أو بوابة المشتريات.</p><div class="plan-grid"><div class="plan-card"><h3>الأساسية · Basic</h3><div class="plan-price">مجانية · Free</div><ul><li>إنشاء ملف المكتب والتحقق القانوني.</li><li>أول عطاء استشاري مجاني مرة واحدة بعد اعتماد المكتب.</li><li>عرض الفرص الاستشارية المنشورة.</li></ul></div><div class="plan-card"><h3>الاحترافية · Professional</h3><div class="plan-price">20 USD / شهر</div><ul><li>نشر وإدارة العطاءات الاستشارية بعد العطاء المجاني.</li><li>إدارة العروض والتقييم والترسيات والتعاقدات الفرعية.</li><li>إدارة الفريق والتقارير وسجل المكتب.</li></ul></div></div><div class="status">ملاحظة تشغيلية: سعر الباقة محدد، لكن بوابة التحصيل والتفعيل الإلكتروني المستقل لم تُفعّل بعد. لن يتم تحصيل أي رسوم قبل تشغيلها واعتمادها.</div></section>
+<section id="financeWorkflow" class="panel"><h2>أوامر الشراء والفواتير والمدفوعات · Financial Workflow</h2><p>هذا القسم مخصص للدورة المالية لعقود الخدمات الاستشارية، ويُربط بصلاحيات المكتب الاستشاري بصورة مستقلة عن صلاحيات الجهة المشترية والمقاول.</p><div class="workflow-steps"><div><b>01 · الترسية والعقد</b><p class="muted">اعتماد العرض الاستشاري المؤهل وتوثيق العقد ونطاق الخدمات.</p></div><div><b>02 · أمر الشراء</b><p class="muted">إصدار أمر خدمة/شراء مرتبط بالعقد الاستشاري.</p></div><div><b>03 · الفواتير والمدفوعات</b><p class="muted">تقديم المستخلصات والفواتير ومراجعتها وتسجيل الدفعات.</p></div></div><div class="status">مسار الدورة المالية للمكتب الاستشاري يحتاج استكمال واجهات API وصلاحيات مستقلة قبل تفعيل المعاملات الفعلية. لن يتم توجيه المكتب إلى صفحة المشتريات ذات صلاحيات الجهة المشترية.</div></section>
 </main>
 <script>
 (function(){
