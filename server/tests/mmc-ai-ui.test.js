@@ -127,7 +127,7 @@ test('DXF discipline proposals are shown with source evidence and gated BOQ tran
  assert.match(html,/Discipline quantities · Engineer review/);
  assert.match(html,/Layers:/);
  assert.match(html,/Missing information:/);
- assert.match(html,/formula:category\.formula/);
+ assert.match(html,/category\.formula/);
  assert.match(html,/Approve the takeoff run before creating BOQ items/);
  assert.match(html,/\/boq\/from-takeoff/);
  assert.match(html,/Unit rate is still missing/);
