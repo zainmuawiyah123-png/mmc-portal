@@ -218,6 +218,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
   }catch(error){vectorEvidenceError=error.message||'Vector/text spatial matching failed';}
  }else if(!page) correlation={status:'page_evidence_unavailable',textLineCount:0,matchedTextLineCount:0,associations:[],limitations:['PDF page dimensions or native page evidence could not be read.']};
  const pageAnalyses=[];
+ const spatialHelper=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
  if(pageEvidence?.pages?.length){
   const nativeHelper=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
   const correlationHelper=require('../lib/mmc-ai/pdf-evidence-correlation');
@@ -243,6 +244,8 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
      pageTextSource='tesseract_ocr_word_boxes';
     }
    }
+   let spatialEngineeringEvidence=null;
+   if(pageLines.length){try{spatialEngineeringEvidence=spatialHelper.analyzeSpatialPageEvidence(pageLines);}catch(error){spatialEngineeringEvidence={status:'spatial_evidence_failed',error:error.message};}}
    let pageCorrelation=null;
    if(pageVector?.svgViewBox&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt&&pageLines.length){
     try{pageCorrelation=correlationHelper.correlatePdfTextWithVectorGeometry({
@@ -261,6 +264,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
      svgViewBox:pageVector.svgViewBox,status:pageVector.status}:null,
     vectorEvidenceError:pageVectorError,textSource:pageTextSource,
     spatialCorrelation:pageCorrelation,
+    spatialEngineeringEvidence,
     measurementEligible:false,scaleCalibrated:false,bimGenerated:false
    });
   }
@@ -272,9 +276,9 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
   .run(analysisId,doc.project_id,doc.id,req.user.id,'pdf_drawing_text',JSON.stringify(persisted));
  db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
   .run(uid('aial_'),doc.project_id,req.user.id,'pdf_drawing_text_analysis_completed','document',doc.id,
-   JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed',nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0,spatialTextSource:correlationSource,spatialMatches:correlation?.matchedTextLineCount||0,spatialStatus:correlation?.status||null,pagesProcessed:pageAnalyses.length,pageVectorPages:pageAnalyses.filter(item=>item.vectorEvidence).length}));
+   JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed',nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0,spatialTextSource:correlationSource,spatialMatches:correlation?.matchedTextLineCount||0,spatialStatus:correlation?.status||null,pagesProcessed:pageAnalyses.length,pageVectorPages:pageAnalyses.filter(item=>item.vectorEvidence).length,spatialEvidencePages:pageAnalyses.filter(item=>item.spatialEngineeringEvidence).length,spatialElementCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.elements?.length||0),0),spatialDimensionCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.dimensions?.length||0),0)}));
  res.setHeader('Cache-Control','no-store');
- res.json({analysisId,documentId:doc.id,analysis,ocr,pageEvidence:pageEvidence?{totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,nativeTextWordCount:pageEvidence.pages?.[0]?.nativeTextWordCount||0}:null,pageEvidenceError,vectorEvidence:vectorEvidence?{pageNumber:vectorEvidence.pageNumber,pathCount:vectorEvidence.geometry.pathCount,closedPathCount:vectorEvidence.geometry.paths.filter(p=>p.closed).length,svgViewBox:vectorEvidence.svgViewBox}:null,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,pageAnalyses,pagesProcessed:pageAnalyses.length,notice:'تم فحص الصفحات المعالجة وربط النصوص ذات الإحداثيات مع مسارات كل صفحة كمرشحات مراجعة فقط. لم يتم اعتماد مقياس أو تصنيف العناصر أو إنتاج كميات أو نموذج BIM.'});
+ res.json({analysisId,documentId:doc.id,analysis,ocr,pageEvidence:pageEvidence?{totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,nativeTextWordCount:pageEvidence.pages?.[0]?.nativeTextWordCount||0}:null,pageEvidenceError,vectorEvidence:vectorEvidence?{pageNumber:vectorEvidence.pageNumber,pathCount:vectorEvidence.geometry.pathCount,closedPathCount:vectorEvidence.geometry.paths.filter(p=>p.closed).length,svgViewBox:vectorEvidence.svgViewBox}:null,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,pageAnalyses,pagesProcessed:pageAnalyses.length,spatialEvidenceSummary:{pagesWithEvidence:pageAnalyses.filter(item=>item.spatialEngineeringEvidence).length,elementCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.elements?.length||0),0),dimensionCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.dimensions?.length||0),0),titleBlockCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.titleBlockCandidates?.length||0),0),scaleCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.scaleCandidates?.length||0),0),detailReferenceCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.detailReferenceCandidates?.length||0),0)},notice:'تم فحص الصفحات المعالجة وربط النصوص ذات الإحداثيات مع مسارات كل صفحة كمرشحات مراجعة فقط. لم يتم اعتماد مقياس أو تصنيف العناصر أو إنتاج كميات أو نموذج BIM.'});
 }));
 
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
