@@ -1708,6 +1708,17 @@ function upgradeMmcAiDrawingReader(db) {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ai_documents_project_discipline
       ON ai_documents(project_id,discipline,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_document_analyses (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      document_id TEXT NOT NULL REFERENCES ai_documents(id) ON DELETE CASCADE,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      analysis_type TEXT NOT NULL,
+      result_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_document_analyses_document
+      ON ai_document_analyses(project_id,document_id,created_at DESC);
     CREATE TABLE IF NOT EXISTS ai_discipline_packages (
       project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
       discipline TEXT NOT NULL CHECK(discipline IN ('structural','architectural','electrical','mechanical','plumbing_fire')),
