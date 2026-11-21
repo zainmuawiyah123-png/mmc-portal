@@ -164,7 +164,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
  let extraction;
  try{extraction=extractPdfText(bytes);}catch(err){throw E.validation(err.message||'تعذر استخراج النص من PDF.');}
- let pageEvidence=null,pageEvidenceError=null,vectorEvidence=null,vectorEvidenceError=null,correlation=null;
+ let pageEvidence=null,pageEvidenceError=null,vectorEvidence=null,vectorEvidenceError=null,correlation=null,correlationSource=null;
  try{
   pageEvidence=await inspectPdfPageEvidence(bytes,{documentId:doc.id,maxPages:1});
   const page=pageEvidence.pages[0];
@@ -175,19 +175,11 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
    extraction.nativeSpatialPageHeight=page.bboxHeightPt;
   }
  }catch(error){pageEvidenceError=error.message||'Native page-coordinate extraction failed';}
- try{
-  vectorEvidence=await inspectPdfVectorPage(bytes,{pageNumber:1});
-  const page=pageEvidence?.pages?.[0];
-  const lines=page?require('../lib/mmc-ai/pdf-drawing-text-intelligence').spatialNativeLines(extraction.nativeSpatialWords,{
-   pageNumber:page.pageNumber,pageWidth:page.bboxWidthPt,pageHeight:page.bboxHeightPt
-  }):[];
-  if(page&&vectorEvidence.svgViewBox&&lines.length)correlation=correlatePdfTextWithVectorGeometry({
-   textLines:lines,geometry:vectorEvidence.geometry,viewBox:vectorEvidence.svgViewBox,
-   pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
-  });
- }catch(error){vectorEvidenceError=error.message||'Vector/text spatial matching failed';}
+ try{vectorEvidence=await inspectPdfVectorPage(bytes,{pageNumber:1});}
+ catch(error){vectorEvidenceError=error.message||'PDF vector extraction failed';}
  let ocr=null;
- const shouldOcr=extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
+ const nativeWordCount=extraction.nativeSpatialWords?.length||0;
+ const shouldOcr=nativeWordCount<8||extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
  if(shouldOcr){
   try{
    ocr=await ocrPdf(bytes,{maxPages:req.body?.maxPages||20,dpi:req.body?.dpi||180});
@@ -202,16 +194,38 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
    ocr={status:error.code==='OCR_RUNTIME_UNAVAILABLE'?'runtime_unavailable':'failed',code:error.code||'OCR_FAILED',message:error.message,details:error.details||null};
   }
  }
+ const page=pageEvidence?.pages?.[0];
+ if(page&&vectorEvidence?.svgViewBox){
+  try{
+   let lines=[];
+   if((extraction.nativeSpatialWords||[]).length>=8){
+    lines=require('../lib/mmc-ai/pdf-drawing-text-intelligence').spatialNativeLines(extraction.nativeSpatialWords,{
+     pageNumber:page.pageNumber,pageWidth:page.bboxWidthPt,pageHeight:page.bboxHeightPt
+    });
+    correlationSource='native_pdf_text_bbox';
+   }else if(ocr?.pages?.[0]?.words?.length){
+    lines=require('../lib/mmc-ai/pdf-evidence-correlation').spatialOcrLines(ocr.pages[0].words,{
+     pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
+    });
+    correlationSource='tesseract_ocr_word_boxes';
+   }
+   if(lines.length)correlation=correlatePdfTextWithVectorGeometry({
+    textLines:lines,geometry:vectorEvidence.geometry,viewBox:vectorEvidence.svgViewBox,
+    pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
+   });
+   else correlation={status:'no_spatial_text_available',textLineCount:0,matchedTextLineCount:0,associations:[],limitations:['Neither native PDF text coordinates nor OCR word boxes were available for spatial matching.']};
+  }catch(error){vectorEvidenceError=error.message||'Vector/text spatial matching failed';}
+ }else if(!page) correlation={status:'page_evidence_unavailable',textLineCount:0,matchedTextLineCount:0,associations:[],limitations:['PDF page dimensions or native page evidence could not be read.']};
  const analysis=analyzePdfDrawingText(extraction,{documentId:doc.id,revision:doc.revision||null,sheetOrPage:doc.sheet_number||doc.original_name});
  const analysisId=uid('aidan_');
- const persisted={analysis,ocr,pageEvidence:pageEvidence?{engine:pageEvidence.engine,totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,pages:pageEvidence.pages}:null,pageEvidenceError,vectorEvidence,vectorEvidenceError,spatialCorrelation:correlation,extractionSummary:{engine:extraction.engine||null,pageCount:extraction.pageCount??null,characterCount:extraction.characterCount??0,ocrPerformed:extraction.ocrPerformed===true,nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0}};
+ const persisted={analysis,ocr,pageEvidence:pageEvidence?{engine:pageEvidence.engine,totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,pages:pageEvidence.pages}:null,pageEvidenceError,vectorEvidence,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,extractionSummary:{engine:extraction.engine||null,pageCount:extraction.pageCount??null,characterCount:extraction.characterCount??0,ocrPerformed:extraction.ocrPerformed===true,nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0}};
  db.prepare('INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)')
   .run(analysisId,doc.project_id,doc.id,req.user.id,'pdf_drawing_text',JSON.stringify(persisted));
  db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
   .run(uid('aial_'),doc.project_id,req.user.id,'pdf_drawing_text_analysis_completed','document',doc.id,
-   JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed',nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0,spatialMatches:correlation?.matchedTextLineCount||0,spatialStatus:correlation?.status||null}));
+   JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed',nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0,spatialTextSource:correlationSource,spatialMatches:correlation?.matchedTextLineCount||0,spatialStatus:correlation?.status||null}));
  res.setHeader('Cache-Control','no-store');
- res.json({analysisId,documentId:doc.id,analysis,ocr,pageEvidence:pageEvidence?{totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,nativeTextWordCount:pageEvidence.pages?.[0]?.nativeTextWordCount||0}:null,pageEvidenceError,vectorEvidence:vectorEvidence?{pageNumber:vectorEvidence.pageNumber,pathCount:vectorEvidence.geometry.pathCount,closedPathCount:vectorEvidence.geometry.paths.filter(p=>p.closed).length,svgViewBox:vectorEvidence.svgViewBox}:null,vectorEvidenceError,spatialCorrelation:correlation,notice:'تم ربط النصوص ذات الإحداثيات مع مسارات الصفحة الأولى مكانياً كمرشحات مراجعة فقط. لا ينتج هذا الربط قياسات أو كميات أو مقياساً معتمداً.'});
+ res.json({analysisId,documentId:doc.id,analysis,ocr,pageEvidence:pageEvidence?{totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,nativeTextWordCount:pageEvidence.pages?.[0]?.nativeTextWordCount||0}:null,pageEvidenceError,vectorEvidence:vectorEvidence?{pageNumber:vectorEvidence.pageNumber,pathCount:vectorEvidence.geometry.pathCount,closedPathCount:vectorEvidence.geometry.paths.filter(p=>p.closed).length,svgViewBox:vectorEvidence.svgViewBox}:null,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,notice:'تم ربط النصوص ذات الإحداثيات مع مسارات الصفحة الأولى مكانياً كمرشحات مراجعة فقط. لا ينتج هذا الربط قياسات أو كميات أو مقياساً معتمداً.'});
 }));
 
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
