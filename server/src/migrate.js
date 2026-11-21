@@ -1347,6 +1347,104 @@ function upgradeEmailVerification(db) {
   `);
 }
 
+
+
+/** Central MMC vendor registry with entity-scoped qualification and invitations. Additive/idempotent. */
+function upgradeVendorServiceProviderRegistry(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vendor_profiles (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      legal_name TEXT NOT NULL,
+      trading_name TEXT,
+      country TEXT NOT NULL DEFAULT 'JO',
+      city TEXT,
+      address TEXT,
+      registration_number TEXT,
+      tax_number TEXT,
+      website TEXT,
+      contact_name TEXT,
+      contact_title TEXT,
+      contact_email TEXT NOT NULL,
+      contact_phone TEXT NOT NULL,
+      entity_types_json TEXT NOT NULL DEFAULT '[]',
+      specializations_json TEXT NOT NULL DEFAULT '[]',
+      products_services_json TEXT NOT NULL DEFAULT '[]',
+      brands_json TEXT NOT NULL DEFAULT '[]',
+      service_regions_json TEXT NOT NULL DEFAULT '[]',
+      experience_summary TEXT,
+      bank_details_enc TEXT,
+      profile_status TEXT NOT NULL DEFAULT 'draft' CHECK(profile_status IN ('draft','submitted','verified','needs_update','rejected','suspended')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_profiles_search ON vendor_profiles(country,profile_status,legal_name);
+    CREATE INDEX IF NOT EXISTS idx_vendor_profiles_registration ON vendor_profiles(country,registration_number);
+
+    CREATE TABLE IF NOT EXISTS vendor_source_records (
+      id TEXT PRIMARY KEY,
+      vendor_id TEXT NOT NULL REFERENCES vendor_profiles(id) ON DELETE CASCADE,
+      country TEXT NOT NULL,
+      source_type TEXT NOT NULL CHECK(source_type IN ('contractors_association','engineers_syndicate','consultant_offices_committee','chamber_commerce','chamber_industry','company_registry','other_official')),
+      source_name TEXT NOT NULL,
+      source_record_key TEXT,
+      source_url TEXT,
+      verification_status TEXT NOT NULL DEFAULT 'unverified' CHECK(verification_status IN ('unverified','matched','confirmed','expired','unavailable')),
+      verified_at INTEGER,
+      evidence_note TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(vendor_id,source_type,source_name,source_record_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_sources_vendor ON vendor_source_records(vendor_id,created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS vendor_entity_qualifications (
+      id TEXT PRIMARY KEY,
+      vendor_id TEXT NOT NULL REFERENCES vendor_profiles(id) ON DELETE CASCADE,
+      entity_type TEXT NOT NULL CHECK(entity_type IN ('procurement_org','consulting_firm')),
+      entity_id TEXT NOT NULL,
+      qualification_type TEXT NOT NULL CHECK(qualification_type IN ('contractor','supplier','service_provider','consultant','manufacturer','equipment_provider')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','conditionally_approved','rejected','suspended','expired')),
+      requested_documents_json TEXT NOT NULL DEFAULT '[]',
+      entity_data_json TEXT NOT NULL DEFAULT '{}',
+      notes TEXT,
+      reviewed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      reviewed_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(vendor_id,entity_type,entity_id,qualification_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_qualifications_entity ON vendor_entity_qualifications(entity_type,entity_id,status,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_vendor_qualifications_vendor ON vendor_entity_qualifications(vendor_id,status);
+
+    CREATE TABLE IF NOT EXISTS vendor_invitations (
+      id TEXT PRIMARY KEY,
+      vendor_id TEXT NOT NULL REFERENCES vendor_profiles(id) ON DELETE CASCADE,
+      entity_type TEXT NOT NULL CHECK(entity_type IN ('procurement_org','consulting_firm')),
+      entity_id TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      tender_reference TEXT,
+      tender_title TEXT NOT NULL,
+      qualification_type TEXT NOT NULL CHECK(qualification_type IN ('contractor','supplier','service_provider','consultant','manufacturer','equipment_provider')),
+      message TEXT,
+      status TEXT NOT NULL DEFAULT 'invited' CHECK(status IN ('invited','accepted','declined','profile_required','qualified','closed')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      responded_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_invitations_vendor ON vendor_invitations(vendor_id,status,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_vendor_invitations_entity ON vendor_invitations(entity_type,entity_id,created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS vendor_qualification_events (
+      id TEXT PRIMARY KEY,
+      qualification_id TEXT NOT NULL REFERENCES vendor_entity_qualifications(id) ON DELETE CASCADE,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL,
+      note TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_qualification_events ON vendor_qualification_events(qualification_id,created_at DESC);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1389,6 +1487,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
   upgradeEmailVerification(db);
+  upgradeVendorServiceProviderRegistry(db);
 
   return db;
 }
