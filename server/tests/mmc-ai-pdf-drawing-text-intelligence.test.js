@@ -6,7 +6,7 @@ const {analyzePdfDrawingText}=require('../src/lib/mmc-ai/pdf-drawing-text-intell
 test('extracts drawing text clues without turning them into quantities',()=>{
  const result=analyzePdfDrawingText({
   engine:'test-text-layer',pageCount:1,characterCount:180,ocrPerformed:false,
-  text:'STRUCTURAL FOUNDATION PLAN\nDRAWING NO: S-101\nREV: B\nSCALE: 1:100\nFOOTING F1 2000 x 2000 x 500 mm\nSECTION A-A'
+  text:'STRUCTURAL FOUNDATION PLAN\nDRAWING NO: S-101\nREV: B\nSCALE: 1:100\nFOOTING F1 2000 mm x 2000 mm x 500 mm\nSECTION A-A'
  },{documentId:'doc-test',sheetOrPage:'S-101'});
  assert.ok(result.metadata.textualSheetNumberCandidates.includes('S-101'));
  assert.ok(result.metadata.textualRevisionCandidates.includes('B'));
