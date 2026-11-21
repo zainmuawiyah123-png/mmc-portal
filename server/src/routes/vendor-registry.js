@@ -79,6 +79,7 @@ router.post('/me',wrap(async(req,res)=>{
     b.bankDetails!==undefined?encryptBank(b.bankDetails):old?.bank_details_enc||null];
   if(old) db.prepare(`UPDATE vendor_profiles SET legal_name=?,trading_name=?,country=?,city=?,address=?,registration_number=?,tax_number=?,website=?,contact_name=?,contact_title=?,contact_email=?,contact_phone=?,entity_types_json=?,specializations_json=?,products_services_json=?,brands_json=?,service_regions_json=?,experience_summary=?,bank_details_enc=?,profile_status='submitted',updated_at=unixepoch() WHERE id=?`).run(...vals,id);
   else db.prepare(`INSERT INTO vendor_profiles (id,user_id,legal_name,trading_name,country,city,address,registration_number,tax_number,website,contact_name,contact_title,contact_email,contact_phone,entity_types_json,specializations_json,products_services_json,brands_json,service_regions_json,experience_summary,bank_details_enc,profile_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted')`).run(id,req.user.id,...vals);
+  db.prepare("UPDATE vendor_invitation_leads SET vendor_id=?,status='registered' WHERE lower(contact_email)=lower(?) AND status='invited'").run(id,email);
   audit({action:old?'vendor_profile_updated':'vendor_profile_submitted',entity:'vendor_profile',entityId:id,userId:req.user.id,ip:req.ip});
   res.status(old?200:201).json({profile:profileShape(db.prepare('SELECT * FROM vendor_profiles WHERE id=?').get(id),true),message:'تم حفظ الملف المركزي. الاعتماد لدى كل جهة يتم بصورة مستقلة.'});
 }));
@@ -123,27 +124,40 @@ router.get('/invitations',wrap(async(req,res)=>{
   if(req.user.role==='buyer'||req.user.role==='consultant') {
     const entity=resolveEntity(req);
     const rows=getDB().prepare('SELECT i.*,v.legal_name,v.contact_email,v.country FROM vendor_invitations i JOIN vendor_profiles v ON v.id=i.vendor_id WHERE i.entity_type=? AND i.entity_id=? ORDER BY i.created_at DESC').all(entity.type,entity.id);
-    return res.json({invitations:rows});
+    const leads=getDB().prepare('SELECT * FROM vendor_invitation_leads WHERE entity_type=? AND entity_id=? ORDER BY created_at DESC').all(entity.type,entity.id);
+    return res.json({invitations:rows,unregisteredInvitations:leads});
   }
-  const p=ownProfile(req.user.id);if(!p) return res.json({invitations:[]});
-  const rows=getDB().prepare('SELECT i.*,v.legal_name FROM vendor_invitations i JOIN vendor_profiles v ON v.id=i.vendor_id WHERE i.vendor_id=? ORDER BY i.created_at DESC').all(p.id);
-  res.json({invitations:rows});
+  const p=ownProfile(req.user.id),email=String(req.user.email||'').toLowerCase();
+  const rows=p?getDB().prepare('SELECT i.*,v.legal_name FROM vendor_invitations i JOIN vendor_profiles v ON v.id=i.vendor_id WHERE i.vendor_id=? ORDER BY i.created_at DESC').all(p.id):[];
+  const leads=getDB().prepare('SELECT * FROM vendor_invitation_leads WHERE lower(contact_email)=? ORDER BY created_at DESC').all(email);
+  res.json({invitations:rows,registrationInvitations:leads});
 }));
 router.post('/invitations',wrap(async(req,res)=>{
   const entity=resolveEntity(req),b=req.body||{},vendorId=clip(b.vendorId,100),title=clip(b.tenderTitle,240),kind=clip(b.qualificationType,40);
   if(!title||!['contractor','supplier','service_provider','consultant','manufacturer','equipment_provider'].includes(kind)) throw E.validation('بيانات الدعوة غير مكتملة.');
-  const v=getDB().prepare('SELECT id FROM vendor_profiles WHERE id=? AND profile_status IN (\'submitted\',\'verified\')').get(vendorId);
-  if(!v) throw E.notFound('المورد غير موجود في الدليل المركزي.');
-  const id=uid('vinv_');
-  getDB().prepare('INSERT INTO vendor_invitations (id,vendor_id,entity_type,entity_id,created_by,tender_reference,tender_title,qualification_type,message) VALUES (?,?,?,?,?,?,?,?,?)').run(id,vendorId,entity.type,entity.id,req.user.id,clip(b.tenderReference,100)||null,title,kind,clip(b.message,2000)||null);
-  audit({action:'vendor_invitation_sent',entity:'vendor_invitation',entityId:id,userId:req.user.id,ip:req.ip});
-  res.status(201).json({invitation:{id,status:'invited'},message:'تم إنشاء الدعوة من جهتكم. إرسال البريد الإلكتروني يربط في مرحلة الإشعارات.'});
+  const db=getDB();
+  if(vendorId) {
+    const v=db.prepare("SELECT id FROM vendor_profiles WHERE id=? AND profile_status IN ('submitted','verified')").get(vendorId);
+    if(!v) throw E.notFound('المورد غير موجود في الدليل المركزي.');
+    const id=uid('vinv_');
+    db.prepare('INSERT INTO vendor_invitations (id,vendor_id,entity_type,entity_id,created_by,tender_reference,tender_title,qualification_type,message) VALUES (?,?,?,?,?,?,?,?,?)').run(id,vendorId,entity.type,entity.id,req.user.id,clip(b.tenderReference,100)||null,title,kind,clip(b.message,2000)||null);
+    audit({action:'vendor_invitation_sent',entity:'vendor_invitation',entityId:id,userId:req.user.id,ip:req.ip});
+    return res.status(201).json({invitation:{id,status:'invited'},message:'تم إنشاء الدعوة من جهتكم.'});
+  }
+  const email=clip(b.vendorEmail,254).toLowerCase(),company=clip(b.companyName,180),country=clip(b.country||'JO',2).toUpperCase();
+  if(!validEmail(email)||company.length<2||!/^[A-Z]{2}$/.test(country)) throw E.validation('للدعوة إلى شركة غير مسجلة أدخل اسم الشركة والبريد الإلكتروني والدولة.');
+  const id=uid('vlead_');
+  db.prepare('INSERT INTO vendor_invitation_leads (id,entity_type,entity_id,created_by,company_name,contact_email,country,tender_reference,tender_title,qualification_type,message) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(id,entity.type,entity.id,req.user.id,company,email,country,clip(b.tenderReference,100)||null,title,kind,clip(b.message,2000)||null);
+  audit({action:'vendor_registration_invitation_created',entity:'vendor_invitation_lead',entityId:id,userId:req.user.id,ip:req.ip});
+  res.status(201).json({invitation:{id,status:'invited'},message:'تم تسجيل دعوة الشركة غير المسجلة. ستظهر لها الدعوة عند إنشاء حساب MMC بنفس البريد وإكمال ملف الشركة.'});
 }));
 router.patch('/invitations/:id/respond',wrap(async(req,res)=>{
-  const p=ownProfile(req.user.id);if(!p) throw E.notFound('ملف الشركة غير موجود.');
-  const status=clip(req.body?.status,20);if(!['accepted','declined'].includes(status)) throw E.validation('الرد يجب أن يكون قبولاً أو اعتذاراً.');
-  const r=getDB().prepare('UPDATE vendor_invitations SET status=?,responded_at=unixepoch() WHERE id=? AND vendor_id=? AND status IN (\'invited\',\'profile_required\')').run(status,req.params.id,p.id);
-  if(!r.changes) throw E.notFound('الدعوة غير موجودة أو سبق الرد عليها.');
+  const p=ownProfile(req.user.id),email=String(req.user.email||'').toLowerCase(),status=clip(req.body?.status,20);
+  if(!['accepted','declined'].includes(status)) throw E.validation('الرد يجب أن يكون قبولاً أو اعتذاراً.');
+  const db=getDB();
+  if(p){const r=db.prepare("UPDATE vendor_invitations SET status=?,responded_at=unixepoch() WHERE id=? AND vendor_id=? AND status IN ('invited','profile_required')").run(status,req.params.id,p.id);if(r.changes)return res.json({ok:true,status});}
+  const lead=db.prepare("UPDATE vendor_invitation_leads SET status=?,responded_at=unixepoch() WHERE id=? AND lower(contact_email)=? AND status IN ('invited','registered')").run(status,req.params.id,email);
+  if(!lead.changes) throw E.notFound('الدعوة غير موجودة أو سبق الرد عليها.');
   res.json({ok:true,status});
 }));
 router.get('/sources/catalog',wrap(async(req,res)=>{
