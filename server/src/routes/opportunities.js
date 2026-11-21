@@ -57,7 +57,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
  const limit=Math.min(Math.max(parseInt(req.query.limit,10)||24,1),60), offset=Math.max(parseInt(req.query.offset,10)||0,0);
  const today=ymd(0);
  // العطاء مفتوح إذا لم يحن تاريخ إغلاقه، حتى لو لم تُحدَّث حالته بعد في المزامنة
- const OPEN="status='open' AND (closing_at IS NULL OR closing_at>=?)";
+ const OPEN="status IN ('open','closed') AND (closing_at IS NULL OR closing_at>=?)";
  const cl=["status IN ('open','closed')"], vals=[];
  if(state==='open'){cl.push('('+OPEN+')');vals.push(today);} else {cl.push("(status='closed' OR closing_at<?)");vals.push(today);}
  if(source){cl.push('source_key=?');vals.push(source);}
@@ -75,7 +75,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
  const last=db.prepare("SELECT source_key, MAX(finished_at) t FROM opportunity_sync_runs WHERE status='success' GROUP BY source_key").all();
  res.setHeader('Cache-Control','private, max-age=20');
  res.json({
-  opportunities:rows.map(r=>({...shape(r),saved:savedSet.has(r.id)})), total, count:rows.length, hasMore:offset+rows.length<total,
+  opportunities:rows.map(r=>({...shape(r),status:r.closing_at?(String(r.closing_at).slice(0,10)<today?'closed':'open'):r.status,saved:savedSet.has(r.id)})), total, count:rows.length, hasMore:offset+rows.length<total,
   stats:{open:openN(), closingSoon:openN('closing_at IS NOT NULL AND closing_at<=?',ymd(7)), newThisWeek:openN('imported_at>=?',Math.floor(Date.now()/1000)-7*86400),
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
