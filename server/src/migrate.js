@@ -1449,6 +1449,25 @@ function upgradeVendorServiceProviderRegistry(db) {
     CREATE INDEX IF NOT EXISTS idx_vendor_invitations_vendor ON vendor_invitations(vendor_id,status,created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_vendor_invitations_entity ON vendor_invitations(entity_type,entity_id,created_at DESC);
 
+    CREATE TABLE IF NOT EXISTS vendor_invitation_leads (
+      id TEXT PRIMARY KEY,
+      vendor_id TEXT REFERENCES vendor_profiles(id) ON DELETE SET NULL,
+      entity_type TEXT NOT NULL CHECK(entity_type IN ('procurement_org','consulting_firm')),
+      entity_id TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+      company_name TEXT NOT NULL,
+      contact_email TEXT NOT NULL,
+      country TEXT NOT NULL DEFAULT 'JO',
+      tender_reference TEXT,
+      tender_title TEXT NOT NULL,
+      qualification_type TEXT NOT NULL CHECK(qualification_type IN ('contractor','supplier','service_provider','consultant','manufacturer','equipment_provider')),
+      message TEXT,
+      status TEXT NOT NULL DEFAULT 'invited' CHECK(status IN ('invited','registered','accepted','declined','closed')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      responded_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_invitation_leads_email ON vendor_invitation_leads(contact_email,status,created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_vendor_invitation_leads_entity ON vendor_invitation_leads(entity_type,entity_id,created_at DESC);
     CREATE TABLE IF NOT EXISTS vendor_qualification_events (
       id TEXT PRIMARY KEY,
       qualification_id TEXT NOT NULL REFERENCES vendor_entity_qualifications(id) ON DELETE CASCADE,
