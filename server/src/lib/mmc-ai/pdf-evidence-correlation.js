@@ -32,7 +32,7 @@ function correlatePdfTextWithVectorGeometry({ textLines = [], geometry, viewBox,
     box: bounds(path.points, p => ({ x: (p.x - vx) * sx, y: (p.y - vy) * sy }))
   })).filter(item => item.box);
   const candidates = textLines.slice(0, 1000).filter(line => line && line.box && typeof line.text === 'string' &&
-    /\\d|\\b(?:B|BM|C|COL|F|FOOTING|S|SL|W|D|DB|AHU|FCU|VAV|P|MH|FH|SP)\\s*[-#]?\\s*\\d+|\\b(?:STRUCTURAL|FOUNDATION|REBAR|CONCRETE|BEAM|COLUMN|SLAB|FOOTING|Ø|T\\s*\\d)\\b|خرسانة|تسليح|عمود|جسر|قاعدة/i.test(line.text));
+    /\d|\b(?:B|BM|C|COL|F|FOOTING|S|SL|W|D|DB|AHU|FCU|VAV|P|MH|FH|SP)\s*[-#]?\s*\d+|\b(?:STRUCTURAL|FOUNDATION|REBAR|CONCRETE|BEAM|COLUMN|SLAB|FOOTING|Ø|T\s*\d)\b|خرسانة|تسليح|عمود|جسر|قاعدة/i.test(line.text));
   const associations = candidates.map(line => {
     const textBox = { left: line.box.left, top: line.box.top, right: line.box.left + line.box.width, bottom: line.box.top + line.box.height };
     const nearest = pathBoxes.map(item => ({ pathIndex: item.pathIndex, distancePx: boxDistance(textBox, item.box) }))
