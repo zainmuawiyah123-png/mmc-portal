@@ -36,9 +36,7 @@ html[dir="ltr"] .consult-side,html[dir="ltr"] .wrap{direction:ltr;text-align:lef
 </style></head>
 <body>
 <header class="p-top"><div class="brand"><span class="mark">M</span><span><span>MMC / TenderWise</span><small>Consulting Office Management Portal</small></span></div><div class="spacer"></div><a class="btn ghost" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fconsulting%2F">تسجيل الدخول</a><a class="btn amber" href="/portal/pt-9f3c7a1e5b2d/register.html?role=consultant">تسجيل مكتب استشاري</a><span id="user"></span><button class="btn ghost" id="logout" type="button">خروج</button></header>
-<div class="consult-layout"><main class="wrap">
- <div class="p-head"><div class="eyebrow">بوابة مستقلة لإدارة المكاتب الاستشارية</div><h1>لوحة إدارة المكتب الاستشاري</h1><p class="muted">إدارة فرص الخدمات الاستشارية المنشورة عبر المنصة، عروض المكتب، العقود، ومتابعة التنفيذ. هذه البوابة مستقلة عن بوابة المقاولين وبوابة الجهة الطالبة.</p></div>
- <aside class="consult-side"><div class="consult-side-title">أقسام المكتب الاستشاري</div>
+<div class="consult-layout"><aside class="consult-side"><div class="consult-side-title">أقسام المكتب الاستشاري</div>
 <a class="active" href="#dashboard">لوحة التحكم</a>
 <a href="#market">فرص الاستشارات لدى الجهات</a>
 <a href="#firmTenderMarket">عطاءات المكاتب الاستشارية فقط</a>
@@ -52,7 +50,9 @@ html[dir="ltr"] .consult-side,html[dir="ltr"] .wrap{direction:ltr;text-align:lef
 <a href="#firmTeam">فريق المكتب والصلاحيات</a>
 <a href="#firmReports">التقارير</a>
 <a href="#existing">ملف المكتب والتحقق</a>
-<a href="#plans">الباقات والاشتراك</a></aside>
+<a href="#plans">الباقات والاشتراك</a></aside><main class="wrap">
+ <div class="p-head"><div class="eyebrow">بوابة مستقلة لإدارة المكاتب الاستشارية</div><h1>لوحة إدارة المكتب الاستشاري</h1><p class="muted">إدارة فرص الخدمات الاستشارية المنشورة عبر المنصة، عروض المكتب، العقود، ومتابعة التنفيذ. هذه البوابة مستقلة عن بوابة المقاولين وبوابة الجهة الطالبة.</p></div>
+ 
  <section id="dashboard" class="statgrid"><div class="stat">الفرص الاستشارية المتاحة<b id="statOpen">—</b></div><div class="stat">العروض المقدمة<b id="statProposals">—</b></div><div class="stat">العقود المسندة<b id="statContracts">—</b></div><div class="stat">الاشتراك الاحترافي<b>20 USD / شهر</b></div></section>
  <div id="message" class="status">جارٍ تحميل بيانات الحساب…</div>
  <section id="existing" class="panel" hidden><h2>ملف المكتب الاستشاري</h2><h3 id="firmName"></h3><p id="firmInfo"></p><p id="firmStatus" class="status"></p><p class="muted">الباقة الاحترافية: 20 USD شهرياً. أول عطاء مجاني. بوابة الدفع والتفعيل الآلي لم يجرِ تشغيلهما بعد، ولن يتم احتساب رسوم قبل تفعيلهما رسمياً.</p><h3>الوثائق القانونية والمهنية للمكتب</h3><p class="muted">ارفع شهادة التسجيل والرخص المهنية والضريبية والتأمين وسابقة الأعمال. تظهر هذه الوثائق لمدير الإدارة ضمن ملف المراجعة فقط.</p><form id="firmDocumentsForm"><div class="grid"><label>تصنيف الوثيقة<select name="kind"><option value="registration">شهادة التسجيل</option><option value="professional_license">رخصة مهنية</option><option value="tax_certificate">شهادة ضريبية</option><option value="insurance">التأمين المهني</option><option value="portfolio">سابقة الأعمال</option><option value="authorization">تفويض/وكالة</option><option value="other">أخرى</option></select></label><label>الملفات<input name="files" type="file" multiple required></label></div><button class="btn amber" type="submit">رفع الوثائق إلى ملف المراجعة</button></form><div id="firmDocumentsList" class="mine"></div></section>
@@ -77,7 +77,7 @@ html[dir="ltr"] .consult-side,html[dir="ltr"] .wrap{direction:ltr;text-align:lef
  <section id="myContracts" class="panel" hidden><h2>العقود ومتابعة التنفيذ</h2><div id="myContractsList"></div></section>
  <section id="plans" class="panel"><h2>الباقات والاشتراك · Plans & Subscription</h2><p class="muted">الباقات خاصة بالمكتب الاستشاري فقط، ولا تُفرض على الجهات الحكومية أو بوابة المشتريات.</p><div class="plan-grid"><div class="plan-card"><h3>الأساسية · Basic</h3><div class="plan-price">مجانية · Free</div><ul><li>إنشاء ملف المكتب والتحقق القانوني.</li><li>أول عطاء استشاري مجاني مرة واحدة بعد اعتماد المكتب.</li><li>عرض الفرص الاستشارية المنشورة.</li></ul></div><div class="plan-card"><h3>الاحترافية · Professional</h3><div class="plan-price">20 USD / شهر</div><ul><li>نشر وإدارة العطاءات الاستشارية بعد العطاء المجاني.</li><li>إدارة العروض والتقييم والترسيات والتعاقدات الفرعية.</li><li>إدارة الفريق والتقارير وسجل المكتب.</li></ul></div></div><div class="status">ملاحظة تشغيلية: سعر الباقة محدد، لكن بوابة التحصيل والتفعيل الإلكتروني المستقل لم تُفعّل بعد. لن يتم تحصيل أي رسوم قبل تشغيلها واعتمادها.</div></section>
 <section id="financeWorkflow" class="panel"><h2>أوامر الشراء والفواتير والمدفوعات · Financial Workflow</h2><p>هذا القسم مخصص للدورة المالية لعقود الخدمات الاستشارية، ويُربط بصلاحيات المكتب الاستشاري بصورة مستقلة عن صلاحيات الجهة المشترية والمقاول.</p><div class="workflow-steps"><div><b>01 · الترسية والعقد</b><p class="muted">اعتماد العرض الاستشاري المؤهل وتوثيق العقد ونطاق الخدمات.</p></div><div><b>02 · أمر الشراء</b><p class="muted">إصدار أمر خدمة/شراء مرتبط بالعقد الاستشاري.</p></div><div><b>03 · الفواتير والمدفوعات</b><p class="muted">تقديم المستخلصات والفواتير ومراجعتها وتسجيل الدفعات.</p></div></div><div class="status">مسار الدورة المالية للمكتب الاستشاري يحتاج استكمال واجهات API وصلاحيات مستقلة قبل تفعيل المعاملات الفعلية. لن يتم توجيه المكتب إلى صفحة المشتريات ذات صلاحيات الجهة المشترية.</div></section>
-</main>
+</main></div>
 <script>
 (function(){
  const $=s=>document.querySelector(s),msg=$('#message');
