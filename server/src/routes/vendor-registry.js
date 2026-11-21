@@ -146,6 +146,10 @@ router.patch('/invitations/:id/respond',wrap(async(req,res)=>{
   if(!r.changes) throw E.notFound('الدعوة غير موجودة أو سبق الرد عليها.');
   res.json({ok:true,status});
 }));
+router.get('/sources/catalog',wrap(async(req,res)=>{
+  const rows=getDB().prepare('SELECT id,country,source_type,source_name,source_url,access_mode,integration_status,fields_available_json,access_notes,last_checked_at FROM vendor_directory_sources ORDER BY country,source_type,source_name').all();
+  res.json({sources:rows.map(x=>({...x,fieldsAvailable:JSON.parse(x.fields_available_json||'[]'),fields_available_json:undefined})),notice:'المصادر محددة، لكن الربط الآلي لا يُفعّل قبل موافقة الجهة المالكة أو توفير واجهة رسمية.'});
+}));
 router.get('/sources',wrap(async(req,res)=>{
   const rows=getDB().prepare('SELECT country,source_type,source_name,source_url,verification_status,verified_at FROM vendor_source_records ORDER BY country,source_type,source_name').all();
   res.json({sources:rows,notice:'تظهر المصادر الرسمية بعد تفعيل الربط المصرح به أو استيراد بيانات معتمد.'});
