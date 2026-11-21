@@ -34,5 +34,5 @@ test('MMC AI drawing reader shows first-page native text/vector spatial evidence
  assert.ok(html.includes('nativeSpatialDimensions'));
  assert.ok(html.includes('nativeSpatialElements'));
  assert.ok(html.includes('spatialCorrelation'));
- assert.ok(html.includes('nearbyVectorPaths'));
+ assert.ok(html.includes('data.spatialCorrelation||null'));
 });
