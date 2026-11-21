@@ -153,6 +153,11 @@ function createApp() {
     return sendFromWeb('consulting/index.html', res, next);
   });
 
+  // Central vendor and service-provider registry; UI is public entry, data actions remain API-authenticated.
+  app.get(['/vendor-registry', '/vendor-registry/', '/vendor-registry/index.html'], (req, res, next) => {
+    return sendFromWeb('vendor-registry/index.html', res, next);
+  });
+
   // Legacy consultant browse URL now opens the full consulting-office portal, not the read-only market page.
   app.get('/public-browse/consultant.html', (req, res) => res.redirect(302, '/consulting/'));
 
