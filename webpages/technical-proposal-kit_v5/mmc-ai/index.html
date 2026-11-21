@@ -1093,6 +1093,20 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
      }catch(err){notify(err.message);}finally{extract.disabled=false;extract.textContent='Extract Text';}});
 
      actions.appendChild(extract);
+     const vectorRead=document.createElement('button');vectorRead.type='button';vectorRead.textContent='Extract Vector Geometry (Page 1)';vectorRead.style.cssText='border:1px solid #9bb8d1;border-radius:7px;padding:7px 10px;background:#eaf2f8;color:#244c6b;font-size:10px;cursor:pointer';
+     vectorRead.addEventListener('click',async()=>{vectorRead.disabled=true;vectorRead.textContent='Extracting vectors...';try{
+      const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/extract/vector-geometry',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({pageNumber:1})});
+      const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'PDF vector extraction failed.');
+      const result=data.result||{},geometry=result.geometry||{},paths=geometry.paths||[],closed=paths.filter(p=>p.closed),output=document.getElementById('takeoffResult');output.replaceChildren();
+      const heading=document.createElement('strong');heading.textContent='PDF Vector Geometry — Page '+result.pageNumber;heading.style.cssText='display:block;color:#31536f;margin-bottom:8px';
+      const summary=document.createElement('p');summary.textContent='Status: '+result.status+' · Vector paths: '+(geometry.pathCount??0)+' · Closed shapes: '+closed.length+' · Unsupported paths: '+(geometry.unsupportedPathCount??0);
+      const dimensions=document.createElement('p');dimensions.textContent='SVG viewBox: '+(result.svgViewBox?result.svgViewBox.join(' × '):'Unavailable')+' · Scale calibration: '+(result.calibrated?'Applied':'Not calibrated');
+      const sample=document.createElement('pre');sample.textContent=JSON.stringify(paths.slice(0,30).map((p,index)=>({path:index+1,closed:p.closed,vertexCount:p.vertexCount,lengthDrawingUnits:p.lengthUnits,areaDrawingSquareUnits:p.areaSquareUnits})),null,2);sample.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;background:#f7f9fb;padding:10px;border-radius:7px;font-size:11px;line-height:1.7';
+      const note=document.createElement('p');note.textContent='Saved analysis ID: '+data.analysisId+'. These are drawing-space units only, not metres or square metres. No scale was assumed; no element classification, BOQ quantities or 3D model were generated.';
+      note.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';
+      output.append(heading,summary,dimensions,sample,note);notify('PDF vector geometry extracted and saved for page 1.');
+     }catch(err){notify(err.message);}finally{vectorRead.disabled=false;vectorRead.textContent='Extract Vector Geometry (Page 1)';}});
+     actions.appendChild(vectorRead);
      const drawingRead=document.createElement('button');drawingRead.type='button';drawingRead.textContent='Read Drawing (OCR + Evidence)';drawingRead.style.cssText='border:1px solid #8fb6d8;border-radius:7px;padding:7px 10px;background:#edf5fc;color:#245477;font-size:10px;cursor:pointer';
      drawingRead.addEventListener('click',async()=>{drawingRead.disabled=true;drawingRead.textContent='Reading drawing...';try{
       const response=await fetch('/api/mmc-ai/projects/'+encodeURIComponent(id)+'/documents/'+encodeURIComponent(d.id)+'/analyze/drawing-text',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({maxPages:20,dpi:180})});
