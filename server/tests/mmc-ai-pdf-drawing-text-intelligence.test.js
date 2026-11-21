@@ -33,7 +33,7 @@ test('creates page-level engineering candidates while refusing unverified quanti
  ];
  const result=analyzeSpatialPageEvidence(lines,{maxDistancePx:160,pageBounds:{width:2000,height:2000}});
  assert.ok(result.elements.some(item=>item.elementFamilyCandidate==='footing'));
- assert.ok(result.dimensions.some(item=>item.kind==='dimension_pair'));
+ assert.ok(result.dimensions.some(item=>item.kind==='dimension_triplet'));
  const triplet=result.dimensions.find(item=>item.kind==='dimension_triplet');
  assert.deepEqual(triplet.values,[2000,2000,500]);
  assert.deepEqual(triplet.units,['mm','mm','mm']);
