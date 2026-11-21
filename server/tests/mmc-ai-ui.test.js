@@ -170,5 +170,7 @@ test('DXF raw geometry rows cannot bypass discipline proposal review into BOQ',(
  const dxf=html.slice(start,end);
  assert.match(dxf,/Use discipline proposal below/);
  assert.doesNotMatch(dxf,/selectedTakeoffSourceId=item\.id/);
- assert.match(dxf,/textContent='Add to BOQ'/);\n assert.match(dxf,/add\.disabled=true/);\n assert.match(dxf,/button\.disabled=!enabled/);
+ assert.match(dxf,/textContent='Add to BOQ'/);
+ assert.match(dxf,/add\.disabled=true/);
+ assert.match(dxf,/button\.disabled=!enabled/);
 });
