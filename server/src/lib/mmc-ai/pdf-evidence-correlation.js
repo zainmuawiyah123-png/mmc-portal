@@ -46,4 +46,28 @@ function correlatePdfTextWithVectorGeometry({ textLines = [], geometry, viewBox,
   return { status: 'spatial_candidates_generated_requires_visual_confirmation', coordinateSpace: 'normalized_page_width_2000px', pathCount: pathBoxes.length, textLineCount: candidates.length, matchedTextLineCount: associations.filter(x => x.nearbyVectorPaths.length).length, maxDistancePx, associations: associations.slice(0, 300), limitations: ['Nearest paths are spatial candidates only; they are not classified as engineering elements.','PDF text and SVG geometry are aligned by page aspect ratio, not by a verified drawing scale.','No dimensions, lengths, areas, volumes, BOQ quantities or 3D geometry are inferred.'] };
 }
 
-module.exports = { correlatePdfTextWithVectorGeometry, boxDistance };
+
+function spatialOcrLines(words, { pageWidthPt, pageHeightPt, maxRenderSide = 2600 } = {}) {
+  if (!Array.isArray(words) || !(pageWidthPt > 0) || !(pageHeightPt > 0)) return [];
+  const renderScale = maxRenderSide / Math.max(pageWidthPt, pageHeightPt);
+  const renderedWidth = pageWidthPt * renderScale;
+  const normalizedScale = 2000 / renderedWidth;
+  const groups = new Map();
+  for (const word of words) {
+    if (!word || typeof word.text !== 'string' || !word.text.trim() || !word.box) continue;
+    const { left, top, width, height } = word.box;
+    if (![left, top, width, height].every(Number.isFinite) || width <= 0 || height <= 0) continue;
+    const key = [word.page || 1, word.block || 0, word.paragraph || 0, word.line || 0].join(':');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ ...word, box: { left: left * normalizedScale, top: top * normalizedScale, width: width * normalizedScale, height: height * normalizedScale } });
+  }
+  return [...groups.values()].map(group => {
+    group.sort((a,b) => a.box.left - b.box.left);
+    const left = Math.min(...group.map(w => w.box.left)), top = Math.min(...group.map(w => w.box.top));
+    const right = Math.max(...group.map(w => w.box.left + w.box.width)), bottom = Math.max(...group.map(w => w.box.top + w.box.height));
+    return { page: group[0].page || 1, text: group.map(w => w.text.trim()).join(' '),
+      box: { left, top, width: right-left, height: bottom-top }, source: 'tesseract_tsv_normalized_page' };
+  }).sort((a,b) => a.box.top-b.box.top || a.box.left-b.box.left).slice(0,5000);
+}
+
+module.exports = { correlatePdfTextWithVectorGeometry, boxDistance, spatialOcrLines };
