@@ -19,26 +19,38 @@
 </head>
 <body>
 
-<div class="topbar no-print">
-  <div class="brand"><span class="mark">M</span> MMC Technical Proposal Kit</div>
-  <span class="code">TP-KIT v4.0</span>
-  <div class="spacer"></div>
-  <a class="btn ghost" href="/portal/pt-9f3c7a1e5b2d/login.html">تسجيل الدخول / Sign in</a>
-  <a class="btn amber" href="/portal/pt-9f3c7a1e5b2d/register.html">إنشاء حساب / Register</a>
-  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="MMC Portal — upload drawings and produce the proposal">🔓 MMC Portal</a>
-  <a class="btn ghost" href="tender-opportunities/index.html">Tender opportunities</a>   <a class="btn ghost" href="marketing/landing.html">Overview</a>
-  <a class="btn ghost" href="marketing/pricing.html">Pricing</a>
-  <a class="btn ghost" href="marketing/compare.html">Compare</a>
-  <a class="btn ghost" href="marketing/faq.html">FAQ</a>
-  <a class="btn amber" href="marketing/subscribe.html">Subscribe</a>
-  <div class="switch" role="group" aria-label="Language">
-    <a href="index.html" class="on" title="Arabic index">AR</a>
-    <span style="background:#b45309;color:#fff">EN</span>
-  </div>
-  <button class="btn" data-print>&#128424; Print</button>
-</div>
-
-<div class="sheet">
+<div class="proposal-top no-print"><div class="brand">MMC Technical Proposal Kit · TP-KIT v4.0</div><div class="spacer"></div><a class="btn ghost" href="index-ar.html">العربية</a><button class="btn" data-print>🖨 Print</button></div>
+<style>
+.proposal-shell{direction:ltr;display:grid;grid-template-columns:275px minmax(0,1fr);gap:20px;max-width:1700px;margin:0 auto;padding:18px 20px 40px;align-items:start}
+.proposal-side{direction:rtl;text-align:right;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;background:#10243a;color:#fff;border-radius:12px;padding:14px 12px;box-shadow:0 6px 20px rgba(16,36,58,.15)}
+.proposal-side .side-brand{font-size:17px;font-weight:900;padding:5px 9px 13px;border-bottom:1px solid #344b62}
+.proposal-side .side-label{font-size:10px;font-weight:900;letter-spacing:.5px;color:#f1bd78;padding:14px 9px 5px}
+.proposal-side a{display:block;color:#eaf0f6;text-decoration:none;padding:8px 9px;margin:2px 0;border-radius:7px;font-size:12px;line-height:1.45}
+.proposal-side a:hover{background:#29445f;color:#fff}
+.proposal-side a small{display:block;color:#b9c7d5;font-size:10px;font-weight:400}
+.proposal-main{min-width:0}.proposal-main>.sheet{width:100%;max-width:none;margin:0}
+.proposal-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:#fff}
+.proposal-top .brand{font-weight:850}.proposal-top .spacer{flex:1}
+@media(max-width:950px){.proposal-shell{grid-template-columns:1fr;padding:10px}.proposal-side{position:static;max-height:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.proposal-side .side-brand,.proposal-side .side-label{grid-column:1/-1}.proposal-main>.sheet{padding:18px}}
+@media(max-width:560px){.proposal-side{grid-template-columns:1fr}.proposal-shell{padding:7px}.proposal-top{padding:10px}}
+@media print{.proposal-side,.proposal-top{display:none!important}.proposal-shell{display:block;padding:0}.proposal-main>.sheet{padding:0}}
+</style>
+<div class="proposal-shell"><aside class="proposal-side"><div class="side-brand">MMC <small>TECHNICAL PROPOSAL KIT</small></div>
+ <div class="side-label">SYSTEM PORTALS</div>
+ <a href="/bid/">Contractor Portal<small>Registration, tenders and subscriptions</small></a>
+ <a href="/procurement/">Procurement Portal · Free<small>Procurement and tender management</small></a>
+ <a href="/consulting/">Consultant Office Portal<small>Consultant tenders and services</small></a>
+ <a href="mmc-ai/index.html">MMC AI · Construction Intelligence<small>Drawings, BOQ, BIM and project controls</small></a>
+ <a href="portal/pt-9f3c7a1e5b2d/login.html?next=../../admin/index.html">Administration Portal<small>Payment and account administration</small></a>
+ <a href="org/index.html">Organization Workspace<small>Requests and project team</small></a>
+ <a href="documents/MMC-tender-platform-bilingual.pdf" target="_blank" rel="noopener">MMC System Guide · PDF</a>
+ <div class="side-label">PROPOSAL KIT</div>
+ <a href="#edition">Choose language edition</a><a href="#document-index">Document index</a><a href="#workbooks">Downloadable workbooks</a><a href="#packages">Proposal Kit packages</a>
+ <div class="side-label">ACCOUNT &amp; HELP</div>
+ <a href="portal/pt-9f3c7a1e5b2d/login.html">Sign in</a><a href="portal/pt-9f3c7a1e5b2d/register.html">Create account</a>
+ <a href="marketing/landing.html">Overview</a><a href="marketing/pricing.html">Pricing</a><a href="marketing/compare.html">Compare plans</a><a href="marketing/faq.html">FAQ</a><a href="marketing/subscribe.html">Subscribe</a>
+ </aside>
+<div class="proposal-main"><div class="sheet">
 
   <div class="doc-head">
     <div class="eyebrow">MMC Technical Proposal Kit &middot; Bilingual Edition</div>
@@ -54,19 +66,6 @@
   </div>
 
 
-  <section class="portal-gateway" style="margin:28px 0">
-    <h2 class="sec"><span class="num">00</span> System portals before launch</h2>
-    <p class="small">Choose the appropriate workspace for tenders and services. The procurement portal is permanently free.</p>
-    <div class="cards">
-      <a class="card" href="/bid/"><div class="k">CONTRACTOR PORTAL</div><div class="ttl">Contractor portal</div><div class="d">Register, choose a plan, create an invoice, upload a transfer receipt and track activation.</div></a>
-      <a class="card" href="/procurement/"><div class="k">PROCUREMENT PORTAL · FREE</div><div class="ttl">Procurement portal — always free</div><div class="d">All core procurement functions are permanently free, with no subscription or trial period.</div></a>
-      <a class="card" href="/consulting/"><div class="k">CONSULTANT PORTAL</div><div class="ttl">Consulting office portal</div></a>
-      <a class="card" href="mmc-ai/index.html"><div class="k">MMC AI CONSTRUCTION INTELLIGENCE</div><div class="ttl">MMC AI — Construction Intelligence</div><div class="d">Independent AI workspace for drawing analysis, quantity takeoff, BIM, schedules, contracts and project risk. Preview interface; engineering engines are under development.</div></a>
-      <a class="card" href="documents/MMC-tender-platform-bilingual.pdf" target="_blank" rel="noopener"><div class="k">SYSTEM GUIDE · PDF · EN / AR</div><div class="ttl">MMC System Guide — Four Portals</div><div class="d">One bilingual PDF explaining the Contractor, Procurement, Administration and MMC-AI workspaces. The guide is kept here on the homepage.</div></a>
-      <a class="card" href="portal/pt-9f3c7a1e5b2d/login.html?next=../../admin/index.html"><div class="k">ADMIN PORTAL</div><div class="ttl">Administration portal</div><div class="d">Review payment receipts, approve or reject invoices and activate plans with an expiry date.</div></a>
-      <a class="card" href="org/index.html"><div class="k">ORGANIZATION WORKSPACE</div><div class="ttl">Requests &amp; team</div><div class="d">Owner request → projects department prepares drawings, specifications and FIDIC conditions → procurement publishes the tender.</div></a>
-    </div>
-  </section>
 
   <div class="callout">
     <strong>Start here.</strong> Both editions carry the same thirteen documents and the same arithmetic. Choose a
@@ -74,7 +73,7 @@
     fifteen checks to run before submission.
   </div>
 
-  <h2 class="sec"><span class="num">01</span> Choose your edition</h2>
+  <h2 class="sec" id="edition"><span class="num">01</span> Choose your edition</h2>
 
   <div class="lang-row">
     <a class="lang-card" href="en/index.html">
@@ -89,7 +88,7 @@
     </a>
   </div>
 
-  <h2 class="sec"><span class="num">02</span> Document index &mdash; both editions</h2>
+  <h2 class="sec" id="document-index"><span class="num">02</span> Document index &mdash; both editions</h2>
   <p class="small" style="margin-top:-4px">Each row links to the same document in each language. The tag shows the
   document's role in the submission.</p>
 
@@ -211,7 +210,7 @@
     </tbody>
   </table>
 
-  <h2 class="sec"><span class="num">03</span> Downloadable workbooks</h2>
+  <h2 class="sec" id="workbooks"><span class="num">03</span> Downloadable workbooks</h2>
   <div class="cards">
     <a class="card" href="../../documents/technical-proposal-kit_v5/quantity-takeoff-en.xlsx" download>
       <div class="k">EXCEL &middot; ENGLISH</div>
@@ -226,7 +225,7 @@
   </div>
   <p class="no-print" style="font-size:12px;color:#5b6b7c;margin:6px 0 0">If nothing happens on a phone, open this page in Safari or Chrome (not an in-app browser) and tap the card again. The file downloads as .xlsx and opens in Excel, Numbers or Google Sheets. · إن لم يحدث شيء على الجوال فافتح الصفحة في Safari أو Chrome مباشرة، وليس من داخل تطبيق آخر.</p>
 
-  <h2 class="sec"><span class="num">05</span> Subscription packages</h2>
+  <h2 class="sec" id="packages"><span class="num">05</span> Subscription packages</h2>
   <p class="small" style="margin-top:-4px">The documents above are complete on their own. The packages add the second
   edition, the Excel workbook, your own branding and support — and fund the maintenance of the forms.
   The portal applies the same limits: active tenders and upload space.</p>
@@ -317,7 +316,7 @@
     <span>TP-KIT v5.0 &middot; Phase 2: server + database + auth + S3 storage + scheduled backups</span>
     <span>English Edition + النسخة العربية &middot; USD / JOD / SAR / AED / GBP / EUR</span>
   </div>
-</div>
+</div></div></div>
 
 <script src="assets/en.js"></script>
 </body>
