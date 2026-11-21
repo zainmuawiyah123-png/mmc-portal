@@ -92,6 +92,10 @@ const config = {
   /* ============ الجدولة ============ */
   /** تعطيل كل المهام المجدولة بمتغير واحد */
   SCHEDULER_ENABLED: v('SCHEDULER_ENABLED', 'false') === 'true',
+  /** جدولة النسخ الاحتياطي مستقلة عن انتهاء الاشتراكات */
+  BACKUP_SCHEDULER_ENABLED: v('BACKUP_SCHEDULER_ENABLED', 'false') === 'true',
+  /** تنفيذ نسخة احتياطية واحدة بعد الإقلاع لاختبار النسخ والاستعادة */
+  BACKUP_RUN_ON_START: v('BACKUP_RUN_ON_START', 'false') === 'true',
   /** تعبير cron للنسخ الاحتياطي — افتراضي: 02:30 كل يوم */
   BACKUP_CRON: v('BACKUP_CRON', '30 2 * * *'),
   /** فحص الاشتراكات المنتهية يومياً — افتراضي 03:00 بتوقيت المنطقة */
