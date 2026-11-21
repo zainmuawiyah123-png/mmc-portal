@@ -18,3 +18,13 @@ test('MMC AI document list exposes a project-scoped PDF vector geometry action a
  assert.ok(html.includes("/extract/vector-geometry"));
  assert.ok(html.includes("These are drawing-space units only, not metres or square metres."));
 });
+
+
+test('MMC AI dashboard binds KPI cards to live project API values',()=>{
+ assert.ok(html.includes('id="metricActiveProjects"'));
+ assert.ok(html.includes('id="metricDrawingsAnalyzed"'));
+ assert.ok(html.includes('id="metricBoqItems"'));
+ assert.ok(html.includes('id="metricEngineeringAlerts"'));
+ assert.ok(html.includes('s.drawingsAnalyzed'));
+ assert.ok(html.includes('s.vectorAnalysisRuns'));
+});
