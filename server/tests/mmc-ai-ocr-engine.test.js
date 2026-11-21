@@ -23,6 +23,14 @@ test('parses OCR TSV words, boxes, line grouping, and confidence', () => {
   assert.deepEqual(result.words[0].box, { left: 20, top: 30, width: 40, height: 12 });
 });
 
+test('assigns each rendered OCR page its original PDF page number', () => {
+  const words = [{ text: 'SHEET', page: 1, box: { left: 1, top: 2, width: 3, height: 4 } }];
+  const pageTwo = require('../src/lib/mmc-ai/ocr-engine').assignOcrPageNumber(words, 2);
+  assert.equal(pageTwo[0].page, 2);
+  assert.equal(words[0].page, 1, 'source word evidence remains unchanged');
+  assert.throws(() => require('../src/lib/mmc-ai/ocr-engine').assignOcrPageNumber(words, 0), TypeError);
+});
+
 test('parses Poppler page count and rejects malformed metadata', () => {
   assert.equal(parsePdfPageCount('Title: Drawing\nPages:          7\nPage size: 842 x 595 pts'), 7);
   assert.equal(parsePdfPageCount('Pages: 0'), null);

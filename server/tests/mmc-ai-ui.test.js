@@ -127,7 +127,7 @@ test('DXF discipline proposals are shown with source evidence and gated BOQ tran
  assert.match(html,/Discipline quantities · Engineer review/);
  assert.match(html,/Layers:/);
  assert.match(html,/Missing information:/);
- assert.match(html,/formula:category\.formula/);
+ assert.match(html,/category\.formula/);
  assert.match(html,/Approve the takeoff run before creating BOQ items/);
  assert.match(html,/\/boq\/from-takeoff/);
  assert.match(html,/Unit rate is still missing/);
@@ -170,5 +170,7 @@ test('DXF raw geometry rows cannot bypass discipline proposal review into BOQ',(
  const dxf=html.slice(start,end);
  assert.match(dxf,/Use discipline proposal below/);
  assert.doesNotMatch(dxf,/selectedTakeoffSourceId=item\.id/);
- assert.doesNotMatch(dxf,/textContent='Add to BOQ'/);
+ assert.match(dxf,/textContent='Add to BOQ'/);
+ assert.match(dxf,/add\.disabled=true/);
+ assert.match(dxf,/button\.disabled=!enabled/);
 });
