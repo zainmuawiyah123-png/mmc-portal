@@ -24,3 +24,15 @@ test('withholds spatial associations when PDF page and SVG aspect ratios do not 
  assert.equal(result.status,'coordinate_spaces_not_aligned');
  assert.equal(result.associations.length,0);
 });
+
+test('normalizes OCR TSV word boxes into the same page coordinate system as PDF vectors',()=>{
+ const {spatialOcrLines}=require('../src/lib/mmc-ai/pdf-evidence-correlation');
+ const lines=spatialOcrLines([
+  {text:'B1',page:1,block:1,paragraph:1,line:1,box:{left:650,top:320,width:50,height:30}},
+  {text:'300',page:1,block:1,paragraph:1,line:1,box:{left:710,top:320,width:60,height:30}}
+ ],{pageWidthPt:612,pageHeightPt:792});
+ assert.equal(lines.length,1);
+ assert.equal(lines[0].text,'B1 300');
+ assert.ok(lines[0].box.left>0 && lines[0].box.width>0);
+ assert.equal(lines[0].source,'tesseract_tsv_normalized_page');
+});
