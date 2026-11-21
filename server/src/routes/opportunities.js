@@ -51,7 +51,7 @@ const MARKET_ROLES = ['contractor','admin'];
 router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (req,res) => {
  const db=getDB(); refreshExpiredOpportunities(db);
  const me=req.user.id;
- const q=clean(req.query.q,120), source=clean(req.query.source,20), country=clean(req.query.country,3).toUpperCase();
+ const q=clean(req.query.q,120), source=clean(req.query.source,80), country=clean(req.query.country,3).toUpperCase();
  const state=req.query.status==='closed'?'closed':'open', sort=req.query.sort==='new'?'new':'closing';
  const within=[7,14,30].includes(Number(req.query.closing))?Number(req.query.closing):0;
  const limit=Math.min(Math.max(parseInt(req.query.limit,10)||24,1),60), offset=Math.max(parseInt(req.query.offset,10)||0,0);
@@ -68,7 +68,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
  const where=cl.join(' AND ');
  const total=db.prepare('SELECT COUNT(*) n FROM tender_opportunities WHERE '+where).get(...vals).n;
  const order=sort==='new'?'imported_at DESC, COALESCE(closing_at,\'9999-12-31\') ASC':'COALESCE(closing_at,\'9999-12-31\') ASC, imported_at DESC';
- const rows=db.prepare('SELECT * FROM tender_opportunities WHERE '+where+' ORDER BY '+order+' LIMIT ? OFFSET ?').all(...vals,limit,offset);
+ const rows=db.prepare('WITH filtered AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY source_key ORDER BY '+order+') AS source_rank FROM tender_opportunities WHERE '+where+') SELECT * FROM filtered ORDER BY source_rank ASC, COALESCE(closing_at,\'9999-12-31\') ASC, imported_at DESC LIMIT ? OFFSET ?').all(...vals,limit,offset);
  const savedSet=new Set(rows.length?db.prepare('SELECT opportunity_id FROM opportunity_saved WHERE user_id=? AND opportunity_id IN ('+rows.map(()=>'?').join(',')+')').all(me,...rows.map(r=>r.id)).map(r=>r.opportunity_id):[]);
  const openN=(extra,...v)=>db.prepare('SELECT COUNT(*) n FROM tender_opportunities WHERE ('+OPEN+')'+(extra?' AND '+extra:'')).get(today,...v).n;
  const group=(col)=>Object.fromEntries(db.prepare('SELECT '+col+' k, COUNT(*) n FROM tender_opportunities WHERE ('+OPEN+') GROUP BY '+col).all(today).map(r=>[r.k,r.n]));
@@ -79,7 +79,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
   stats:{open:openN(), closingSoon:openN('closing_at IS NOT NULL AND closing_at<=?',ymd(7)), newThisWeek:openN('imported_at>=?',Math.floor(Date.now()/1000)-7*86400),
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
-  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','austender','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof'],
+  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','austender','vendorpanel-australia','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof'],
 	 lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
