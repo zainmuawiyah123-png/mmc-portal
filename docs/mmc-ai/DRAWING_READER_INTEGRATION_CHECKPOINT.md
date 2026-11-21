@@ -93,3 +93,15 @@ The live branch's `server/src/routes/mmc-ai-documents.js` stores uploaded docume
 - Commits: `b9c2f0d97083ae49ee581c7264a6dfa444079e01` (dashboard API), `14a7a474212b99f23eabe674b34e8d3e52385187` (UI), `7f49e42df4223d445debce929185d93ed0e7bc3a` (regression test).
 - Render deploy: `dep-dc0qk1u1egvs738otgd0`, status `live`; Docker build test gate reported 69 tests passed, 0 failed.
 - Remaining: validate the live dashboard with the signed-in user's existing project session; then implement page-level correlation between vector geometry and native/OCR text evidence. Do not treat distinct analysed documents as quantities or infer scale from vector/page dimensions.
+
+
+## 2026-11-21 — First-page PDF text/vector spatial evidence integration
+
+- Extended the authenticated `POST /projects/:projectId/documents/:documentId/analyze/drawing-text` action. It now reads native PDF word bounding boxes for page 1, extracts page-1 vector paths from the same stored PDF, converts native text words to the existing normalized page coordinate space, and returns nearest vector-path candidates for text lines that resemble dimensions or engineering tags.
+- Added `pdf-evidence-correlation.js` with aspect-ratio alignment guard (withholds matching when page/SVG aspect ratios differ by more than 2.5%), nearest-path candidate matching and explicit non-measurement limitations. Candidate associations are not element classifications and are not eligible for measurement.
+- Saved page evidence, vector evidence, matching output and errors in the existing `pdf_drawing_text` analysis record; audit metadata includes native spatial word count and number of matched lines. No new DB table or BOQ write path was added.
+- Updated the existing Read Drawing UI result to display native spatial dimensions/elements, page/vector summary, spatial correlation candidates and extraction errors. The current page design is retained.
+- Added two correlation unit tests and a UI regression test; added the new test and syntax check to the Docker build gate.
+- Commits: helper `117d676b427224abe612e9b0f242f8e22835f20e`; tests `4d76467eaab712920aab766b9119827195fffc5a`; API `3e6f06c3f60f85d13e5081ddafbab82336ce47ca`; UI `96f188d837f577c1bf5e796929549837592d023f`; regex correction `b132c2cbcdcb16d0fec7803608e482e4f6d17a80`; Docker gate `7e26a02736ddefd3323113f5e7c6db6f06a3ab88`; UI test correction `f95d0de13567f39568b80c0b7ded25b6a6083b36`.
+- Render deploy `dep-dc0qpr6c6qcc73f6cj80` status `live`; Docker gate reported 72 tests passed, 0 failed.
+- Validation pending with the actual user PDF session: invoke Read Drawing on the existing stored PDF and inspect the returned native text word count, vector geometry summary, aspect-ratio status, and spatial candidate list. If native text is absent or the coordinate spaces fail the alignment guard, no association is claimed. OCR-only spatial correlation, scale calibration, verified element classification, BOQ quantities and 2D-to-3D remain future work.
