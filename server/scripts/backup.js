@@ -136,7 +136,7 @@ async function main() {
     const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
     uploadedKey = config.BACKUP_PREFIX + '/' + yyyy + '/' + mm + '/' + gzName;
 
-    const put = await s3.put(uploadedKey, gz, { mime: 'application/gzip', originalName: gzName });
+    const put = await s3.put(uploadedKey, gz, { mime: 'application/octet-stream', originalName: gzName });
     // تحقق: ننزّل ونقارن التجزئة
     const back = await s3.get(uploadedKey);
     const backSum = sha256(back);
@@ -147,7 +147,7 @@ async function main() {
     log.steps.push({ step: 'upload', key: uploadedKey, bytes: gz.length, verified: true });
 
     // نرفع البيان أيضاً
-    await s3.put(uploadedKey + '.json', Buffer.from(JSON.stringify(manifest, null, 2)), { mime: 'application/json' });
+    await s3.put(uploadedKey + '.json', Buffer.from(JSON.stringify(manifest, null, 2)), { mime: 'application/octet-stream', originalName: gzName + '.json' });
   } else {
     console.log('  ↷ لم تُرفع للسحابة (' +
       (LOCAL_ONLY ? '--local-only' : 'STORAGE_DRIVER=' + config.STORAGE_DRIVER) + ') — النسخة محلية فقط');
