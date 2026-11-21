@@ -77,3 +77,26 @@ test('honors the configured page processing limit in Poppler inspection', {skip:
  assert.equal(result.pagesProcessed,1);
  assert.equal(result.truncatedAtPageLimit,true);
 });
+
+test('real PDF fixture aligns native text and vector geometry before producing candidate-only associations', {skip:!hasPoppler}, async()=>{
+ const bytes=createTwoPageArchitecturalFixture();
+ const [pages,vector]=await Promise.all([
+  inspectPdfPageEvidence(bytes,{documentId:'spatial-acceptance',maxPages:1}),
+  require('../src/lib/mmc-ai/pdf-pdf-vector-extract').inspectPdfVectorPage(bytes,{pageNumber:1})
+ ]);
+ const page=pages.pages[0];
+ assert.ok(page.nativeTextWordCount>0);
+ assert.ok(vector.geometry.pathCount>0);
+ const lines=require('../src/lib/mmc-ai/pdf-drawing-text-intelligence').spatialNativeLines(
+  page.nativeTextEvidence.map(word=>({text:word.text,box:word.box})),
+  {pageNumber:1,pageWidth:page.bboxWidthPt,pageHeight:page.bboxHeightPt}
+ );
+ assert.ok(lines.length>0);
+ const correlation=require('../src/lib/mmc-ai/pdf-evidence-correlation').correlatePdfTextWithVectorGeometry({
+  textLines:lines,geometry:vector.geometry,viewBox:vector.svgViewBox,
+  pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
+ });
+ assert.equal(correlation.status,'spatial_candidates_generated_requires_visual_confirmation');
+ assert.equal(correlation.associations.every(item=>item.measurementEligible===false),true);
+ assert.ok(correlation.textLineCount>0);
+});
