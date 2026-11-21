@@ -356,7 +356,7 @@ function analyzeSpatialPageEvidence(lines, options = {}) {
   const pageBounds = options.pageBounds && Number.isFinite(options.pageBounds.width) &&
     Number.isFinite(options.pageBounds.height) && options.pageBounds.width > 0 && options.pageBounds.height > 0
     ? options.pageBounds : null;
-  const titleBlockPatterns = /\\b(?:SCALE|DRAWING|DWG|SHEET|REV(?:ISION)?|PROJECT|DESIGNED|CHECKED|APPROVED|DATE|DRAWN)\\b|مقياس|لوحة|مشروع|مراجعة/i;
+  const titleBlockPatterns = /\b(?:SCALE|DRAWING|DWG|SHEET|REV(?:ISION)?|PROJECT|DESIGNED|CHECKED|APPROVED|DATE|DRAWN)\b|مقياس|لوحة|مشروع|مراجعة/i;
   const titleBlockCandidates = pageBounds ? lines.filter(line => {
     if (!line.box || !titleBlockPatterns.test(line.text)) return false;
     const cx = (line.box.left + line.box.width / 2) / pageBounds.width;
