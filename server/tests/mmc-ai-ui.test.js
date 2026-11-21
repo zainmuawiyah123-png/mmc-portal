@@ -95,7 +95,7 @@ test('PDF preflight and preliminary text extraction are separate actions',()=>{
 
 test('drawing reader action is available separately from quantity takeoff',()=>{
  assert.match(html,/Read Drawing \\(OCR \\+ Evidence\\)/);
- assert.match(html,/analyze\\/drawing-text/);
+ assert.ok(html.includes('analyze/drawing-text'));
  assert.match(html,/No quantities or 3D model were generated/);
 });
 
