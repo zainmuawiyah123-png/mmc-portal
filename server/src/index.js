@@ -26,6 +26,7 @@ const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
 const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
+const vendorRegistryRoutes = require('./routes/vendor-registry');
 const mmcAiRoutes = require('./routes/mmc-ai');
 const mmcAiDocumentRoutes = require('./routes/mmc-ai-documents');
 const mmcAiImageRoutes = require('./routes/mmc-ai-images');
@@ -113,6 +114,7 @@ function createApp() {
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
+  app.use('/api/vendor-registry', vendorRegistryRoutes);
   app.use('/api/mmc-ai', mmcAiRoutes);
   app.use('/api/mmc-ai', mmcAiDocumentRoutes);
   app.use('/api/mmc-ai', mmcAiImageRoutes);
@@ -149,6 +151,11 @@ function createApp() {
     // Public landing and directory are viewable without an account; all private firm actions
     // remain protected by the consulting API's authentication, role and tenant checks.
     return sendFromWeb('consulting/index.html', res, next);
+  });
+
+  // Central vendor and service-provider registry; UI is public entry, data actions remain API-authenticated.
+  app.get(['/vendor-registry', '/vendor-registry/', '/vendor-registry/index.html'], (req, res, next) => {
+    return sendFromWeb('vendor-registry/index.html', res, next);
   });
 
   // Legacy consultant browse URL now opens the full consulting-office portal, not the read-only market page.
