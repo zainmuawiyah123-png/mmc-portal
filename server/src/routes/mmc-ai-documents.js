@@ -179,7 +179,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  catch(error){vectorEvidenceError=error.message||'PDF vector extraction failed';}
  let ocr=null;
  const nativeWordCount=extraction.nativeSpatialWords?.length||0;
- const shouldOcr=nativeWordCount<8||extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
+ const hasPagesWithoutNativeText=(pageEvidence?.pages||[]).some(page=>(page.nativeTextWordCount||0)<8);\n const shouldOcr=nativeWordCount<8||hasPagesWithoutNativeText||extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
  if(shouldOcr){
   try{
    ocr=await ocrPdf(bytes,{maxPages:req.body?.maxPages||20,dpi:req.body?.dpi||180});
