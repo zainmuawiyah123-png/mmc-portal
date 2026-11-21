@@ -69,3 +69,15 @@ The live branch's `server/src/routes/mmc-ai-documents.js` stores uploaded docume
 - Important boundary: this commit only ports and gates the geometry foundation. It does NOT yet connect these modules to the authenticated document workflow or automatically analyze uploaded project drawings. No measured quantity, BIM element, 3D model, or takeoff result is claimed.
 - Next: add a project-authorized analysis route that retrieves the stored PDF, verifies size and SHA-256, inventories pages and extracts vector paths, persists source-linked results and audit events, then expose that analysis in the existing MMC AI UI without changing its design. Keep expensive multi-page work bounded/backgrounded; do not block uploads or invent scale.
 - Do not deploy or call the drawing-reader task complete until the integration route, UI result visibility, regression build, and a real stored drawing validation are all verified.
+
+## 2026-11-21 — Authenticated PDF vector geometry action added
+
+- Added `POST /api/mmc-ai/projects/:projectId/documents/:documentId/extract/vector-geometry` to the existing authenticated document route.
+- The route verifies project membership, stored file existence, byte length and SHA-256, then invokes the already-present Poppler SVG vector extractor for a requested PDF page (default page 1; page numbers 1–100).
+- Results are persisted in `ai_document_analyses` as `pdf_vector_geometry` and recorded in `ai_audit_log`.
+- Added a visible `Extract Vector Geometry (Page 1)` action to the existing document list UI. It displays vector path count, closed shape count, unsupported path count, drawing-space lengths/areas, viewBox and calibration status.
+- The UI explicitly states that drawing-space values are not metres or square metres and does not claim element classification, BOQ quantities or 3D output.
+- Added a regression assertion for the UI action and its measurement limitation.
+- Commits: `5c55c27ac2fd976ed2a54a02b5786aa53b8eddd1` (route), `cbdfaf3656f7c1449b1c1a4d9b130fe2c4d9aa57` (UI), `00b953b8fd27a9715344357543f544f70633c250` (test).
+- Render deploy: `dep-dc0peue7bikc73bgevq0`; Docker test gate reported 68 tests passed, 0 failed. At checkpoint time deploy status was `update_in_progress`; do not claim the new UI is live until Render reports `live`.
+- This is a manually invoked, single-page vector extraction step. It is not automatic full-document drawing interpretation, scale-calibrated measurement, discipline classification, BOQ takeoff or 3D model generation.
