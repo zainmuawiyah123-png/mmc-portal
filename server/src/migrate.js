@@ -1381,6 +1381,22 @@ function upgradeVendorServiceProviderRegistry(db) {
     CREATE INDEX IF NOT EXISTS idx_vendor_profiles_search ON vendor_profiles(country,profile_status,legal_name);
     CREATE INDEX IF NOT EXISTS idx_vendor_profiles_registration ON vendor_profiles(country,registration_number);
 
+    CREATE TABLE IF NOT EXISTS vendor_directory_sources (
+      id TEXT PRIMARY KEY,
+      country TEXT NOT NULL,
+      source_type TEXT NOT NULL CHECK(source_type IN ('contractors_association','engineers_syndicate','consultant_offices_committee','chamber_commerce','chamber_industry','company_registry','other_official')),
+      source_name TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      access_mode TEXT NOT NULL DEFAULT 'manual_review' CHECK(access_mode IN ('api','official_exchange','public_directory','manual_review','pending_agreement')),
+      integration_status TEXT NOT NULL DEFAULT 'identified' CHECK(integration_status IN ('identified','contacted','approved','connected','paused')),
+      fields_available_json TEXT NOT NULL DEFAULT '[]',
+      access_notes TEXT,
+      last_checked_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(country,source_type,source_name)
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_directory_sources_country ON vendor_directory_sources(country,integration_status);
     CREATE TABLE IF NOT EXISTS vendor_source_records (
       id TEXT PRIMARY KEY,
       vendor_id TEXT NOT NULL REFERENCES vendor_profiles(id) ON DELETE CASCADE,
