@@ -41,7 +41,7 @@ test('unknown and annotation layers are not promoted into quantity proposals', (
 });
 
 test('wall quantities remain incomplete until project dimensions are supplied', () => {
-  const measured = takeoffDxf(dxf(['0','LINE','8','A-WALL','10','0','20','0','11','4','21','0'].join('\\n')));
+  const measured = takeoffDxf(dxf(['0','LINE','8','A-WALL','10','0','20','0','11','4','21','0'].join('\n')));
   const classified = measured.rows.map(row => {
     const c = classifyLayer(row.layer);
     return { ...row, discipline: c.discipline, disciplineCategory: c.category, disciplineBasis: c.basis, disciplineSource: c.source };
