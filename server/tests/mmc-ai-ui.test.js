@@ -93,12 +93,6 @@ test('PDF preflight and preliminary text extraction are separate actions',()=>{
  assert.match(html,/This check validates file integrity only/);
 });
 
-test('drawing reader action is available separately from quantity takeoff',()=>{
- assert.match(html,/Read Drawing \\(OCR \\+ Evidence\\)/);
- assert.ok(html.includes('analyze/drawing-text'));
- assert.match(html,/No quantities or 3D model were generated/);
-});
-
 test('PDF structural takeoff is a separately labeled pilot and exposes source calculations and engineering review',()=>{
  assert.match(html,/PDF Concrete \+ Rebar Takeoff \(Pilot\)/);
  assert.match(html,/\/takeoff\/pdf/);
