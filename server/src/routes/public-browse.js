@@ -75,7 +75,9 @@ router.get('/contractor/opportunities', (req,res) => {
   const q=clean(req.query.q,120), country=clean(req.query.country,3).toUpperCase();
   const status=clean(req.query.status,20), source=clean(req.query.source,80), sector=clean(req.query.sector,80);
   const clauses=["status IN ('open','closed')"], values=[];
-  if(status==='open'||status==='closed'){clauses.push('status=?');values.push(status);}
+  const today=ammanToday();
+  if(status==='open'){clauses.push("(closing_at IS NULL OR substr(closing_at,1,10)>=?)");values.push(today);}
+  else if(status==='closed'){clauses.push("(closing_at IS NOT NULL AND substr(closing_at,1,10)<?)");values.push(today);}
   if(country){clauses.push('country=?');values.push(country);}
   if(source){clauses.push('source_key=?');values.push(source);}
   if(sector){clauses.push('sector=?');values.push(sector);}
@@ -88,13 +90,12 @@ router.get('/contractor/opportunities', (req,res) => {
     ORDER BY CASE WHEN status='open' THEN 0 ELSE 1 END, COALESCE(closing_at,'9999-12-31') ASC, imported_at DESC
     LIMIT 500
   `).all(...values);
-  const today=ammanToday();
   res.setHeader('Cache-Control','public, max-age=60');
   res.json({opportunities:rows.map(r=>({
     id:r.id,title:r.title,authority:r.authority,country:r.country,sector:r.sector,
     tenderNumber:r.tender_number,summary:r.summary,publishedAt:r.published_at,
     closingAt:r.closing_at,sourceUrl:r.source_url,applicationUrl:r.application_url,
-    status:(r.closing_at && String(r.closing_at).slice(0,10)<today)?'closed':r.status,
+    status:r.closing_at?(String(r.closing_at).slice(0,10)<today?'closed':'open'):r.status,
     language:r.language,sourceKey:r.source_key,importedAt:r.imported_at
   })),count:rows.length});
 });
