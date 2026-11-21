@@ -1689,6 +1689,37 @@ function upgradeMSProject(db) {
   `);
 }
 
+
+/**
+ * Drawing reader evidence register. Additive and idempotent: preserves all existing project,
+ * document, BOQ and audit rows.
+ */
+function upgradeMmcAiDrawingReader(db) {
+  const columns = new Set(db.prepare('PRAGMA table_info(ai_documents)').all().map(c => c.name));
+  const additions = [
+    ['discipline', "TEXT NOT NULL DEFAULT 'unclassified'"],
+    ['sheet_number', 'TEXT'],
+    ['revision', 'TEXT'],
+    ['drawing_title', 'TEXT']
+  ];
+  for (const [name, definition] of additions) {
+    if (!columns.has(name)) db.exec('ALTER TABLE ai_documents ADD COLUMN ' + name + ' ' + definition);
+  }
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_ai_documents_project_discipline
+      ON ai_documents(project_id,discipline,created_at DESC);
+    CREATE TABLE IF NOT EXISTS ai_discipline_packages (
+      project_id TEXT NOT NULL REFERENCES ai_projects(id) ON DELETE CASCADE,
+      discipline TEXT NOT NULL CHECK(discipline IN ('structural','architectural','electrical','mechanical','plumbing_fire')),
+      applicability TEXT NOT NULL DEFAULT 'required' CHECK(applicability IN ('required','not_required')),
+      expected_sheets_json TEXT NOT NULL DEFAULT '[]',
+      updated_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY(project_id,discipline)
+    );
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1730,6 +1761,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingMarketplace(db);
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
+  upgradeMmcAiDrawingReader(db);
   upgradeMmcAiRiskManagement(db);
   upgradeMmcAiContracts(db);
   upgradeMmcAiContractManagement(db);
