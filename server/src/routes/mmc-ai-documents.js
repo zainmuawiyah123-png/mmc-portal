@@ -245,7 +245,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
     }
    }
    let spatialEngineeringEvidence=null;
-   if(pageLines.length){try{spatialEngineeringEvidence=spatialHelper.analyzeSpatialPageEvidence(pageLines,{pageBounds:pageTextSource==='native_pdf_text_bbox'&&pageRecord.bboxWidthPt>0&&pageRecord.bboxHeightPt>0?{width:2000,height:2000*pageRecord.bboxHeightPt/pageRecord.bboxWidthPt}:null});}catch(error){spatialEngineeringEvidence={status:'spatial_evidence_failed',error:error.message};}}
+   if(pageLines.length){try{spatialEngineeringEvidence=spatialHelper.analyzeSpatialPageEvidence(pageLines,{pageBounds:pageRecord.bboxWidthPt>0&&pageRecord.bboxHeightPt>0?{width:2000,height:2000*pageRecord.bboxHeightPt/pageRecord.bboxWidthPt}:null});}catch(error){spatialEngineeringEvidence={status:'spatial_evidence_failed',error:error.message};}}
    let pageCorrelation=null;
    if(pageVector?.svgViewBox&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt&&pageLines.length){
     try{pageCorrelation=correlationHelper.correlatePdfTextWithVectorGeometry({
