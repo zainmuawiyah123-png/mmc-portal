@@ -149,6 +149,48 @@ body[dir=rtl] #ecosystem .cards>.card:nth-child(-n+3) a{
   body[dir=rtl] #ecosystem .cards>.card:nth-child(-n+3) a{padding:6px 0!important}
 }
 
+
+/* MMC Ecosystem: approved vertical left navigation, aligned with the internal portal sidebar */
+body{padding-left:275px}
+.nav{
+ position:fixed;left:0;top:0;bottom:0;width:275px;overflow-y:auto;
+ background:#10243a;color:#fff;border:0;border-right:1px solid #29445f;
+ border-radius:0;backdrop-filter:none;box-shadow:0 6px 24px rgba(16,36,58,.18);
+}
+.nav .wrap{width:100%;max-width:none;margin:0;padding:0 16px}
+.navin{height:auto;min-height:100%;display:flex;flex-direction:column;align-items:stretch;
+ justify-content:flex-start;gap:24px;padding:22px 0}
+.nav .brand{color:#fff;letter-spacing:.1em;min-height:48px}
+.nav .brand small{color:#b9c6d6}
+.nav .mark{border-color:#d49a48;color:#f3c68a;flex:none}
+.nav .links{display:flex;flex-direction:column;align-items:stretch;gap:4px;width:100%;
+ font-size:13px;color:#eaf0f6}
+.nav .links a{display:block;padding:11px 12px;margin:0;border-radius:7px;color:#eaf0f6;
+ border-left:3px solid transparent;transition:background .18s ease,color .18s ease}
+.nav .links a:hover{background:#29445f;color:#fff;border-left-color:#d49a48}
+.navin>div{width:100%;margin-top:auto}
+.nav .lang{width:100%;background:#fff;color:#10243a;border:1px solid #d7e0ea}
+body[dir=rtl] .nav .links a{border-left:0;border-right:3px solid transparent;text-align:right}
+body[dir=rtl] .nav .links a:hover{border-right-color:#d49a48}
+@media(max-width:950px){
+ body{padding-left:0}
+ .nav{position:relative;inset:auto;width:100%;height:auto;max-height:none;overflow:visible;
+  border-right:0;border-bottom:1px solid #29445f}
+ .nav .wrap{width:min(1160px,calc(100% - 30px));margin:auto;padding:0}
+ .navin{min-height:0;height:auto;display:flex;flex-direction:column;align-items:stretch;
+  gap:12px;padding:14px 0}
+ .nav .brand{align-self:flex-start}
+ .nav .links{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+ .nav .links a{padding:9px 10px}
+ .navin>div{margin-top:0}
+ .nav .lang{width:auto;min-width:110px}
+}
+@media(max-width:560px){
+ .nav .links{grid-template-columns:1fr}
+ .navin{gap:10px}
+ .nav .links a{padding:8px 10px}
+}
+
 </style></head>
 <body><div class="top"><div class="wrap"><span data-en="Independent construction & procurement ecosystem" data-ar="منظومة مستقلة للإنشاءات والمشتريات">Independent construction & procurement ecosystem</span><a href="mailto:m.madadha@mrc-jordan.com">m.madadha@mrc-jordan.com</a></div></div>
 <header class="nav"><div class="wrap navin"><a class="brand" href="#home"><span class="mark">MMC</span><span>MMC<small>CONSTRUCTION & PROCUREMENT</small></span></a><nav class="links"><a href="#about" data-en="About" data-ar="عن المنصة">About</a><a href="#ecosystem" data-en="Our Ecosystem" data-ar="منظومتنا">Our Ecosystem</a><a href="#sectors" data-en="Who We Serve" data-ar="من نخدم">Who We Serve</a><a href="#contact" data-en="Contact" data-ar="تواصل معنا">Contact</a></nav><div><button class="lang" id="lang">العربية</button></div></div></header>
