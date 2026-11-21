@@ -105,6 +105,10 @@ function extractSpatialDimensionCandidates(lines) {
   const number = '[0-9٠-٩۰-۹]+(?:[.,٫][0-9٠-٩۰-۹]+)?';
   const unit = '(?:mm|cm|m|مم|سم|م)';
   const patterns = [
+    { kind: 'dimension_triplet',
+      regex: new RegExp('(' + number + ')\\s*(' + unit + ')?\\s*[x×]\\s*(' + number + ')\\s*(' + unit + ')?\\s*[x×]\\s*(' + number + ')\\s*(' + unit + ')?', 'giu'),
+      values: m => [engineeringNumber(m[1]), engineeringNumber(m[3]), engineeringNumber(m[5])],
+      units: m => { const shared = m[2] || m[4] || m[6] || null; return [m[2] || shared, m[4] || shared, m[6] || shared].map(value => value ? normalizeEngineeringUnit(value) : null); } },
     { kind: 'explicit_length', regex: new RegExp('(' + number + ')\\s*(' + unit + ')(?![\\p{L}])', 'giu'),
       values: m => [engineeringNumber(m[1])], units: m => [normalizeEngineeringUnit(m[2])] },
     { kind: 'dimension_pair', regex: new RegExp('(' + number + ')\\s*[x×]\\s*(' + number + ')(?:\\s*(' + unit + '))?', 'giu'),
@@ -112,10 +116,13 @@ function extractSpatialDimensionCandidates(lines) {
       units: m => [m[3] ? normalizeEngineeringUnit(m[3]) : null, m[3] ? normalizeEngineeringUnit(m[3]) : null] }
   ];
   for (const line of lines) {
+    const tripletRanges = [];
     for (const pattern of patterns) {
       pattern.regex.lastIndex = 0;
       let match;
       while ((match = pattern.regex.exec(line.text))) {
+        if (pattern.kind === 'dimension_pair' && tripletRanges.some(range => match.index < range.end && match.index + match[0].length > range.start)) continue;
+        if (pattern.kind === 'dimension_triplet') tripletRanges.push({start:match.index,end:match.index+match[0].length});
         const raw = clean(match[0]);
         const matchedWords = (line.wordBoxes || []).filter(word =>
           word.start < match.index + match[0].length && word.end > match.index);
