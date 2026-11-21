@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TP-06 · خطة الموارد: الكادر والمعدات والمواد</title>
+<link rel="stylesheet" href="assets/kit.css">
+
+<style>
+  .topbar .switch{display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;flex:0 0 auto}
+  .topbar .switch a,.topbar .switch span{font-size:11px;font-weight:800;padding:5px 9px;letter-spacing:.4px;
+    color:#9fb0c2;text-decoration:none;line-height:1.4}
+  .topbar .switch a:hover{background:#1d3a58;color:#fff}
+  .topbar .switch .on{background:#b45309;color:#fff}
+</style>
+</head>
+<body data-doc="tp06">
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> حزمة العروض الفنية</div>
+  <span class="code">FORM TP-06</span>
+  <div class="spacer"></div>
+  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="بوابة MMC — رفع المخططات وإنتاج العرض">🔓 بوابة MMC</a>
+  <a class="btn ghost" href="index-ar.html">الفهرس</a>
+  <button class="btn" data-print>🖨️ طباعة / PDF</button>
+  <button class="btn ghost" data-reset>مسح</button>
+  <div class="switch" role="group" aria-label="اللغة"><span class="on" aria-current="true">AR</span><a href="en/06-resources.html" title="English edition">EN</a></div>
+  </div>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">Form TP-06 · Resource Plan — People, Plant &amp; Materials</div>
+    <h1>خطة الموارد: الكادر البشري والمعدات والمواد</h1>
+    <p class="sub">الهيكل التنظيمي · سير ذاتية مختصرة · جدول المعدات · مصادر المواد</p>
+    <div class="doc-meta">
+      <div><span>ذروة العمالة</span><b>— عامل</b></div>
+      <div><span>عدد المهندسين</span><b>—</b></div>
+      <div><span>عدد المعدات الرئيسية</span><b>—</b></div>
+      <div><span>مصادر المواد</span><b>محلي / مستورد</b></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>ما الذي تبحث عنه اللجنة هنا؟</strong> أن يكون الكادر <em>مخصصاً لهذا المشروع</em> لا مستعاراً من مشروع آخر، وأن تكون المعدات <em>مملوكة أو متعاقداً عليها</em> لا «متاحة عند الحاجة»، وأن يكون لكل مادة رئيسية مصدر محدد. جداول الموارد هي أسرع مكان لكشف العروض الجدية من غيرها.
+  </div>
+
+  <h2 class="sec"><span class="num">1</span> الهيكل التنظيمي للمشروع (Organization Chart)</h2>
+
+  <div class="org">
+    <div class="node base">مدير المشروع<small>Project Manager</small></div>
+    <div class="vline"></div>
+    <div class="row">
+      <div class="col"><div class="node">مدير الإنشاء<small>Construction Manager</small></div></div>
+      <div class="col"><div class="node">مدير الجودة<small>QA/QC Manager</small></div></div>
+      <div class="col"><div class="node">مسؤول السلامة<small>HSE Officer</small></div></div>
+      <div class="col"><div class="node">مدير مكتب فني<small>Technical Office Mgr</small></div></div>
+      <div class="col"><div class="node">مهندس تخطيط<small>Planning Engineer</small></div></div>
+    </div>
+    <div class="vline"></div>
+    <div class="row">
+      <div class="col"><div class="node">مهندس موقع — إنشائي<small>Site Engineer — Civil</small></div></div>
+      <div class="col"><div class="node">مهندس موقع — معماري<small>Site Engineer — Arch.</small></div></div>
+      <div class="col"><div class="node">مهندس كهروميكانيك<small>MEP Engineer</small></div></div>
+      <div class="col"><div class="node">مهندس كميات<small>Quantity Surveyor</small></div></div>
+      <div class="col"><div class="node">مساح<small>Surveyor</small></div></div>
+    </div>
+    <div class="vline"></div>
+    <div class="node" style="min-width:300px">المراقبون والفرق التنفيذية<small>Foremen &amp; Execution Crews — عمالة مباشرة ومتعاقدة</small></div>
+  </div>
+
+  <h2 class="sec"><span class="num">2</span> جدول الكادر المخصص للمشروع</h2>
+  <table class="t">
+    <thead>
+      <tr>
+        <th style="width:5%" class="c">م</th>
+        <th style="width:20%">الوظيفة</th>
+        <th style="width:16%">الاسم</th>
+        <th style="width:9%" class="c">العدد</th>
+        <th style="width:13%">المؤهل / الخبرة</th>
+        <th style="width:15%">مدة التخصيص</th>
+        <th>الحالة (مُعيَّن/مرشح)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="c n">1</td><td>مدير المشروع</td><td><input class="fi sm" placeholder=""></td><td class="c n">1</td><td><input class="fi sm" placeholder="هندسة + 15 سنة"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">2</td><td>مدير الإنشاء</td><td><input class="fi sm" placeholder=""></td><td class="c n">1</td><td><input class="fi sm" placeholder="هندسة + 12 سنة"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">3</td><td>مدير الجودة</td><td><input class="fi sm" placeholder=""></td><td class="c n">1</td><td><input class="fi sm" placeholder="هندسة + 10 سنوات"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">4</td><td>مسؤول السلامة</td><td><input class="fi sm" placeholder=""></td><td class="c n">2</td><td><input class="fi sm" placeholder="شهادة OSHA/NEBOSH"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">5</td><td>مهندس تخطيط</td><td><input class="fi sm" placeholder=""></td><td class="c n">1</td><td><input class="fi sm" placeholder="Primavera/MS Project"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">6</td><td>مهندس موقع إنشائي</td><td><input class="fi sm" placeholder=""></td><td class="c n">3</td><td><input class="fi sm" placeholder="هندسة مدنية + 5"></td><td><input class="fi sm" placeholder="مرحلة الهيكل"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">7</td><td>مهندس موقع معماري</td><td><input class="fi sm" placeholder=""></td><td class="c n">2</td><td><input class="fi sm" placeholder="هندسة معمارية + 5"></td><td><input class="fi sm" placeholder="مرحلة التشطيب"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">8</td><td>مهندس كهروميكانيك</td><td><input class="fi sm" placeholder=""></td><td class="c n">2</td><td><input class="fi sm" placeholder="ميكانيكا/كهرباء + 7"></td><td><input class="fi sm" placeholder="من الشهر 4"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">9</td><td>مهندس كميات</td><td><input class="fi sm" placeholder=""></td><td class="c n">1</td><td><input class="fi sm" placeholder="هندسة + 6"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">10</td><td>مساح</td><td><input class="fi sm" placeholder=""></td><td class="c n">2</td><td><input class="fi sm" placeholder="دبلوم مساحة"></td><td><input class="fi sm" placeholder="حسب المرحلة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">11</td><td>مراقب عام (Foreman)</td><td><input class="fi sm" placeholder=""></td><td class="c n">6</td><td><input class="fi sm" placeholder="خبرة 10+ سنوات"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">12</td><td>عمالة فنية (نجار/حداد/بناء/بلاط)</td><td><input class="fi sm" placeholder="فرق متعاقدة"></td><td class="c n"><input class="fi sm" placeholder="60"></td><td><input class="fi sm" placeholder="—"></td><td><input class="fi sm" placeholder="حسب المرحلة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+      <tr><td class="c n">13</td><td>عمالة عامة</td><td><input class="fi sm" placeholder=""></td><td class="c n"><input class="fi sm" placeholder="25"></td><td><input class="fi sm" placeholder="—"></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><select class="fi sm"><option>مُعيَّن</option><option>مرشح</option></select></td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="3">إجمالي الكادر</td><td class="c n">—</td><td colspan="3">ذروة العمالة المتوقعة في الشهر <input class="fi sm" style="width:50px;display:inline-block" placeholder="6"> = <input class="fi sm" style="width:60px;display:inline-block" placeholder="—"> عاملاً</td></tr></tfoot>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2 class="sec"><span class="num">3</span> السير الذاتية المختصرة للكوادر الرئيسية</h2>
+  <p class="small">تُعبأ ٣–٥ سير ذاتية فقط للوظائف الرئيسية (مدير المشروع، مدير الإنشاء، مدير الجودة، مسؤول السلامة، مهندس التخطيط). لا تُرفق سيراً لكل العاملين.</p>
+
+  <table class="t compact">
+    <thead><tr><th style="width:24%">البند</th><th>البيانات</th></tr></thead>
+    <tbody>
+      <tr><td><strong>الاسم والوظيفة</strong></td><td><input class="fi sm" placeholder="الاسم — الوظيفة على هذا المشروع"></td></tr>
+      <tr><td><strong>المؤهل العلمي</strong></td><td><input class="fi sm" placeholder="التخصص — الجامعة — سنة التخرج"></td></tr>
+      <tr><td><strong>سنوات الخبرة الإجمالية</strong></td><td><input class="fi sm" placeholder="عدد السنوات"></td></tr>
+      <tr><td><strong>سنوات الخبرة في أعمال مماثلة</strong></td><td><input class="fi sm" placeholder="عدد السنوات"></td></tr>
+      <tr><td><strong>الشهادات المهنية</strong></td><td><input class="fi sm" placeholder="PMP / NEBOSH / Primavera / نقابة المهندسين"></td></tr>
+      <tr><td><strong>أبرز ٣ مشاريع مماثلة</strong></td><td><textarea class="fi sm" rows="3" placeholder="1. اسم المشروع — القيمة — الدور — السنة&#10;2. …&#10;3. …"></textarea></td></tr>
+      <tr><td><strong>اللغات</strong></td><td><input class="fi sm" placeholder="العربية / الإنجليزية"></td></tr>
+      <tr><td><strong>مدة التفرغ للمشروع</strong></td><td><input class="fi sm" placeholder="كامل المدة / جزئي — النسبة"></td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sec"><span class="num">4</span> جدول المعدات والآليات (Equipment Schedule)</h2>
+  <table class="t">
+    <thead>
+      <tr>
+        <th style="width:5%" class="c">م</th>
+        <th style="width:24%">المعدة</th>
+        <th style="width:9%" class="c">العدد</th>
+        <th style="width:13%">السعة/المواصفة</th>
+        <th style="width:12%">الملكية</th>
+        <th style="width:14%">مدة التواجد</th>
+        <th>ملاحظات (سنة الصنع/الحالة)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="c n">1</td><td>حفارة (Excavator)</td><td class="c n"><input class="fi sm" placeholder="2"></td><td><input class="fi sm" placeholder="1.0 م³"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="أشهر 1–3"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">2</td><td>لودر (Wheel Loader)</td><td class="c n"><input class="fi sm" placeholder="1"></td><td><input class="fi sm" placeholder="3 م³"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="أشهر 1–4"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">3</td><td>شاحنات قلاب (Tipper)</td><td class="c n"><input class="fi sm" placeholder="4"></td><td><input class="fi sm" placeholder="20 م³"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="حسب الحاجة"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">4</td><td>مدحلة (Compactor)</td><td class="c n"><input class="fi sm" placeholder="1"></td><td><input class="fi sm" placeholder="10 طن"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="أشهر 1–3"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">5</td><td>خلاطة خرسانة (Mixer)</td><td class="c n"><input class="fi sm" placeholder="2"></td><td><input class="fi sm" placeholder="0.5 م³"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">6</td><td>مضخة خرسانة (Concrete Pump)</td><td class="c n"><input class="fi sm" placeholder="1"></td><td><input class="fi sm" placeholder="36 م"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="أيام الصب"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">7</td><td>هزاز خرسانة (Vibrator)</td><td class="c n"><input class="fi sm" placeholder="6"></td><td><input class="fi sm" placeholder="—"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">8</td><td>ونش برجي / متحرك (Crane)</td><td class="c n"><input class="fi sm" placeholder="1"></td><td><input class="fi sm" placeholder="25 طن"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="أشهر 3–8"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">9</td><td>سقالات (Scaffolding)</td><td class="c n"><input class="fi sm" placeholder="—"></td><td><input class="fi sm" placeholder="1200 م²"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="أشهر 4–11"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">10</td><td>مولد كهرباء (Generator)</td><td class="c n"><input class="fi sm" placeholder="2"></td><td><input class="fi sm" placeholder="100 ك.ف.أ"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">11</td><td>كمبروسر هواء</td><td class="c n"><input class="fi sm" placeholder="2"></td><td><input class="fi sm" placeholder="—"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><input class="fi sm" placeholder=""></td></tr>
+      <tr><td class="c n">12</td><td>معدات مساحة (Total Station)</td><td class="c n"><input class="fi sm" placeholder="2"></td><td><input class="fi sm" placeholder="دقة 2″"></td><td><select class="fi sm"><option>ملك</option><option>مستأجرة</option></select></td><td><input class="fi sm" placeholder="كامل المدة"></td><td><input class="fi sm" placeholder=""></td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sec"><span class="num">5</span> مصادر المواد الرئيسية (Material Sources)</h2>
+  <table class="t">
+    <thead>
+      <tr>
+        <th style="width:5%" class="c">م</th>
+        <th style="width:22%">المادة</th>
+        <th style="width:20%">المصدر / المورد</th>
+        <th style="width:11%">بلد المنشأ</th>
+        <th style="width:11%">مدة التوريد</th>
+        <th>الوثائق المرفقة</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="c n">1</td><td>الخرسانة الجاهزة</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="محلي"></td><td><input class="fi sm" placeholder="24 ساعة"></td><td>اعتماد الخلطة + شهادات المواد</td></tr>
+      <tr><td class="c n">2</td><td>حديد التسليح</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="2–3 أسابيع"></td><td>شهادة منشأ + اختبار شد</td></tr>
+      <tr><td class="c n">3</td><td>البلوك / الطوب</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="محلي"></td><td><input class="fi sm" placeholder="1 أسبوع"></td><td>شهادة مقاومة</td></tr>
+      <tr><td class="c n">4</td><td>الأسمنت</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="1 أسبوع"></td><td>شهادة مطابقة</td></tr>
+      <tr><td class="c n">5</td><td>مواد العزل</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="2 أسابيع"></td><td>شهادة + كتالوج فني</td></tr>
+      <tr><td class="c n">6</td><td>البلاط والبورسلان</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="3–4 أسابيع"></td><td>عينة + شهادة + كتالوج</td></tr>
+      <tr><td class="c n">7</td><td>الألمنيوم والأبواب</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="6–8 أسابيع"></td><td>مخططات تصنيع + عينة</td></tr>
+      <tr><td class="c n">8</td><td>الكابلات الكهربائية</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="3 أسابيع"></td><td>شهادة + اختبار</td></tr>
+      <tr><td class="c n">9</td><td>مواسير وأطقم صحية</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="3–5 أسابيع"></td><td>شهادة + كتالوج</td></tr>
+      <tr><td class="c n">10</td><td>وحدات التكييف</td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder=""></td><td><input class="fi sm" placeholder="6–8 أسابيع"></td><td>شهادة كفاءة + كتالوج</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box amber">
+    <h4>⚠ اختبار واقعية الموارد</h4>
+    <p>قبل تسليم العرض، طابق كل مورد مع البرنامج الزمني: هل مدة توريد الألمنيوم (٦–٨ أسابيع) تسمح بتركيبه في الشهر ١٠؟ إن كانت الإجابة لا، فإمّا تُعدَّل مدة التوريد أو يُعاد ترتيب البرنامج. هذا التناقض تحديداً هو أكثر ما يُكتشف في تقييم العروض.</p>
+  </div>
+
+  <div class="sig-grid">
+    <div class="sig"><b><input class="fi" placeholder="اسم مدير المشروع"></b><span>مدير المشروع — Project Manager</span></div>
+    <div class="sig"><b><input class="fi" placeholder="اسم مدير الموارد البشرية"></b><span>مدير الموارد — HR Manager</span></div>
+  </div>
+
+  <div class="print-foot">
+    <span>FORM TP-06 · خطة الموارد: الكادر والمعدات والمواد</span>
+    <span>حزمة العروض الفنية للمقاولات — TP-KIT v1.0</span>
+  </div>
+</div>
+
+<script src="assets/kit.js"></script>
+
+<script>
+/* Portal prefill: ?p=<project>&a=<authority> */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var proj = q.get('p'), auth = q.get('a');
+  if (!proj && !auth) return;
+  var PROJ = /(project|المشروع|اسم المشروع|مشروع)/i;
+  var AUTH = /(authority|client|employer|owner|الجهة|صاحب العمل|المالك|الجهة صاحبة)/i;
+  function labelOf(el) {
+    var f = el.closest('.field, .fld, tr, div');
+    if (!f) return '';
+    var l = f.querySelector('label');
+    if (l) return l.textContent;
+    var td = el.closest('td');
+    if (td && td.previousElementSibling) return td.previousElementSibling.textContent;
+    return f.textContent.slice(0, 80);
+  }
+  function fill(re, val) {
+    if (!val) return false;
+    var nodes = document.querySelectorAll('input.fi, input[type="text"], textarea.fi');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].value) continue;
+      if (re.test(labelOf(nodes[i]))) { nodes[i].value = val; return true; }
+    }
+    return false;
+  }
+  function run() {
+    fill(PROJ, proj);
+    fill(AUTH, auth);
+    document.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+</body>
+</html>

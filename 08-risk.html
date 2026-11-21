@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TP-08 · تحليل المخاطر وخطة التعامل</title>
+<link rel="stylesheet" href="assets/kit.css">
+
+<style>
+  .topbar .switch{display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;flex:0 0 auto}
+  .topbar .switch a,.topbar .switch span{font-size:11px;font-weight:800;padding:5px 9px;letter-spacing:.4px;
+    color:#9fb0c2;text-decoration:none;line-height:1.4}
+  .topbar .switch a:hover{background:#1d3a58;color:#fff}
+  .topbar .switch .on{background:#b45309;color:#fff}
+</style>
+</head>
+<body data-doc="tp08">
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> حزمة العروض الفنية</div>
+  <span class="code">FORM TP-08</span>
+  <div class="spacer"></div>
+  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="بوابة MMC — رفع المخططات وإنتاج العرض">🔓 بوابة MMC</a>
+  <a class="btn ghost" href="index-ar.html">الفهرس</a>
+  <button class="btn" data-print>🖨️ طباعة / PDF</button>
+  <button class="btn ghost" data-reset>مسح</button>
+  <div class="switch" role="group" aria-label="اللغة"><span class="on" aria-current="true">AR</span><a href="en/08-risk.html" title="English edition">EN</a></div>
+  </div>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">Form TP-08 · Risk Analysis &amp; Mitigation Plan</div>
+    <h1>تحليل المخاطر وخطة التعامل معها</h1>
+    <p class="sub">سجل مخاطر المشروع · مصفوفة الاحتمال × الأثر · إجراءات التخفيف والاحتياطي</p>
+    <div class="doc-meta">
+      <div><span>رقم السجل</span><b>RR-___</b></div>
+      <div><span>عدد المخاطر</span><b>—</b></div>
+      <div><span>مخاطر حرجة</span><b>—</b></div>
+      <div><span>الاحتياطي المخصص</span><b>—</b></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>الفرق بين عرض جدي وعرض شكلي:</strong> العرض الشكلي يكتب «المخاطر: الطقس، التوريد، التمويل» وينتهي. العرض الجدي يذكر مخاطر <em>هذا المشروع تحديداً</em> — موقع الحفر، حالة التربة في هذا الموقع، اعتماد جهة بعينها، موسم معين — ويضع لكل خطر إجراءً ومسؤولاً وتاريخاً.
+  </div>
+
+  <h2 class="sec"><span class="num">1</span> منهجية تقييم المخاطر</h2>
+  <div class="grid2">
+    <div>
+      <table class="t compact" style="margin-top:0">
+        <thead><tr><th class="c" style="width:16%">الدرجة</th><th class="c" style="width:34%">الاحتمال</th><th class="c">الأثر</th></tr></thead>
+        <tbody>
+          <tr><td class="c n"><strong>5</strong></td><td>شبه مؤكد (&gt; 80%)</td><td>توقف المشروع / خسارة &gt; 10%</td></tr>
+          <tr><td class="c n"><strong>4</strong></td><td>مرجّح (60–80%)</td><td>تأخير &gt; شهر / خسارة 5–10%</td></tr>
+          <tr><td class="c n"><strong>3</strong></td><td>محتمل (40–60%)</td><td>تأخير 2–4 أسابيع / خسارة 2–5%</td></tr>
+          <tr><td class="c n"><strong>2</strong></td><td>غير مرجّح (20–40%)</td><td>تأخير أسبوع / خسارة 1–2%</td></tr>
+          <tr><td class="c n"><strong>1</strong></td><td>نادر (&lt; 20%)</td><td>أثر محدود &lt; 1%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="text-align:center">
+      <table class="matrix" style="margin:8px auto">
+        <tr><th style="width:22%">الأثر ↓ / الاحتمال →</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+        <tr><th>5</th><td class="m-med">5</td><td class="m-high">10</td><td class="m-crit">15</td><td class="m-crit">20</td><td class="m-crit">25</td></tr>
+        <tr><th>4</th><td class="m-low">4</td><td class="m-med">8</td><td class="m-high">12</td><td class="m-crit">16</td><td class="m-crit">20</td></tr>
+        <tr><th>3</th><td class="m-low">3</td><td class="m-med">6</td><td class="m-high">9</td><td class="m-high">12</td><td class="m-crit">15</td></tr>
+        <tr><th>2</th><td class="m-low">2</td><td class="m-low">4</td><td class="m-med">6</td><td class="m-med">8</td><td class="m-high">10</td></tr>
+        <tr><th>1</th><td class="m-low">1</td><td class="m-low">2</td><td class="m-low">3</td><td class="m-low">4</td><td class="m-med">5</td></tr>
+      </table>
+      <p class="small" style="margin:0">أخضر: مقبول · أصفر: مراقب · برتقالي: يتطلب إجراءً · أحمر: حرج — خطة إلزامية</p>
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="num">2</span> سجل المخاطر (Risk Register)</h2>
+
+  <table class="t">
+    <thead>
+      <tr>
+        <th style="width:4%" class="c">م</th>
+        <th style="width:12%">الفئة</th>
+        <th style="width:22%">الخطر</th>
+        <th style="width:6%" class="c">احتمال</th>
+        <th style="width:6%" class="c">أثر</th>
+        <th style="width:6%" class="c">درجة</th>
+        <th style="width:24%">إجراء التخفيف</th>
+        <th style="width:10%">المسؤول</th>
+        <th>الاستجابة</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="grp"><td colspan="9">أ) مخاطر التصميم والوثائق</td></tr>
+      <tr>
+        <td class="c n">1</td><td>تصميم</td><td>تعارض بين المخطط المعماري والإنشائي في مناسيب أو فتحات</td>
+        <td class="c n">4</td><td class="c n">3</td><td class="c"><span class="chip warn">12</span></td>
+        <td>مراجعة تنسيقية كاملة قبل التسعير + إرسال RFI مبكر + إدراج ساعات مكتب فني للمعالجة</td>
+        <td>مدير المكتب الفني</td><td>تخفيف</td>
+      </tr>
+      <tr>
+        <td class="c n">2</td><td>تصميم</td><td>نقص تفاصيل التسليح في جداول الحديد</td>
+        <td class="c n">3</td><td class="c n">3</td><td class="c"><span class="chip warn">9</span></td>
+        <td>طلب جداول تسليح معتمدة قبل الصب + احتياطي حديد ٤٪ + مهندس إنشائي مقيم</td>
+        <td>مهندس الموقع</td><td>تخفيف</td>
+      </tr>
+      <tr class="grp"><td colspan="9">ب) مخاطر الموقع والظروف الأرضية</td></tr>
+      <tr>
+        <td class="c n">3</td><td>موقع</td><td>وجود مياه جوفية أعلى من المتوقع عند الحفر</td>
+        <td class="c n">3</td><td class="c n">4</td><td class="c"><span class="chip warn">12</span></td>
+        <td>تقرير فحص تربة قبل التسعير + بند نزح مياه احتياطي + مضخات جاهزة في الموقع</td>
+        <td>مدير الإنشاء</td><td>تخفيف + احتياطي</td>
+      </tr>
+      <tr>
+        <td class="c n">4</td><td>موقع</td><td>صخور أو طبقة صلبة تعيق الحفر</td>
+        <td class="c n">2</td><td class="c n">4</td><td class="c"><span class="chip info">8</span></td>
+        <td>معاينة الموقع + سؤال واضح في RFI + تسعير بند تكسير صخري كبند احتياطي</td>
+        <td>مهندس الكميات</td><td>نقل</td>
+      </tr>
+      <tr>
+        <td class="c n">5</td><td>موقع</td><td>ضيق الموقع وصعوبة حركة الآليات والتخزين</td>
+        <td class="c n">3</td><td class="c n">3</td><td class="c"><span class="chip warn">9</span></td>
+        <td>مخطط تنظيم موقع (Site Layout) + جدولة توريد بمواعيد دقيقة (Just-in-Time) + تخزين خارجي بديل</td>
+        <td>مدير الإنشاء</td><td>تخفيف</td>
+      </tr>
+      <tr class="grp"><td colspan="9">ج) مخاطر التوريد والمواد</td></tr>
+      <tr>
+        <td class="c n">6</td><td>توريد</td><td>تأخر توريد مواد ذات مدة تصنيع طويلة (ألمنيوم، تكييف)</td>
+        <td class="c n">4</td><td class="c n">3</td><td class="c"><span class="chip warn">12</span></td>
+        <td>إصدار طلبات الشراء فور الترسية + دفعة مقدمة للمورد + مورد بديل معتمد</td>
+        <td>مدير المشتريات</td><td>تخفيف</td>
+      </tr>
+      <tr>
+        <td class="c n">7</td><td>توريد</td><td>ارتفاع أسعار الحديد والخرسانة بعد الترسية</td>
+        <td class="c n">3</td><td class="c n">4</td><td class="c"><span class="chip warn">12</span></td>
+        <td>تثبيت سعر بالتعاقد مقدماً + شرط تعديل سعري في العقد إن سُمح + شراء مبكر للحديد</td>
+        <td>مدير المشروع</td><td>تخفيف / نقل</td>
+      </tr>
+      <tr>
+        <td class="c n">8</td><td>توريد</td><td>رفض اعتماد مادة مقترحة من جهة الإشراف</td>
+        <td class="c n">3</td><td class="c n">2</td><td class="c"><span class="chip info">6</span></td>
+        <td>تقديم ٣ بدائل معتمدة مسبقاً + عينات قبل الطلب + مراجعة الكراسة بدقة</td>
+        <td>مهندس الجودة</td><td>تخفيف</td>
+      </tr>
+      <tr class="grp"><td colspan="9">د) مخاطر التنفيذ والجودة</td></tr>
+      <tr>
+        <td class="c n">9</td><td>تنفيذ</td><td>نتائج مكعبات خرسانة أقل من المقاومة المطلوبة</td>
+        <td class="c n">2</td><td class="c n">4</td><td class="c"><span class="chip info">8</span></td>
+        <td>اعتماد مصنع خرسانة موثوق + فحص الخلطة + مكعبات احتياطية + خطة معالجة (Core Test)</td>
+        <td>مدير الجودة</td><td>تخفيف</td>
+      </tr>
+      <tr>
+        <td class="c n">10</td><td>تنفيذ</td><td>إعادة عمل بسبب أخطاء تشطيب</td>
+        <td class="c n">3</td><td class="c n">2</td><td class="c"><span class="chip info">6</span></td>
+        <td>غرفة نموذجية معتمدة قبل التوسع + فحص استلامي لكل بند + عمالة مؤهلة</td>
+        <td>مهندس معماري</td><td>تخفيف</td>
+      </tr>
+      <tr class="grp"><td colspan="9">هـ) مخاطر العقد والتمويل والجهات</td></tr>
+      <tr>
+        <td class="c n">11</td><td>عقد</td><td>تأخر صرف المستحقات المالية</td>
+        <td class="c n">3</td><td class="c n">4</td><td class="c"><span class="chip warn">12</span></td>
+        <td>تسريع إعداد المستخلصات + تسليم مستندات كاملة + تسهيل بنكي احتياطي + جدولة التزامات الموردين</td>
+        <td>المدير المالي</td><td>تخفيف</td>
+      </tr>
+      <tr>
+        <td class="c n">12</td><td>عقد</td><td>غرامات تأخير بسبب تعطيل من المالك أو جهات أخرى</td>
+        <td class="c n">3</td><td class="c n">3</td><td class="c"><span class="chip warn">9</span></td>
+        <td>توثيق كل تعطيل بمذكرة رسمية + طلب EOT في وقته + سجل يومي موقَّع</td>
+        <td>مدير المشروع</td><td>نقل</td>
+      </tr>
+      <tr>
+        <td class="c n">13</td><td>جهات</td><td>تأخر الحصول على موافقات وتراخيص (دفاع مدني/كهرباء/مياه)</td>
+        <td class="c n">3</td><td class="c n">3</td><td class="c"><span class="chip warn">9</span></td>
+        <td>بدء إجراءات الترخيص في التعبئة + متابعة أسبوعية + علاقة مسبقة مع الجهات</td>
+        <td>مدير المشروع</td><td>تخفيف</td>
+      </tr>
+      <tr class="grp"><td colspan="9">و) مخاطر خارجية</td></tr>
+      <tr>
+        <td class="c n">14</td><td>خارجي</td><td>طقس غير معتاد (أمطار غزيرة / موجات حرارة)</td>
+        <td class="c n">3</td><td class="c n">3</td><td class="c"><span class="chip warn">9</span></td>
+        <td>جدولة الحفر خارج موسم الأمطار + تغطية الأعمال المكشوفة + أيام احتياطية في البرنامج + تعديل ساعات الصيف</td>
+        <td>مدير الإنشاء</td><td>تخفيف</td>
+      </tr>
+      <tr>
+        <td class="c n">15</td><td>خارجي</td><td>ارتفاع أسعار الوقود أو تغير رسوم النقل</td>
+        <td class="c n">2</td><td class="c n">2</td><td class="c"><span class="chip ok">4</span></td>
+        <td>مراقبة دورية + بند تعديل سعري إن وجد + عقود نقل بأسعار محددة</td>
+        <td>المدير المالي</td><td>قبول</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2 class="sec"><span class="num">3</span> ملخص المخاطر الحرجة والاحتياطي</h2>
+  <table class="t compact">
+    <thead><tr><th style="width:44%">البند</th><th style="width:18%" class="c">القيمة / النسبة</th><th>الأساس</th></tr></thead>
+    <tbody>
+      <tr><td>عدد المخاطر المسجلة</td><td class="c n">15</td><td>موزعة على ٦ فئات</td></tr>
+      <tr><td>المخاطر الحرجة (درجة ≥ 15)</td><td class="c n">0</td><td>لا يوجد خطر حرج بحالته الأصلية</td></tr>
+      <tr><td>المخاطر المرتفعة (10–14)</td><td class="c n">6</td><td>تتطلب خطة تخفيف موثقة</td></tr>
+      <tr><td>المخاطر المتوسطة (5–9)</td><td class="c n">8</td><td>مراقبة دورية</td></tr>
+      <tr><td>المخاطر المنخفضة (≤ 4)</td><td class="c n">1</td><td>قبول</td></tr>
+      <tr><td><strong>الاحتياطي الزمني (Schedule Reserve)</strong></td><td class="c n"><input class="fi sm" placeholder="5%"></td><td>من إجمالي مدة العقد — غير مسجل في المسار الحرج</td></tr>
+      <tr><td><strong>الاحتياطي المالي (Contingency)</strong></td><td class="c n"><input class="fi sm" placeholder="3%"></td><td>من قيمة العقد — يُدار من مدير المشروع</td></tr>
+      <tr><td>بند المصاريف غير المتوقعة</td><td class="c n"><input class="fi sm" placeholder="—"></td><td>يُدرج صراحةً في الجدول السعري إن سمحت الكراسة</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sec"><span class="num">4</span> إدارة المخاطر أثناء التنفيذ</h2>
+  <div class="grid2">
+    <div class="box">
+      <h4>دورة المراجعة</h4>
+      <ul>
+        <li>مراجعة سجل المخاطر <strong>شهرياً</strong> في اجتماع المشروع.</li>
+        <li>إضافة أي خطر جديد فور ظهوره (Risk Trigger).</li>
+        <li>إغلاق الخطر عند زوال مسببه، مع توثيق السبب.</li>
+        <li>تحديث درجات الاحتمال والأثر بعد تنفيذ التخفيف (Residual Risk).</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>مؤشرات الإنذار المبكر</h4>
+      <ul>
+        <li>تجاوز أي نشاط حرج ٥ أيام تأخير.</li>
+        <li>تأخر اعتماد مادة أكثر من أسبوعين عن الخطة.</li>
+        <li>معدل دوران عمالة مرتفع في تخصص حرج.</li>
+        <li>تكرار ملاحظات الجودة في نفس البند (٣ مرات).</li>
+        <li>تأخر مستخلص مالي أكثر من دورة صرف كاملة.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="box teal">
+    <h4>المبدأ الحاكم</h4>
+    <p style="margin:0">المخاطر لا تُدار بالتفاؤل. كل خطر في هذا السجل له <strong>مالك بالاسم</strong> و<strong>إجراء محدد</strong> و<strong>مؤشر إنذار</strong> يُراقب. المخاطر التي لا يمكن تخفيفها تُنقل (تأمين / تعاقد فرعي)، والتي لا يمكن نقلها تُقبل بوعي مع تخصيص احتياطي لها — ولا تُترك مفتوحة بلا قرار.</p>
+  </div>
+
+  <div class="sig-grid">
+    <div class="sig"><b><input class="fi" placeholder="اسم مدير المشروع"></b><span>مدير المشروع — مالك سجل المخاطر</span></div>
+    <div class="sig"><b><input class="fi" placeholder="التاريخ"></b><span>تاريخ الإصدار / المراجعة</span></div>
+  </div>
+
+  <div class="print-foot">
+    <span>FORM TP-08 · تحليل المخاطر وخطة التعامل</span>
+    <span>حزمة العروض الفنية للمقاولات — TP-KIT v1.0</span>
+  </div>
+</div>
+
+<script src="assets/kit.js"></script>
+
+<script>
+/* Portal prefill: ?p=<project>&a=<authority> */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var proj = q.get('p'), auth = q.get('a');
+  if (!proj && !auth) return;
+  var PROJ = /(project|المشروع|اسم المشروع|مشروع)/i;
+  var AUTH = /(authority|client|employer|owner|الجهة|صاحب العمل|المالك|الجهة صاحبة)/i;
+  function labelOf(el) {
+    var f = el.closest('.field, .fld, tr, div');
+    if (!f) return '';
+    var l = f.querySelector('label');
+    if (l) return l.textContent;
+    var td = el.closest('td');
+    if (td && td.previousElementSibling) return td.previousElementSibling.textContent;
+    return f.textContent.slice(0, 80);
+  }
+  function fill(re, val) {
+    if (!val) return false;
+    var nodes = document.querySelectorAll('input.fi, input[type="text"], textarea.fi');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].value) continue;
+      if (re.test(labelOf(nodes[i]))) { nodes[i].value = val; return true; }
+    }
+    return false;
+  }
+  function run() {
+    fill(PROJ, proj);
+    fill(AUTH, auth);
+    document.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+</body>
+</html>

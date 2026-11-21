@@ -1,6 +1,91 @@
+# ── Node.js ────────────────────────────────────────────
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.npm
+.pnpm-store/
+
+# ── Python ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# ── Environment / secrets ──────────────────────────────
 .env
-server/data/*.db*
-server/uploads/*
-server/backups/*
-!server/**/.gitkeep
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.json
+config/local.json
+
+# ── Build artifacts ────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+
+# ── Logs / runtime ─────────────────────────────────────
+logs/
+*.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ── IDE / editor ───────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── OS / system ────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+fseventsd
+
+# ── Database (if v13 server is added later) ────────────
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+db/custom.db
+db/custom.db-journal
+
+# ── Test coverage ──────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+
+# ── Misc project-specific ──────────────────────────────
+.tmp/
+tmp/
+.tmp_*
+*.bak
+*.orig
+*.rej

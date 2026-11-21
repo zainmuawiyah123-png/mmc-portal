@@ -17,14 +17,17 @@ if not exist node_modules (
 )
 if not exist .env (
   copy .env.example .env >nul
-  powershell -NoProfile -Command "(Get-Content .env) -replace '^JWT_SECRET=.*','JWT_SECRET=mmc-local-development-secret-change-me' | Set-Content .env"
+  powershell -NoProfile -Command "(Get-Content .env) -replace '^JWT_SECRET=.*','JWT_SECRET=mmc-local-development-secret-change-me' | Set-Content .env; Add-Content .env 'MMC_AI_LOCAL_PREVIEW=1'"
   echo Created server\.env
 )
+set NODE_ENV=development
+set MMC_AI_LOCAL_PREVIEW=1
+set PORT=4001
 call npm run migrate
 if errorlevel 1 goto :error
 echo.
-echo MMC server is starting at http://localhost:4000
-echo Open the procurement portal at http://localhost:4000/procurement/index.html
+echo MMC server is starting at http://localhost:4001
+echo Open MMC AI at http://localhost:4001/mmc-ai/
 echo Press Ctrl+C to stop the server.
 echo.
 call npm start

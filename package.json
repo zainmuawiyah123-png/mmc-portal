@@ -1,0 +1,42 @@
+{
+  "name": "mmc-proposal-portal-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MMC Technical Proposal Kit ÔÇö portal backend (Phase 1: auth, DB, tenders | Phase 2: S3 storage, backups)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "migrate": "node src/migrate.js",
+    "seed": "node src/seed.js",
+    "test": "node --test tests/api.test.js tests/mailer-resend.test.js",
+    "test:s3": "node --test tests/s3.test.js",
+    "test:all": "node --test tests/mailer-resend.test.js && node --test tests/api.test.js && node --test tests/public-browse.test.js && node --test tests/consulting.test.js && node --test tests/vendorpanel-australia.test.js tests/austender.test.js && node --test tests/s3.test.js && node --test tests/project-finance-ui.test.js && node --test tests/opportunities.test.js && node --test tests/scheduler.test.js && node --test tests/uk-public-procurement-sync.test.js",
+    "backup": "node scripts/backup.js",
+    "expire-subscriptions": "node scripts/expire-subscriptions.js",
+    "restore": "node scripts/restore.js",
+    "migrate:cloud": "node scripts/migrate-to-cloud.js",
+    "test:mmc-ai": "node --test tests/mmc-ai-boq-import.test.js tests/mmc-ai-ui.test.js tests/mmc-ai-pdf-preflight.test.js tests/mmc-ai-pdf-text-extract.test.js tests/mmc-ai-dxf-takeoff.test.js tests/mmc-ai-discipline-takeoff.test.js tests/mmc-ai-pdf-takeoff.test.js tests/mmc-ai-projects.test.js tests/mmc-ai-schedule-engine.test.js tests/mmc-ai-ifc-inspector.test.js tests/mmc-ai-plan-calibration.test.js tests/mmc-ai-boq-parser.test.js tests/mmc-ai-synthetic-drawing-reference.test.js tests/mmc-ai-synthetic-architectural-reference.test.js tests/mmc-ai-synthetic-cross-discipline-boq.test.js tests/mmc-ai-scope-coverage.test.js tests/mmc-ai-quantity-record.test.js tests/mmc-ai-measurement-kernels.test.js tests/mmc-ai-discipline-measurement-kernels.test.js tests/mmc-ai-finishes-and-schedule-kernels.test.js tests/mmc-ai-quantity-record-adapter.test.js tests/mmc-ai-boq-compiler.test.js tests/mmc-ai-mep-system-kernels.test.js tests/mmc-ai-mep-schedule-kernels.test.js tests/mmc-ai-drawing-element-normalizer.test.js tests/mmc-ai-pdf-drawing-text-intelligence.test.js tests/mmc-ai-drawing-sheet-reference-resolver.test.js tests/mmc-ai-ocr-engine.test.js tests/mmc-ai-drawing-layer-manager.test.js tests/mmc-ai-drawing-layer-summary.test.js tests/mmc-ai-pdf-page-evidence.test.js tests/mmc-ai-pdf-vector-geometry.test.js tests/mmc-ai-pdf-vector-extract.test.js tests/mmc-ai-pdf-vector-clustering.test.js tests/mmc-ai-pdf-2d-to-3d.test.js tests/mmc-ai-pdf-text-spatial-extract.test.js tests/mmc-ai-inspection-regressions.test.js",
+    "test:public": "node --test tests/public-browse.test.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1154.0",
+    "@aws-sdk/s3-request-presigner": "^3.1154.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.5.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^6.10.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "s3rver": "^3.7.1"
+  }
+}

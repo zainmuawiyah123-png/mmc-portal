@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TP-09 · ملخص جدول الكميات والجدول السعري</title>
+<link rel="stylesheet" href="assets/kit.css">
+
+<style>
+  .topbar .switch{display:inline-flex;border:1px solid #37506b;border-radius:6px;overflow:hidden;flex:0 0 auto}
+  .topbar .switch a,.topbar .switch span{font-size:11px;font-weight:800;padding:5px 9px;letter-spacing:.4px;
+    color:#9fb0c2;text-decoration:none;line-height:1.4}
+  .topbar .switch a:hover{background:#1d3a58;color:#fff}
+  .topbar .switch .on{background:#b45309;color:#fff}
+</style>
+</head>
+<body data-doc="tp09">
+
+<div class="topbar no-print">
+  <div class="brand"><span class="mark">M</span> حزمة العروض الفنية</div>
+  <span class="code">FORM TP-09 · محسوب تلقائياً</span>
+  <div class="spacer"></div>
+  <a class="btn amber" href="portal/pt-9f3c7a1e5b2d/index.html" title="بوابة MMC — رفع المخططات وإنتاج العرض">🔓 بوابة MMC</a>
+  <a class="btn ghost" href="index-ar.html">الفهرس</a>
+  <button class="btn" data-print>🖨️ طباعة / PDF</button>
+  <button class="btn ghost" data-reset>مسح</button>
+  <div class="switch" role="group" aria-label="اللغة"><span class="on" aria-current="true">AR</span><a href="en/09-boq.html" title="English edition">EN</a></div>
+  </div>
+
+<div class="sheet">
+
+  <div class="doc-head">
+    <div class="eyebrow">Form TP-09 · BOQ Summary &amp; Price Schedule · Auto-Calculated</div>
+    <h1>ملخص جدول الكميات والجدول السعري</h1>
+    <p class="sub">أدخل الكمية والهالك وسعر الوحدة — تُحسب الإجماليات والمصاريف والأرباح فوراً</p>
+    <div class="doc-meta">
+      <div><span>رقم العطاء</span><b>—</b></div>
+      <div><span>العملة</span><b>دينار أردني JOD</b></div>
+      <div><span>تاريخ التسعير</span><b>—</b></div>
+      <div><span>عدد البنود</span><b>20 بنداً</b></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>كيف يعمل هذا النموذج؟</strong> عمود «الكمية الصافية» يأتي من ورقة <em>2-Summary</em> في ملف Excel. أضف نسبة الهالك، واكتب سعر الوحدة — يحسب النظام الكمية التعاقدية والقيمة تلقائياً، ثم يجمع كل شيء ويضيف المصاريف العامة والأرباح والضريبة ليعطيك قيمة العطاء النهائية. الأرقام المُدخلة مسبقاً هي <strong>مثال محسوب على مبنى سكني ١٢×١٠ م</strong> من ورقة 4-Worked Example، وتُستبدل ببيانات مشروعك.
+  </div>
+
+  <h2 class="sec"><span class="num">1</span> عوامل التسعير العامة</h2>
+  <div class="grid3">
+    <div class="field"><label>المصاريف العامة والإدارية (Overhead) %</label><input class="fi" id="fOh" placeholder="12" value="12" inputmode="decimal"></div>
+    <div class="field"><label>هامش الربح (Profit) %</label><input class="fi" id="fProfit" placeholder="8" value="8" inputmode="decimal"></div>
+    <div class="field"><label>الضريبة / الرسوم (Tax) %</label><input class="fi" id="fTax" placeholder="0" value="0" inputmode="decimal"></div>
+  </div>
+
+  <h2 class="sec"><span class="num">2</span> الجدول السعري التفصيلي</h2>
+
+  <table class="t" id="boqTable">
+    <thead>
+      <tr>
+        <th style="width:7%" class="c">الرمز</th>
+        <th style="width:29%">وصف البند / Description</th>
+        <th style="width:7%" class="c">الوحدة</th>
+        <th style="width:10%" class="c">الكمية الصافية</th>
+        <th style="width:8%" class="c">الهالك %</th>
+        <th style="width:10%" class="c">الكمية التعاقدية</th>
+        <th style="width:10%" class="c">سعر الوحدة</th>
+        <th class="c">الإجمالي (د.أ)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="grp"><td colspan="8">أعمال الحفر والردم — Earthworks</td></tr>
+      <tr class="calc">
+        <td class="c n">01-01</td><td>حفر أساسات (Excavation)</td><td class="c">م³</td>
+        <td><input class="fi sm q-qty" value="116.16" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="0" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">116.16</td>
+        <td><input class="fi sm q-rate" value="6.50" inputmode="decimal"></td>
+        <td class="c n q-amt">755.04</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">01-02</td><td>ردم وإحلال مدكوك (Backfilling)</td><td class="c">م³</td>
+        <td><input class="fi sm q-qty" value="81.296" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="10" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">89.43</td>
+        <td><input class="fi sm q-rate" value="3.00" inputmode="decimal"></td>
+        <td class="c n q-amt">268.28</td>
+      </tr>
+      <tr class="grp"><td colspan="8">أعمال الخرسانة — Concrete Works</td></tr>
+      <tr class="calc">
+        <td class="c n">02-01</td><td>خرسانة نظافة C15 (Blinding)</td><td class="c">م³</td>
+        <td><input class="fi sm q-qty" value="4.624" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="5" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">4.86</td>
+        <td><input class="fi sm q-rate" value="85.00" inputmode="decimal"></td>
+        <td class="c n q-amt">412.69</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">02-02</td><td>خرسانة مسلحة C30 للعناصر الإنشائية</td><td class="c">م³</td>
+        <td><input class="fi sm q-qty" value="118.528" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="3" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">122.08</td>
+        <td><input class="fi sm q-rate" value="112.00" inputmode="decimal"></td>
+        <td class="c n q-amt">13673.39</td>
+      </tr>
+      <tr class="grp"><td colspan="8">أعمال حديد التسليح — Reinforcement</td></tr>
+      <tr class="calc">
+        <td class="c n">03-01</td><td>حديد تسليح عالي المقاومة B420</td><td class="c">طن</td>
+        <td><input class="fi sm q-qty" value="11.24824" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="4" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">11.70</td>
+        <td><input class="fi sm q-rate" value="690.00" inputmode="decimal"></td>
+        <td class="c n q-amt">8071.74</td>
+      </tr>
+      <tr class="grp"><td colspan="8">أعمال الشدات — Formwork</td></tr>
+      <tr class="calc">
+        <td class="c n">04-01</td><td>شدات خشبية/معدنية (Formwork)</td><td class="c">م²</td>
+        <td><input class="fi sm q-qty" value="893.76" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="5" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">938.45</td>
+        <td><input class="fi sm q-rate" value="4.50" inputmode="decimal"></td>
+        <td class="c n q-amt">4223.02</td>
+      </tr>
+      <tr class="grp"><td colspan="8">أعمال البناء — Blockwork</td></tr>
+      <tr class="calc">
+        <td class="c n">05-01</td><td>بلوك خفيف 10/15/20 سم</td><td class="c">م²</td>
+        <td><input class="fi sm q-qty" value="522.48" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="6" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">553.83</td>
+        <td><input class="fi sm q-rate" value="14.50" inputmode="decimal"></td>
+        <td class="c n q-amt">8030.52</td>
+      </tr>
+      <tr class="grp"><td colspan="8">البياض والدهانات — Plaster &amp; Paint</td></tr>
+      <tr class="calc">
+        <td class="c n">06-01</td><td>بياض أسمنتي داخلي وخارجي</td><td class="c">م²</td>
+        <td><input class="fi sm q-qty" value="1668.96" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="8" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">1802.48</td>
+        <td><input class="fi sm q-rate" value="5.50" inputmode="decimal"></td>
+        <td class="c n q-amt">9913.62</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">06-02</td><td>دهان مط (Emulsion Paint)</td><td class="c">م²</td>
+        <td><input class="fi sm q-qty" value="1668.96" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="5" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">1752.41</td>
+        <td><input class="fi sm q-rate" value="3.20" inputmode="decimal"></td>
+        <td class="c n q-amt">5607.71</td>
+      </tr>
+      <tr class="grp"><td colspan="8">البلاط والأرضيات — Tiling &amp; Flooring</td></tr>
+      <tr class="calc">
+        <td class="c n">07-01</td><td>بلاط أرضيات بورسلان 60×60</td><td class="c">م²</td>
+        <td><input class="fi sm q-qty" value="240.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="10" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">264.00</td>
+        <td><input class="fi sm q-rate" value="18.00" inputmode="decimal"></td>
+        <td class="c n q-amt">4752.00</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">07-02</td><td>بلاط جدران (حمامات/مطابخ)</td><td class="c">م²</td>
+        <td><input class="fi sm q-qty" value="180.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="10" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">198.00</td>
+        <td><input class="fi sm q-rate" value="16.00" inputmode="decimal"></td>
+        <td class="c n q-amt">3168.00</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">07-03</td><td>وزرات رخام 10 سم (Skirting)</td><td class="c">م</td>
+        <td><input class="fi sm q-qty" value="150.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="7" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">160.50</td>
+        <td><input class="fi sm q-rate" value="9.00" inputmode="decimal"></td>
+        <td class="c n q-amt">1444.50</td>
+      </tr>
+      <tr class="grp"><td colspan="8">الأعمال الكهربائية — Electrical Works</td></tr>
+      <tr class="calc">
+        <td class="c n">08-01</td><td>نقاط إنارة وكواسي (Points)</td><td class="c">عدد</td>
+        <td><input class="fi sm q-qty" value="168.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="2" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">171.36</td>
+        <td><input class="fi sm q-rate" value="22.00" inputmode="decimal"></td>
+        <td class="c n q-amt">3769.92</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">08-02</td><td>كابلات كهرباء (Cables)</td><td class="c">م</td>
+        <td><input class="fi sm q-qty" value="1850.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="8" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">1998.00</td>
+        <td><input class="fi sm q-rate" value="3.80" inputmode="decimal"></td>
+        <td class="c n q-amt">7592.40</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">08-03</td><td>مواسير وعلب كهرباء (Conduit)</td><td class="c">م</td>
+        <td><input class="fi sm q-qty" value="1600.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="8" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">1728.00</td>
+        <td><input class="fi sm q-rate" value="1.60" inputmode="decimal"></td>
+        <td class="c n q-amt">2764.80</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">08-04</td><td>لوحات توزيع فرعية (DB)</td><td class="c">عدد</td>
+        <td><input class="fi sm q-qty" value="4.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="0" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">4.00</td>
+        <td><input class="fi sm q-rate" value="145.00" inputmode="decimal"></td>
+        <td class="c n q-amt">580.00</td>
+      </tr>
+      <tr class="grp"><td colspan="8">الأعمال الميكانيكية والصحية — Mechanical &amp; Plumbing</td></tr>
+      <tr class="calc">
+        <td class="c n">09-01</td><td>مواسير نحاس تكييف (AC Pipes)</td><td class="c">م</td>
+        <td><input class="fi sm q-qty" value="220.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="6" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">233.20</td>
+        <td><input class="fi sm q-rate" value="12.50" inputmode="decimal"></td>
+        <td class="c n q-amt">2915.00</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">09-02</td><td>صرف صحي PVC (Drainage)</td><td class="c">م</td>
+        <td><input class="fi sm q-qty" value="120.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="7" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">128.40</td>
+        <td><input class="fi sm q-rate" value="8.40" inputmode="decimal"></td>
+        <td class="c n q-amt">1078.56</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">09-03</td><td>تغذية مياه PPR (Water Supply)</td><td class="c">م</td>
+        <td><input class="fi sm q-qty" value="260.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="7" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">278.20</td>
+        <td><input class="fi sm q-rate" value="6.20" inputmode="decimal"></td>
+        <td class="c n q-amt">1724.84</td>
+      </tr>
+      <tr class="calc">
+        <td class="c n">09-04</td><td>أطقم صحية كاملة (Fixtures)</td><td class="c">طقم</td>
+        <td><input class="fi sm q-qty" value="12.00" inputmode="decimal"></td>
+        <td class="c"><input class="fi sm q-waste" value="0" inputmode="decimal" style="text-align:center"></td>
+        <td class="c n q-qtyw">12.00</td>
+        <td><input class="fi sm q-rate" value="185.00" inputmode="decimal"></td>
+        <td class="c n q-amt">2220.00</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="7">الإجمالي المباشر قبل الهالك (Direct Cost, No Waste)</td><td class="c n" id="sumSub">78,552.22</td></tr>
+      <tr><td colspan="7">قيمة الهالك (Waste Value)</td><td class="c n" id="sumWaste">4,413.80</td></tr>
+      <tr class="tot"><td colspan="7">إجمالي تكلفة الأعمال المباشرة (Direct Cost)</td><td class="c n" id="sumTotal">82,966.02</td></tr>
+    </tfoot>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2 class="sec"><span class="num">3</span> ملخص قيمة العطاء</h2>
+  <table class="t">
+    <thead><tr><th style="width:8%" class="c">م</th><th>البند</th><th style="width:16%" class="c">النسبة</th><th style="width:20%" class="c">القيمة (د.أ)</th></tr></thead>
+    <tbody>
+      <tr><td class="c n">1</td><td>تكلفة الأعمال المباشرة (مواد + عمالة + معدات)</td><td class="c n">—</td><td class="c n" id="sumDirect">82,966.02</td></tr>
+      <tr><td class="c n">2</td><td>المصاريف العامة والإدارية والموقع (Overhead)</td><td class="c n"><span id="ohPct">12</span>%</td><td class="c n" id="sumOhVal">9,955.92</td></tr>
+      <tr><td class="c n">3</td><td>الإجمالي بعد المصاريف</td><td class="c n">—</td><td class="c n" id="sumOh">92,921.94</td></tr>
+      <tr><td class="c n">4</td><td>هامش الربح (Profit)</td><td class="c n"><span id="pfPct">8</span>%</td><td class="c n" id="sumProfVal">7,433.76</td></tr>
+      <tr><td class="c n">5</td><td>الإجمالي قبل الضريبة</td><td class="c n">—</td><td class="c n" id="sumProf">100,355.69</td></tr>
+      <tr><td class="c n">6</td><td>الضريبة / الرسوم</td><td class="c n"><span id="txPct">0</span>%</td><td class="c n" id="sumTaxVal">0.00</td></tr>
+      <tr class="tot"><td class="c n">7</td><td><strong>القيمة النهائية للعرض (Total Bid Price)</strong></td><td class="c n">100%</td><td class="c n" id="sumFinal">100,355.69</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box amber">
+    <h4>⚠ تحقق من الأرقام قبل التقديم</h4>
+    <ul style="margin-bottom:0">
+      <li><strong>الأسعار إرشادية:</strong> سعر الحديد ٦٩٠ د.أ/طن والخرسانة ١١٢ د.أ/م³ هما أرقام توضيحية لاختبار المعادلات — استبدلهما بعروض الموردين الفعلية قبل أي تقديم.</li>
+      <li><strong>الكميات من Excel:</strong> انسخ عمود الكمية الصافية من ورقة <em>2-Summary</em> بعد تحديث الـ Take-off. لا تُدخل الكميات يدوياً من الذاكرة.</li>
+      <li><strong>نسبة الهالك:</strong> لا تضع صفراً على البلاط والحديد — الهالك الحقيقي ٥–١٠٪ للبلاط و٣–٥٪ للحديد. إغفاله يعني خسارة مضمونة.</li>
+      <li><strong>المصاريف العامة:</strong> ١٢٪ نموذجية لمشروع مباني ١٢ شهراً؛ المشاريع الأطول أو الأصغر حجماً تحتاج نسبة أعلى.</li>
+      <li><strong>الضريبة:</strong> اتركها صفراً إن كانت الكراسة تنص على أن الأسعار غير شاملة الضريبة وتُضاف لاحقاً.</li>
+    </ul>
+  </div>
+
+  <h2 class="sec"><span class="num">4</span> تفصيل البنود حسب المرحلة (للربط بالدفعات)</h2>
+  <table class="t compact">
+    <thead><tr><th style="width:34%">المرحلة</th><th style="width:14%" class="c">البنود المشمولة</th><th style="width:18%" class="c">القيمة التقديرية</th><th class="c">نسبة من الإجمالي</th></tr></thead>
+    <tbody>
+      <tr><td>أعمال ترابية وأساسات</td><td class="c n">01, 02-01</td><td class="c n"><input class="fi sm" placeholder="1,436.01"></td><td class="c n"><input class="fi sm" placeholder="1.7%"></td></tr>
+      <tr><td>الهيكل الخرساني</td><td class="c n">02-02, 03, 04</td><td class="c n"><input class="fi sm" placeholder="25,967.97"></td><td class="c n"><input class="fi sm" placeholder="31.3%"></td></tr>
+      <tr><td>البناء والبياض</td><td class="c n">05, 06-01</td><td class="c n"><input class="fi sm" placeholder="17,944.14"></td><td class="c n"><input class="fi sm" placeholder="21.6%"></td></tr>
+      <tr><td>التشطيبات والدهانات</td><td class="c n">06-02, 07</td><td class="c n"><input class="fi sm" placeholder="14,972.21"></td><td class="c n"><input class="fi sm" placeholder="18.0%"></td></tr>
+      <tr><td>الأعمال الكهربائية</td><td class="c n">08</td><td class="c n"><input class="fi sm" placeholder="14,707.12"></td><td class="c n"><input class="fi sm" placeholder="17.7%"></td></tr>
+      <tr><td>الأعمال الميكانيكية والصحية</td><td class="c n">09</td><td class="c n"><input class="fi sm" placeholder="7,938.40"></td><td class="c n"><input class="fi sm" placeholder="9.6%"></td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="2">الإجمالي</td><td class="c n">82,966.02</td><td class="c n">100%</td></tr></tfoot>
+  </table>
+  <p class="small">استخدم هذا التوزيع لمطابقة الدفعات في النموذج TP-03: الدفعة التي تغطي «الهيكل الخرساني» يجب ألا تقل عن قيمته الفعلية، وإلا وقع المقاول في عجز تمويلي أثناء التنفيذ.</p>
+
+  <div class="sig-grid">
+    <div class="sig"><b><input class="fi" placeholder="اسم معدّ العرض"></b><span>مهندس الكميات / معدّ العرض</span></div>
+    <div class="sig"><b><input class="fi" placeholder="اسم المعتمد"></b><span>مدير المشروع — اعتماد التسعير</span></div>
+  </div>
+
+  <div class="print-foot">
+    <span>FORM TP-09 · ملخص جدول الكميات والجدول السعري</span>
+    <span>حزمة العروض الفنية للمقاولات — TP-KIT v1.0</span>
+  </div>
+</div>
+
+<script src="assets/kit.js"></script>
+<script>
+/* ربط نسب العوامل بالعرض النصي — يُستدعى بعد تحميل kit.js */
+document.addEventListener('DOMContentLoaded', function () {
+  function sync() {
+    var oh = (document.getElementById('fOh') || {}).value || '0';
+    var pf = (document.getElementById('fProfit') || {}).value || '0';
+    var tx = (document.getElementById('fTax') || {}).value || '0';
+    var d = document.getElementById('sumTotal');
+    if (document.getElementById('ohPct')) document.getElementById('ohPct').textContent = oh;
+    if (document.getElementById('pfPct')) document.getElementById('pfPct').textContent = pf;
+    if (document.getElementById('txPct')) document.getElementById('txPct').textContent = tx;
+    if (d) { var sd = document.getElementById('sumDirect'); if (sd) sd.textContent = d.textContent; }
+  }
+  ['fOh','fProfit','fTax'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', sync);
+  });
+  sync();
+  setTimeout(sync, 60);
+});
+</script>
+
+<script>
+/* Portal prefill: ?p=<project>&a=<authority> */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var proj = q.get('p'), auth = q.get('a');
+  if (!proj && !auth) return;
+  var PROJ = /(project|المشروع|اسم المشروع|مشروع)/i;
+  var AUTH = /(authority|client|employer|owner|الجهة|صاحب العمل|المالك|الجهة صاحبة)/i;
+  function labelOf(el) {
+    var f = el.closest('.field, .fld, tr, div');
+    if (!f) return '';
+    var l = f.querySelector('label');
+    if (l) return l.textContent;
+    var td = el.closest('td');
+    if (td && td.previousElementSibling) return td.previousElementSibling.textContent;
+    return f.textContent.slice(0, 80);
+  }
+  function fill(re, val) {
+    if (!val) return false;
+    var nodes = document.querySelectorAll('input.fi, input[type="text"], textarea.fi');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].value) continue;
+      if (re.test(labelOf(nodes[i]))) { nodes[i].value = val; return true; }
+    }
+    return false;
+  }
+  function run() {
+    fill(PROJ, proj);
+    fill(AUTH, auth);
+    document.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+</body>
+</html>
