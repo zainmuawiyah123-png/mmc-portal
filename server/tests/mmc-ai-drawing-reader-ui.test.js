@@ -28,3 +28,11 @@ test('MMC AI dashboard binds KPI cards to live project API values',()=>{
  assert.ok(html.includes('s.drawingsAnalyzed'));
  assert.ok(html.includes('s.vectorAnalysisRuns'));
 });
+
+
+test('MMC AI drawing reader shows first-page native text/vector spatial evidence and candidate-only matching',()=>{
+ assert.ok(html.includes('nativeSpatialDimensions'));
+ assert.ok(html.includes('nativeSpatialElements'));
+ assert.ok(html.includes('spatialCorrelation'));
+ assert.ok(html.includes('nearbyVectorPaths'));
+});
