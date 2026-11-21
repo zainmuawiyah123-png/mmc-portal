@@ -3,9 +3,9 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MMC – Vendor & Service Provider Registry</title><link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
 <style>
 body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;padding:0 18px}.hero,.panel,.vendor{background:#fff;border:1px solid #dfe6ef;border-radius:14px;padding:20px;margin:14px 0;box-shadow:0 3px 12px rgba(20,40,70,.035)}.hero{background:linear-gradient(120deg,#102b48,#1b5274);color:#fff}.hero p{color:#dbeafe}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}label{display:block;font-weight:650;margin:8px 0}input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin-top:5px}textarea{min-height:75px}.muted{color:#64748b}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.vendor{margin:0}.tag{display:inline-block;padding:4px 9px;border-radius:20px;background:#eaf1f8;margin:3px;font-size:12px}.status{padding:10px;border-radius:8px;background:#eff6ff;margin:10px 0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.tabs a{padding:9px 12px;background:#eaf1f8;border-radius:8px;text-decoration:none;color:#17365d;font-weight:700}@media(max-width:650px){.wrap{padding:0 10px}.panel,.hero{padding:14px}}
-</style></head>
+@media([dir="ltr"]){body{text-align:left}} .lang-ar,.lang-en{display:inline} [hidden]{display:none!important} </style></head>
 <body>
-<header class="p-top"><div class="brand"><span class="mark">M</span><span><b>MMC – Vendor & Service Provider Registry</b><small>شبكة الموردين ومقدمي الخدمات الدولية · International Vendor & Supplier Network</small></span></div><div class="spacer"></div><span class="tag" lang="en">AR / EN · Bilingual</span><a class="btn ghost" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fvendor-registry%2F">تسجيل الدخول</a><span id="who"></span><button id="logout" class="btn ghost">خروج</button></header>
+<header class="p-top"><div class="brand"><span class="mark">M</span><span><b>MMC – Vendor & Service Provider Registry</b><small>شبكة الموردين ومقدمي الخدمات الدولية · International Vendor & Supplier Network</small></span></div><div class="spacer"></div><button id="languageToggle" class="btn ghost" type="button" aria-label="Switch language">English</button><a class="btn ghost" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fvendor-registry%2F">تسجيل الدخول</a><span id="who"></span><button id="logout" class="btn ghost">خروج</button></header>
 <main class="wrap">
 <section class="hero"><div class="eyebrow">MMC ECOSYSTEM · SHARED COMPANY PROFILE</div><h1>دليل الموردين ومقدمي الخدمات والمقاولين · Vendor, Service Provider & Contractor Directory</h1><p>سجّل بيانات شركتك مرة واحدة، واستكمل متطلبات التأهيل لكل جهة مشتريات أو مكتب استشاري بصورة مستقلة. · Register your company once and complete separate qualification requirements for each procurement entity or consultant.</p><div class="tabs"><a href="#profile">ملف الشركة · Company Profile</a><a href="#directory">دليل الشركات · Company Directory</a><a href="#qualifications">اعتمادات الجهات · Entity Qualifications</a><a href="#invitations">الدعوات · Invitations</a></div></section>
 <div id="msg" class="status">جارٍ تحميل الحساب… · Loading account…</div>
@@ -30,6 +30,36 @@ body{background:#f3f6fa;color:#172b4d}.wrap{max-width:1320px;margin:26px auto;pa
 <script>
 const $=id=>document.getElementById(id), api=async(path,opts={})=>{const r=await fetch('/api/vendor-registry'+path,{credentials:'same-origin',...opts,headers:{...(opts.body instanceof FormData?{}:{'Content-Type':'application/json'}),...(opts.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error?.message||j.message||'تعذر إكمال الطلب');return j};
 const msg=t=>$('msg').textContent=t, split=v=>String(v||'').split(',').map(x=>x.trim()).filter(Boolean);
+
+const langKey='mmc-vendor-registry-language';
+let currentLang='ar';
+function localizeNode(root){
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+ for(const n of nodes){
+  if(!n.parentElement||n.parentElement.closest('script,style,.lang-ar,.lang-en'))continue;
+  const t=n.nodeValue;
+  const i=t.indexOf(' · ');
+  if(i<0||!/[\u0600-\u06FF]/.test(t.slice(0,i))||!/[A-Za-z]/.test(t.slice(i+3)))continue;
+  const ar=document.createElement('span');ar.className='lang-ar';ar.textContent=t.slice(0,i);
+  const en=document.createElement('span');en.className='lang-en';en.textContent=t.slice(i+3);
+  const f=document.createDocumentFragment();f.append(ar,en);n.replaceWith(f);
+ }
+}
+function setLanguage(lang){
+ currentLang=lang==='en'?'en':'ar';
+ document.documentElement.lang=currentLang;document.documentElement.dir=currentLang==='ar'?'rtl':'ltr';
+ document.querySelectorAll('.lang-ar').forEach(x=>x.hidden=currentLang!=='ar');
+ document.querySelectorAll('.lang-en').forEach(x=>x.hidden=currentLang!=='en');
+ const b=$('languageToggle');if(b)b.textContent=currentLang==='ar'?'English':'العربية';
+ try{localStorage.setItem(langKey,currentLang)}catch(e){}
+}
+localizeNode(document.body);
+new MutationObserver(records=>records.forEach(rec=>rec.addedNodes.forEach(node=>{if(node.nodeType===Node.TEXT_NODE){const p=node.parentElement;if(p)localizeNode(p)}else if(node.nodeType===Node.ELEMENT_NODE)localizeNode(node)}))).observe(document.body,{childList:true,subtree:true});
+try{currentLang=localStorage.getItem(langKey)||'ar'}catch(e){}
+$('languageToggle').addEventListener('click',()=>setLanguage(currentLang==='ar'?'en':'ar'));
+setLanguage(currentLang);
+
 function fill(f,p){for(const [k,v] of Object.entries(p||{})){const e=f.elements[k];if(e)e.value=Array.isArray(v)?v.join(', '):v??'';}}
 function formData(){const f=$('profileForm'),g=k=>f.elements[k].value.trim();return {legalName:g('legalName'),tradingName:g('tradingName'),country:g('country'),city:g('city'),address:g('address'),registrationNumber:g('registrationNumber'),taxNumber:g('taxNumber'),website:g('website'),contactName:g('contactName'),contactTitle:g('contactTitle'),contactEmail:g('contactEmail'),contactPhone:g('contactPhone'),entityTypes:split(g('entityTypes')),specializations:split(g('specializations')),productsServices:split(g('productsServices')),brands:split(g('brands')),serviceRegions:split(g('serviceRegions')),experienceSummary:g('experienceSummary'),bankDetails:{bankName:g('bankName'),accountHolder:g('accountHolder'),accountNumber:g('accountNumber'),iban:g('iban'),swift:g('swift'),currency:g('bankCurrency')}}}
 async function loadProfile(){const j=await api('/me');if(j.profile){const p=j.profile;fill($('profileForm'),p);$('profileForm').elements.entityTypes.value=p.entityTypes.join(', ');$('profileForm').elements.specializations.value=p.specializations.join(', ');$('profileForm').elements.productsServices.value=p.productsServices.join(', ');$('profileForm').elements.brands.value=p.brands.join(', ');$('profileForm').elements.serviceRegions.value=p.serviceRegions.join(', ');const b=p.bankDetails||{};for(const [k,v] of Object.entries({bankName:b.bankName,accountHolder:b.accountHolder,accountNumber:b.accountNumber,iban:b.iban,swift:b.swift,bankCurrency:b.currency}))if($('profileForm').elements[k])$('profileForm').elements[k].value=v||'';$('profileStatus').textContent='حالة الملف: · Profile status: '+p.profileStatus;}else $('profileStatus').textContent='لم يتم إنشاء ملف بعد. · No profile created yet.';}
