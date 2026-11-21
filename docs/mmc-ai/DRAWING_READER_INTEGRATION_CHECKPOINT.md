@@ -58,3 +58,14 @@ The live branch's `server/src/routes/mmc-ai-documents.js` stores uploaded docume
 - No guessed scale, dimensions, heights, thicknesses, materials, routes or quantities.
 - Every candidate result remains review-required until authorized engineering approval.
 - Keep each implementation slice in a separate commit and deploy to staging only after tests pass.
+
+## 2026-11-21 — PDF geometry foundation ported to staging branch
+
+- Ported the read-only Poppler PDF page inventory and native-text bounding-box evidence module from `feature/mmc-ai-drawing-reader-demo`.
+- Ported SVG/PDF vector path parsing and geometric path measurement modules, including the existing explicit two-point calibration utility.
+- Ported the focused regression tests and synthetic two-page PDF fixture used by those tests.
+- Added these tests to `server/package.json` test:mmc-ai and the Docker build test gate. The Render build must now execute page-evidence, vector-geometry and PDF-vector-extraction regression tests.
+- Files added: `server/src/lib/mmc-ai/pdf-page-evidence.js`, `pdf-vector-geometry.js`, `pdf-pdf-vector-extract.js`, the three corresponding test files, and `server/tests/fixtures/mmc-ai-pdf-fixtures.js`.
+- Important boundary: this commit only ports and gates the geometry foundation. It does NOT yet connect these modules to the authenticated document workflow or automatically analyze uploaded project drawings. No measured quantity, BIM element, 3D model, or takeoff result is claimed.
+- Next: add a project-authorized analysis route that retrieves the stored PDF, verifies size and SHA-256, inventories pages and extracts vector paths, persists source-linked results and audit events, then expose that analysis in the existing MMC AI UI without changing its design. Keep expensive multi-page work bounded/backgrounded; do not block uploads or invent scale.
+- Do not deploy or call the drawing-reader task complete until the integration route, UI result visibility, regression build, and a real stored drawing validation are all verified.
