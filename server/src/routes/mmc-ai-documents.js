@@ -202,16 +202,16 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
   try{
    let lines=[];
    const firstOcrPage=ocr?.pages?.find(item=>Number(item.page)===page.pageNumber);
-   if(firstOcrPage?.words?.length){
-    lines=require('../lib/mmc-ai/pdf-evidence-correlation').spatialOcrLines(firstOcrPage.words,{
-     pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
-    });
-    correlationSource='tesseract_ocr_word_boxes';
-   }else if((extraction.nativeSpatialWords||[]).length>=8){
+   if((extraction.nativeSpatialWords||[]).length>=8){
     lines=require('../lib/mmc-ai/pdf-drawing-text-intelligence').spatialNativeLines(extraction.nativeSpatialWords,{
      pageNumber:page.pageNumber,pageWidth:page.bboxWidthPt,pageHeight:page.bboxHeightPt
     });
     correlationSource='native_pdf_text_bbox';
+   }else if(firstOcrPage?.words?.length){
+    lines=require('../lib/mmc-ai/pdf-evidence-correlation').spatialOcrLines(firstOcrPage.words,{
+     pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
+    });
+    correlationSource='tesseract_ocr_word_boxes';
    }
    if(lines.length)correlation=correlatePdfTextWithVectorGeometry({
     textLines:lines,geometry:vectorEvidence.geometry,viewBox:vectorEvidence.svgViewBox,
@@ -236,15 +236,15 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
    let pageLines=[];
    let pageTextSource=null;
    const ocrPage=ocr?.pages?.find(item=>Number(item.page)===pageNo);
-   if(ocrPage?.words?.length&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
-    // OCR is preferred for drawing callouts because it reads visible glyphs even when the PDF font map is incomplete.
-    pageLines=correlationHelper.spatialOcrLines(ocrPage.words,{pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt});
-    pageTextSource='tesseract_ocr_word_boxes';
-   }else if((pageRecord.nativeTextEvidence||[]).length>=8&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
+   if((pageRecord.nativeTextEvidence||[]).length>=8&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
+    // Native PDF glyph positions preserve precise dimension callouts; OCR remains available for pages with sparse native text.
     pageLines=nativeHelper.spatialNativeLines(pageRecord.nativeTextEvidence.map(word=>({text:word.text,box:word.box})),{
      pageNumber:pageNo,pageWidth:pageRecord.bboxWidthPt,pageHeight:pageRecord.bboxHeightPt
     });
     pageTextSource='native_pdf_text_bbox';
+   }else if(ocrPage?.words?.length&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
+    pageLines=correlationHelper.spatialOcrLines(ocrPage.words,{pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt});
+    pageTextSource='tesseract_ocr_word_boxes';
    }
    let spatialEngineeringEvidence=null;
    if(pageLines.length){try{spatialEngineeringEvidence=spatialHelper.analyzeSpatialPageEvidence(pageLines,{pageBounds:pageRecord.bboxWidthPt>0&&pageRecord.bboxHeightPt>0?{width:2000,height:2000*pageRecord.bboxHeightPt/pageRecord.bboxWidthPt}:null});}catch(error){spatialEngineeringEvidence={status:'spatial_evidence_failed',error:error.message};}}
