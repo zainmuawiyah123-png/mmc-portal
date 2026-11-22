@@ -38,9 +38,11 @@ function correlatePdfTextWithVectorGeometry({ textLines = [], geometry, viewBox,
     /\d|\b(?:B|BM|C|COL|F|FOOTING|S|SL|W|D|DB|AHU|FCU|VAV|P|MH|FH|SP)\s*[-#]?\s*\d+|\b(?:STRUCTURAL|FOUNDATION|REBAR|CONCRETE|BEAM|COLUMN|SLAB|FOOTING|Ø|T\s*\d)\b|خرسانة|تسليح|عمود|جسر|قاعدة/i.test(line.text));
   const associations = candidates.map(line => {
     let normalizedBox={...line.box};
-    if(rotation===90) normalizedBox={left:targetHeight-(line.box.top+line.box.height),top:line.box.left,width:line.box.height,height:line.box.width};
-    else if(rotation===270) normalizedBox={left:line.box.top,top:targetWidth-(line.box.left+line.box.width),width:line.box.height,height:line.box.width};
-    else if(rotation===180) normalizedBox={left:targetWidth-(line.box.left+line.box.width),top:targetHeight-(line.box.top+line.box.height),width:line.box.width,height:line.box.height};
+    if(rotation===90||rotation===270){
+      const rawWidth=2000,rawHeight=2000/rawPageAspect,rotationScale=2000/rawHeight;
+      if(rotation===90) normalizedBox={left:(rawHeight-(line.box.top+line.box.height))*rotationScale,top:line.box.left*rotationScale,width:line.box.height*rotationScale,height:line.box.width*rotationScale};
+      else normalizedBox={left:line.box.top*rotationScale,top:(rawWidth-(line.box.left+line.box.width))*rotationScale,width:line.box.height*rotationScale,height:line.box.width*rotationScale};
+    }else if(rotation===180) normalizedBox={left:targetWidth-(line.box.left+line.box.width),top:targetHeight-(line.box.top+line.box.height),width:line.box.width,height:line.box.height};
     const textBox = { left: normalizedBox.left, top: normalizedBox.top, right: normalizedBox.left + normalizedBox.width, bottom: normalizedBox.top + normalizedBox.height };
     const nearest = pathBoxes.map(item => ({ pathIndex: item.pathIndex, distancePx: boxDistance(textBox, item.box) }))
       .filter(item => item.distancePx <= maxDistancePx)
