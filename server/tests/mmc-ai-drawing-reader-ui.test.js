@@ -38,3 +38,12 @@ test('MMC AI drawing reader shows first-page native text/vector spatial evidence
 });
 
 test('drawing reader uses a bounded request timeout and always restores its action state',()=>{assert.match(html,/new AbortController\(\)/);assert.match(html,/setTimeout\(\(\)=>controller\.abort\(\),90000\)/);assert.match(html,/clearTimeout\(timeout\)/);});
+
+
+test('drawing viewer opens the actual authenticated project PDF or image instead of a static sample',()=>{
+ assert.ok(html.includes('id="liveDrawingViewer"'));
+ assert.ok(html.includes("Open in Drawing Viewer"));
+ assert.ok(html.includes("/download?inline=1"));
+ assert.ok(html.includes("Displaying actual project file:"));
+ assert.ok(!html.includes('assets/diagram-v1.pdf'));
+});
