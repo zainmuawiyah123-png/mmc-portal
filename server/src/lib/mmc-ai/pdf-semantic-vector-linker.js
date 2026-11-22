@@ -2,19 +2,19 @@
 
 // Page-local PDF vector/text linking. This creates auditable candidates only;
 // proximity is never promoted to a measured BOQ quantity.
-const clean = value => String(value || '').normalize('NFKC').replace(/\\s+/g, ' ').trim();
+const clean = value => String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
 const center = b => ({ x: b.left + b.width / 2, y: b.top + b.height / 2 });
 const distance = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
 function semantic(text) {
   const s = clean(text).toUpperCase();
   const rules = [
-    ['reinforced_concrete_wall', /\\b(?:R\\.?C\\.?\\s*)?(?:WALL|WALLS|RETAINING WALL)\\b|جدار خرسانة/],
-    ['reinforced_concrete_slab', /\\b(?:R\\.?C\\.?\\s*)?(?:SLAB|SLABS|ROOF SLAB)\\b|بلاطة خرسانة/],
-    ['isolated_footing', /\\b(?:ISOLATED )?FOOTING(?:S)?\\b|قواعد منفصلة/],
-    ['column', /\\b(?:COLUMN|COL\\.?|PILLAR)S?\\b|عمود/],
-    ['beam', /\\b(?:BEAM|GIRDER)S?\\b|جسر/],
-    ['pipe', /\\b(?:UPVC|PVC|PIPE|DRAIN|SEWER)\\b|أنبوب|ماسورة/],
-    ['manhole', /\\bMANHOLE\\b|غرفة تفتيش/]
+    ['reinforced_concrete_wall', /\b(?:R\.?C\.?\s*)?(?:WALL|WALLS|RETAINING WALL)\b|جدار خرسانة/],
+    ['reinforced_concrete_slab', /\b(?:R\.?C\.?\s*)?(?:SLAB|SLABS|ROOF SLAB)\b|بلاطة خرسانة/],
+    ['isolated_footing', /\b(?:ISOLATED )?FOOTING(?:S)?\b|قواعد منفصلة/],
+    ['column', /\b(?:COLUMN|COL\.?|PILLAR)S?\b|عمود/],
+    ['beam', /\b(?:BEAM|GIRDER)S?\b|جسر/],
+    ['pipe', /\b(?:UPVC|PVC|PIPE|DRAIN|SEWER)\b|أنبوب|ماسورة/],
+    ['manhole', /\bMANHOLE\b|غرفة تفتيش/]
   ];
   return rules.filter(([,re]) => re.test(s)).map(([type])=>type);
 }
