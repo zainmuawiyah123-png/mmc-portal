@@ -326,6 +326,15 @@ router.post('/projects/:projectId/documents/:documentId/analyze/dxf-geometry',wr
  catch(error){throw E.validation(error.message||'تعذر تحليل هندسة DXF.');}
  result={...result,documentId:doc.id,sourceSha256:doc.sha256,
   status:result.rows.length?'geometry_extracted_unclassified':'no_supported_geometry',
+  drawingIntelligence:buildDrawingIntelligenceModel({
+   textLines:(result.textAnnotations||[]).map(item=>({...item,box:item.box})),
+   vectorPaths:result.rows.filter(row=>row.geometry?.type==='line'||row.geometry?.type==='polyline').map((row,index)=>({
+    id:row.sourceHandle||'dxf-geometry-'+index,page:1,
+    points:row.geometry.type==='line'?[row.geometry.start,row.geometry.end]:row.geometry.vertices,
+    closed:row.geometry.type==='polyline'&&row.geometry.closed,
+    lengthUnits:row.length_m||null,areaSquareUnits:row.area_m2||null,layer:row.layer
+   }))
+  },{maxRelationDistance:2.5}),
   engineeringClassificationComplete:false,boqGenerated:false,bimGenerated:false,
   notice:'تم استخراج وقياس عناصر DXF المدعومة وفق وحدات الملف. لم يتم تحديد معناها الهندسي أو تحويلها إلى كميات BOQ أو عناصر BIM؛ لا تستخدم هذه النتائج كحصر تعاقدي.'};
  const analysisId=uid('aidan_');
@@ -333,7 +342,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/dxf-geometry',wr
   .run(analysisId,doc.project_id,doc.id,req.user.id,'dxf_geometry_takeoff',JSON.stringify(result));
  db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
   .run(uid('aial_'),doc.project_id,req.user.id,'dxf_geometry_extraction_completed','document',doc.id,
-   JSON.stringify({analysisId,status:result.status,unitCode:result.units.insunits,supportedEntities:result.summary.supportedEntities,unsupportedEntities:result.summary.unsupportedEntities,totalLengthM:result.summary.totalLength_m,totalClosedAreaM2:result.summary.totalClosedArea_m2,boqGenerated:false,bimGenerated:false}));
+   JSON.stringify({analysisId,status:result.status,unitCode:result.units.insunits,supportedEntities:result.summary.supportedEntities,unsupportedEntities:result.summary.unsupportedEntities,totalLengthM:result.summary.totalLength_m,totalClosedAreaM2:result.summary.totalClosedArea_m2,textAnnotations:result.textAnnotations?.length||0,drawingGraphElements:result.drawingIntelligence?.counts?.elementCandidates||0,boqGenerated:false,bimGenerated:false}));
  res.setHeader('Cache-Control','no-store');
  res.json({analysisId,documentId:doc.id,result});
 }));
