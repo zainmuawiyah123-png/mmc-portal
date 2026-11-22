@@ -265,20 +265,24 @@ html[dir="rtl"] .consult-side{direction:rtl;text-align:right}
  '01 · الترسية والعقد':'01 · Award & Contract','02 · أمر الشراء':'02 · Purchase Order','03 · الفواتير والمدفوعات':'03 · Invoices & Payments'
  };
  function getLang(){try{return localStorage.getItem(KEY)||'ar'}catch(e){return 'ar'}}
+ function translateText(t,lang){
+   if(!t||t.nodeType!==Node.TEXT_NODE)return;
+   var v=t.nodeValue.trim();if(!v)return;
+   if(lang==='en'&&dict[v]){if(t.__arOriginal===undefined)t.__arOriginal=t.nodeValue;t.nodeValue=t.nodeValue.replace(v,dict[v]);}
+   else if(lang==='ar'&&t.__arOriginal!==undefined){t.nodeValue=t.__arOriginal;delete t.__arOriginal;}
+ }
  function translate(root){
    var lang=getLang(),walker=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT),nodes=[],n;
    while((n=walker.nextNode())) nodes.push(n);
-   nodes.forEach(function(t){var v=t.nodeValue.trim();if(!v)return;
-     if(lang==='en'&&dict[v]){if(!t.__arOriginal)t.__arOriginal=t.nodeValue;t.nodeValue=t.nodeValue.replace(v,dict[v]);}
-     else if(lang==='ar'&&t.__arOriginal){t.nodeValue=t.__arOriginal;t.__arOriginal=null;}
-   });
+   nodes.forEach(function(t){translateText(t,lang)});
+   if(root&&root.nodeType===Node.TEXT_NODE)translateText(root,lang);
    document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
    document.querySelectorAll('[data-consult-lang]').forEach(function(b){b.classList.toggle('on',b.dataset.consultLang===lang)});
  }
  function setLang(lang){if(lang!=='ar'&&lang!=='en')return;try{localStorage.setItem(KEY,lang)}catch(e){};translate(document.body)}
  document.querySelectorAll('[data-consult-lang]').forEach(function(b){b.addEventListener('click',function(){setLang(b.dataset.consultLang)})});
  translate(document.body);
- var observer=new MutationObserver(function(records){if(getLang()!=='en')return;records.forEach(function(r){r.addedNodes.forEach(function(n){if(n.nodeType===Node.TEXT_NODE){var v=n.nodeValue.trim();if(dict[v])n.nodeValue=n.nodeValue.replace(v,dict[v])}else if(n.nodeType===Node.ELEMENT_NODE)translate(n)})})});
+ var observer=new MutationObserver(function(records){var lang=getLang();records.forEach(function(r){r.addedNodes.forEach(function(n){if(n.nodeType===Node.TEXT_NODE)translateText(n,lang);else if(n.nodeType===Node.ELEMENT_NODE)translate(n)})})});
  observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
