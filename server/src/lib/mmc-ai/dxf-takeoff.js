@@ -254,12 +254,15 @@ function takeoffDxf(text, options = {}) {
   for (let index = 0; index < entities.length; index++) {
     const e = entities[index], layer = layerOf(e);
     const row = { entity: e.type, entityIndex: index, layer };
+    const handle = e.pairs.find(p => p.code === 5)?.value;
+    if (handle) row.sourceHandle = handle;
     if (e.blockName) row.sourceBlock = e.blockName;
     let quantity = null, unit = null;
     if (e.type === 'LINE') {
       requireCodes(e, [10, 20, 11, 21], 'LINE entity ' + index);
       const a = { x: first(e, 10), y: first(e, 20) }, b = { x: first(e, 11), y: first(e, 21) };
       assertFinite([a.x, a.y, b.x, b.y], 'LINE entity ' + index);
+      row.geometry = { type: 'line', start: { x: a.x * metresPerUnit, y: a.y * metresPerUnit }, end: { x: b.x * metresPerUnit, y: b.y * metresPerUnit } };
       quantity = pointDistance(a, b) * metresPerUnit; unit = 'm';
     } else if (e.type === 'LWPOLYLINE') {
       requireCodes(e, [10, 20], 'LWPOLYLINE entity ' + index);
@@ -268,6 +271,7 @@ function takeoffDxf(text, options = {}) {
       if (vertices.length < 2) { unsupported[e.type] = (unsupported[e.type] || 0) + 1; continue; }
       const m = polylineMetrics(vertices, closed);
       row.closed = closed;
+      row.geometry = { type: 'polyline', closed, vertices: vertices.map(v => ({ x: v.x * metresPerUnit, y: v.y * metresPerUnit, bulge: v.bulge || 0 })) };
       row.length_m = m.perimeter * metresPerUnit;
       if (closed) row.area_m2 = m.area * metresPerUnit * metresPerUnit;
       quantity = row.length_m; unit = 'm';
@@ -278,6 +282,7 @@ function takeoffDxf(text, options = {}) {
       assertFinite([...center, radius], 'CIRCLE entity ' + index);
       if (radius < 0) throw new Error('Invalid negative circle radius at entity ' + index);
       row.radius_m = radius * metresPerUnit;
+      row.geometry = { type: 'circle', center: { x: center[0] * metresPerUnit, y: center[1] * metresPerUnit }, radius: row.radius_m };
       row.circumference_m = 2 * Math.PI * row.radius_m;
       row.area_m2 = Math.PI * row.radius_m * row.radius_m;
       quantity = row.circumference_m; unit = 'm';
@@ -290,6 +295,7 @@ function takeoffDxf(text, options = {}) {
       let sweep = (end - start) % 360;
       if (sweep < 0) sweep += 360;
       row.radius_m = radius * metresPerUnit;
+      row.geometry = { type: 'arc', center: { x: center[0] * metresPerUnit, y: center[1] * metresPerUnit }, radius: row.radius_m, startDegrees: start, sweepDegrees: sweep };
       quantity = radius * sweep * Math.PI / 180 * metresPerUnit; unit = 'm';
       row.sweep_degrees = sweep;
     } else {
