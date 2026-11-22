@@ -79,7 +79,7 @@
  'رقم التسجيل:':'Registration no:','نطاق العمل:':'Scope of work:'
  };
  function lang(){try{return localStorage.getItem(KEY)||'ar'}catch(e){return 'ar'}}
- function translate(s,l){if(l==='ar')return s;var t=map[s];return t||s}
+ function translate(s,l){if(l==='ar'){if(!translate.reverse){translate.reverse={};Object.keys(map).forEach(function(k){translate.reverse[map[k]]=k})}return translate.reverse[s]||s}var t=map[s];return t||s}
  function walk(root,l){var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),n,arr=[];while(n=w.nextNode())arr.push(n);arr.forEach(function(x){var raw=x.nodeValue,trim=raw.trim();if(!trim)return;var out=translate(trim,l);if(out!==trim){var a=raw.indexOf(trim);x.nodeValue=raw.slice(0,a)+out+raw.slice(a+trim.length)}})}
  function apply(){if(busy)return;busy=true;var l=lang();document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';document.title=l==='en'?'Consulting Office Portal | MMC':'بوابة المكاتب الاستشارية | MMC';walk(document.body,l);
  document.querySelectorAll('input,textarea').forEach(function(e){var p=e.getAttribute('data-i18n-original-placeholder');if(p===null){p=e.placeholder;e.setAttribute('data-i18n-original-placeholder',p)}if(p)e.placeholder=translate(p,l)});
