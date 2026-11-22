@@ -328,6 +328,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/dxf-geometry',wr
   status:result.rows.length?'geometry_extracted_unclassified':'no_supported_geometry',
   drawingIntelligence:buildDrawingIntelligenceModel({
    textLines:(result.textAnnotations||[]).map(item=>({...item,box:item.box})),
+   dimensionEntities:(result.dimensions||[]).map(item=>({...item,page:1})),
    vectorPaths:result.rows.filter(row=>row.geometry?.type==='line'||row.geometry?.type==='polyline').map((row,index)=>({
     id:row.sourceHandle||'dxf-geometry-'+index,page:1,
     points:row.geometry.type==='line'?[row.geometry.start,row.geometry.end]:row.geometry.vertices,
