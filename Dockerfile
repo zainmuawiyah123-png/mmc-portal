@@ -7,7 +7,7 @@ RUN cd server && npm ci --omit=dev
 COPY . .
 
 # Gate staging releases on the BOQ parser syntax and real CSV/XLSX regression tests.
-RUN cd server && node --check src/lib/mmc-ai/boq-import.js && node --check src/routes/mmc-ai-primavera.js && node --check src/routes/mmc-ai-documents.js && node --check src/lib/mmc-ai/ocr-engine.js && node --check src/lib/mmc-ai/pdf-drawing-text-intelligence.js && node --check src/lib/mmc-ai/pdf-evidence-correlation.js && node --test tests/mmc-ai-boq-import.test.js tests/mmc-ai-ocr-engine.test.js tests/mmc-ai-pdf-drawing-text-intelligence.test.js tests/mmc-ai-drawing-reader-ui.test.js tests/mmc-ai-pdf-page-evidence.test.js tests/mmc-ai-pdf-vector-geometry.test.js tests/mmc-ai-pdf-vector-extract.test.js tests/mmc-ai-evidence-correlation.test.js
+RUN cd server && node --check src/lib/mmc-ai/boq-import.js && node --check src/routes/mmc-ai-primavera.js && node --check src/routes/mmc-ai-documents.js && node --check src/lib/mmc-ai/ocr-engine.js && node --check src/lib/mmc-ai/pdf-drawing-text-intelligence.js && node --check src/lib/mmc-ai/pdf-evidence-correlation.js && node --test tests/mmc-ai-boq-import.test.js tests/mmc-ai-ocr-engine.test.js tests/mmc-ai-pdf-drawing-text-intelligence.test.js tests/mmc-ai-drawing-reader-ui.test.js tests/mmc-ai-pdf-page-evidence.test.js tests/mmc-ai-pdf-vector-geometry.test.js tests/mmc-ai-pdf-vector-extract.test.js tests/mmc-ai-evidence-correlation.test.js tests/mmc-ai-pdf-quantity-candidates.test.js
 
 # يوقف البناء بدل أن يصدر 404 صامتاً إن غابت واجهات البوابات عن الصورة
 RUN test -f webpages/technical-proposal-kit_v5/portal/pt-9f3c7a1e5b2d/login.html \
