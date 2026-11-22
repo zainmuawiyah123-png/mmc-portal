@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { deriveScaleCandidates, applyConfirmedPageScale } = require('../src/lib/mmc-ai/pdf-quantity-candidates');
 
-function fixture({ secondDimension = 5000 } = {}) {
+function fixture({ secondDimension = 12000 } = {}) {
   const geometry = { paths: [
     { closed: false, lengthUnits: 100, areaSquareUnits: null },
     { closed: false, lengthUnits: 200, areaSquareUnits: null },
