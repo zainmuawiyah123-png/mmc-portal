@@ -1,0 +1,7 @@
+{
+  "bounds": {"min_x": 0, "min_y": 0, "max_x": 1000, "max_y": 700, "width": 1000, "height": 700},
+  "lines": [{"x1": 100, "y1": 100, "x2": 300, "y2": 100, "length": 200, "width": 1, "layer": "DIM_GEOM"}],
+  "arcs": [], "circles": [],
+  "texts": [{"x": 200, "y": 130, "text": "200", "height": 10, "layer": "DIM_TEXT"}],
+  "dimensions": []
+}
