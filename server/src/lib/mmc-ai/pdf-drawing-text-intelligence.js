@@ -100,8 +100,9 @@ function normalizeEngineeringUnit(value) {
   const unit = String(value || '').toLowerCase();
   return ({ 'مم': 'mm', 'سم': 'cm', 'م': 'm' })[unit] || unit;
 }
-function extractSpatialDimensionCandidates(lines) {
+function extractSpatialDimensionCandidates(lines, options = {}) {
   const candidates = [];
+  const drawingLengthUnit = options.drawingLengthUnit || null;
   const number = '[0-9٠-٩۰-۹]+(?:[.,٫][0-9٠-٩۰-۹]+)?';
   const unit = '(?:mm|cm|m|مم|سم|م)';
   const patterns = [
@@ -135,7 +136,8 @@ function extractSpatialDimensionCandidates(lines) {
           return { left, top, width: right - left, height: bottom - top };
         })();
         const values = pattern.values(match);
-        const units = pattern.units(match);
+        const parsedUnits = pattern.units(match);
+        const units = parsedUnits.map(value => value || (drawingLengthUnit && pattern.kind !== 'explicit_length' ? drawingLengthUnit.unit : null));
         const unitToMm = { mm: 1, cm: 10, m: 1000 };
         const normalizedValuesMm = units.length === values.length && units.every(unit => unit && unitToMm[unit])
           ? values.map((value, index) => value * unitToMm[units[index]])
@@ -356,8 +358,22 @@ function spatialNativeLines(words, options = {}) {
   }).sort((a,b)=>a.box.top-b.box.top||a.box.left-b.box.left).slice(0,5000);
 }
 
+function detectDrawingLengthUnit(lines) {
+  const note = lines.find(line =>
+    /\bALL\s+DIMENSIONS?\s+(?:ARE\s+)?(?:IN|UNLESS\s+OTHERWISE\s+NOTED\s+IN)\s+(MM|MILLIMET(?:ER|RE)S?|CM|CENTIMET(?:ER|RE)S?|MET(?:ER|RE)S?)\b/i.test(line.text)
+  );
+  if (!note) return null;
+  const match = note.text.match(/\b(MM|MILLIMET(?:ER|RE)S?|CM|CENTIMET(?:ER|RE)S?|MET(?:ER|RE)S?)\b/i);
+  if (!match) return null;
+  const token = match[1].toUpperCase();
+  const unit = token === 'MM' || token.startsWith('MILLIMET') ? 'mm' :
+    token === 'CM' || token.startsWith('CENTIMET') ? 'cm' : 'm';
+  return { unit, source: 'drawing_general_note', raw: note.text, page: note.page || 1 };
+}
+
 function analyzeSpatialPageEvidence(lines, options = {}) {
-  const dimensions = extractSpatialDimensionCandidates(lines);
+  const drawingLengthUnit = detectDrawingLengthUnit(lines);
+  const dimensions = extractSpatialDimensionCandidates(lines, { drawingLengthUnit });
   const elements = buildSpatialElementCandidates(lines, dimensions, options);
   // Page edges must come from the PDF page box, never from the text extent.
   const pageBounds = options.pageBounds && Number.isFinite(options.pageBounds.width) &&
@@ -391,6 +407,7 @@ function analyzeSpatialPageEvidence(lines, options = {}) {
   }));
   return {
     textLineCount: lines.length,
+    drawingLengthUnit,
     dimensions,
     elements,
     titleBlockCandidates,
@@ -532,4 +549,4 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ]
   };
 }
-module.exports = { analyzePdfDrawingText, spatialOcrLines, spatialNativeLines, classifySpatialOcrAnnotations, extractSpatialDimensionCandidates, buildSpatialElementCandidates, analyzeSpatialPageEvidence };
+module.exports = { analyzePdfDrawingText, spatialOcrLines, spatialNativeLines, classifySpatialOcrAnnotations, extractSpatialDimensionCandidates, buildSpatialElementCandidates, analyzeSpatialPageEvidence, detectDrawingLengthUnit };
