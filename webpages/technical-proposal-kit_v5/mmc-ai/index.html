@@ -506,7 +506,7 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
   </div></section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>Quantity Takeoff Register</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Unit</th><th>Quantity</th><th>Status</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">No verified quantities yet. Results will appear here when the measurement engine and engineering verification are enabled.</td></tr></tbody></table></div></section>
-   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
+   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn primary" id="openBimStudio">Open BIM Studio</button><span class="note" style="margin:0">Opens a separate drawing reading and BIM workspace.</span></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
   </div>
 
 <section id="plans" aria-labelledby="plansTitle">
@@ -1210,6 +1210,13 @@ pdfTake.type='button';pdfTake.textContent='PDF Concrete + Rebar Takeoff (Pilot)'
   }catch(e){const p=document.createElement('p');p.className='note';p.textContent=e.message;host.appendChild(p);}
  }
  const originalSelectProject=selectProject;
+ document.getElementById('openBimStudio').addEventListener('click',()=>{
+  if(!activeProject){notify('Select a project first.');return;}
+  const id=activeProject.project_id||activeProject.id;
+  const name=activeProject.name||document.getElementById('projectSelect')?.selectedOptions?.[0]?.textContent||'Current project';
+  const url='/mmc-bim-studio/?projectId='+encodeURIComponent(id)+'&projectName='+encodeURIComponent(name);
+  window.open(url,'_blank','noopener,noreferrer');
+ });
  document.getElementById('drawingFile').addEventListener('change',async e=>{
   const file=e.target.files&&e.target.files[0];if(!file)return;
   const box=document.getElementById('filemsg');box.style.display='block';
@@ -1309,6 +1316,7 @@ pdfTake.type='button';pdfTake.textContent='PDF Concrete + Rebar Takeoff (Pilot)'
  let current='en';
  const ar={
   'Dashboard':'لوحة التحكم','Engineering Drawings':'المخططات الهندسية','Quantity Takeoff':'حصر الكميات',
+  'Open BIM Studio':'فتح BIM Studio','Opens a separate drawing reading and BIM workspace.':'يفتح مساحة مستقلة لقراءة المخططات وBIM.',
   'BOQ & Cost Estimate':'جدول الكميات والتكلفة','BIM Models':'نماذج BIM','Project Schedule':'البرنامج الزمني',
   'Contracts & Claims':'العقود والمطالبات','Risks & Reports':'المخاطر والتقارير','WORKSPACE':'مساحة العمل',
   'MANAGEMENT':'الإدارة','Projects':'المشاريع','Team & Permissions':'الفريق والصلاحيات','Settings':'الإعدادات',
