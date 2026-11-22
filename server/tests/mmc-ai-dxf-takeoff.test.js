@@ -198,3 +198,23 @@ test('extracts positioned TEXT and MTEXT annotations alongside DXF geometry', ()
   assert.equal(result.textAnnotations[1].text, 'Y16-200 C/C');
   assert.equal(result.textAnnotations[0].source, 'DXF TEXT');
 });
+
+test('extracts native linear DIMENSION value and checks extension-line geometry', () => {
+  const ent = [
+    '0','DIMENSION','5','D101','8','DIMENSIONS','70','0','10','0','20','1',
+    '13','0','23','0','14','5','24','0','42','5','1','5000'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.dimensions.length, 1);
+  assert.equal(result.dimensions[0].kind, 'linear');
+  assert.equal(result.dimensions[0].measuredMetres, 5);
+  assert.equal(result.dimensions[0].measuredGeometryLengthMetres, 5);
+  assert.equal(result.dimensions[0].geometryAgreement, true);
+  assert.equal(result.dimensions[0].sourceHandle, 'D101');
+});
+test('keeps angular dimensions out of linear measurement quantities', () => {
+  const ent = ['0','DIMENSION','70','2','10','0','20','0','42','90'].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.dimensions[0].kind, 'angular');
+  assert.equal(result.dimensions[0].measuredMetres, null);
+});
