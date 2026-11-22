@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {analyzePdfDrawingText,analyzeSpatialPageEvidence}=require('../src/lib/mmc-ai/pdf-drawing-text-intelligence');
+const {analyzePdfDrawingText,analyzeSpatialPageEvidence,extractExplicitRebarTakeoffCandidates}=require('../src/lib/mmc-ai/pdf-drawing-text-intelligence');
 
 test('extracts drawing text clues without turning them into quantities',()=>{
  const result=analyzePdfDrawingText({
@@ -44,4 +44,36 @@ test('creates page-level engineering candidates while refusing unverified quanti
  assert.ok(result.detailReferenceCandidates.some(item=>item.raw.includes('DETAIL')));
  assert.equal(result.elements[0].measurementEligible,false);
  assert.ok(result.limitations.some(item=>item.includes('No quantity')));
+});
+
+test('calculates only explicit reinforcement callouts with stated count, diameter and cut length',()=>{
+ const lines=[
+  {page:17,text:'T 10Ø20L=10.0m',confidence:96,box:{left:100,top:200,width:180,height:22}},
+  {page:17,text:'T8Ø16L=8.0m',confidence:93,box:{left:300,top:200,width:150,height:22}},
+  {page:18,text:'T 8Ø16L=4.0m',confidence:91,box:{left:400,top:200,width:150,height:22}},
+  {page:18,text:'10Ø16',confidence:99,box:{left:500,top:200,width:70,height:22}},
+  {page:18,text:'T 10Ø16L=10.0',confidence:80,box:{left:600,top:200,width:180,height:22}}
+ ];
+ const result=extractExplicitRebarTakeoffCandidates(lines);
+ assert.equal(result.length,3);
+ assert.deepEqual(result.map(x=>x.page),[17,17,18]);
+ assert.equal(result[0].barCount,10);
+ assert.equal(result[0].diameterMm,20);
+ assert.equal(result[0].lengthPerBarM,10);
+ assert.equal(result[0].totalLengthM,100);
+ assert.equal(result[0].theoreticalMassKg,246.91);
+ assert.equal(result[1].theoreticalMassKg,101.14);
+ assert.equal(result[2].theoreticalMassKg,50.57);
+ assert.equal(result.every(x=>x.measurementEligible===false),true);
+});
+
+test('exposes explicit rebar takeoff candidates in page-level engineering evidence',()=>{
+ const result=analyzeSpatialPageEvidence([
+  {page:12,text:'T 7Ø16L=7.0m',confidence:95,box:{left:100,top:100,width:160,height:20},coordinateSpace:'test'},
+  {page:12,text:'T 7Ø14L=5.50m',confidence:95,box:{left:100,top:150,width:170,height:20},coordinateSpace:'test'}
+ ]);
+ assert.equal(result.explicitRebarTakeoffCandidates.length,2);
+ assert.equal(result.explicitRebarTakeoffCandidates[0].theoreticalMassKg,77.43);
+ assert.equal(result.explicitRebarTakeoffCandidates[1].theoreticalMassKg,46.58);
+ assert.ok(result.limitations.some(item=>item.includes('No quantity')||item.includes('quantity')));
 });
