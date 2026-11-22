@@ -185,3 +185,16 @@ test('preserves source handles and exact geometry for BIM handoff', () => {
   assert.equal(result.rows[0].quantity, 5);
   assert.ok(Math.abs(result.rows[1].area_m2 - Math.PI * 0.25) < 1e-10);
 });
+
+test('extracts positioned TEXT and MTEXT annotations alongside DXF geometry', () => {
+  const ent = [
+    '0','TEXT','8','ANNO','10','2','20','3','40','0.2','1','C1 COLUMN',
+    '0','MTEXT','8','ANNO','10','2.2','20','3.4','40','0.2','1','Y16-200 C/C'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.textAnnotations.length, 2);
+  assert.equal(result.textAnnotations[0].text, 'C1 COLUMN');
+  assert.equal(result.textAnnotations[0].insertionPoint.x, 2);
+  assert.equal(result.textAnnotations[1].text, 'Y16-200 C/C');
+  assert.equal(result.textAnnotations[0].source, 'DXF TEXT');
+});
