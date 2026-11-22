@@ -246,7 +246,7 @@ test('creates measured area schedule only for closed polylines on explicit quant
   assert.equal(result.measuredSchedule[0].item, 'Horizontal slab/roof footprint area');
   assert.equal(result.measuredSchedule[0].quantity, 12);
   assert.equal(result.measuredSchedule[0].unit, 'm2');
-  assert.equal(result.measuredSchedule[0].status, 'measured_area_not_concrete_volume');
+  assert.equal(result.measuredSchedule[0].status, 'measured_area_thickness_missing');
 });
 test('does not infer concrete volume from a measured slab footprint', () => {
   const slab = ['0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3'].join('\\n');
