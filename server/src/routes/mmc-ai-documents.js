@@ -215,7 +215,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
    }
    if(lines.length)correlation=correlatePdfTextWithVectorGeometry({
     textLines:lines,geometry:vectorEvidence.geometry,viewBox:vectorEvidence.svgViewBox,
-    pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
+    pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt,pageRotationDegrees:page.rotationDegrees||0
    });
    else correlation={status:'no_spatial_text_available',textLineCount:0,matchedTextLineCount:0,associations:[],limitations:['Neither native PDF text coordinates nor OCR word boxes were available for spatial matching.']};
   }catch(error){vectorEvidenceError=error.message||'Vector/text spatial matching failed';}
@@ -252,7 +252,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
    if(pageVector?.svgViewBox&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt&&pageLines.length){
     try{pageCorrelation=correlationHelper.correlatePdfTextWithVectorGeometry({
      textLines:pageLines,geometry:pageVector.geometry,viewBox:pageVector.svgViewBox,
-     pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt
+     pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt,pageRotationDegrees:pageRecord.rotationDegrees||0
     });}catch(error){pageCorrelation={status:'correlation_failed',error:error.message,associations:[],matchedTextLineCount:0};}
    }else{
     pageCorrelation={status:pageLines.length?'vector_geometry_unavailable':'no_spatial_text_available',
