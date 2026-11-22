@@ -323,7 +323,24 @@ function expandBlockInserts(entities, blocks) {
   return { entities: expanded, unsupported };
 }
 
-function buildMeasuredSchedule(rows) {
+function parseExplicitThicknessMetres(text) {
+  const value = String(text || '').match(/\\b(?:THK|THICKNESS|T)\\s*[:=]?\\s*(\\d+(?:\\.\\d+)?)\\s*(MM|CM|M)\\b/i);
+  if (!value) return null;
+  const amount = Number(value[1]);
+  const unit = value[2].toLowerCase();
+  return amount * (unit === 'mm' ? 0.001 : unit === 'cm' ? 0.01 : 1);
+}
+function pointInsidePolygon(point, vertices) {
+  let inside = false;
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    const a = vertices[i], b = vertices[j];
+    const crosses = ((a.y > point.y) !== (b.y > point.y)) &&
+      (point.x < (b.x - a.x) * (point.y - a.y) / ((b.y - a.y) || Number.EPSILON) + a.x);
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+function buildMeasuredSchedule(rows, textAnnotations = []) {
   const schedule = [];
   const layerRules = [
     { pattern: /^(?:SLAB|SLABS|FLOOR|FLOORS|ROOF|ROOF_SLAB)$/i, item: 'Horizontal slab/roof footprint area' },
@@ -334,16 +351,40 @@ function buildMeasuredSchedule(rows) {
     if (row.geometry?.type !== 'polyline' || row.geometry.closed !== true || !Number.isFinite(row.area_m2)) continue;
     const rule = layerRules.find(candidate => candidate.pattern.test(String(row.layer || '').trim()));
     if (!rule) continue;
-    schedule.push({
+    const vertices = row.geometry.vertices || [];
+    const thicknessCandidates = textAnnotations.filter(annotation =>
+      String(annotation.layer || '').trim().toUpperCase() === String(row.layer || '').trim().toUpperCase() &&
+      annotation.insertionPoint && pointInsidePolygon(annotation.insertionPoint, vertices))
+      .map(annotation => ({ annotation, thicknessMetres: parseExplicitThicknessMetres(annotation.text) }))
+      .filter(candidate => Number.isFinite(candidate.thicknessMetres) && candidate.thicknessMetres > 0);
+    const base = {
       id: 'measure-' + (row.sourceHandle || row.entityIndex),
       item: rule.item,
-      quantity: row.area_m2,
+      footprintArea: row.area_m2,
       unit: 'm2',
-      measurementType: 'closed_polyline_plan_area',
       source: { entity: row.entity, entityIndex: row.entityIndex, handle: row.sourceHandle || null, layer: row.layer },
-      status: 'measured_area_not_concrete_volume',
-      exclusions: ['No thickness or depth inferred', 'No openings deducted unless represented as separately verified geometry', 'No material volume or mass calculated']
-    });
+      thicknessEvidence: thicknessCandidates.map(candidate => ({ text: candidate.annotation.text, source: candidate.annotation.id, thicknessMetres: candidate.thicknessMetres }))
+    };
+    if (thicknessCandidates.length === 1) {
+      schedule.push({
+        ...base,
+        quantity: row.area_m2 * thicknessCandidates[0].thicknessMetres,
+        unit: 'm3',
+        thicknessMetres: thicknessCandidates[0].thicknessMetres,
+        measurementType: 'area_times_explicit_interior_thickness',
+        status: 'calculated_volume_openings_not_deducted',
+        exclusions: ['Openings and penetrations are not deducted unless separately modelled and verified']
+      });
+    } else {
+      schedule.push({
+        ...base,
+        quantity: row.area_m2,
+        measurementType: 'closed_polyline_plan_area',
+        status: thicknessCandidates.length ? 'ambiguous_multiple_thickness_annotations' : 'measured_area_thickness_missing',
+        missing: thicknessCandidates.length ? ['confirm_thickness_annotation_for_element'] : ['explicit_thickness_annotation_inside_same_layer_boundary'],
+        exclusions: ['No concrete volume calculated']
+      });
+    }
   }
   return schedule;
 }
@@ -421,7 +462,7 @@ function takeoffDxf(text, options = {}) {
     if (unit === 'm') agg.length_m += quantity;
     if (row.area_m2) agg.area_m2 += row.area_m2;
   }
-  const measuredSchedule = buildMeasuredSchedule(rows);
+  const measuredSchedule = buildMeasuredSchedule(rows, textAnnotations);
   return {
     engine: 'mmc-dxf-geometry-0.1',
     source: 'ASCII DXF ENTITIES',
@@ -437,4 +478,4 @@ function takeoffDxf(text, options = {}) {
   };
 }
 
-module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, extractDxfTextAnnotations, extractDxfDimensions, buildMeasuredSchedule, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
+module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, extractDxfTextAnnotations, extractDxfDimensions, buildMeasuredSchedule, parseExplicitThicknessMetres, pointInsidePolygon, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
