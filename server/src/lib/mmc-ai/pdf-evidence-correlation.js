@@ -12,6 +12,46 @@ function boxDistance(a, b) {
   const dy = Math.max(0, a.top - b.bottom, b.top - a.bottom);
   return Math.hypot(dx, dy);
 }
+function pointSegmentDistance(p, a, b) {
+  const dx=b.x-a.x, dy=b.y-a.y, length2=dx*dx+dy*dy;
+  if (!length2) return Math.hypot(p.x-a.x,p.y-a.y);
+  const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/length2));
+  return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy));
+}
+function segmentIntersectsBox(a,b,box) {
+  let t0=0,t1=1,dx=b.x-a.x,dy=b.y-a.y;
+  const tests=[[-dx,a.x-box.left],[dx,box.right-a.x],[-dy,a.y-box.top],[dy,box.bottom-a.y]];
+  for(const [p,q] of tests){
+    if(p===0){if(q<0)return false;continue;}
+    const r=q/p;
+    if(p<0){if(r>t1)return false;if(r>t0)t0=r;}
+    else {if(r<t0)return false;if(r<t1)t1=r;}
+  }
+  return true;
+}
+function segmentBoxDistance(a,b,box) {
+  if(segmentIntersectsBox(a,b,box)) return 0;
+  const corners=[
+    {x:box.left,y:box.top},{x:box.right,y:box.top},
+    {x:box.right,y:box.bottom},{x:box.left,y:box.bottom}
+  ];
+  const endpointBoxDistance=p=>{
+    const dx=Math.max(0,box.left-p.x,p.x-box.right);
+    const dy=Math.max(0,box.top-p.y,p.y-box.bottom);
+    return Math.hypot(dx,dy);
+  };
+  return Math.min(endpointBoxDistance(a),endpointBoxDistance(b),
+    ...corners.map(point=>pointSegmentDistance(point,a,b)));
+}
+function pathBoxDistance(points, box) {
+  if(!Array.isArray(points)||points.length<2) return Infinity;
+  let distance=Infinity;
+  for(let i=1;i<points.length;i++){
+    distance=Math.min(distance,segmentBoxDistance(points[i-1],points[i],box));
+    if(distance===0) return 0;
+  }
+  return distance;
+}
 function correlatePdfTextWithVectorGeometry({ textLines = [], geometry, viewBox, pageWidthPt, pageHeightPt, maxDistancePx = 36 } = {}) {
   if (!Array.isArray(textLines) || !geometry || !Array.isArray(geometry.paths) || !Array.isArray(viewBox) || viewBox.length !== 4) {
     throw new TypeError('Text lines, vector geometry and SVG viewBox are required');
@@ -27,15 +67,15 @@ function correlatePdfTextWithVectorGeometry({ textLines = [], geometry, viewBox,
   }
   const targetWidth = 2000, targetHeight = targetWidth / pageAspect;
   const sx = targetWidth / vw, sy = targetHeight / vh;
-  const pathBoxes = geometry.paths.map((path, index) => ({
+  const vectorPaths = geometry.paths.map((path, index) => ({
     pathIndex: index + 1,
-    box: bounds(path.points, p => ({ x: (p.x - vx) * sx, y: (p.y - vy) * sy }))
-  })).filter(item => item.box);
+    points: Array.isArray(path.points) ? path.points.map(p => ({ x: (p.x - vx) * sx, y: (p.y - vy) * sy })) : []
+  })).filter(item => item.points.length >= 2);
   const candidates = textLines.slice(0, 1000).filter(line => line && line.box && typeof line.text === 'string' &&
     /\d|\b(?:B|BM|C|COL|F|FOOTING|S|SL|W|D|DB|AHU|FCU|VAV|P|MH|FH|SP)\s*[-#]?\s*\d+|\b(?:STRUCTURAL|FOUNDATION|REBAR|CONCRETE|BEAM|COLUMN|SLAB|FOOTING|Ø|T\s*\d)\b|خرسانة|تسليح|عمود|جسر|قاعدة/i.test(line.text));
   const associations = candidates.map(line => {
     const textBox = { left: line.box.left, top: line.box.top, right: line.box.left + line.box.width, bottom: line.box.top + line.box.height };
-    const nearest = pathBoxes.map(item => ({ pathIndex: item.pathIndex, distancePx: boxDistance(textBox, item.box) }))
+    const nearest = vectorPaths.map(item => ({ pathIndex: item.pathIndex, distancePx: pathBoxDistance(item.points, textBox) }))
       .filter(item => item.distancePx <= maxDistancePx)
       .sort((a, b) => a.distancePx - b.distancePx || a.pathIndex - b.pathIndex).slice(0, 3)
       .map(item => ({ pathIndex: item.pathIndex, distancePx: Number(item.distancePx.toFixed(2)) }));
@@ -43,7 +83,7 @@ function correlatePdfTextWithVectorGeometry({ textLines = [], geometry, viewBox,
       status: nearest.length ? 'nearby_vector_path_candidates_requires_visual_confirmation' : 'no_nearby_vector_path_found',
       measurementEligible: false };
   });
-  return { status: 'spatial_candidates_generated_requires_visual_confirmation', coordinateSpace: 'normalized_page_width_2000px', pathCount: pathBoxes.length, textLineCount: candidates.length, matchedTextLineCount: associations.filter(x => x.nearbyVectorPaths.length).length, maxDistancePx, associations: associations.slice(0, 300), limitations: ['Nearest paths are spatial candidates only; they are not classified as engineering elements.','PDF text and SVG geometry are aligned by page aspect ratio, not by a verified drawing scale.','No dimensions, lengths, areas, volumes, BOQ quantities or 3D geometry are inferred.'] };
+  return { status: 'spatial_candidates_generated_requires_visual_confirmation', coordinateSpace: 'normalized_page_width_2000px', pathCount: vectorPaths.length, textLineCount: candidates.length, matchedTextLineCount: associations.filter(x => x.nearbyVectorPaths.length).length, maxDistancePx, associations: associations.slice(0, 300), limitations: ['Nearest paths are spatial candidates only; they are not classified as engineering elements.','PDF text and SVG geometry are aligned by page aspect ratio, not by a verified drawing scale.','No dimensions, lengths, areas, volumes, BOQ quantities or 3D geometry are inferred.'] };
 }
 
 
