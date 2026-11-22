@@ -1,0 +1,46 @@
+name: Extract MMC BIM Studio ZIP
+
+on:
+  push:
+    branches:
+      - mmc-bim-studio-source
+    paths:
+      - ".github/workflows/extract-bim-studio.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: mmc-bim-studio-source
+      - name: Extract the uploaded ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="mmc-bim-studio-rebar-auto-bim (1).zip"
+          test -s "$archive"
+          tmp="$(mktemp -d)"
+          unzip -q "$archive" -d "$tmp"
+          test -f "$tmp/mmc-bim-studio_v2/MMC-BIM-Studio.html"
+          rm -rf mmc-bim-studio_v2
+          cp -a "$tmp/mmc-bim-studio_v2" ./mmc-bim-studio_v2
+          echo "Extracted files:"
+          find mmc-bim-studio_v2 -maxdepth 3 -type f | sort
+      - name: Commit extracted source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mmc-bim-studio_v2
+          if git diff --cached --quiet; then
+            echo "No extracted files changed."
+            exit 0
+          fi
+          git commit -m "Extract MMC BIM Studio source from uploaded ZIP"
+          git push origin mmc-bim-studio-source
