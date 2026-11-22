@@ -324,7 +324,7 @@ function expandBlockInserts(entities, blocks) {
 }
 
 function parseExplicitThicknessMetres(text) {
-  const value = String(text || '').match(/\\b(?:THK|THICKNESS|T)\\s*[:=]?\\s*(\\d+(?:\\.\\d+)?)\\s*(MM|CM|M)\\b/i);
+  const value = String(text || '').match(/\b(?:THK|THICKNESS|T)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(MM|CM|M)\b/i);
   if (!value) return null;
   const amount = Number(value[1]);
   const unit = value[2].toLowerCase();
