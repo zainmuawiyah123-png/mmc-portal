@@ -31,6 +31,8 @@ jobs:
           cp -a "$tmp/mmc-bim-studio_v2" ./mmc-bim-studio_v2
           echo "Extracted files:"
           find mmc-bim-studio_v2 -maxdepth 3 -type f | sort
+      - name: Run DXF reader regression tests
+        run: python3 mmc-bim-studio_v2/test/dxf_reader_regression.py
       - name: Commit extracted source files
         shell: bash
         run: |
