@@ -36,3 +36,14 @@ test('normalizes OCR TSV word boxes into the same page coordinate system as PDF 
  assert.ok(lines[0].box.left>0 && lines[0].box.width>0);
  assert.equal(lines[0].source,'tesseract_tsv_normalized_page');
 });
+
+test('does not associate text with a diagonal path merely because their bounding rectangles overlap',()=>{
+ const result=correlatePdfTextWithVectorGeometry({
+  textLines:[{page:1,text:'Y16-200',box:{left:0,top:1900,width:20,height:20}}],
+  geometry:{paths:[{points:[{x:0,y:0},{x:100,y:100}]}]},
+  viewBox:[0,0,100,100],pageWidthPt:200,pageHeightPt:200,maxDistancePx:36
+ });
+ assert.equal(result.pathCount,1);
+ assert.equal(result.matchedTextLineCount,0);
+ assert.equal(result.associations[0].nearbyVectorPaths.length,0);
+});
