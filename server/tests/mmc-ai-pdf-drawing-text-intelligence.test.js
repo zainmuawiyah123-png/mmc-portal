@@ -79,5 +79,5 @@ test('does not associate an annotation with a distant dimension because box cent
  const footing=result.elements.find(x=>x.elementTagCandidate==='F1');
  assert.ok(footing);
  assert.equal(footing.dimensionCandidate,null);
- assert.equal(footing.associationStatus,'no_nearby_dimension_candidate');
+ assert.equal(footing.associationStatus,'ambiguous_nearby_dimensions');
 });
