@@ -323,6 +323,31 @@ function expandBlockInserts(entities, blocks) {
   return { entities: expanded, unsupported };
 }
 
+function buildMeasuredSchedule(rows) {
+  const schedule = [];
+  const layerRules = [
+    { pattern: /^(?:SLAB|SLABS|FLOOR|FLOORS|ROOF|ROOF_SLAB)$/i, item: 'Horizontal slab/roof footprint area' },
+    { pattern: /^(?:FOOTING|FOOTINGS|FOUNDATION|FOUNDATIONS)$/i, item: 'Foundation/footing footprint area' },
+    { pattern: /^(?:EXCAVATION|EXCAVATIONS|EARTHWORK|CUT)$/i, item: 'Excavation footprint area' }
+  ];
+  for (const row of rows) {
+    if (row.geometry?.type !== 'polyline' || row.geometry.closed !== true || !Number.isFinite(row.area_m2)) continue;
+    const rule = layerRules.find(candidate => candidate.pattern.test(String(row.layer || '').trim()));
+    if (!rule) continue;
+    schedule.push({
+      id: 'measure-' + (row.sourceHandle || row.entityIndex),
+      item: rule.item,
+      quantity: row.area_m2,
+      unit: 'm2',
+      measurementType: 'closed_polyline_plan_area',
+      source: { entity: row.entity, entityIndex: row.entityIndex, handle: row.sourceHandle || null, layer: row.layer },
+      status: 'measured_area_not_concrete_volume',
+      exclusions: ['No thickness or depth inferred', 'No openings deducted unless represented as separately verified geometry', 'No material volume or mass calculated']
+    });
+  }
+  return schedule;
+}
+
 function takeoffDxf(text, options = {}) {
   const pairs = parsePairs(text);
   const unitCode = readHeaderUnits(pairs);
@@ -396,6 +421,7 @@ function takeoffDxf(text, options = {}) {
     if (unit === 'm') agg.length_m += quantity;
     if (row.area_m2) agg.area_m2 += row.area_m2;
   }
+  const measuredSchedule = buildMeasuredSchedule(rows);
   return {
     engine: 'mmc-dxf-geometry-0.1',
     source: 'ASCII DXF ENTITIES',
@@ -406,9 +432,9 @@ function takeoffDxf(text, options = {}) {
       totalLength_m: rows.reduce((s, r) => s + (r.quantity || 0), 0),
       totalClosedArea_m2: rows.reduce((s, r) => s + (r.area_m2 || 0), 0)
     },
-    byLayer, unsupported, rows, textAnnotations, dimensions,
+    byLayer, unsupported, rows, textAnnotations, dimensions, measuredSchedule,
     limitations: ['Nested blocks, xrefs and block arrays are not expanded', 'No hatch or spline area extraction', 'No automatic drawing-scale inference', 'No BOQ classification', 'Requires engineer review before contractual use']
   };
 }
 
-module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, extractDxfTextAnnotations, extractDxfDimensions, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
+module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, extractDxfTextAnnotations, extractDxfDimensions, buildMeasuredSchedule, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
