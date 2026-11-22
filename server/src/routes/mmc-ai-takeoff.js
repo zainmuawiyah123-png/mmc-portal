@@ -44,8 +44,8 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/pdf',wrap(async(
  if(!result){
   try{
    ocrResult=await ocrPdf(raw,{maxPages:20,dpi:160});
-   const ocrText=(ocrResult.pages||[]).map(page=>page.text||'').join('\\f');
-   if(!ocrText.replace(/\\s/g,'').length)throw new Error('OCR did not recognize readable schedule text on the processed pages.');
+   const ocrText=(ocrResult.pages||[]).map(page=>page.text||'').join('\f');
+   if(!ocrText.replace(/\s/g,'').length)throw new Error('OCR did not recognize readable schedule text on the processed pages.');
    result=parseStructuralScheduleText(ocrText);
    textSource='ocr';
   }catch(err){
