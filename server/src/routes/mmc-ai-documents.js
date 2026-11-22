@@ -22,6 +22,7 @@ const {deriveScaleCandidates,applyConfirmedPageScale}=require('../lib/mmc-ai/pdf
 const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
 const {buildDrawingIntelligenceModel}=require('../lib/mmc-ai/drawing-intelligence-graph');
 const {buildPdfElementCandidates}=require('../lib/mmc-ai/pdf-semantic-vector-linker');
+const {buildPdfDimensionLineEvidence}=require('../lib/mmc-ai/pdf-dimension-line-evidence');
 const {extractStructuralDrawingEvidence}=require('../lib/mmc-ai/pdf-structural-drawing-evidence');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
@@ -294,6 +295,15 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
      });
     }catch(error){semanticVectorLinking={engine:'mmc-pdf-semantic-vector-linker-v0.1',status:'linking_failed',error:error.message,candidates:[],counts:null};}
    }
+   let dimensionLineEvidence=null;
+   if(pageVector?.geometry&&pageVector.svgViewBox&&pageLines.length&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
+    try{dimensionLineEvidence=buildPdfDimensionLineEvidence({
+     textLines:pageLines,vectorPaths:pageVector.geometry.paths.map((item,index)=>({
+      id:'p'+pageNo+'-dimension-v'+(index+1),points:item.points
+     })),svgViewBox:pageVector.svgViewBox,pageWidthPt:pageRecord.bboxWidthPt,
+     pageHeightPt:pageRecord.bboxHeightPt
+    });}catch(error){dimensionLineEvidence={engine:'mmc-pdf-dimension-line-evidence-v0.1',status:'detection_failed',error:error.message,candidates:[],counts:null};}
+   }
    let scaleEvidence=null;
    if(pageVector?.geometry&&spatialEngineeringEvidence&&pageCorrelation){
     try{scaleEvidence=deriveScaleCandidates({dimensions:spatialEngineeringEvidence.dimensions||[],associations:pageCorrelation.associations||[],geometry:pageVector.geometry});}
@@ -306,7 +316,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
      svgViewBox:pageVector.svgViewBox,status:pageVector.status}:null,
     vectorEvidenceError:pageVectorError,textSource:pageTextSource,spatialTextSelection,
     spatialCorrelation:pageCorrelation,
-    spatialEngineeringEvidence,drawingIntelligence,semanticVectorLinking,scaleEvidence,
+    spatialEngineeringEvidence,drawingIntelligence,semanticVectorLinking,dimensionLineEvidence,scaleEvidence,
     measurementEligible:false,scaleCalibrated:false,bimGenerated:false
    });
   }
