@@ -212,6 +212,50 @@ function extractReinforcementCallouts(text) {
   return results;
 }
 
+function extractExplicitRebarTakeoffCandidates(lines) {
+  if (!Array.isArray(lines)) return [];
+  const candidates = [];
+  const pattern = /(?:^|[^\\d])(?:T|Y)?\\s*(\\d{1,3})\\s*(?:Ø|Φ|⌀|T)\\s*(\\d{1,2})\\s*L\\s*=?\\s*(\\d+(?:[.,]\\d+)?)\\s*(mm|cm|m)\\b/giu;
+  const unitToM = { mm: 0.001, cm: 0.01, m: 1 };
+  for (const line of lines) {
+    const source = normalizeEngineeringNumerals(line?.text || '');
+    pattern.lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(source))) {
+      const barCount = Number(match[1]);
+      const diameterMm = Number(match[2]);
+      const statedLength = engineeringNumber(match[3]);
+      const lengthUnit = String(match[4] || '').toLowerCase();
+      const lengthPerBarM = statedLength * (unitToM[lengthUnit] || 0);
+      if (!Number.isInteger(barCount) || barCount < 1 || barCount > 500 ||
+          !Number.isInteger(diameterMm) || diameterMm < 6 || diameterMm > 50 ||
+          !positiveEngineeringLength(lengthPerBarM) || lengthPerBarM > 100) continue;
+      const totalLengthM = barCount * lengthPerBarM;
+      const unitMassKgPerM = diameterMm * diameterMm / 162;
+      candidates.push({
+        page: Number.isInteger(line.page) ? line.page : null,
+        raw: clean(match[0]),
+        barCount,
+        diameterMm,
+        lengthPerBarM: Number(lengthPerBarM.toFixed(4)),
+        totalLengthM: Number(totalLengthM.toFixed(4)),
+        nominalUnitMassKgPerM: Number(unitMassKgPerM.toFixed(6)),
+        theoreticalMassKg: Number((totalLengthM * unitMassKgPerM).toFixed(2)),
+        formula: `${barCount} × ${lengthPerBarM} m × (${diameterMm}² / 162)`,
+        box: line.box || null,
+        ocrConfidence: Number.isFinite(line.confidence) ? line.confidence : null,
+        status: 'explicit_callout_calculated_candidate_requires_visual_confirmation',
+        measurementEligible: false,
+        source: 'explicit bar count, diameter and cut length from drawing text; laps, bends, anchorage and waste excluded'
+      });
+    }
+  }
+  return candidates.slice(0, 2000);
+}
+function positiveEngineeringLength(value) {
+  return Number.isFinite(value) && value > 0;
+}
+
 function inferElementFamily(tag) {
   if (!tag) return null;
   const prefix = tag.match(/^[A-Z]+/)?.[0] || '';
@@ -359,6 +403,7 @@ function spatialNativeLines(words, options = {}) {
 function analyzeSpatialPageEvidence(lines, options = {}) {
   const dimensions = extractSpatialDimensionCandidates(lines);
   const elements = buildSpatialElementCandidates(lines, dimensions, options);
+  const explicitRebarTakeoffCandidates = extractExplicitRebarTakeoffCandidates(lines);
   // Page edges must come from the PDF page box, never from the text extent.
   const pageBounds = options.pageBounds && Number.isFinite(options.pageBounds.width) &&
     Number.isFinite(options.pageBounds.height) && options.pageBounds.width > 0 && options.pageBounds.height > 0
@@ -393,6 +438,7 @@ function analyzeSpatialPageEvidence(lines, options = {}) {
     textLineCount: lines.length,
     dimensions,
     elements,
+    explicitRebarTakeoffCandidates,
     titleBlockCandidates,
     scaleCandidates,
     detailReferenceCandidates,
@@ -532,4 +578,4 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ]
   };
 }
-module.exports = { analyzePdfDrawingText, spatialOcrLines, spatialNativeLines, classifySpatialOcrAnnotations, extractSpatialDimensionCandidates, buildSpatialElementCandidates, analyzeSpatialPageEvidence };
+module.exports = { analyzePdfDrawingText, spatialOcrLines, spatialNativeLines, classifySpatialOcrAnnotations, extractSpatialDimensionCandidates, extractExplicitRebarTakeoffCandidates, buildSpatialElementCandidates, analyzeSpatialPageEvidence };
