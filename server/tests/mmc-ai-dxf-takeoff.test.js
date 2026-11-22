@@ -190,7 +190,7 @@ test('extracts positioned TEXT and MTEXT annotations alongside DXF geometry', ()
   const ent = [
     '0','TEXT','8','ANNO','10','2','20','3','40','0.2','1','C1 COLUMN',
     '0','MTEXT','8','ANNO','10','2.2','20','3.4','40','0.2','1','Y16-200 C/C'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.equal(result.textAnnotations.length, 2);
   assert.equal(result.textAnnotations[0].text, 'C1 COLUMN');
@@ -203,7 +203,7 @@ test('extracts native linear DIMENSION value and checks extension-line geometry'
   const ent = [
     '0','DIMENSION','5','D101','8','DIMENSIONS','70','0','10','0','20','1',
     '13','0','23','0','14','5','24','0','42','5','1','5000'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.equal(result.dimensions.length, 1);
   assert.equal(result.dimensions[0].kind, 'linear');
@@ -213,7 +213,7 @@ test('extracts native linear DIMENSION value and checks extension-line geometry'
   assert.equal(result.dimensions[0].sourceHandle, 'D101');
 });
 test('keeps angular dimensions out of linear measurement quantities', () => {
-  const ent = ['0','DIMENSION','70','2','10','0','20','0','42','90'].join('\\n');
+  const ent = ['0','DIMENSION','70','2','10','0','20','0','42','90'].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.equal(result.dimensions[0].kind, 'angular');
   assert.equal(result.dimensions[0].measuredMetres, null);
@@ -223,7 +223,7 @@ test('projects rotated linear dimension geometry onto its dimension axis', () =>
   const ent = [
     '0','DIMENSION','70','0','10','0','20','0','13','0','23','0',
     '14','3','24','4','50','53.130102354','42','5'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.ok(Math.abs(result.dimensions[0].measuredGeometryLengthMetres - 5) < 1e-6);
   assert.equal(result.dimensions[0].geometryAgreement, true);
@@ -232,16 +232,16 @@ test('reports mismatched native dimension value instead of trusting it', () => {
   const ent = [
     '0','DIMENSION','70','0','10','0','20','1','13','0','23','0',
     '14','5','24','0','42','4.5'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(ent));
   assert.equal(result.dimensions[0].measuredMetres, 4.5);
   assert.equal(result.dimensions[0].geometryAgreement, false);
 });
 
 test('creates measured area schedule only for closed polylines on explicit quantity layers', () => {
-  const slab = ['0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3'].join('\\n');
-  const unknown = ['0','LWPOLYLINE','8','MISC','70','1','10','10','20','10','10','12','20','10','10','12','20','12','10','10','20','12'].join('\\n');
-  const result = takeoffDxf(dxf(slab + '\\n' + unknown));
+  const slab = ['0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3'].join('\n');
+  const unknown = ['0','LWPOLYLINE','8','MISC','70','1','10','10','20','10','10','12','20','10','10','12','20','12','10','10','20','12'].join('\n');
+  const result = takeoffDxf(dxf(slab + '\n' + unknown));
   assert.equal(result.measuredSchedule.length, 1);
   assert.equal(result.measuredSchedule[0].item, 'Horizontal slab/roof footprint area');
   assert.equal(result.measuredSchedule[0].quantity, 12);
@@ -249,7 +249,7 @@ test('creates measured area schedule only for closed polylines on explicit quant
   assert.equal(result.measuredSchedule[0].status, 'measured_area_thickness_missing');
 });
 test('does not infer concrete volume from a measured slab footprint', () => {
-  const slab = ['0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3'].join('\\n');
+  const slab = ['0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3'].join('\n');
   const result = takeoffDxf(dxf(slab));
   assert.equal(result.measuredSchedule[0].quantity, 12);
   assert.equal(result.measuredSchedule[0].unit, 'm2');
@@ -260,7 +260,7 @@ test('calculates slab concrete volume only from one explicit thickness note insi
   const entities = [
     '0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3',
     '0','TEXT','8','SLAB','10','2','20','1.5','40','0.2','1','THK=250 mm'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(entities));
   const slab = result.measuredSchedule[0];
   assert.equal(slab.status, 'calculated_volume_openings_not_deducted');
@@ -272,7 +272,7 @@ test('does not calculate volume when thickness annotation is outside element bou
   const entities = [
     '0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3',
     '0','TEXT','8','SLAB','10','8','20','8','40','0.2','1','THK=250 mm'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(entities));
   assert.equal(result.measuredSchedule[0].status, 'measured_area_thickness_missing');
   assert.equal(result.measuredSchedule[0].quantity, 12);
@@ -283,7 +283,7 @@ test('does not calculate volume from conflicting thickness notes', () => {
     '0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3',
     '0','TEXT','8','SLAB','10','1','20','1','40','0.2','1','THK=250 mm',
     '0','TEXT','8','SLAB','10','3','20','2','40','0.2','1','THK=300 mm'
-  ].join('\\n');
+  ].join('\n');
   const result = takeoffDxf(dxf(entities));
   assert.equal(result.measuredSchedule[0].status, 'ambiguous_multiple_thickness_annotations');
 });
