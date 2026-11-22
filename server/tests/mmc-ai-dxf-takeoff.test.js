@@ -218,3 +218,22 @@ test('keeps angular dimensions out of linear measurement quantities', () => {
   assert.equal(result.dimensions[0].kind, 'angular');
   assert.equal(result.dimensions[0].measuredMetres, null);
 });
+
+test('projects rotated linear dimension geometry onto its dimension axis', () => {
+  const ent = [
+    '0','DIMENSION','70','0','10','0','20','0','13','0','23','0',
+    '14','3','24','4','50','53.130102354','42','5'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.ok(Math.abs(result.dimensions[0].measuredGeometryLengthMetres - 5) < 1e-6);
+  assert.equal(result.dimensions[0].geometryAgreement, true);
+});
+test('reports mismatched native dimension value instead of trusting it', () => {
+  const ent = [
+    '0','DIMENSION','70','0','10','0','20','1','13','0','23','0',
+    '14','5','24','0','42','4.5'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.dimensions[0].measuredMetres, 4.5);
+  assert.equal(result.dimensions[0].geometryAgreement, false);
+});
