@@ -69,3 +69,15 @@ test('does not infer units for unqualified numbers when no drawing-wide unit not
  assert.equal(triplet.normalizedValuesMm,null);
  assert.equal(triplet.measurementEligible,false);
 });
+
+test('does not associate an annotation with a distant dimension because box centers are close',()=>{
+ const lines=[
+  {page:1,text:'FOOTING F1',confidence:96,box:{left:100,top:100,width:300,height:30},coordinateSpace:'aligned_svg_page_normalized_2000px'},
+  {page:1,text:'2000 x 2000 x 500 mm',confidence:94,box:{left:390,top:100,width:260,height:30},coordinateSpace:'aligned_svg_page_normalized_2000px'}
+ ];
+ const result=analyzeSpatialPageEvidence(lines,{maxDistancePx:40});
+ const footing=result.elements.find(x=>x.elementTagCandidate==='F1');
+ assert.ok(footing);
+ assert.equal(footing.dimensionCandidate,null);
+ assert.equal(footing.associationStatus,'no_nearby_dimension_candidate');
+});
