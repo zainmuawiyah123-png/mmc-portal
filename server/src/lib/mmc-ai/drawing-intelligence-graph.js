@@ -59,6 +59,24 @@ function pathCenter(path) {
   const xs = path.points.map(p => p.x), ys = path.points.map(p => p.y);
   return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
 }
+function normalizeDimensionEntity(dimension, index) {
+  if (!dimension || !Number.isInteger(dimension.page || 1)) return null;
+  const a = dimension.extensionStart, b = dimension.extensionEnd;
+  const anchor = a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : dimension.dimensionLinePoint;
+  if (!anchor || !Number.isFinite(anchor.x) || !Number.isFinite(anchor.y)) return null;
+  return {
+    id: dimension.id || 'dim-' + (index + 1),
+    page: dimension.page || 1,
+    anchor,
+    kind: dimension.kind || 'unknown',
+    measuredMetres: Number.isFinite(dimension.measuredMetres) ? dimension.measuredMetres : null,
+    rawMeasurement: Number.isFinite(dimension.rawMeasurement) ? dimension.rawMeasurement : null,
+    geometryAgreement: typeof dimension.geometryAgreement === 'boolean' ? dimension.geometryAgreement : null,
+    sourceHandle: dimension.sourceHandle || null,
+    layer: clean(dimension.layer || ''),
+    status: dimension.status || 'dimension_value_extracted_requires_element_link'
+  };
+}
 function buildDrawingIntelligenceModel(input = {}, options = {}) {
   const maxRelationDistance = Number.isFinite(options.maxRelationDistance) ? options.maxRelationDistance : 90;
   if (!(maxRelationDistance > 0)) throw new TypeError('maxRelationDistance must be positive.');
@@ -66,6 +84,8 @@ function buildDrawingIntelligenceModel(input = {}, options = {}) {
     .map(normalizeEvidenceLine).filter(Boolean);
   const paths = (Array.isArray(input.vectorPaths) ? input.vectorPaths : [])
     .map(normalizePath).filter(Boolean);
+  const dimensionEntities = (Array.isArray(input.dimensionEntities) ? input.dimensionEntities : [])
+    .map(normalizeDimensionEntity).filter(Boolean);
   const annotations = lines.map(line => ({
     ...line,
     candidateTypes: classifyAnnotation(line.text),
@@ -79,6 +99,13 @@ function buildDrawingIntelligenceModel(input = {}, options = {}) {
       .map(a => ({ evidenceId: a.id, text: a.text, distance: distance(tagPoint, boxCenter(a.box)) }))
       .filter(x => x.distance <= maxRelationDistance)
       .sort((a,b) => a.distance-b.distance).slice(0, 8);
+    const nearbyDxfDimensions = dimensionEntities.filter(d => d.page === tag.page)
+      .map(d => ({ dimensionId: d.id, kind: d.kind, measuredMetres: d.measuredMetres,
+        rawMeasurement: d.rawMeasurement, geometryAgreement: d.geometryAgreement,
+        sourceHandle: d.sourceHandle, layer: d.layer,
+        distance: distance(tagPoint, d.anchor), status: d.status }))
+      .filter(d => d.distance <= maxRelationDistance)
+      .sort((a,b) => a.distance-b.distance).slice(0, 12);
     const nearbyReinforcement = annotations.filter(a => a.page === tag.page &&
       a.candidateTypes.includes('reinforcement_callout'))
       .map(a => ({ evidenceId: a.id, text: a.text, distance: distance(tagPoint, boxCenter(a.box)) }))
@@ -95,6 +122,7 @@ function buildDrawingIntelligenceModel(input = {}, options = {}) {
       page: tag.page,
       sourceEvidence: [tag.id],
       dimensionCandidates: nearbyDimensions,
+      nativeDimensionCandidates: nearbyDxfDimensions,
       reinforcementCandidates: nearbyReinforcement,
       geometryCandidates: nearbyGeometry,
       status: nearbyGeometry.length ? 'spatially_correlated_unclassified' : 'tag_detected_geometry_not_linked',
@@ -105,12 +133,13 @@ function buildDrawingIntelligenceModel(input = {}, options = {}) {
   const unresolved = [];
   for (const element of elements) {
     if (!element.geometryCandidates.length) unresolved.push({ elementId: element.id, missing: ['verified_element_geometry'] });
-    if (!element.dimensionCandidates.length) unresolved.push({ elementId: element.id, missing: ['dimension_to_element_relation'] });
+    if (!element.dimensionCandidates.length && !element.nativeDimensionCandidates.length) unresolved.push({ elementId: element.id, missing: ['dimension_to_element_relation'] });
     if (!element.reinforcementCandidates.length) unresolved.push({ elementId: element.id, missing: ['reinforcement_detail_or_not_applicable_confirmation'] });
   }
   const counts = {
     textLines: lines.length,
     vectorPaths: paths.length,
+    nativeDimensions: dimensionEntities.length,
     annotations: annotations.length,
     elementCandidates: elements.length,
     spatiallyCorrelatedElements: elements.filter(e => e.geometryCandidates.length).length,
