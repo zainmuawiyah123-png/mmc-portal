@@ -1211,11 +1211,14 @@ pdfTake.type='button';pdfTake.textContent='PDF Concrete + Rebar Takeoff (Pilot)'
  }
  const originalSelectProject=selectProject;
  document.getElementById('openBimStudio').addEventListener('click',()=>{
-  if(!activeProject){notify('Select a project first.');return;}
-  const id=activeProject.project_id||activeProject.id;
-  const name=activeProject.name||document.getElementById('projectSelect')?.selectedOptions?.[0]?.textContent||'Current project';
-  const url='/mmc-bim-studio/?projectId='+encodeURIComponent(id)+'&projectName='+encodeURIComponent(name);
-  window.open(url,'_blank','noopener,noreferrer');
+  const select=document.getElementById('projectSelect');
+  const id=activeProject?.project_id||activeProject?.id||select?.value||'';
+  const name=activeProject?.name||select?.selectedOptions?.[0]?.textContent||'Current project';
+  const query=new URLSearchParams();
+  if(id)query.set('projectId',id);
+  if(name)query.set('projectName',name);
+  const url='/mmc-bim-studio/'+(query.toString()?'?'+query.toString():'');
+  window.location.assign(url);
  });
  document.getElementById('drawingFile').addEventListener('change',async e=>{
   const file=e.target.files&&e.target.files[0];if(!file)return;
