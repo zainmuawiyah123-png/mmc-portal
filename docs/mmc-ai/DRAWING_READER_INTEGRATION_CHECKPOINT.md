@@ -116,3 +116,45 @@ The live branch's `server/src/routes/mmc-ai-documents.js` stores uploaded docume
 - Existing page design, document storage, BOQ records and manual takeoff paths were not changed.
 - Commits: OCR normalization helper and route integration (see commits immediately preceding this checkpoint); OCR coordinate test `10eb0862be1d60daef41e70305ea1550ff6670cb`; UI timeout `8d954ff5272acb1fab4a07a108806dbb7c52d3c7`; UI test `8dbfb3831a51616f77482ae64a898497b9ef2741`; PDF end-to-end fixture test `df594841a01ecc1a88a97d41a5d70c2272014a01`.
 - Validation status: Docker build gate includes syntax checks plus OCR, drawing-reader UI, PDF page-evidence, vector and correlation suites. Render deployment and its build/test result must be checked before this change is considered deployed. The synthetic fixture validates pipeline compatibility only; the user's existing PDF still requires authenticated live-session validation. No scale, engineering classification, BOQ quantities or 3D geometry are claimed.
+
+
+## 2026-11-22 — Real drawing reference and first structural concrete quantity
+
+### Protected deployment baseline
+- Render service: `mmc-ai-staging`, URL `https://mmc-ai-staging.onrender.com`.
+- Render remains on branch `mmc-bim-review-integration`, commit `cd9cf2b67b15ad3a774db93b691d09b3621cf851` (live at the last check).
+- This work is isolated on `fix/drawing-analysis-pipeline`. No Render deployment, production update, or database mutation was performed.
+
+### Actual drawing inspected
+- Library document: `266790015V4C.pdf`, 7,638,948 bytes, 20 pages, PDF 1.4.
+- SHA-256: `bdeb288844759b4d153e6d9a498ad5ed5231b358d0472124ea10889e285253ff`.
+- Page 4: foundation layout and footing mark callouts F1–F6.
+- Page 6: isolated-footing schedule with length, width and depth for F1–F6.
+- The previous Python prototype in the Library already contained a manually prepared reference schedule/count set for this same drawing. It was used as a cross-check, not as a runtime input or production default.
+
+### First quantity reference
+- F1: 2 × 2.40 × 2.40 × 0.60 = 6.912 m³
+- F2: 3 × 2.60 × 2.60 × 0.60 = 12.168 m³
+- F3: 8 × 3.00 × 3.00 × 0.70 = 50.400 m³
+- F4: 1 × 3.30 × 3.30 × 0.70 = 7.623 m³
+- F5: 1 × 5.80 × 2.80 × 0.60 = 9.744 m³
+- F6: 2 × 2.90 × 2.60 × 0.60 = 9.048 m³
+- Total isolated-footing concrete: **95.895 m³**.
+- Excludes blinding, pedestals/column necks, columns, grade beams, continuous footings, excavation, backfill, reinforcement and wastage. This is a reviewed reference quantity, not a claim that the live MMC AI app automatically extracted it.
+
+### Code and regression work
+- Added `pdf-quantity-candidates.js`: conservative dimension-to-vector scale candidates; a single nearby dimension/path match never calibrates a page. Scale remains unapplied pending explicit confirmation.
+- Connected the per-page scale-evidence result to the authenticated PDF drawing-text analysis record and response.
+- Updated the existing UI to display each page's scale-evidence output.
+- Added `pdf-structural-quantity-engine.js`: calculates isolated footing concrete from normalized schedule rows and plan mark counts, with source pages and formula per item; missing or unmatched marks fail closed.
+- Added the real-drawing golden reference fixture `server/tests/fixtures/mmc-real-266790015V4C-footing-reference.json` and regression tests. The fixture is a test oracle only; it is not loaded by runtime code.
+- Added a branch-only GitHub Actions test workflow. Latest run `44997597476` completed successfully: 174 tests, 172 passed, 0 failed, 2 skipped.
+- The earlier CI failures exposed a wrong expected scale value in the synthetic test and missing Poppler/Tesseract packages on the GitHub runner. Both were corrected before the successful run.
+
+### Remaining critical work — do not declare automatic takeoff complete
+1. Extract footing schedule rows F1–F6 from OCR/table-cell evidence on the actual PDF; do not hardcode these values in the runtime.
+2. Extract and count plan marks from the actual foundation layout, including low-confidence/missed labels. If a mark count cannot be proven, return it as unresolved.
+3. Connect those extracted, traceable candidates to `pdf-structural-quantity-engine.js` in the authenticated PDF takeoff route.
+4. Persist a `needs_review` takeoff run with per-item formula, schedule page, plan page, source OCR/vector evidence and unresolved register.
+5. Validate the actual stored PDF through the app's authenticated project workflow. Only then claim automatic takeoff. Do not deploy until the user separately approves a staging deployment.
+
