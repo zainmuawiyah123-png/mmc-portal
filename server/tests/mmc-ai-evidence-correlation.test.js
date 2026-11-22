@@ -21,10 +21,9 @@ test('withholds spatial associations when PDF page and SVG aspect ratios do not 
   geometry:{paths:[{points:[{x:0,y:0},{x:1,y:1}]}]},
   viewBox:[0,0,100,50],pageWidthPt:200,pageHeightPt:150
  });
- assert.equal(result.status,'coordinate_orientation_ambiguous');
+ assert.equal(result.status,'coordinate_spaces_not_aligned');
  assert.deepEqual(result.associations,[]);
- assert.equal(result.orientationScores.length,2);
- assert.equal(result.associations.length,0);
+ assert.equal(result.orientationScores,undefined);
 });
 
 test('normalizes OCR TSV word boxes into the same page coordinate system as PDF vectors',()=>{
@@ -53,11 +52,13 @@ test('aligns portrait PDF text boxes with landscape SVG geometry when page rotat
  assert.equal(result.associations[0].measurementEligible,false);
 });
 
-test('still rejects non-rotational aspect mismatches instead of forcing coordinate alignment',()=>{
+test('withholds spatial associations when reciprocal aspect ratios have no uniquely supported rotation',()=>{
  const result=correlatePdfTextWithVectorGeometry({
   textLines:[{text:'C1',box:{left:1,top:1,width:10,height:10}}],
   geometry:{paths:[{points:[{x:0,y:0},{x:1,y:1}]}]},
   viewBox:[0,0,100,50],pageWidthPt:100,pageHeightPt:200,pageRotationDegrees:0
  });
- assert.equal(result.status,'coordinate_spaces_not_aligned');
+ assert.equal(result.status,'coordinate_orientation_ambiguous');
+ assert.deepEqual(result.associations,[]);
+ assert.equal(result.orientationScores.length,2);
 });
