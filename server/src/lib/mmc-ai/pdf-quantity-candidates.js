@@ -1,7 +1,7 @@
 'use strict';
 
 const round = (value, places = 6) => Number(value.toFixed(places));
-const normalizeText = value => String(value || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+const normalizeText = value => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 function deriveScaleCandidates({ dimensions = [], associations = [], geometry } = {}) {
   if (!Array.isArray(dimensions) || !Array.isArray(associations) ||
