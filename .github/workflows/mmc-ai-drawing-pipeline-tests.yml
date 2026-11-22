@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/drawing-analysis-pipeline
+      - feat/occt-dxf-linker-integration
   pull_request:
     branches:
       - mmc-bim-review-integration
