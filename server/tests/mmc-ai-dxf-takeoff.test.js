@@ -255,3 +255,35 @@ test('does not infer concrete volume from a measured slab footprint', () => {
   assert.equal(result.measuredSchedule[0].unit, 'm2');
   assert.ok(!('volume_m3' in result.measuredSchedule[0]));
 });
+
+test('calculates slab concrete volume only from one explicit thickness note inside its closed boundary', () => {
+  const entities = [
+    '0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3',
+    '0','TEXT','8','SLAB','10','2','20','1.5','40','0.2','1','THK=250 mm'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(entities));
+  const slab = result.measuredSchedule[0];
+  assert.equal(slab.status, 'calculated_volume_openings_not_deducted');
+  assert.equal(slab.quantity, 3);
+  assert.equal(slab.unit, 'm3');
+  assert.equal(slab.thicknessMetres, 0.25);
+});
+test('does not calculate volume when thickness annotation is outside element boundary', () => {
+  const entities = [
+    '0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3',
+    '0','TEXT','8','SLAB','10','8','20','8','40','0.2','1','THK=250 mm'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(entities));
+  assert.equal(result.measuredSchedule[0].status, 'measured_area_thickness_missing');
+  assert.equal(result.measuredSchedule[0].quantity, 12);
+  assert.equal(result.measuredSchedule[0].unit, 'm2');
+});
+test('does not calculate volume from conflicting thickness notes', () => {
+  const entities = [
+    '0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3',
+    '0','TEXT','8','SLAB','10','1','20','1','40','0.2','1','THK=250 mm',
+    '0','TEXT','8','SLAB','10','3','20','2','40','0.2','1','THK=300 mm'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(entities));
+  assert.equal(result.measuredSchedule[0].status, 'ambiguous_multiple_thickness_annotations');
+});
