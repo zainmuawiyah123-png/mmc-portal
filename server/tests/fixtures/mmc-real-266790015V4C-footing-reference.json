@@ -1,0 +1,27 @@
+{
+  "documentId": "266790015V4C.pdf",
+  "referenceType": "golden_reference_transcribed_from_actual_drawing",
+  "sourcePages": {
+    "plan": 4,
+    "footingSchedule": 6
+  },
+  "reviewStatus": "human_cross_checked_from_plan_and_schedule_images",
+  "footingSchedule": [
+    {"mark":"F1","lengthM":2.4,"widthM":2.4,"depthM":0.6,"source":"page 6 isolated footing schedule"},
+    {"mark":"F2","lengthM":2.6,"widthM":2.6,"depthM":0.6,"source":"page 6 isolated footing schedule"},
+    {"mark":"F3","lengthM":3.0,"widthM":3.0,"depthM":0.7,"source":"page 6 isolated footing schedule"},
+    {"mark":"F4","lengthM":3.3,"widthM":3.3,"depthM":0.7,"source":"page 6 isolated footing schedule"},
+    {"mark":"F5","lengthM":5.8,"widthM":2.8,"depthM":0.6,"source":"page 6 isolated footing schedule"},
+    {"mark":"F6","lengthM":2.9,"widthM":2.6,"depthM":0.6,"source":"page 6 isolated footing schedule"}
+  ],
+  "planMarkCounts": [
+    {"mark":"F1","count":2,"countSource":"page 4 foundation plan; visual mark count"},
+    {"mark":"F2","count":3,"countSource":"page 4 foundation plan; OCR and visual cross-check"},
+    {"mark":"F3","count":8,"countSource":"page 4 foundation plan; OCR and visual cross-check"},
+    {"mark":"F4","count":1,"countSource":"page 4 foundation plan; visual mark count"},
+    {"mark":"F5","count":1,"countSource":"page 4 foundation plan; visual mark count"},
+    {"mark":"F6","count":2,"countSource":"page 4 foundation plan; OCR and visual cross-check"}
+  ],
+  "expectedTotalVolumeM3": 95.895,
+  "exclusions": ["Blinding", "pedestals", "columns", "grade beams", "continuous footings", "reinforcement"]
+}
