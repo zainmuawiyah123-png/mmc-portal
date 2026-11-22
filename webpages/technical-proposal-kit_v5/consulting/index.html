@@ -33,9 +33,14 @@ button{cursor:pointer}.mine{padding:10px;background:#f8fafc;border-radius:8px;ma
 @media(max-width:760px){.statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:16px}.workflow-steps{grid-template-columns:1fr}}
 @media(max-width:480px){.consult-side{grid-template-columns:1fr}.plan-grid{grid-template-columns:1fr}}
 html[dir="ltr"] .consult-side,html[dir="ltr"] .wrap{direction:ltr;text-align:left}
+html[dir="ltr"] .consult-side{direction:ltr;text-align:left}
+html[dir="rtl"] .consult-side{direction:rtl;text-align:right}
+.consult-lang{display:inline-flex;gap:0;border:1px solid #cbd5e1;border-radius:7px;overflow:hidden;margin-inline-start:8px}
+.consult-lang button{border:0;background:#fff;padding:7px 12px;font-weight:800;color:#334155}
+.consult-lang button.on{background:#17365d;color:#fff}
 </style></head>
 <body>
-<header class="p-top"><div class="brand"><span class="mark">M</span><span><span>MMC / TenderWise</span><small>Consulting Office Management Portal</small></span></div><div class="spacer"></div><a class="btn ghost" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fconsulting%2F">تسجيل الدخول</a><a class="btn amber" href="/portal/pt-9f3c7a1e5b2d/register.html?role=consultant">تسجيل مكتب استشاري</a><span id="user"></span><button class="btn ghost" id="logout" type="button">خروج</button></header>
+<header class="p-top"><div class="brand"><span class="mark">M</span><span><span>MMC / TenderWise</span><small>Consulting Office Management Portal</small></span></div><div class="spacer"></div><a class="btn ghost" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fconsulting%2F">تسجيل الدخول</a><a class="btn amber" href="/portal/pt-9f3c7a1e5b2d/register.html?role=consultant">تسجيل مكتب استشاري</a><span id="user"></span><button class="btn ghost" id="logout" type="button">خروج</button><div class="consult-lang" role="group" aria-label="Language"><button type="button" data-consult-lang="ar" class="on">AR</button><button type="button" data-consult-lang="en">EN</button></div></header>
 <div class="consult-layout"><aside class="consult-side"><div class="consult-side-title">أقسام المكتب الاستشاري</div>
 <a class="active" href="#dashboard">لوحة التحكم</a>
 <a href="#market">فرص الاستشارات لدى الجهات</a>
@@ -209,6 +214,72 @@ html[dir="ltr"] .consult-side,html[dir="ltr"] .wrap{direction:ltr;text-align:lef
   }catch(e){showError(e);}
  }
  load().catch(publicLoad);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
+})();
+</script>
+<script>
+(function(){
+ 'use strict';
+ var KEY='tpkit-portal-lang';
+ var dict={
+ 'تسجيل الدخول':'Sign in','تسجيل مكتب استشاري':'Register Consulting Office','خروج':'Log out',
+ 'أقسام المكتب الاستشاري':'Consulting Office Sections','لوحة التحكم':'Dashboard',
+ 'فرص الاستشارات لدى الجهات':'Client Consulting Opportunities',
+ 'عطاءات المكاتب الاستشارية فقط':'Consulting Firms Tenders Only',
+ 'عروضي للمكاتب':'My Proposals to Firms','إصدار العطاءات والتقييم والترسية':'Issue Tenders, Evaluate & Award',
+ 'عروضي للجهات':'My Proposals to Clients','العقود ومتابعة التنفيذ':'Contracts & Delivery Tracking',
+ 'التعاقدات الاستشارية الفرعية':'Subconsultancy Contracts',
+ 'أوامر الشراء والفواتير والمدفوعات':'Purchase Orders, Invoices & Payments',
+ 'سجل الموردين ومقدمي الخدمات':'Vendor & Service Providers Registry',
+ 'فريق المكتب والصلاحيات':'Office Team & Permissions','التقارير':'Reports',
+ 'ملف المكتب والتحقق':'Office Profile & Verification','الباقات والاشتراك':'Plans & Subscription',
+ 'بوابة مستقلة لإدارة المكاتب الاستشارية':'Independent Consulting Office Portal',
+ 'لوحة إدارة المكتب الاستشاري':'Consulting Office Dashboard',
+ 'إدارة فرص الخدمات الاستشارية المنشورة عبر المنصة، عروض المكتب، العقود، ومتابعة التنفيذ. هذه البوابة مستقلة عن بوابة المقاولين وبوابة الجهة الطالبة.':'Manage consulting opportunities published on the platform, office proposals, contracts and delivery tracking. This portal is independent from the Contractor and Procurement portals.',
+ 'الفرص الاستشارية المتاحة':'Available Consulting Opportunities','العروض المقدمة':'Proposals Submitted',
+ 'العقود المسندة':'Awarded Contracts','الاشتراك الاحترافي':'Professional Subscription',
+ 'جارٍ تحميل بيانات الحساب…':'Loading account data…','ملف المكتب الاستشاري':'Consulting Office Profile',
+ 'الوثائق القانونية والمهنية للمكتب':'Office Legal & Professional Documents',
+ 'ارفع شهادة التسجيل والرخص المهنية والضريبية والتأمين وسابقة الأعمال. تظهر هذه الوثائق لمدير الإدارة ضمن ملف المراجعة فقط.':'Upload registration, professional and tax licenses, insurance and project references. These documents are visible to the platform administrator for review only.',
+ 'تصنيف الوثيقة':'Document Type','الملفات':'Files','رفع الوثائق إلى ملف المراجعة':'Upload Documents for Review',
+ 'تسجيل مكتب استشاري':'Register Consulting Office','أدخل بيانات المكتب القانونية. يبقى الملف قيد المراجعة حتى التحقق منه.':'Enter the office legal details. The profile remains under review until verified.',
+ 'الاسم القانوني للمكتب':'Legal Office Name','الدولة':'Country','رقم التسجيل القانوني':'Legal Registration Number',
+ 'البريد الرسمي':'Official Email','الهاتف الرسمي':'Official Phone','الموقع الإلكتروني':'Website',
+ 'التخصصات (افصل بينها بفاصلة)':'Specializations (comma separated)','الخبرات والمشاريع السابقة':'Experience & Previous Projects',
+ 'إرسال ملف المكتب للتحقق':'Submit Office Profile for Verification',
+ 'العطاءات والفرص الاستشارية المنشورة':'Published Consulting Tenders & Opportunities',
+ 'تظهر هنا طلبات الخدمات الاستشارية المنشورة من الجهات المختلفة على المنصة. يمكن للمكتب تقديم عرض فني ومالي مستقل؛ ولا تظهر له عروض المكاتب المنافسة.':'Consulting service requests published by different organizations appear here. The office can submit a separate technical and financial proposal; competitors’ proposals remain confidential.',
+ 'سوق العطاءات الاستشارية المنشورة من المكاتب':'Consulting Tenders Published by Firms',
+ 'فرص فرعية تنشرها مكاتب استشارية أخرى لطلب تخصصات استشارية مساندة. لا تظهر هنا عطاءات المقاولات أو التوريد.':'Subconsultancy opportunities published by other firms. Construction and supply tenders are not shown here.',
+ 'عروضي المقدمة إلى المكاتب الاستشارية':'My Proposals to Consulting Firms',
+ 'عطاءاتي الاستشارية وإدارة العروض':'My Consulting Tenders & Proposal Management',
+ 'يمكن للمكتب نشر طلبات استشارية فرعية، واستقبال عروض المكاتب الأخرى، وتقييمها فنياً ثم فتح المالي للمؤهلين فقط.':'The office can publish subconsultancy requests, receive proposals from other firms, evaluate them technically and open financial proposals only for qualified bidders.',
+ 'التعاقدات الاستشارية الفرعية':'Subconsultancy Contracts','فريق المكتب وصلاحياته':'Office Team & Permissions',
+ 'أضف أعضاء لديهم حسابات استشارية مسجلة، وحدد مديراً أو موظفاً. يظل مالك المكتب وحده مخولاً بإدارة العضويات واعتماد قرارات التحقق.':'Add members with registered consultant accounts and assign manager or staff roles. Only the office owner can manage memberships and approve verification decisions.',
+ 'تقارير أداء المكتب':'Office Performance Reports','عروضي الفنية والمالية':'My Technical & Financial Proposals',
+ 'متابعة العروض التي قدمها هذا المكتب فقط، مع إتاحة الوثائق الخاصة به.':'Track proposals submitted by this office only, with access to its own documents.',
+ 'العقود ومتابعة التنفيذ':'Contracts & Delivery Tracking','الباقات والاشتراك · Plans & Subscription':'Plans & Subscription',
+ 'الباقات خاصة بالمكتب الاستشاري فقط، ولا تُفرض على الجهات الحكومية أو بوابة المشتريات.':'Plans apply only to consulting offices, not government entities or the Procurement portal.',
+ 'الأساسية · Basic':'Basic','الاحترافية · Professional':'Professional','مجانية · Free':'Free',
+ 'أوامر الشراء والفواتير والمدفوعات · Financial Workflow':'Purchase Orders, Invoices & Payments',
+ 'هذا القسم مخصص للدورة المالية لعقود الخدمات الاستشارية، ويُربط بصلاحيات المكتب الاستشاري بصورة مستقلة عن صلاحيات الجهة المشترية والمقاول.':'This section manages the financial workflow for consulting service contracts, with permissions separate from Procurement and Contractor roles.',
+ '01 · الترسية والعقد':'01 · Award & Contract','02 · أمر الشراء':'02 · Purchase Order','03 · الفواتير والمدفوعات':'03 · Invoices & Payments'
+ };
+ function getLang(){try{return localStorage.getItem(KEY)||'ar'}catch(e){return 'ar'}}
+ function translate(root){
+   var lang=getLang(),walker=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT),nodes=[],n;
+   while((n=walker.nextNode())) nodes.push(n);
+   nodes.forEach(function(t){var v=t.nodeValue.trim();if(!v)return;
+     if(lang==='en'&&dict[v]){if(!t.__arOriginal)t.__arOriginal=t.nodeValue;t.nodeValue=t.nodeValue.replace(v,dict[v]);}
+     else if(lang==='ar'&&t.__arOriginal){t.nodeValue=t.__arOriginal;t.__arOriginal=null;}
+   });
+   document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+   document.querySelectorAll('[data-consult-lang]').forEach(function(b){b.classList.toggle('on',b.dataset.consultLang===lang)});
+ }
+ function setLang(lang){if(lang!=='ar'&&lang!=='en')return;try{localStorage.setItem(KEY,lang)}catch(e){};translate(document.body)}
+ document.querySelectorAll('[data-consult-lang]').forEach(function(b){b.addEventListener('click',function(){setLang(b.dataset.consultLang)})});
+ translate(document.body);
+ var observer=new MutationObserver(function(records){if(getLang()!=='en')return;records.forEach(function(r){r.addedNodes.forEach(function(n){if(n.nodeType===Node.TEXT_NODE){var v=n.nodeValue.trim();if(dict[v])n.nodeValue=n.nodeValue.replace(v,dict[v])}else if(n.nodeType===Node.ELEMENT_NODE)translate(n)})})});
+ observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 </body></html>
