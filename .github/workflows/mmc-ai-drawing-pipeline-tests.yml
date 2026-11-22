@@ -1,0 +1,37 @@
+name: MMC AI drawing pipeline tests
+
+on:
+  push:
+    branches:
+      - fix/drawing-analysis-pipeline
+  pull_request:
+    branches:
+      - mmc-bim-review-integration
+    paths:
+      - "server/src/lib/mmc-ai/**"
+      - "server/src/routes/mmc-ai-documents.js"
+      - "server/tests/mmc-ai-*.test.js"
+      - "server/tests/fixtures/mmc-real-266790015V4C-footing-reference.json"
+      - "server/package.json"
+      - "Dockerfile"
+      - ".github/workflows/mmc-ai-drawing-pipeline-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  drawing-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+      - name: Run MMC AI drawing and quantity tests
+        working-directory: server
+        run: npm run test:mmc-ai
