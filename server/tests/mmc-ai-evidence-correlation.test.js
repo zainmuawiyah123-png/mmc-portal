@@ -21,7 +21,9 @@ test('withholds spatial associations when PDF page and SVG aspect ratios do not 
   geometry:{paths:[{points:[{x:0,y:0},{x:1,y:1}]}]},
   viewBox:[0,0,100,50],pageWidthPt:200,pageHeightPt:150
  });
- assert.equal(result.status,'coordinate_spaces_not_aligned');
+ assert.equal(result.status,'coordinate_orientation_ambiguous');
+ assert.deepEqual(result.associations,[]);
+ assert.equal(result.orientationScores.length,2);
  assert.equal(result.associations.length,0);
 });
 
