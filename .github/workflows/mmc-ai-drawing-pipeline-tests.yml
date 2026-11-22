@@ -29,6 +29,10 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: server/package-lock.json
+      - name: Install PDF and OCR system tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara
       - name: Install server dependencies
         working-directory: server
         run: npm ci
