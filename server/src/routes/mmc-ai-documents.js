@@ -19,6 +19,7 @@ const {decideEngineeringOcr}=require('../lib/mmc-ai/pdf-ocr-decision');
 const {chooseSpatialTextEvidence}=require('../lib/mmc-ai/pdf-spatial-text-selection');
 const {correlatePdfTextWithVectorGeometry}=require('../lib/mmc-ai/pdf-evidence-correlation');
 const {deriveScaleCandidates,applyConfirmedPageScale}=require('../lib/mmc-ai/pdf-quantity-candidates');
+const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -290,6 +291,41 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
    JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed',nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0,spatialTextSource:correlationSource,spatialMatches:correlation?.matchedTextLineCount||0,spatialStatus:correlation?.status||null,pagesProcessed:pageAnalyses.length,pageVectorPages:pageAnalyses.filter(item=>item.vectorEvidence).length,spatialEvidencePages:pageAnalyses.filter(item=>item.spatialEngineeringEvidence).length,spatialElementCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.elements?.length||0),0),spatialDimensionCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.dimensions?.length||0),0),scaleCandidatePages:pageAnalyses.filter(item=>item.scaleEvidence?.pages?.length).length,consistentScaleCandidatePages:pageAnalyses.filter(item=>(item.scaleEvidence?.pages||[]).some(p=>p.status==='consistent_multi_dimension_scale_candidate_requires_confirmation')).length}));
  res.setHeader('Cache-Control','no-store');
  res.json({analysisId,documentId:doc.id,analysis,ocr,ocrDecision,pageEvidence:pageEvidence?{totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,nativeTextWordCount:pageEvidence.pages?.[0]?.nativeTextWordCount||0}:null,pageEvidenceError,vectorEvidence:vectorEvidence?{pageNumber:vectorEvidence.pageNumber,pathCount:vectorEvidence.geometry.pathCount,closedPathCount:vectorEvidence.geometry.paths.filter(p=>p.closed).length,svgViewBox:vectorEvidence.svgViewBox}:null,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,pageAnalyses,pagesProcessed:pageAnalyses.length,spatialEvidenceSummary:{pagesWithEvidence:pageAnalyses.filter(item=>item.spatialEngineeringEvidence).length,elementCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.elements?.length||0),0),dimensionCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.dimensions?.length||0),0),scaleCandidatePages:pageAnalyses.filter(item=>item.scaleEvidence?.pages?.length).length,consistentScaleCandidatePages:pageAnalyses.filter(item=>(item.scaleEvidence?.pages||[]).some(p=>p.status==='consistent_multi_dimension_scale_candidate_requires_confirmation')).length,titleBlockCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.titleBlockCandidates?.length||0),0),scaleCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.scaleCandidates?.length||0),0),detailReferenceCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.detailReferenceCandidates?.length||0),0)},notice:'تم فحص الصفحات المعالجة وربط النصوص ذات الإحداثيات مع مسارات كل صفحة كمرشحات مراجعة فقط. لم يتم اعتماد مقياس أو تصنيف العناصر أو إنتاج كميات أو نموذج BIM.'});
+}));
+
+
+/**
+ * DXF geometry extraction pass. This measures supported CAD primitives only;
+ * it does not infer engineering meaning, BOQ classifications or BIM elements.
+ */
+router.post('/projects/:projectId/documents/:documentId/analyze/dxf-geometry',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ if(!canUpload(m.role)) throw E.forbidden('لا تملك صلاحية تشغيل التحليل الهندسي.');
+ const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc) throw E.notFound('المستند غير موجود.');
+ if(doc.file_ext!=='.dxf') throw E.validation('استخراج هندسة CAD متاح لملفات DXF فقط.');
+ const store=storage.getStorage();
+ if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+ const bytes=await store.get(doc.storage_key);
+ if(!Buffer.isBuffer(bytes)||bytes.length!==Number(doc.size_bytes)) throw E.validation('فشل التحقق من حجم ملف DXF.');
+ const actualHash=crypto.createHash('sha256').update(bytes).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
+ if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 لملف DXF.');
+ let result;
+ try{result=takeoffDxf(bytes.toString('utf8'));}
+ catch(error){throw E.validation(error.message||'تعذر تحليل هندسة DXF.');}
+ result={...result,documentId:doc.id,sourceSha256:doc.sha256,
+  status:result.rows.length?'geometry_extracted_unclassified':'no_supported_geometry',
+  engineeringClassificationComplete:false,boqGenerated:false,bimGenerated:false,
+  notice:'تم استخراج وقياس عناصر DXF المدعومة وفق وحدات الملف. لم يتم تحديد معناها الهندسي أو تحويلها إلى كميات BOQ أو عناصر BIM؛ لا تستخدم هذه النتائج كحصر تعاقدي.'};
+ const analysisId=uid('aidan_');
+ db.prepare('INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)')
+  .run(analysisId,doc.project_id,doc.id,req.user.id,'dxf_geometry_takeoff',JSON.stringify(result));
+ db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
+  .run(uid('aial_'),doc.project_id,req.user.id,'dxf_geometry_extraction_completed','document',doc.id,
+   JSON.stringify({analysisId,status:result.status,unitCode:result.units.insunits,supportedEntities:result.summary.supportedEntities,unsupportedEntities:result.summary.unsupportedEntities,totalLengthM:result.summary.totalLength_m,totalClosedAreaM2:result.summary.totalClosedArea_m2,boqGenerated:false,bimGenerated:false}));
+ res.setHeader('Cache-Control','no-store');
+ res.json({analysisId,documentId:doc.id,result});
 }));
 
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{
