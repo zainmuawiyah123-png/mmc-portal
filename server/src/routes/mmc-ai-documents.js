@@ -16,6 +16,7 @@ const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
 const {inspectPdfVectorPage}=require('../lib/mmc-ai/pdf-pdf-vector-extract');
 const {inspectPdfPageEvidence}=require('../lib/mmc-ai/pdf-page-evidence');
 const {decideEngineeringOcr}=require('../lib/mmc-ai/pdf-ocr-decision');
+const {chooseSpatialTextEvidence}=require('../lib/mmc-ai/pdf-spatial-text-selection');
 const {correlatePdfTextWithVectorGeometry}=require('../lib/mmc-ai/pdf-evidence-correlation');
 const {deriveScaleCandidates,applyConfirmedPageScale}=require('../lib/mmc-ai/pdf-quantity-candidates');
 const router=express.Router();
@@ -234,20 +235,21 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
     try{pageVector=await inspectPdfVectorPage(bytes,{pageNumber:pageNo});}
     catch(error){pageVectorError=error.message||'PDF vector extraction failed';}
    }
-   let pageLines=[];
-   let pageTextSource=null;
-   if((pageRecord.nativeTextEvidence||[]).length>=8&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
-    pageLines=nativeHelper.spatialNativeLines(pageRecord.nativeTextEvidence.map(word=>({text:word.text,box:word.box})),{
-     pageNumber:pageNo,pageWidth:pageRecord.bboxWidthPt,pageHeight:pageRecord.bboxHeightPt
-    });
-    pageTextSource='native_pdf_text_bbox';
-   }else{
+   let nativeLines=[],ocrLines=[];
+   if(pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
+    if((pageRecord.nativeTextEvidence||[]).length){
+     nativeLines=nativeHelper.spatialNativeLines(pageRecord.nativeTextEvidence.map(word=>({text:word.text,box:word.box})),{
+      pageNumber:pageNo,pageWidth:pageRecord.bboxWidthPt,pageHeight:pageRecord.bboxHeightPt
+     });
+    }
     const ocrPage=ocr?.pages?.find(item=>Number(item.page)===pageNo);
-    if(ocrPage?.words?.length&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
-     pageLines=correlationHelper.spatialOcrLines(ocrPage.words,{pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt});
-     pageTextSource='tesseract_ocr_word_boxes';
+    if(ocrPage?.words?.length){
+     ocrLines=correlationHelper.spatialOcrLines(ocrPage.words,{pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt});
     }
    }
+   const spatialTextSelection=chooseSpatialTextEvidence({nativeLines,ocrLines});
+   const pageLines=spatialTextSelection.lines;
+   const pageTextSource=spatialTextSelection.source;
    let spatialEngineeringEvidence=null;
    if(pageLines.length){try{spatialEngineeringEvidence=spatialHelper.analyzeSpatialPageEvidence(pageLines,{pageBounds:pageRecord.bboxWidthPt>0&&pageRecord.bboxHeightPt>0?{width:2000,height:2000*pageRecord.bboxHeightPt/pageRecord.bboxWidthPt}:null});}catch(error){spatialEngineeringEvidence={status:'spatial_evidence_failed',error:error.message};}}
    let pageCorrelation=null;
@@ -271,7 +273,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
     vectorEvidence:pageVector?{pathCount:pageVector.geometry.pathCount,
      closedPathCount:pageVector.geometry.paths.filter(item=>item.closed).length,
      svgViewBox:pageVector.svgViewBox,status:pageVector.status}:null,
-    vectorEvidenceError:pageVectorError,textSource:pageTextSource,
+    vectorEvidenceError:pageVectorError,textSource:pageTextSource,spatialTextSelection,
     spatialCorrelation:pageCorrelation,
     spatialEngineeringEvidence,scaleEvidence,
     measurementEligible:false,scaleCalibrated:false,bimGenerated:false
