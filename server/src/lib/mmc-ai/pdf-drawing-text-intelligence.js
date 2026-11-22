@@ -470,6 +470,13 @@ function analyzePdfDrawingText(extraction, document = {}) {
     /\b(PLAN|LAYOUT|ELEVATION|SECTION|DETAIL|FOUNDATION|ROOF|FLOOR|SITE|SCHEMATIC|DIAGRAM|SCHEDULE)\b/i.test(line)
   ).slice(0, 20);
 
+  const ocrSpatialLines = spatialOcrLines(extraction.ocrWords);
+  const nativeSpatialLines = spatialNativeLines(extraction.nativeSpatialWords, {
+    pageNumber: extraction.nativeSpatialPageNumber,
+    pageWidth: extraction.nativeSpatialPageWidth,
+    pageHeight: extraction.nativeSpatialPageHeight
+  });
+  const drawingLengthUnit = detectDrawingLengthUnit([...ocrSpatialLines, ...nativeSpatialLines]);
   const metadata = {
     documentId: document.documentId || null,
     revisionInRegister: document.revision || null,
@@ -481,36 +488,15 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ocrAverageConfidence: Number.isFinite(extraction.ocrAverageConfidence) ? extraction.ocrAverageConfidence : null,
     ocrWordCount: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.length : 0,
     ocrWordEvidence: Array.isArray(extraction.ocrWords) ? extraction.ocrWords.slice(0, 20000).map(word => ({ page: word.page, text: word.text, confidence: word.confidence, box: word.box })) : [],
-    ocrSpatialLines: spatialOcrLines(extraction.ocrWords).slice(0, 5000),
-    nativeSpatialLines: spatialNativeLines(extraction.nativeSpatialWords, {
-      pageNumber: extraction.nativeSpatialPageNumber,
-      pageWidth: extraction.nativeSpatialPageWidth,
-      pageHeight: extraction.nativeSpatialPageHeight
-    }),
-    nativeSpatialDimensionCandidates: extractSpatialDimensionCandidates(spatialNativeLines(extraction.nativeSpatialWords, {
-      pageNumber: extraction.nativeSpatialPageNumber,
-      pageWidth: extraction.nativeSpatialPageWidth,
-      pageHeight: extraction.nativeSpatialPageHeight
-    })).map(candidate => ({...candidate, source:'native_pdf_text_bbox; spatial callout candidate only'})),
-    nativeSpatialElementCandidates: buildSpatialElementCandidates(
-      spatialNativeLines(extraction.nativeSpatialWords, {
-        pageNumber: extraction.nativeSpatialPageNumber,
-        pageWidth: extraction.nativeSpatialPageWidth,
-        pageHeight: extraction.nativeSpatialPageHeight
-      }),
-      extractSpatialDimensionCandidates(spatialNativeLines(extraction.nativeSpatialWords, {
-        pageNumber: extraction.nativeSpatialPageNumber,
-        pageWidth: extraction.nativeSpatialPageWidth,
-        pageHeight: extraction.nativeSpatialPageHeight
-      }))
-    ).map(candidate => ({...candidate, source:'native PDF text and page-coordinate proximity; not verified geometry'})),
-    ocrSpatialDimensionCandidates: extractSpatialDimensionCandidates(spatialOcrLines(extraction.ocrWords)),
-    spatialEngineeringAnnotations: classifySpatialOcrAnnotations(spatialOcrLines(extraction.ocrWords)),
-    spatialElementCandidates: buildSpatialElementCandidates(
-      spatialOcrLines(extraction.ocrWords),
-      extractSpatialDimensionCandidates(spatialOcrLines(extraction.ocrWords))
-    ),
-    ocrDimensionCallouts: spatialOcrLines(extraction.ocrWords).filter(line => /\d\s*(?:mm|cm|m)\b|\d\s*[x×]\s*\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
+    ocrSpatialLines: ocrSpatialLines.slice(0, 5000),
+    nativeSpatialLines: nativeSpatialLines,
+    nativeSpatialDimensionCandidates: extractSpatialDimensionCandidates(nativeSpatialLines, { drawingLengthUnit }).map(candidate => ({...candidate, source:'native_pdf_text_bbox; spatial callout candidate only'})),
+    nativeSpatialElementCandidates: buildSpatialElementCandidates(nativeSpatialLines, extractSpatialDimensionCandidates(nativeSpatialLines, { drawingLengthUnit })).map(candidate => ({...candidate, source:'native PDF text and page-coordinate proximity; not verified geometry'})),
+    drawingLengthUnit,
+    ocrSpatialDimensionCandidates: extractSpatialDimensionCandidates(ocrSpatialLines, { drawingLengthUnit }),
+    spatialEngineeringAnnotations: classifySpatialOcrAnnotations(ocrSpatialLines),
+    spatialElementCandidates: buildSpatialElementCandidates(ocrSpatialLines, extractSpatialDimensionCandidates(ocrSpatialLines, { drawingLengthUnit })),
+    ocrDimensionCallouts: ocrSpatialLines.filter(line => /\d\s*(?:mm|cm|m)\b|\d\s*[x×]\s*\d/i.test(line.text)).map(line => ({ page: line.page, raw: line.text, box: line.box, confidence: line.confidence, status: line.confidence >= 85 ? 'candidate_requires_drawing_verification' : 'low_confidence_requires_manual_review' })).slice(0, 1000),
     textualSheetNumberCandidates: sheetNumbers,
     textualRevisionCandidates: revisions,
     textualScaleCandidates: scales,
