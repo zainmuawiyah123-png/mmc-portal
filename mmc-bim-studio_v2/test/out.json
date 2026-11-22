@@ -1,0 +1,7130 @@
+{
+ "engine": "mmc-bim-generator-v1",
+ "status": "needs_review",
+ "units": "m",
+ "origin": {
+  "x": -1,
+  "y": -12.100000000000001
+ },
+ "bounds": {
+  "sizeX": 22,
+  "sizeY": 25.1,
+  "minZ": -0.6,
+  "maxZ": 3
+ },
+ "parameters": {
+  "storeyHeightM": 3,
+  "wallThicknessM": 0.2,
+  "wallHeightM": 3,
+  "columnHeightM": 3,
+  "slabThicknessM": 0.2,
+  "floorThicknessM": 0.1,
+  "roofThicknessM": 0.2,
+  "footingDepthM": 0.6,
+  "beamWidthM": 0.3,
+  "beamDepthM": 0.6,
+  "ductWidthM": 0.6,
+  "ductHeightM": 0.3,
+  "ductElevationM": 2.5,
+  "pipeSizeM": 0.05,
+  "pipeElevationM": 2.6,
+  "drainElevationM": -0.6,
+  "trayWidthM": 0.3,
+  "trayHeightM": 0.06,
+  "trayElevationM": 2.7,
+  "cableSizeM": 0.03,
+  "cableElevationM": 2.8,
+  "paveThicknessM": 0.1,
+  "proxyHeightM": 1,
+  "doorWidthM": 0.9,
+  "doorHeightM": 2.1,
+  "windowWidthM": 1.2,
+  "windowHeightM": 1.4,
+  "windowSillM": 0.9,
+  "outletElevationM": 0.3,
+  "switchElevationM": 1.2,
+  "equipmentHeightM": null,
+  "maxElements": 20000,
+  "circleSegments": 24
+ },
+ "parametersSetByUser": [
+  "storeyHeightM",
+  "wallHeightM",
+  "wallThicknessM",
+  "columnHeightM",
+  "slabThicknessM",
+  "footingDepthM",
+  "beamWidthM",
+  "beamDepthM",
+  "ductWidthM",
+  "ductHeightM",
+  "pipeSizeM",
+  "doorWidthM",
+  "doorHeightM",
+  "windowWidthM",
+  "windowHeightM",
+  "windowSillM",
+  "outletElevationM",
+  "switchElevationM"
+ ],
+ "elementCount": 164,
+ "elements": [
+  {
+   "id": "E1",
+   "ifc": "IfcSlab",
+   "category": "slabs",
+   "discipline": "structural",
+   "layer": "S-SLAB",
+   "shape": "prism",
+   "z0": 2.8,
+   "height": 0.2,
+   "polygon": [
+    {
+     "x": 1,
+     "y": 12.1
+    },
+    {
+     "x": 21,
+     "y": 12.1
+    },
+    {
+     "x": 21,
+     "y": 24.1
+    },
+    {
+     "x": 1,
+     "y": 24.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 240,
+    "heightM": 0.2,
+    "volumeM3": 48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 10,
+   "page": null
+  },
+  {
+   "id": "E2",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.8,
+     "y": 11.9
+    },
+    {
+     "x": 1.2,
+     "y": 11.9
+    },
+    {
+     "x": 1.2,
+     "y": 12.3
+    },
+    {
+     "x": 0.8,
+     "y": 12.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 16,
+   "page": null
+  },
+  {
+   "id": "E3",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.8,
+     "y": 15.9
+    },
+    {
+     "x": 1.2,
+     "y": 15.9
+    },
+    {
+     "x": 1.2,
+     "y": 16.3
+    },
+    {
+     "x": 0.8,
+     "y": 16.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 17,
+   "page": null
+  },
+  {
+   "id": "E4",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.8,
+     "y": 19.9
+    },
+    {
+     "x": 1.2,
+     "y": 19.9
+    },
+    {
+     "x": 1.2,
+     "y": 20.3
+    },
+    {
+     "x": 0.8,
+     "y": 20.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 18,
+   "page": null
+  },
+  {
+   "id": "E5",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.8,
+     "y": 23.9
+    },
+    {
+     "x": 1.2,
+     "y": 23.9
+    },
+    {
+     "x": 1.2,
+     "y": 24.3
+    },
+    {
+     "x": 0.8,
+     "y": 24.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 19,
+   "page": null
+  },
+  {
+   "id": "E6",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 5.8,
+     "y": 11.9
+    },
+    {
+     "x": 6.2,
+     "y": 11.9
+    },
+    {
+     "x": 6.2,
+     "y": 12.3
+    },
+    {
+     "x": 5.8,
+     "y": 12.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 20,
+   "page": null
+  },
+  {
+   "id": "E7",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 5.8,
+     "y": 15.9
+    },
+    {
+     "x": 6.2,
+     "y": 15.9
+    },
+    {
+     "x": 6.2,
+     "y": 16.3
+    },
+    {
+     "x": 5.8,
+     "y": 16.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 21,
+   "page": null
+  },
+  {
+   "id": "E8",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 5.8,
+     "y": 19.9
+    },
+    {
+     "x": 6.2,
+     "y": 19.9
+    },
+    {
+     "x": 6.2,
+     "y": 20.3
+    },
+    {
+     "x": 5.8,
+     "y": 20.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 22,
+   "page": null
+  },
+  {
+   "id": "E9",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 5.8,
+     "y": 23.9
+    },
+    {
+     "x": 6.2,
+     "y": 23.9
+    },
+    {
+     "x": 6.2,
+     "y": 24.3
+    },
+    {
+     "x": 5.8,
+     "y": 24.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 23,
+   "page": null
+  },
+  {
+   "id": "E10",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 10.8,
+     "y": 11.9
+    },
+    {
+     "x": 11.2,
+     "y": 11.9
+    },
+    {
+     "x": 11.2,
+     "y": 12.3
+    },
+    {
+     "x": 10.8,
+     "y": 12.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 24,
+   "page": null
+  },
+  {
+   "id": "E11",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 10.8,
+     "y": 15.9
+    },
+    {
+     "x": 11.2,
+     "y": 15.9
+    },
+    {
+     "x": 11.2,
+     "y": 16.3
+    },
+    {
+     "x": 10.8,
+     "y": 16.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 25,
+   "page": null
+  },
+  {
+   "id": "E12",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 10.8,
+     "y": 19.9
+    },
+    {
+     "x": 11.2,
+     "y": 19.9
+    },
+    {
+     "x": 11.2,
+     "y": 20.3
+    },
+    {
+     "x": 10.8,
+     "y": 20.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 26,
+   "page": null
+  },
+  {
+   "id": "E13",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 10.8,
+     "y": 23.9
+    },
+    {
+     "x": 11.2,
+     "y": 23.9
+    },
+    {
+     "x": 11.2,
+     "y": 24.3
+    },
+    {
+     "x": 10.8,
+     "y": 24.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 27,
+   "page": null
+  },
+  {
+   "id": "E14",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 15.8,
+     "y": 11.9
+    },
+    {
+     "x": 16.2,
+     "y": 11.9
+    },
+    {
+     "x": 16.2,
+     "y": 12.3
+    },
+    {
+     "x": 15.8,
+     "y": 12.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 28,
+   "page": null
+  },
+  {
+   "id": "E15",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 15.8,
+     "y": 15.9
+    },
+    {
+     "x": 16.2,
+     "y": 15.9
+    },
+    {
+     "x": 16.2,
+     "y": 16.3
+    },
+    {
+     "x": 15.8,
+     "y": 16.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 29,
+   "page": null
+  },
+  {
+   "id": "E16",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 15.8,
+     "y": 19.9
+    },
+    {
+     "x": 16.2,
+     "y": 19.9
+    },
+    {
+     "x": 16.2,
+     "y": 20.3
+    },
+    {
+     "x": 15.8,
+     "y": 20.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 30,
+   "page": null
+  },
+  {
+   "id": "E17",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 15.8,
+     "y": 23.9
+    },
+    {
+     "x": 16.2,
+     "y": 23.9
+    },
+    {
+     "x": 16.2,
+     "y": 24.3
+    },
+    {
+     "x": 15.8,
+     "y": 24.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 31,
+   "page": null
+  },
+  {
+   "id": "E18",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 20.8,
+     "y": 11.9
+    },
+    {
+     "x": 21.2,
+     "y": 11.9
+    },
+    {
+     "x": 21.2,
+     "y": 12.3
+    },
+    {
+     "x": 20.8,
+     "y": 12.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 32,
+   "page": null
+  },
+  {
+   "id": "E19",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 20.8,
+     "y": 15.9
+    },
+    {
+     "x": 21.2,
+     "y": 15.9
+    },
+    {
+     "x": 21.2,
+     "y": 16.3
+    },
+    {
+     "x": 20.8,
+     "y": 16.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 33,
+   "page": null
+  },
+  {
+   "id": "E20",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 20.8,
+     "y": 19.9
+    },
+    {
+     "x": 21.2,
+     "y": 19.9
+    },
+    {
+     "x": 21.2,
+     "y": 20.3
+    },
+    {
+     "x": 20.8,
+     "y": 20.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 34,
+   "page": null
+  },
+  {
+   "id": "E21",
+   "ifc": "IfcColumn",
+   "category": "columns",
+   "discipline": "structural",
+   "layer": "S-COLS",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 20.8,
+     "y": 23.9
+    },
+    {
+     "x": 21.2,
+     "y": 23.9
+    },
+    {
+     "x": 21.2,
+     "y": 24.3
+    },
+    {
+     "x": 20.8,
+     "y": 24.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 3,
+    "volumeM3": 0.48
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 35,
+   "page": null
+  },
+  {
+   "id": "E22",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 1,
+     "y": 11.95
+    },
+    {
+     "x": 21,
+     "y": 11.95
+    },
+    {
+     "x": 21,
+     "y": 12.25
+    },
+    {
+     "x": 1,
+     "y": 12.25
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 6,
+    "heightM": 0.6,
+    "volumeM3": 3.6,
+    "lengthM": 20,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 36,
+   "page": null
+  },
+  {
+   "id": "E23",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 1,
+     "y": 15.95
+    },
+    {
+     "x": 21,
+     "y": 15.95
+    },
+    {
+     "x": 21,
+     "y": 16.25
+    },
+    {
+     "x": 1,
+     "y": 16.25
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 6,
+    "heightM": 0.6,
+    "volumeM3": 3.6,
+    "lengthM": 20,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 37,
+   "page": null
+  },
+  {
+   "id": "E24",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 1,
+     "y": 19.95
+    },
+    {
+     "x": 21,
+     "y": 19.95
+    },
+    {
+     "x": 21,
+     "y": 20.25
+    },
+    {
+     "x": 1,
+     "y": 20.25
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 6,
+    "heightM": 0.6,
+    "volumeM3": 3.6,
+    "lengthM": 20,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 38,
+   "page": null
+  },
+  {
+   "id": "E25",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 1,
+     "y": 23.95
+    },
+    {
+     "x": 21,
+     "y": 23.95
+    },
+    {
+     "x": 21,
+     "y": 24.25
+    },
+    {
+     "x": 1,
+     "y": 24.25
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 6,
+    "heightM": 0.6,
+    "volumeM3": 3.6,
+    "lengthM": 20,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 39,
+   "page": null
+  },
+  {
+   "id": "E26",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 1.15,
+     "y": 12.1
+    },
+    {
+     "x": 1.15,
+     "y": 24.1
+    },
+    {
+     "x": 0.85,
+     "y": 24.1
+    },
+    {
+     "x": 0.85,
+     "y": 12.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 3.6,
+    "heightM": 0.6,
+    "volumeM3": 2.16,
+    "lengthM": 12,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 40,
+   "page": null
+  },
+  {
+   "id": "E27",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 6.15,
+     "y": 12.1
+    },
+    {
+     "x": 6.15,
+     "y": 24.1
+    },
+    {
+     "x": 5.85,
+     "y": 24.1
+    },
+    {
+     "x": 5.85,
+     "y": 12.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 3.6,
+    "heightM": 0.6,
+    "volumeM3": 2.16,
+    "lengthM": 12,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 41,
+   "page": null
+  },
+  {
+   "id": "E28",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 11.15,
+     "y": 12.1
+    },
+    {
+     "x": 11.15,
+     "y": 24.1
+    },
+    {
+     "x": 10.85,
+     "y": 24.1
+    },
+    {
+     "x": 10.85,
+     "y": 12.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 3.6,
+    "heightM": 0.6,
+    "volumeM3": 2.16,
+    "lengthM": 12,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 42,
+   "page": null
+  },
+  {
+   "id": "E29",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 16.15,
+     "y": 12.1
+    },
+    {
+     "x": 16.15,
+     "y": 24.1
+    },
+    {
+     "x": 15.85,
+     "y": 24.1
+    },
+    {
+     "x": 15.85,
+     "y": 12.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 3.6,
+    "heightM": 0.6,
+    "volumeM3": 2.16,
+    "lengthM": 12,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 43,
+   "page": null
+  },
+  {
+   "id": "E30",
+   "ifc": "IfcBeam",
+   "category": "beams",
+   "discipline": "structural",
+   "layer": "S-BEAMS",
+   "shape": "prism",
+   "z0": 2.4,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 21.15,
+     "y": 12.1
+    },
+    {
+     "x": 21.15,
+     "y": 24.1
+    },
+    {
+     "x": 20.85,
+     "y": 24.1
+    },
+    {
+     "x": 20.85,
+     "y": 12.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 3.6,
+    "heightM": 0.6,
+    "volumeM3": 2.16,
+    "lengthM": 12,
+    "widthM": 0.3
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 44,
+   "page": null
+  },
+  {
+   "id": "E31",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 0,
+     "y": 11.1
+    },
+    {
+     "x": 2,
+     "y": 11.1
+    },
+    {
+     "x": 2,
+     "y": 13.1
+    },
+    {
+     "x": 0,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 45,
+   "page": null
+  },
+  {
+   "id": "E32",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 0,
+     "y": 15.1
+    },
+    {
+     "x": 2,
+     "y": 15.1
+    },
+    {
+     "x": 2,
+     "y": 17.1
+    },
+    {
+     "x": 0,
+     "y": 17.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 46,
+   "page": null
+  },
+  {
+   "id": "E33",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 0,
+     "y": 19.1
+    },
+    {
+     "x": 2,
+     "y": 19.1
+    },
+    {
+     "x": 2,
+     "y": 21.1
+    },
+    {
+     "x": 0,
+     "y": 21.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 47,
+   "page": null
+  },
+  {
+   "id": "E34",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 0,
+     "y": 23.1
+    },
+    {
+     "x": 2,
+     "y": 23.1
+    },
+    {
+     "x": 2,
+     "y": 25.1
+    },
+    {
+     "x": 0,
+     "y": 25.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 48,
+   "page": null
+  },
+  {
+   "id": "E35",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 5,
+     "y": 11.1
+    },
+    {
+     "x": 7,
+     "y": 11.1
+    },
+    {
+     "x": 7,
+     "y": 13.1
+    },
+    {
+     "x": 5,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 49,
+   "page": null
+  },
+  {
+   "id": "E36",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 5,
+     "y": 15.1
+    },
+    {
+     "x": 7,
+     "y": 15.1
+    },
+    {
+     "x": 7,
+     "y": 17.1
+    },
+    {
+     "x": 5,
+     "y": 17.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 50,
+   "page": null
+  },
+  {
+   "id": "E37",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 5,
+     "y": 19.1
+    },
+    {
+     "x": 7,
+     "y": 19.1
+    },
+    {
+     "x": 7,
+     "y": 21.1
+    },
+    {
+     "x": 5,
+     "y": 21.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 51,
+   "page": null
+  },
+  {
+   "id": "E38",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 5,
+     "y": 23.1
+    },
+    {
+     "x": 7,
+     "y": 23.1
+    },
+    {
+     "x": 7,
+     "y": 25.1
+    },
+    {
+     "x": 5,
+     "y": 25.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 52,
+   "page": null
+  },
+  {
+   "id": "E39",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 10,
+     "y": 11.1
+    },
+    {
+     "x": 12,
+     "y": 11.1
+    },
+    {
+     "x": 12,
+     "y": 13.1
+    },
+    {
+     "x": 10,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 53,
+   "page": null
+  },
+  {
+   "id": "E40",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 10,
+     "y": 15.1
+    },
+    {
+     "x": 12,
+     "y": 15.1
+    },
+    {
+     "x": 12,
+     "y": 17.1
+    },
+    {
+     "x": 10,
+     "y": 17.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 54,
+   "page": null
+  },
+  {
+   "id": "E41",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 10,
+     "y": 19.1
+    },
+    {
+     "x": 12,
+     "y": 19.1
+    },
+    {
+     "x": 12,
+     "y": 21.1
+    },
+    {
+     "x": 10,
+     "y": 21.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 55,
+   "page": null
+  },
+  {
+   "id": "E42",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 10,
+     "y": 23.1
+    },
+    {
+     "x": 12,
+     "y": 23.1
+    },
+    {
+     "x": 12,
+     "y": 25.1
+    },
+    {
+     "x": 10,
+     "y": 25.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 56,
+   "page": null
+  },
+  {
+   "id": "E43",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 15,
+     "y": 11.1
+    },
+    {
+     "x": 17,
+     "y": 11.1
+    },
+    {
+     "x": 17,
+     "y": 13.1
+    },
+    {
+     "x": 15,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 57,
+   "page": null
+  },
+  {
+   "id": "E44",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 15,
+     "y": 15.1
+    },
+    {
+     "x": 17,
+     "y": 15.1
+    },
+    {
+     "x": 17,
+     "y": 17.1
+    },
+    {
+     "x": 15,
+     "y": 17.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 58,
+   "page": null
+  },
+  {
+   "id": "E45",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 15,
+     "y": 19.1
+    },
+    {
+     "x": 17,
+     "y": 19.1
+    },
+    {
+     "x": 17,
+     "y": 21.1
+    },
+    {
+     "x": 15,
+     "y": 21.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 59,
+   "page": null
+  },
+  {
+   "id": "E46",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 15,
+     "y": 23.1
+    },
+    {
+     "x": 17,
+     "y": 23.1
+    },
+    {
+     "x": 17,
+     "y": 25.1
+    },
+    {
+     "x": 15,
+     "y": 25.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 60,
+   "page": null
+  },
+  {
+   "id": "E47",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 20,
+     "y": 11.1
+    },
+    {
+     "x": 22,
+     "y": 11.1
+    },
+    {
+     "x": 22,
+     "y": 13.1
+    },
+    {
+     "x": 20,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 61,
+   "page": null
+  },
+  {
+   "id": "E48",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 20,
+     "y": 15.1
+    },
+    {
+     "x": 22,
+     "y": 15.1
+    },
+    {
+     "x": 22,
+     "y": 17.1
+    },
+    {
+     "x": 20,
+     "y": 17.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 62,
+   "page": null
+  },
+  {
+   "id": "E49",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 20,
+     "y": 19.1
+    },
+    {
+     "x": 22,
+     "y": 19.1
+    },
+    {
+     "x": 22,
+     "y": 21.1
+    },
+    {
+     "x": 20,
+     "y": 21.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 63,
+   "page": null
+  },
+  {
+   "id": "E50",
+   "ifc": "IfcFooting",
+   "category": "foundations",
+   "discipline": "structural",
+   "layer": "S-FNDN",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.6,
+   "polygon": [
+    {
+     "x": 20,
+     "y": 23.1
+    },
+    {
+     "x": 22,
+     "y": 23.1
+    },
+    {
+     "x": 22,
+     "y": 25.1
+    },
+    {
+     "x": 20,
+     "y": 25.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 0.6,
+    "volumeM3": 2.4
+   },
+   "assumptions": [
+    "footprint taken from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 64,
+   "page": null
+  },
+  {
+   "id": "E51",
+   "ifc": "IfcSlab",
+   "category": "floors",
+   "discipline": "architectural",
+   "layer": "A-FLOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 1.1,
+     "y": 12.2
+    },
+    {
+     "x": 20.9,
+     "y": 12.2
+    },
+    {
+     "x": 20.9,
+     "y": 24
+    },
+    {
+     "x": 1.1,
+     "y": 24
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 233.64,
+    "heightM": 0.1,
+    "volumeM3": 23.364
+   },
+   "assumptions": [
+    "footprint taken from the drawing",
+    "floor thickness = 0.1 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 68,
+   "page": null
+  },
+  {
+   "id": "E52",
+   "ifc": "IfcCableSegment",
+   "category": "cables_conduits",
+   "discipline": "electrical",
+   "layer": "E-CABL",
+   "shape": "prism",
+   "z0": 2.8,
+   "height": 0.03,
+   "polygon": [
+    {
+     "x": 2.2,
+     "y": 23.235
+    },
+    {
+     "x": 10,
+     "y": 23.235
+    },
+    {
+     "x": 10,
+     "y": 23.265
+    },
+    {
+     "x": 2.2,
+     "y": 23.265
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.234,
+    "heightM": 0.03,
+    "volumeM3": 0.00702,
+    "lengthM": 7.8,
+    "widthM": 0.03
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "cable size = 0.03 m (default — not in plan)",
+    "cable elevation = 2.8 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 121,
+   "page": null
+  },
+  {
+   "id": "E53",
+   "ifc": "IfcCableSegment",
+   "category": "cables_conduits",
+   "discipline": "electrical",
+   "layer": "E-CABL",
+   "shape": "prism",
+   "z0": 2.8,
+   "height": 0.03,
+   "polygon": [
+    {
+     "x": 2.185,
+     "y": 23.25
+    },
+    {
+     "x": 2.185,
+     "y": 14.1
+    },
+    {
+     "x": 2.215,
+     "y": 14.1
+    },
+    {
+     "x": 2.215,
+     "y": 23.25
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2745,
+    "heightM": 0.03,
+    "volumeM3": 0.008235,
+    "lengthM": 9.15,
+    "widthM": 0.03
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "cable size = 0.03 m (default — not in plan)",
+    "cable elevation = 2.8 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 122,
+   "page": null
+  },
+  {
+   "id": "E54",
+   "ifc": "IfcCableSegment",
+   "category": "cables_conduits",
+   "discipline": "electrical",
+   "layer": "E-CABL",
+   "shape": "prism",
+   "z0": 2.8,
+   "height": 0.03,
+   "polygon": [
+    {
+     "x": 20.2,
+     "y": 12.865
+    },
+    {
+     "x": 13,
+     "y": 12.865
+    },
+    {
+     "x": 13,
+     "y": 12.835
+    },
+    {
+     "x": 20.2,
+     "y": 12.835
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.216,
+    "heightM": 0.03,
+    "volumeM3": 0.00648,
+    "lengthM": 7.2,
+    "widthM": 0.03
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "cable size = 0.03 m (default — not in plan)",
+    "cable elevation = 2.8 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 123,
+   "page": null
+  },
+  {
+   "id": "E55",
+   "ifc": "IfcDuctSegment",
+   "category": "ducts",
+   "discipline": "mechanical",
+   "layer": "M-DUCT",
+   "shape": "prism",
+   "z0": 2.5,
+   "height": 0.3,
+   "polygon": [
+    {
+     "x": 2,
+     "y": 22.3
+    },
+    {
+     "x": 20,
+     "y": 22.3
+    },
+    {
+     "x": 20,
+     "y": 22.9
+    },
+    {
+     "x": 2,
+     "y": 22.9
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 10.8,
+    "heightM": 0.3,
+    "volumeM3": 3.24,
+    "lengthM": 18,
+    "widthM": 0.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "duct elevation = 2.5 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 124,
+   "page": null
+  },
+  {
+   "id": "E56",
+   "ifc": "IfcDuctSegment",
+   "category": "ducts",
+   "discipline": "mechanical",
+   "layer": "M-DUCT",
+   "shape": "prism",
+   "z0": 2.5,
+   "height": 0.3,
+   "polygon": [
+    {
+     "x": 5.7,
+     "y": 22.6
+    },
+    {
+     "x": 5.7,
+     "y": 18.6
+    },
+    {
+     "x": 6.3,
+     "y": 18.6
+    },
+    {
+     "x": 6.3,
+     "y": 22.6
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 2.4,
+    "heightM": 0.3,
+    "volumeM3": 0.72,
+    "lengthM": 4,
+    "widthM": 0.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "duct elevation = 2.5 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 125,
+   "page": null
+  },
+  {
+   "id": "E57",
+   "ifc": "IfcDuctSegment",
+   "category": "ducts",
+   "discipline": "mechanical",
+   "layer": "M-DUCT",
+   "shape": "prism",
+   "z0": 2.5,
+   "height": 0.3,
+   "polygon": [
+    {
+     "x": 10.7,
+     "y": 22.6
+    },
+    {
+     "x": 10.7,
+     "y": 18.6
+    },
+    {
+     "x": 11.3,
+     "y": 18.6
+    },
+    {
+     "x": 11.3,
+     "y": 22.6
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 2.4,
+    "heightM": 0.3,
+    "volumeM3": 0.72,
+    "lengthM": 4,
+    "widthM": 0.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "duct elevation = 2.5 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 126,
+   "page": null
+  },
+  {
+   "id": "E58",
+   "ifc": "IfcDuctSegment",
+   "category": "ducts",
+   "discipline": "mechanical",
+   "layer": "M-DUCT",
+   "shape": "prism",
+   "z0": 2.5,
+   "height": 0.3,
+   "polygon": [
+    {
+     "x": 15.7,
+     "y": 22.6
+    },
+    {
+     "x": 15.7,
+     "y": 18.6
+    },
+    {
+     "x": 16.3,
+     "y": 18.6
+    },
+    {
+     "x": 16.3,
+     "y": 22.6
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 2.4,
+    "heightM": 0.3,
+    "volumeM3": 0.72,
+    "lengthM": 4,
+    "widthM": 0.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "duct elevation = 2.5 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 127,
+   "page": null
+  },
+  {
+   "id": "E59",
+   "ifc": "IfcPipeSegment",
+   "category": "water_supply",
+   "discipline": "plumbing",
+   "layer": "P-DOMW",
+   "shape": "prism",
+   "z0": 2.6,
+   "height": 0.05,
+   "polygon": [
+    {
+     "x": 1.5,
+     "y": 21.575
+    },
+    {
+     "x": 10.5,
+     "y": 21.575
+    },
+    {
+     "x": 10.5,
+     "y": 21.625
+    },
+    {
+     "x": 1.5,
+     "y": 21.625
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.45,
+    "heightM": 0.05,
+    "volumeM3": 0.0225,
+    "lengthM": 9,
+    "widthM": 0.05
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "pipe elevation = 2.6 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 133,
+   "page": null
+  },
+  {
+   "id": "E60",
+   "ifc": "IfcPipeSegment",
+   "category": "drainage",
+   "discipline": "plumbing",
+   "layer": "P-SANR",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.05,
+   "polygon": [
+    {
+     "x": 10.475,
+     "y": 21.6
+    },
+    {
+     "x": 10.475,
+     "y": 14.1
+    },
+    {
+     "x": 10.525,
+     "y": 14.1
+    },
+    {
+     "x": 10.525,
+     "y": 21.6
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.375,
+    "heightM": 0.05,
+    "volumeM3": 0.01875,
+    "lengthM": 7.5,
+    "widthM": 0.05
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "drain elevation = -0.6 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 134,
+   "page": null
+  },
+  {
+   "id": "E61",
+   "ifc": "IfcPipeSegment",
+   "category": "drainage",
+   "discipline": "plumbing",
+   "layer": "P-SANR",
+   "shape": "prism",
+   "z0": -0.6,
+   "height": 0.05,
+   "polygon": [
+    {
+     "x": 10.5,
+     "y": 14.075
+    },
+    {
+     "x": 19.5,
+     "y": 14.075
+    },
+    {
+     "x": 19.5,
+     "y": 14.125
+    },
+    {
+     "x": 10.5,
+     "y": 14.125
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.45,
+    "heightM": 0.05,
+    "volumeM3": 0.0225,
+    "lengthM": 9,
+    "widthM": 0.05
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "drain elevation = -0.6 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 135,
+   "page": null
+  },
+  {
+   "id": "E62",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 3.2,
+     "y": 13.8
+    },
+    {
+     "x": 3.8,
+     "y": 13.8
+    },
+    {
+     "x": 3.8,
+     "y": 14.4
+    },
+    {
+     "x": 3.2,
+     "y": 14.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 97,
+   "page": null
+  },
+  {
+   "id": "E63",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 3.2,
+     "y": 17.8
+    },
+    {
+     "x": 3.8,
+     "y": 17.8
+    },
+    {
+     "x": 3.8,
+     "y": 18.4
+    },
+    {
+     "x": 3.2,
+     "y": 18.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 98,
+   "page": null
+  },
+  {
+   "id": "E64",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 3.2,
+     "y": 21.8
+    },
+    {
+     "x": 3.8,
+     "y": 21.8
+    },
+    {
+     "x": 3.8,
+     "y": 22.4
+    },
+    {
+     "x": 3.2,
+     "y": 22.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 99,
+   "page": null
+  },
+  {
+   "id": "E65",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 8.2,
+     "y": 13.8
+    },
+    {
+     "x": 8.8,
+     "y": 13.8
+    },
+    {
+     "x": 8.8,
+     "y": 14.4
+    },
+    {
+     "x": 8.2,
+     "y": 14.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 100,
+   "page": null
+  },
+  {
+   "id": "E66",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 8.2,
+     "y": 17.8
+    },
+    {
+     "x": 8.8,
+     "y": 17.8
+    },
+    {
+     "x": 8.8,
+     "y": 18.4
+    },
+    {
+     "x": 8.2,
+     "y": 18.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 101,
+   "page": null
+  },
+  {
+   "id": "E67",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 8.2,
+     "y": 21.8
+    },
+    {
+     "x": 8.8,
+     "y": 21.8
+    },
+    {
+     "x": 8.8,
+     "y": 22.4
+    },
+    {
+     "x": 8.2,
+     "y": 22.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 102,
+   "page": null
+  },
+  {
+   "id": "E68",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 13.2,
+     "y": 13.8
+    },
+    {
+     "x": 13.8,
+     "y": 13.8
+    },
+    {
+     "x": 13.8,
+     "y": 14.4
+    },
+    {
+     "x": 13.2,
+     "y": 14.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 103,
+   "page": null
+  },
+  {
+   "id": "E69",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 13.2,
+     "y": 17.8
+    },
+    {
+     "x": 13.8,
+     "y": 17.8
+    },
+    {
+     "x": 13.8,
+     "y": 18.4
+    },
+    {
+     "x": 13.2,
+     "y": 18.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 104,
+   "page": null
+  },
+  {
+   "id": "E70",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 13.2,
+     "y": 21.8
+    },
+    {
+     "x": 13.8,
+     "y": 21.8
+    },
+    {
+     "x": 13.8,
+     "y": 22.4
+    },
+    {
+     "x": 13.2,
+     "y": 22.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 105,
+   "page": null
+  },
+  {
+   "id": "E71",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 18.2,
+     "y": 13.8
+    },
+    {
+     "x": 18.8,
+     "y": 13.8
+    },
+    {
+     "x": 18.8,
+     "y": 14.4
+    },
+    {
+     "x": 18.2,
+     "y": 14.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 106,
+   "page": null
+  },
+  {
+   "id": "E72",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 18.2,
+     "y": 17.8
+    },
+    {
+     "x": 18.8,
+     "y": 17.8
+    },
+    {
+     "x": 18.8,
+     "y": 18.4
+    },
+    {
+     "x": 18.2,
+     "y": 18.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 107,
+   "page": null
+  },
+  {
+   "id": "E73",
+   "ifc": "IfcLightFixture",
+   "category": "lighting",
+   "discipline": "electrical",
+   "layer": "E-LITE",
+   "shape": "prism",
+   "z0": 2.9,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 18.2,
+     "y": 21.8
+    },
+    {
+     "x": 18.8,
+     "y": 21.8
+    },
+    {
+     "x": 18.8,
+     "y": 22.4
+    },
+    {
+     "x": 18.2,
+     "y": 22.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.36,
+    "heightM": 0.1,
+    "volumeM3": 0.036
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 108,
+   "page": null
+  },
+  {
+   "id": "E74",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 2.075,
+     "y": 12.575
+    },
+    {
+     "x": 2.175,
+     "y": 12.575
+    },
+    {
+     "x": 2.175,
+     "y": 12.675
+    },
+    {
+     "x": 2.075,
+     "y": 12.675
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 109,
+   "page": null
+  },
+  {
+   "id": "E75",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 2.075,
+     "y": 16.775
+    },
+    {
+     "x": 2.175,
+     "y": 16.775
+    },
+    {
+     "x": 2.175,
+     "y": 16.875
+    },
+    {
+     "x": 2.075,
+     "y": 16.875
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 110,
+   "page": null
+  },
+  {
+   "id": "E76",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 2.075,
+     "y": 20.375
+    },
+    {
+     "x": 2.175,
+     "y": 20.375
+    },
+    {
+     "x": 2.175,
+     "y": 20.475
+    },
+    {
+     "x": 2.075,
+     "y": 20.475
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 111,
+   "page": null
+  },
+  {
+   "id": "E77",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 7.075,
+     "y": 12.575
+    },
+    {
+     "x": 7.175,
+     "y": 12.575
+    },
+    {
+     "x": 7.175,
+     "y": 12.675
+    },
+    {
+     "x": 7.075,
+     "y": 12.675
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 112,
+   "page": null
+  },
+  {
+   "id": "E78",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 12.075,
+     "y": 12.575
+    },
+    {
+     "x": 12.175,
+     "y": 12.575
+    },
+    {
+     "x": 12.175,
+     "y": 12.675
+    },
+    {
+     "x": 12.075,
+     "y": 12.675
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 113,
+   "page": null
+  },
+  {
+   "id": "E79",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 17.075,
+     "y": 12.575
+    },
+    {
+     "x": 17.175,
+     "y": 12.575
+    },
+    {
+     "x": 17.175,
+     "y": 12.675
+    },
+    {
+     "x": 17.075,
+     "y": 12.675
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 114,
+   "page": null
+  },
+  {
+   "id": "E80",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 7.075,
+     "y": 23.775
+    },
+    {
+     "x": 7.175,
+     "y": 23.775
+    },
+    {
+     "x": 7.175,
+     "y": 23.875
+    },
+    {
+     "x": 7.075,
+     "y": 23.875
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 115,
+   "page": null
+  },
+  {
+   "id": "E81",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 12.075,
+     "y": 23.775
+    },
+    {
+     "x": 12.175,
+     "y": 23.775
+    },
+    {
+     "x": 12.175,
+     "y": 23.875
+    },
+    {
+     "x": 12.075,
+     "y": 23.875
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 116,
+   "page": null
+  },
+  {
+   "id": "E82",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 17.075,
+     "y": 23.775
+    },
+    {
+     "x": 17.175,
+     "y": 23.775
+    },
+    {
+     "x": 17.175,
+     "y": 23.875
+    },
+    {
+     "x": 17.075,
+     "y": 23.875
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 117,
+   "page": null
+  },
+  {
+   "id": "E83",
+   "ifc": "IfcOutlet",
+   "category": "power_devices",
+   "discipline": "electrical",
+   "layer": "E-POWR",
+   "shape": "prism",
+   "z0": 0.3,
+   "height": 0.1,
+   "polygon": [
+    {
+     "x": 20.075,
+     "y": 16.775
+    },
+    {
+     "x": 20.175,
+     "y": 16.775
+    },
+    {
+     "x": 20.175,
+     "y": 16.875
+    },
+    {
+     "x": 20.075,
+     "y": 16.875
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.01,
+    "heightM": 0.1,
+    "volumeM3": 0.001
+   },
+   "assumptions": [
+    "schematic symbol → fixed device size 0.1 m (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 118,
+   "page": null
+  },
+  {
+   "id": "E84",
+   "ifc": "IfcElectricDistributionBoard",
+   "category": "panels",
+   "discipline": "electrical",
+   "layer": "E-PANL",
+   "shape": "prism",
+   "z0": 1,
+   "height": 0.8,
+   "polygon": [
+    {
+     "x": 1.6,
+     "y": 23.1
+    },
+    {
+     "x": 2.4,
+     "y": 23.1
+    },
+    {
+     "x": 2.4,
+     "y": 23.4
+    },
+    {
+     "x": 1.6,
+     "y": 23.4
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.24,
+    "heightM": 0.8,
+    "volumeM3": 0.192
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "mounting elevation = 1 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 119,
+   "page": null
+  },
+  {
+   "id": "E85",
+   "ifc": "IfcElectricDistributionBoard",
+   "category": "panels",
+   "discipline": "electrical",
+   "layer": "E-PANL",
+   "shape": "prism",
+   "z0": 1,
+   "height": 0.8,
+   "polygon": [
+    {
+     "x": 20,
+     "y": 12.7
+    },
+    {
+     "x": 20.8,
+     "y": 12.7
+    },
+    {
+     "x": 20.8,
+     "y": 13
+    },
+    {
+     "x": 20,
+     "y": 13
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.24,
+    "heightM": 0.8,
+    "volumeM3": 0.192
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "mounting elevation = 1 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 120,
+   "page": null
+  },
+  {
+   "id": "E86",
+   "ifc": "IfcAirTerminal",
+   "category": "diffusers",
+   "discipline": "mechanical",
+   "layer": "M-DIFF",
+   "shape": "prism",
+   "z0": 2.85,
+   "height": 0.15,
+   "polygon": [
+    {
+     "x": 3.25,
+     "y": 18.35
+    },
+    {
+     "x": 3.75,
+     "y": 18.35
+    },
+    {
+     "x": 3.75,
+     "y": 18.85
+    },
+    {
+     "x": 3.25,
+     "y": 18.85
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.25,
+    "heightM": 0.15,
+    "volumeM3": 0.0375
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 128,
+   "page": null
+  },
+  {
+   "id": "E87",
+   "ifc": "IfcAirTerminal",
+   "category": "diffusers",
+   "discipline": "mechanical",
+   "layer": "M-DIFF",
+   "shape": "prism",
+   "z0": 2.85,
+   "height": 0.15,
+   "polygon": [
+    {
+     "x": 8.25,
+     "y": 18.35
+    },
+    {
+     "x": 8.75,
+     "y": 18.35
+    },
+    {
+     "x": 8.75,
+     "y": 18.85
+    },
+    {
+     "x": 8.25,
+     "y": 18.85
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.25,
+    "heightM": 0.15,
+    "volumeM3": 0.0375
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 129,
+   "page": null
+  },
+  {
+   "id": "E88",
+   "ifc": "IfcAirTerminal",
+   "category": "diffusers",
+   "discipline": "mechanical",
+   "layer": "M-DIFF",
+   "shape": "prism",
+   "z0": 2.85,
+   "height": 0.15,
+   "polygon": [
+    {
+     "x": 13.25,
+     "y": 18.35
+    },
+    {
+     "x": 13.75,
+     "y": 18.35
+    },
+    {
+     "x": 13.75,
+     "y": 18.85
+    },
+    {
+     "x": 13.25,
+     "y": 18.85
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.25,
+    "heightM": 0.15,
+    "volumeM3": 0.0375
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 130,
+   "page": null
+  },
+  {
+   "id": "E89",
+   "ifc": "IfcAirTerminal",
+   "category": "diffusers",
+   "discipline": "mechanical",
+   "layer": "M-DIFF",
+   "shape": "prism",
+   "z0": 2.85,
+   "height": 0.15,
+   "polygon": [
+    {
+     "x": 18.25,
+     "y": 18.35
+    },
+    {
+     "x": 18.75,
+     "y": 18.35
+    },
+    {
+     "x": 18.75,
+     "y": 18.85
+    },
+    {
+     "x": 18.25,
+     "y": 18.85
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.25,
+    "heightM": 0.15,
+    "volumeM3": 0.0375
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "ceiling-mounted (default)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 131,
+   "page": null
+  },
+  {
+   "id": "E90",
+   "ifc": "IfcBuildingElementProxy",
+   "category": "equipment",
+   "discipline": "mechanical",
+   "layer": "M-EQPM",
+   "shape": "prism",
+   "z0": 0,
+   "height": 1,
+   "polygon": [
+    {
+     "x": 9,
+     "y": 22.1
+    },
+    {
+     "x": 10.2,
+     "y": 22.1
+    },
+    {
+     "x": 10.2,
+     "y": 23.1
+    },
+    {
+     "x": 9,
+     "y": 23.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 1.2,
+    "heightM": 1,
+    "volumeM3": 1.2
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent",
+    "equipment height = 1 m (default — not in plan)"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 132,
+   "page": null
+  },
+  {
+   "id": "E91",
+   "ifc": "IfcSanitaryTerminal",
+   "category": "sanitary_fixtures",
+   "discipline": "plumbing",
+   "layer": "P-FIXT",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.4,
+   "polygon": [
+    {
+     "x": 10.3,
+     "y": 19.9
+    },
+    {
+     "x": 10.7,
+     "y": 19.9
+    },
+    {
+     "x": 10.7,
+     "y": 20.3
+    },
+    {
+     "x": 10.3,
+     "y": 20.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 0.4,
+    "volumeM3": 0.064
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 136,
+   "page": null
+  },
+  {
+   "id": "E92",
+   "ifc": "IfcSanitaryTerminal",
+   "category": "sanitary_fixtures",
+   "discipline": "plumbing",
+   "layer": "P-FIXT",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.4,
+   "polygon": [
+    {
+     "x": 10.3,
+     "y": 15.9
+    },
+    {
+     "x": 10.7,
+     "y": 15.9
+    },
+    {
+     "x": 10.7,
+     "y": 16.3
+    },
+    {
+     "x": 10.3,
+     "y": 16.3
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.16,
+    "heightM": 0.4,
+    "volumeM3": 0.064
+   },
+   "assumptions": [
+    "footprint = drawn symbol extent"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 137,
+   "page": null
+  },
+  {
+   "id": "E93",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 12
+    },
+    {
+     "x": 2.2,
+     "y": 12
+    },
+    {
+     "x": 2.2,
+     "y": 12.2
+    },
+    {
+     "x": 0.9,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.24,
+    "heightM": 3,
+    "volumeM3": 0.72,
+    "lengthM": 1.2,
+    "widthM": 0.2,
+    "wallAreaM2": 3.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E94",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 2.2,
+     "y": 12
+    },
+    {
+     "x": 3.8,
+     "y": 12
+    },
+    {
+     "x": 3.8,
+     "y": 12.2
+    },
+    {
+     "x": 2.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E95",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 2.2,
+     "y": 12
+    },
+    {
+     "x": 3.8,
+     "y": 12
+    },
+    {
+     "x": 3.8,
+     "y": 12.2
+    },
+    {
+     "x": 2.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E96",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 3.8,
+     "y": 12
+    },
+    {
+     "x": 4,
+     "y": 12
+    },
+    {
+     "x": 4,
+     "y": 12.2
+    },
+    {
+     "x": 3.8,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.04,
+    "heightM": 3,
+    "volumeM3": 0.12,
+    "lengthM": 0.2,
+    "widthM": 0.2,
+    "wallAreaM2": 0.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E97",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 4,
+     "y": 12
+    },
+    {
+     "x": 5,
+     "y": 12
+    },
+    {
+     "x": 5,
+     "y": 12.2
+    },
+    {
+     "x": 4,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E98",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 5,
+     "y": 12
+    },
+    {
+     "x": 7.2,
+     "y": 12
+    },
+    {
+     "x": 7.2,
+     "y": 12.2
+    },
+    {
+     "x": 5,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.44,
+    "heightM": 3,
+    "volumeM3": 1.32,
+    "lengthM": 2.2,
+    "widthM": 0.2,
+    "wallAreaM2": 6.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E99",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 7.2,
+     "y": 12
+    },
+    {
+     "x": 8.8,
+     "y": 12
+    },
+    {
+     "x": 8.8,
+     "y": 12.2
+    },
+    {
+     "x": 7.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E100",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 7.2,
+     "y": 12
+    },
+    {
+     "x": 8.8,
+     "y": 12
+    },
+    {
+     "x": 8.8,
+     "y": 12.2
+    },
+    {
+     "x": 7.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E101",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 8.8,
+     "y": 12
+    },
+    {
+     "x": 10,
+     "y": 12
+    },
+    {
+     "x": 10,
+     "y": 12.2
+    },
+    {
+     "x": 8.8,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.24,
+    "heightM": 3,
+    "volumeM3": 0.72,
+    "lengthM": 1.2,
+    "widthM": 0.2,
+    "wallAreaM2": 3.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E102",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 10,
+     "y": 12
+    },
+    {
+     "x": 11,
+     "y": 12
+    },
+    {
+     "x": 11,
+     "y": 12.2
+    },
+    {
+     "x": 10,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E103",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 11,
+     "y": 12
+    },
+    {
+     "x": 12.2,
+     "y": 12
+    },
+    {
+     "x": 12.2,
+     "y": 12.2
+    },
+    {
+     "x": 11,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.24,
+    "heightM": 3,
+    "volumeM3": 0.72,
+    "lengthM": 1.2,
+    "widthM": 0.2,
+    "wallAreaM2": 3.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E104",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 12.2,
+     "y": 12
+    },
+    {
+     "x": 13.8,
+     "y": 12
+    },
+    {
+     "x": 13.8,
+     "y": 12.2
+    },
+    {
+     "x": 12.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E105",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 12.2,
+     "y": 12
+    },
+    {
+     "x": 13.8,
+     "y": 12
+    },
+    {
+     "x": 13.8,
+     "y": 12.2
+    },
+    {
+     "x": 12.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E106",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 13.8,
+     "y": 12
+    },
+    {
+     "x": 16,
+     "y": 12
+    },
+    {
+     "x": 16,
+     "y": 12.2
+    },
+    {
+     "x": 13.8,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.44,
+    "heightM": 3,
+    "volumeM3": 1.32,
+    "lengthM": 2.2,
+    "widthM": 0.2,
+    "wallAreaM2": 6.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E107",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 16,
+     "y": 12
+    },
+    {
+     "x": 17,
+     "y": 12
+    },
+    {
+     "x": 17,
+     "y": 12.2
+    },
+    {
+     "x": 16,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E108",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 17,
+     "y": 12
+    },
+    {
+     "x": 17.2,
+     "y": 12
+    },
+    {
+     "x": 17.2,
+     "y": 12.2
+    },
+    {
+     "x": 17,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.04,
+    "heightM": 3,
+    "volumeM3": 0.12,
+    "lengthM": 0.2,
+    "widthM": 0.2,
+    "wallAreaM2": 0.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E109",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 17.2,
+     "y": 12
+    },
+    {
+     "x": 18.8,
+     "y": 12
+    },
+    {
+     "x": 18.8,
+     "y": 12.2
+    },
+    {
+     "x": 17.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E110",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 17.2,
+     "y": 12
+    },
+    {
+     "x": 18.8,
+     "y": 12
+    },
+    {
+     "x": 18.8,
+     "y": 12.2
+    },
+    {
+     "x": 17.2,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E111",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 18.8,
+     "y": 12
+    },
+    {
+     "x": 21.1,
+     "y": 12
+    },
+    {
+     "x": 21.1,
+     "y": 12.2
+    },
+    {
+     "x": 18.8,
+     "y": 12.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.44,
+    "heightM": 3,
+    "volumeM3": 1.32,
+    "lengthM": 2.2,
+    "widthM": 0.2,
+    "wallAreaM2": 6.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 7 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E112",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 12
+    },
+    {
+     "x": 21.1,
+     "y": 13.1
+    },
+    {
+     "x": 20.9,
+     "y": 13.1
+    },
+    {
+     "x": 20.9,
+     "y": 12
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 3,
+    "volumeM3": 0.6,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 3
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E113",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 13.1
+    },
+    {
+     "x": 21.1,
+     "y": 14.7
+    },
+    {
+     "x": 20.9,
+     "y": 14.7
+    },
+    {
+     "x": 20.9,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E114",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 13.1
+    },
+    {
+     "x": 21.1,
+     "y": 14.7
+    },
+    {
+     "x": 20.9,
+     "y": 14.7
+    },
+    {
+     "x": 20.9,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E115",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 14.7
+    },
+    {
+     "x": 21.1,
+     "y": 18.1
+    },
+    {
+     "x": 20.9,
+     "y": 18.1
+    },
+    {
+     "x": 20.9,
+     "y": 14.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.68,
+    "heightM": 3,
+    "volumeM3": 2.04,
+    "lengthM": 3.4,
+    "widthM": 0.2,
+    "wallAreaM2": 10.2
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E116",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 18.1
+    },
+    {
+     "x": 21.1,
+     "y": 19.7
+    },
+    {
+     "x": 20.9,
+     "y": 19.7
+    },
+    {
+     "x": 20.9,
+     "y": 18.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E117",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 18.1
+    },
+    {
+     "x": 21.1,
+     "y": 19.7
+    },
+    {
+     "x": 20.9,
+     "y": 19.7
+    },
+    {
+     "x": 20.9,
+     "y": 18.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E118",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 19.7
+    },
+    {
+     "x": 21.1,
+     "y": 24.2
+    },
+    {
+     "x": 20.9,
+     "y": 24.2
+    },
+    {
+     "x": 20.9,
+     "y": 19.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.88,
+    "heightM": 3,
+    "volumeM3": 2.64,
+    "lengthM": 4.4,
+    "widthM": 0.2,
+    "wallAreaM2": 13.2
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E119",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 21.1,
+     "y": 0.2
+    },
+    {
+     "x": 19,
+     "y": 0.2
+    },
+    {
+     "x": 19,
+     "y": 0
+    },
+    {
+     "x": 21.1,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.4,
+    "heightM": 3,
+    "volumeM3": 1.2,
+    "lengthM": 2,
+    "widthM": 0.2,
+    "wallAreaM2": 6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E120",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 19,
+     "y": 0.2
+    },
+    {
+     "x": 18,
+     "y": 0.2
+    },
+    {
+     "x": 18,
+     "y": 0
+    },
+    {
+     "x": 19,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E121",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 18,
+     "y": 0.2
+    },
+    {
+     "x": 14,
+     "y": 0.2
+    },
+    {
+     "x": 14,
+     "y": 0
+    },
+    {
+     "x": 18,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.8,
+    "heightM": 3,
+    "volumeM3": 2.4,
+    "lengthM": 4,
+    "widthM": 0.2,
+    "wallAreaM2": 12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E122",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 14,
+     "y": 0.2
+    },
+    {
+     "x": 13,
+     "y": 0.2
+    },
+    {
+     "x": 13,
+     "y": 0
+    },
+    {
+     "x": 14,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E123",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 13,
+     "y": 0.2
+    },
+    {
+     "x": 8.8,
+     "y": 0.2
+    },
+    {
+     "x": 8.8,
+     "y": 0
+    },
+    {
+     "x": 13,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.84,
+    "heightM": 3,
+    "volumeM3": 2.52,
+    "lengthM": 4.2,
+    "widthM": 0.2,
+    "wallAreaM2": 12.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E124",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 8.8,
+     "y": 0.2
+    },
+    {
+     "x": 7.2,
+     "y": 0.2
+    },
+    {
+     "x": 7.2,
+     "y": 0
+    },
+    {
+     "x": 8.8,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E125",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 8.8,
+     "y": 0.2
+    },
+    {
+     "x": 7.2,
+     "y": 0.2
+    },
+    {
+     "x": 7.2,
+     "y": 0
+    },
+    {
+     "x": 8.8,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E126",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 7.2,
+     "y": 0.2
+    },
+    {
+     "x": 7,
+     "y": 0.2
+    },
+    {
+     "x": 7,
+     "y": 0
+    },
+    {
+     "x": 7.2,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.04,
+    "heightM": 3,
+    "volumeM3": 0.12,
+    "lengthM": 0.2,
+    "widthM": 0.2,
+    "wallAreaM2": 0.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E127",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 7,
+     "y": 0.2
+    },
+    {
+     "x": 6,
+     "y": 0.2
+    },
+    {
+     "x": 6,
+     "y": 0
+    },
+    {
+     "x": 7,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E128",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 6,
+     "y": 0.2
+    },
+    {
+     "x": 3.8,
+     "y": 0.2
+    },
+    {
+     "x": 3.8,
+     "y": 0
+    },
+    {
+     "x": 6,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.44,
+    "heightM": 3,
+    "volumeM3": 1.32,
+    "lengthM": 2.2,
+    "widthM": 0.2,
+    "wallAreaM2": 6.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E129",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 3.8,
+     "y": 0.2
+    },
+    {
+     "x": 2.2,
+     "y": 0.2
+    },
+    {
+     "x": 2.2,
+     "y": 0
+    },
+    {
+     "x": 3.8,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E130",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 3.8,
+     "y": 0.2
+    },
+    {
+     "x": 2.2,
+     "y": 0.2
+    },
+    {
+     "x": 2.2,
+     "y": 0
+    },
+    {
+     "x": 3.8,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E131",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 2.2,
+     "y": 0.2
+    },
+    {
+     "x": 0.9,
+     "y": 0.2
+    },
+    {
+     "x": 0.9,
+     "y": 0
+    },
+    {
+     "x": 2.2,
+     "y": 0
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.24,
+    "heightM": 3,
+    "volumeM3": 0.72,
+    "lengthM": 1.2,
+    "widthM": 0.2,
+    "wallAreaM2": 3.6
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 5 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E132",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 24.2
+    },
+    {
+     "x": 0.9,
+     "y": 19.7
+    },
+    {
+     "x": 1.1,
+     "y": 19.7
+    },
+    {
+     "x": 1.1,
+     "y": 24.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.88,
+    "heightM": 3,
+    "volumeM3": 2.64,
+    "lengthM": 4.4,
+    "widthM": 0.2,
+    "wallAreaM2": 13.2
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E133",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 19.7
+    },
+    {
+     "x": 0.9,
+     "y": 18.1
+    },
+    {
+     "x": 1.1,
+     "y": 18.1
+    },
+    {
+     "x": 1.1,
+     "y": 19.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E134",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 19.7
+    },
+    {
+     "x": 0.9,
+     "y": 18.1
+    },
+    {
+     "x": 1.1,
+     "y": 18.1
+    },
+    {
+     "x": 1.1,
+     "y": 19.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E135",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 18.1
+    },
+    {
+     "x": 0.9,
+     "y": 14.7
+    },
+    {
+     "x": 1.1,
+     "y": 14.7
+    },
+    {
+     "x": 1.1,
+     "y": 18.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.68,
+    "heightM": 3,
+    "volumeM3": 2.04,
+    "lengthM": 3.4,
+    "widthM": 0.2,
+    "wallAreaM2": 10.2
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E136",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 14.7
+    },
+    {
+     "x": 0.9,
+     "y": 13.1
+    },
+    {
+     "x": 1.1,
+     "y": 13.1
+    },
+    {
+     "x": 1.1,
+     "y": 14.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.9,
+    "volumeM3": 0.288,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.44
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E137",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.3,
+   "height": 0.7,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 14.7
+    },
+    {
+     "x": 0.9,
+     "y": 13.1
+    },
+    {
+     "x": 1.1,
+     "y": 13.1
+    },
+    {
+     "x": 1.1,
+     "y": 14.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.32,
+    "heightM": 0.7,
+    "volumeM3": 0.224,
+    "lengthM": 1.6,
+    "widthM": 0.2,
+    "wallAreaM2": 1.12
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E138",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 0.9,
+     "y": 13.1
+    },
+    {
+     "x": 0.9,
+     "y": 12
+    },
+    {
+     "x": 1.1,
+     "y": 12
+    },
+    {
+     "x": 1.1,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 3,
+    "volumeM3": 0.6,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 3
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 65,
+   "page": null
+  },
+  {
+   "id": "E139",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 11.1,
+     "y": 12.1
+    },
+    {
+     "x": 11.1,
+     "y": 18.1
+    },
+    {
+     "x": 10.9,
+     "y": 18.1
+    },
+    {
+     "x": 10.9,
+     "y": 12.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 1.2,
+    "heightM": 3,
+    "volumeM3": 3.6,
+    "lengthM": 6,
+    "widthM": 0.2,
+    "wallAreaM2": 18
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 66,
+   "page": null
+  },
+  {
+   "id": "E140",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 11.1,
+     "y": 18.1
+    },
+    {
+     "x": 11.1,
+     "y": 19.1
+    },
+    {
+     "x": 10.9,
+     "y": 19.1
+    },
+    {
+     "x": 10.9,
+     "y": 18.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 66,
+   "page": null
+  },
+  {
+   "id": "E141",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 11.1,
+     "y": 19.1
+    },
+    {
+     "x": 11.1,
+     "y": 21.6
+    },
+    {
+     "x": 10.9,
+     "y": 21.6
+    },
+    {
+     "x": 10.9,
+     "y": 19.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.5,
+    "heightM": 3,
+    "volumeM3": 1.5,
+    "lengthM": 2.5,
+    "widthM": 0.2,
+    "wallAreaM2": 7.5
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 66,
+   "page": null
+  },
+  {
+   "id": "E142",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 2.1,
+   "height": 0.9,
+   "polygon": [
+    {
+     "x": 11.1,
+     "y": 21.6
+    },
+    {
+     "x": 11.1,
+     "y": 22.6
+    },
+    {
+     "x": 10.9,
+     "y": 22.6
+    },
+    {
+     "x": 10.9,
+     "y": 21.6
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.2,
+    "heightM": 0.9,
+    "volumeM3": 0.18,
+    "lengthM": 1,
+    "widthM": 0.2,
+    "wallAreaM2": 0.9
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 66,
+   "page": null
+  },
+  {
+   "id": "E143",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 11.1,
+     "y": 22.6
+    },
+    {
+     "x": 11.1,
+     "y": 24.1
+    },
+    {
+     "x": 10.9,
+     "y": 24.1
+    },
+    {
+     "x": 10.9,
+     "y": 22.6
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.3,
+    "heightM": 3,
+    "volumeM3": 0.9,
+    "lengthM": 1.5,
+    "widthM": 0.2,
+    "wallAreaM2": 4.5
+   },
+   "assumptions": [
+    "centre-line from the drawing",
+    "split around 2 opening(s) — net quantities"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 66,
+   "page": null
+  },
+  {
+   "id": "E144",
+   "ifc": "IfcWall",
+   "category": "walls",
+   "discipline": "architectural",
+   "layer": "A-WALL",
+   "shape": "prism",
+   "z0": 0,
+   "height": 3,
+   "polygon": [
+    {
+     "x": 1,
+     "y": 20
+    },
+    {
+     "x": 21,
+     "y": 20
+    },
+    {
+     "x": 21,
+     "y": 20.2
+    },
+    {
+     "x": 1,
+     "y": 20.2
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 4,
+    "heightM": 3,
+    "volumeM3": 12,
+    "lengthM": 20,
+    "widthM": 0.2,
+    "wallAreaM2": 60
+   },
+   "assumptions": [
+    "centre-line from the drawing"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 67,
+   "page": null
+  },
+  {
+   "id": "E145",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 4,
+     "y": 12.07
+    },
+    {
+     "x": 5,
+     "y": 12.07
+    },
+    {
+     "x": 5,
+     "y": 12.13
+    },
+    {
+     "x": 4,
+     "y": 12.13
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 69,
+   "page": null
+  },
+  {
+   "id": "E146",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 10,
+     "y": 12.07
+    },
+    {
+     "x": 11,
+     "y": 12.07
+    },
+    {
+     "x": 11,
+     "y": 12.13
+    },
+    {
+     "x": 10,
+     "y": 12.13
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 71,
+   "page": null
+  },
+  {
+   "id": "E147",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 16,
+     "y": 12.07
+    },
+    {
+     "x": 17,
+     "y": 12.07
+    },
+    {
+     "x": 17,
+     "y": 12.13
+    },
+    {
+     "x": 16,
+     "y": 12.13
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 73,
+   "page": null
+  },
+  {
+   "id": "E148",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 11.03,
+     "y": 18.1
+    },
+    {
+     "x": 11.03,
+     "y": 19.1
+    },
+    {
+     "x": 10.97,
+     "y": 19.1
+    },
+    {
+     "x": 10.97,
+     "y": 18.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 75,
+   "page": null
+  },
+  {
+   "id": "E149",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 11.03,
+     "y": 21.6
+    },
+    {
+     "x": 11.03,
+     "y": 22.6
+    },
+    {
+     "x": 10.97,
+     "y": 22.6
+    },
+    {
+     "x": 10.97,
+     "y": 21.6
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 77,
+   "page": null
+  },
+  {
+   "id": "E150",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 7,
+     "y": 24.13
+    },
+    {
+     "x": 6,
+     "y": 24.13
+    },
+    {
+     "x": 6,
+     "y": 24.07
+    },
+    {
+     "x": 7,
+     "y": 24.07
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 79,
+   "page": null
+  },
+  {
+   "id": "E151",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 14,
+     "y": 24.13
+    },
+    {
+     "x": 13,
+     "y": 24.13
+    },
+    {
+     "x": 13,
+     "y": 24.07
+    },
+    {
+     "x": 14,
+     "y": 24.07
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 81,
+   "page": null
+  },
+  {
+   "id": "E152",
+   "ifc": "IfcDoor",
+   "category": "doors",
+   "discipline": "architectural",
+   "layer": "A-DOOR",
+   "shape": "prism",
+   "z0": 0,
+   "height": 2.1,
+   "polygon": [
+    {
+     "x": 19,
+     "y": 24.13
+    },
+    {
+     "x": 18,
+     "y": 24.13
+    },
+    {
+     "x": 18,
+     "y": 24.07
+    },
+    {
+     "x": 19,
+     "y": 24.07
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.06,
+    "heightM": 2.1,
+    "volumeM3": 0.126,
+    "openingWidthM": 1,
+    "openingAreaM2": 2.1
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 83,
+   "page": null
+  },
+  {
+   "id": "E153",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 2.2,
+     "y": 12.075
+    },
+    {
+     "x": 3.8,
+     "y": 12.075
+    },
+    {
+     "x": 3.8,
+     "y": 12.125
+    },
+    {
+     "x": 2.2,
+     "y": 12.125
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 85,
+   "page": null
+  },
+  {
+   "id": "E154",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 3.8,
+     "y": 24.125
+    },
+    {
+     "x": 2.2,
+     "y": 24.125
+    },
+    {
+     "x": 2.2,
+     "y": 24.075
+    },
+    {
+     "x": 3.8,
+     "y": 24.075
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 86,
+   "page": null
+  },
+  {
+   "id": "E155",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 7.2,
+     "y": 12.075
+    },
+    {
+     "x": 8.8,
+     "y": 12.075
+    },
+    {
+     "x": 8.8,
+     "y": 12.125
+    },
+    {
+     "x": 7.2,
+     "y": 12.125
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 87,
+   "page": null
+  },
+  {
+   "id": "E156",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 8.8,
+     "y": 24.125
+    },
+    {
+     "x": 7.2,
+     "y": 24.125
+    },
+    {
+     "x": 7.2,
+     "y": 24.075
+    },
+    {
+     "x": 8.8,
+     "y": 24.075
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 88,
+   "page": null
+  },
+  {
+   "id": "E157",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 12.2,
+     "y": 12.075
+    },
+    {
+     "x": 13.8,
+     "y": 12.075
+    },
+    {
+     "x": 13.8,
+     "y": 12.125
+    },
+    {
+     "x": 12.2,
+     "y": 12.125
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 89,
+   "page": null
+  },
+  {
+   "id": "E158",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 13.8,
+     "y": 24.125
+    },
+    {
+     "x": 12.2,
+     "y": 24.125
+    },
+    {
+     "x": 12.2,
+     "y": 24.075
+    },
+    {
+     "x": 13.8,
+     "y": 24.075
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 90,
+   "page": null
+  },
+  {
+   "id": "E159",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 17.2,
+     "y": 12.075
+    },
+    {
+     "x": 18.8,
+     "y": 12.075
+    },
+    {
+     "x": 18.8,
+     "y": 12.125
+    },
+    {
+     "x": 17.2,
+     "y": 12.125
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 91,
+   "page": null
+  },
+  {
+   "id": "E160",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 18.8,
+     "y": 24.125
+    },
+    {
+     "x": 17.2,
+     "y": 24.125
+    },
+    {
+     "x": 17.2,
+     "y": 24.075
+    },
+    {
+     "x": 18.8,
+     "y": 24.075
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 92,
+   "page": null
+  },
+  {
+   "id": "E161",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 0.975,
+     "y": 14.7
+    },
+    {
+     "x": 0.975,
+     "y": 13.1
+    },
+    {
+     "x": 1.025,
+     "y": 13.1
+    },
+    {
+     "x": 1.025,
+     "y": 14.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 93,
+   "page": null
+  },
+  {
+   "id": "E162",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 21.025,
+     "y": 13.1
+    },
+    {
+     "x": 21.025,
+     "y": 14.7
+    },
+    {
+     "x": 20.975,
+     "y": 14.7
+    },
+    {
+     "x": 20.975,
+     "y": 13.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 94,
+   "page": null
+  },
+  {
+   "id": "E163",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 0.975,
+     "y": 19.7
+    },
+    {
+     "x": 0.975,
+     "y": 18.1
+    },
+    {
+     "x": 1.025,
+     "y": 18.1
+    },
+    {
+     "x": 1.025,
+     "y": 19.7
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 95,
+   "page": null
+  },
+  {
+   "id": "E164",
+   "ifc": "IfcWindow",
+   "category": "glazing",
+   "discipline": "architectural",
+   "layer": "A-GLAZ",
+   "shape": "prism",
+   "z0": 0.9,
+   "height": 1.4,
+   "polygon": [
+    {
+     "x": 21.025,
+     "y": 18.1
+    },
+    {
+     "x": 21.025,
+     "y": 19.7
+    },
+    {
+     "x": 20.975,
+     "y": 19.7
+    },
+    {
+     "x": 20.975,
+     "y": 18.1
+    }
+   ],
+   "quantities": {
+    "footprintAreaM2": 0.08,
+    "heightM": 1.4,
+    "volumeM3": 0.112,
+    "openingWidthM": 1.6,
+    "openingAreaM2": 2.24
+   },
+   "assumptions": [
+    "width from drawing",
+    "cut into host wall"
+   ],
+   "reviewStatus": "needs_review",
+   "sourceIndex": 96,
+   "page": null
+  }
+ ],
+ "byCategory": [
+  {
+   "category": "slabs",
+   "discipline": "structural",
+   "ifc": "IfcSlab",
+   "kind": "slab",
+   "label": {
+    "ar": "بلاطات",
+    "en": "Slabs"
+   },
+   "count": 1,
+   "lengthM": 0,
+   "footprintAreaM2": 240,
+   "wallAreaM2": 0,
+   "volumeM3": 48,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "columns",
+   "discipline": "structural",
+   "ifc": "IfcColumn",
+   "kind": "column",
+   "label": {
+    "ar": "أعمدة",
+    "en": "Columns"
+   },
+   "count": 20,
+   "lengthM": 0,
+   "footprintAreaM2": 3.2,
+   "wallAreaM2": 0,
+   "volumeM3": 9.6,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "beams",
+   "discipline": "structural",
+   "ifc": "IfcBeam",
+   "kind": "beam",
+   "label": {
+    "ar": "جسور",
+    "en": "Beams"
+   },
+   "count": 9,
+   "lengthM": 140,
+   "footprintAreaM2": 42,
+   "wallAreaM2": 0,
+   "volumeM3": 25.2,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "foundations",
+   "discipline": "structural",
+   "ifc": "IfcFooting",
+   "kind": "footing",
+   "label": {
+    "ar": "أساسات",
+    "en": "Foundations"
+   },
+   "count": 20,
+   "lengthM": 0,
+   "footprintAreaM2": 80,
+   "wallAreaM2": 0,
+   "volumeM3": 48,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "floors",
+   "discipline": "architectural",
+   "ifc": "IfcSlab",
+   "kind": "floor",
+   "label": {
+    "ar": "أرضيات",
+    "en": "Floors"
+   },
+   "count": 1,
+   "lengthM": 0,
+   "footprintAreaM2": 233.64,
+   "wallAreaM2": 0,
+   "volumeM3": 23.364,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "cables_conduits",
+   "discipline": "electrical",
+   "ifc": "IfcCableSegment",
+   "kind": "cable",
+   "label": {
+    "ar": "كابلات / مواسير كهرباء",
+    "en": "Cables / conduits"
+   },
+   "count": 3,
+   "lengthM": 24.15,
+   "footprintAreaM2": 0.7245,
+   "wallAreaM2": 0,
+   "volumeM3": 0.021735,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "ducts",
+   "discipline": "mechanical",
+   "ifc": "IfcDuctSegment",
+   "kind": "duct",
+   "label": {
+    "ar": "دكتات",
+    "en": "Ducts"
+   },
+   "count": 4,
+   "lengthM": 30,
+   "footprintAreaM2": 18,
+   "wallAreaM2": 0,
+   "volumeM3": 5.4,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "water_supply",
+   "discipline": "plumbing",
+   "ifc": "IfcPipeSegment",
+   "kind": "pipe",
+   "label": {
+    "ar": "تغذية مياه",
+    "en": "Water supply"
+   },
+   "count": 1,
+   "lengthM": 9,
+   "footprintAreaM2": 0.45,
+   "wallAreaM2": 0,
+   "volumeM3": 0.0225,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "drainage",
+   "discipline": "plumbing",
+   "ifc": "IfcPipeSegment",
+   "kind": "drain",
+   "label": {
+    "ar": "صرف",
+    "en": "Drainage"
+   },
+   "count": 2,
+   "lengthM": 16.5,
+   "footprintAreaM2": 0.825,
+   "wallAreaM2": 0,
+   "volumeM3": 0.04125,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "lighting",
+   "discipline": "electrical",
+   "ifc": "IfcLightFixture",
+   "kind": "device",
+   "label": {
+    "ar": "وحدات إنارة",
+    "en": "Light fixtures"
+   },
+   "count": 12,
+   "lengthM": 0,
+   "footprintAreaM2": 4.32,
+   "wallAreaM2": 0,
+   "volumeM3": 0.432,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "power_devices",
+   "discipline": "electrical",
+   "ifc": "IfcOutlet",
+   "kind": "device",
+   "label": {
+    "ar": "أفياش / مخارج كهرباء",
+    "en": "Outlets"
+   },
+   "count": 10,
+   "lengthM": 0,
+   "footprintAreaM2": 0.1,
+   "wallAreaM2": 0,
+   "volumeM3": 0.01,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "panels",
+   "discipline": "electrical",
+   "ifc": "IfcElectricDistributionBoard",
+   "kind": "device",
+   "label": {
+    "ar": "لوحات كهرباء",
+    "en": "Panels"
+   },
+   "count": 2,
+   "lengthM": 0,
+   "footprintAreaM2": 0.48,
+   "wallAreaM2": 0,
+   "volumeM3": 0.384,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "diffusers",
+   "discipline": "mechanical",
+   "ifc": "IfcAirTerminal",
+   "kind": "device",
+   "label": {
+    "ar": "فتحات تكييف",
+    "en": "Air terminals"
+   },
+   "count": 4,
+   "lengthM": 0,
+   "footprintAreaM2": 1,
+   "wallAreaM2": 0,
+   "volumeM3": 0.15,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "equipment",
+   "discipline": "mechanical",
+   "ifc": "IfcBuildingElementProxy",
+   "kind": "device",
+   "label": {
+    "ar": "معدات",
+    "en": "Equipment"
+   },
+   "count": 1,
+   "lengthM": 0,
+   "footprintAreaM2": 1.2,
+   "wallAreaM2": 0,
+   "volumeM3": 1.2,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "sanitary_fixtures",
+   "discipline": "plumbing",
+   "ifc": "IfcSanitaryTerminal",
+   "kind": "device",
+   "label": {
+    "ar": "أدوات صحية",
+    "en": "Sanitary fixtures"
+   },
+   "count": 2,
+   "lengthM": 0,
+   "footprintAreaM2": 0.32,
+   "wallAreaM2": 0,
+   "volumeM3": 0.128,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "walls",
+   "discipline": "architectural",
+   "ifc": "IfcWall",
+   "kind": "wall",
+   "label": {
+    "ar": "جدران",
+    "en": "Walls"
+   },
+   "count": 52,
+   "lengthM": 72,
+   "footprintAreaM2": 22.4,
+   "wallAreaM2": 248.8,
+   "volumeM3": 49.76,
+   "openingAreaM2": 0
+  },
+  {
+   "category": "doors",
+   "discipline": "architectural",
+   "ifc": "IfcDoor",
+   "kind": "door",
+   "label": {
+    "ar": "أبواب",
+    "en": "Doors"
+   },
+   "count": 8,
+   "lengthM": 0,
+   "footprintAreaM2": 0.48,
+   "wallAreaM2": 0,
+   "volumeM3": 1.008,
+   "openingAreaM2": 16.8
+  },
+  {
+   "category": "glazing",
+   "discipline": "architectural",
+   "ifc": "IfcWindow",
+   "kind": "window",
+   "label": {
+    "ar": "شبابيك",
+    "en": "Windows"
+   },
+   "count": 12,
+   "lengthM": 0,
+   "footprintAreaM2": 0.96,
+   "wallAreaM2": 0,
+   "volumeM3": 1.344,
+   "openingAreaM2": 26.88
+  }
+ ],
+ "skipped": [
+  {
+   "category": "annotation_or_pattern",
+   "count": 9,
+   "reason": "annotation / hatch — excluded"
+  },
+  {
+   "category": "slabs",
+   "count": 5,
+   "reason": "open linework — not a closed footprint (close the polyline in CAD / PDF)"
+  },
+  {
+   "category": "openings",
+   "count": 2,
+   "reason": "overlapping openings on one wall — second one not cut"
+  }
+ ],
+ "duplicatesRemoved": 0,
+ "wallsMerged": 0,
+ "openings": {
+  "hosted": 20,
+  "inGap": 0,
+  "unhosted": 0
+ },
+ "limitations": [
+  "Plan geometry only: heights, thicknesses and elevations are parameters; elements built from defaults are flagged in `assumptions`.",
+  "Wall / beam / duct / pipe lines are treated as centre-lines with a rectangular section; double-line walls will be doubled — draw or map one centre-line per wall.",
+  "Doors / windows are placed from the drawn symbols and cut into the nearest wall; swing, frames, hardware, reinforcement, MEP fittings and multiple storeys are not generated. Devices are positioned in plan only — mounting heights are parameters.",
+  "Polygons with holes are not supported; large concave footprints (>250 vertices) use an approximate cap triangulation in the GLB (IFC stays exact).",
+  "Every element is needs_review — an engineer must verify before contractual use."
+ ],
+ "approximateCaps": 0,
+ "project": "building-rev-a"
+}
