@@ -45,3 +45,27 @@ test('creates page-level engineering candidates while refusing unverified quanti
  assert.equal(result.elements[0].measurementEligible,false);
  assert.ok(result.limitations.some(item=>item.includes('No quantity')));
 });
+
+test('inherits a drawing-wide millimetre note for unqualified dimension triplets without authorizing takeoff',()=>{
+ const lines=[
+  {page:1,text:'ALL DIMENSIONS ARE IN MM UNLESS OTHERWISE NOTED',confidence:98,box:{left:100,top:100,width:500,height:24},coordinateSpace:'aligned_svg_page_normalized_2000px'},
+  {page:1,text:'5500 x 3500 x 300',confidence:94,box:{left:800,top:600,width:220,height:26},coordinateSpace:'aligned_svg_page_normalized_2000px'}
+ ];
+ const result=analyzeSpatialPageEvidence(lines,{pageBounds:{width:2000,height:2000}});
+ assert.equal(result.drawingLengthUnit.unit,'mm');
+ const triplet=result.dimensions.find(item=>item.kind==='dimension_triplet');
+ assert.ok(triplet);
+ assert.deepEqual(triplet.units,['mm','mm','mm']);
+ assert.deepEqual(triplet.normalizedValuesMm,[5500,3500,300]);
+ assert.equal(triplet.measurementEligible,false);
+});
+
+test('does not infer units for unqualified numbers when no drawing-wide unit note exists',()=>{
+ const lines=[{page:1,text:'5500 x 3500 x 300',confidence:94,box:{left:800,top:600,width:220,height:26},coordinateSpace:'aligned_svg_page_normalized_2000px'}];
+ const result=analyzeSpatialPageEvidence(lines,{});
+ const triplet=result.dimensions.find(item=>item.kind==='dimension_triplet');
+ assert.ok(triplet);
+ assert.deepEqual(triplet.units,[null,null,null]);
+ assert.equal(triplet.normalizedValuesMm,null);
+ assert.equal(triplet.measurementEligible,false);
+});
