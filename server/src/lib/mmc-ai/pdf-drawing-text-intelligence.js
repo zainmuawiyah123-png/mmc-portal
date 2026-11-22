@@ -215,7 +215,7 @@ function extractReinforcementCallouts(text) {
 function extractExplicitRebarTakeoffCandidates(lines) {
   if (!Array.isArray(lines)) return [];
   const candidates = [];
-  const pattern = /(?:^|[^\\d])(?:T|Y)?\\s*(\\d{1,3})\\s*(?:Ø|Φ|⌀|T)\\s*(\\d{1,2})\\s*L\\s*=?\\s*(\\d+(?:[.,]\\d+)?)\\s*(mm|cm|m)\\b/giu;
+  const pattern = /(?:^|[^\d])(?:T|Y)?\s*(\d{1,3})\s*(?:Ø|Φ|⌀|T)\s*(\d{1,2})\s*L\s*=?\s*(\d+(?:[.,]\d+)?)\s*(mm|cm|m)\b/giu;
   const unitToM = { mm: 0.001, cm: 0.01, m: 1 };
   for (const line of lines) {
     const source = normalizeEngineeringNumerals(line?.text || '');
