@@ -76,6 +76,55 @@ function extractDxfTextAnnotations(pairs, metresPerUnit) {
   return annotations;
 }
 
+function extractDxfDimensions(pairs, metresPerUnit) {
+  const entities = entitiesFrom(pairs);
+  const dimensions = [];
+  for (let index = 0; index < entities.length; index++) {
+    const entity = entities[index];
+    if (entity.type !== 'DIMENSION') continue;
+    const rawMeasurement = first(entity, 42, NaN);
+    const dimensionType = first(entity, 70, 0) & 7;
+    const textOverride = entity.pairs.find(p => p.code === 1)?.value || '';
+    const point = (xCode, yCode) => {
+      const x = first(entity, xCode, NaN), y = first(entity, yCode, NaN);
+      return Number.isFinite(x) && Number.isFinite(y)
+        ? { x: x * metresPerUnit, y: y * metresPerUnit } : null;
+    };
+    const extensionStart = point(13, 23);
+    const extensionEnd = point(14, 24);
+    const dimensionLinePoint = point(10, 20);
+    const supportedLinear = dimensionType === 0 || dimensionType === 1;
+    const measuredMetres = Number.isFinite(rawMeasurement) && supportedLinear
+      ? rawMeasurement * metresPerUnit : null;
+    const start = extensionStart;
+    const end = extensionEnd;
+    const geometricLength = start && end ? pointDistance(start, end) : null;
+    dimensions.push({
+      id: 'dxf-dimension-' + index,
+      sourceHandle: entity.pairs.find(p => p.code === 5)?.value || null,
+      layer: layerOf(entity),
+      dimensionType,
+      kind: dimensionType === 0 ? 'linear' : dimensionType === 1 ? 'aligned' :
+        dimensionType === 3 ? 'diameter' : dimensionType === 4 ? 'radius' :
+        dimensionType === 2 || dimensionType === 5 ? 'angular' :
+        dimensionType === 6 ? 'ordinate' : 'unknown',
+      rawMeasurement: Number.isFinite(rawMeasurement) ? rawMeasurement : null,
+      measuredMetres,
+      textOverride: String(textOverride).trim(),
+      extensionStart: supportedLinear ? start : null,
+      extensionEnd: supportedLinear ? end : null,
+      dimensionLinePoint,
+      measuredGeometryLengthMetres: supportedLinear ? geometricLength : null,
+      geometryAgreement: measuredMetres !== null && geometricLength !== null
+        ? Math.abs(measuredMetres - geometricLength) <= Math.max(0.001, measuredMetres * 0.005)
+        : null,
+      source: 'DXF DIMENSION entity; measurement from group code 42',
+      status: measuredMetres !== null ? 'dimension_value_extracted_requires_element_link' : 'dimension_value_unresolved'
+    });
+  }
+  return dimensions;
+}
+
 function entitiesFrom(pairs) {
   let section = '', inEntities = false, current = null;
   const entities = [];
@@ -278,6 +327,7 @@ function takeoffDxf(text, options = {}) {
   }
   const sourceEntities = entitiesFrom(pairs);
   const textAnnotations = extractDxfTextAnnotations(pairs, metresPerUnit);
+  const dimensions = extractDxfDimensions(pairs, metresPerUnit);
   const blockExpansion = expandBlockInserts(sourceEntities, blocksFrom(pairs));
   const entities = blockExpansion.entities;
   const rows = [];
@@ -351,9 +401,9 @@ function takeoffDxf(text, options = {}) {
       totalLength_m: rows.reduce((s, r) => s + (r.quantity || 0), 0),
       totalClosedArea_m2: rows.reduce((s, r) => s + (r.area_m2 || 0), 0)
     },
-    byLayer, unsupported, rows, textAnnotations,
+    byLayer, unsupported, rows, textAnnotations, dimensions,
     limitations: ['Nested blocks, xrefs and block arrays are not expanded', 'No hatch or spline area extraction', 'No automatic drawing-scale inference', 'No BOQ classification', 'Requires engineer review before contractual use']
   };
 }
 
-module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, extractDxfTextAnnotations, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
+module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, extractDxfTextAnnotations, extractDxfDimensions, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
