@@ -47,3 +47,10 @@ test('drawing viewer opens the actual authenticated project PDF or image instead
  assert.ok(html.includes("Displaying actual project file:"));
  assert.ok(!html.includes('assets/diagram-v1.pdf'));
 });
+
+
+test('authenticated document download permits inline PDF only with explicit inline flag',()=>{
+ const route=fs.readFileSync(path.join(__dirname,'../src/routes/mmc-ai-documents.js'),'utf8');
+ assert.ok(route.includes("req.query.inline==='1'&&['.glb','.pdf'].includes(doc.file_ext)"));
+ assert.ok(route.includes("doc.file_ext==='.pdf'?'application/pdf':'model/gltf-binary'"));
+});
