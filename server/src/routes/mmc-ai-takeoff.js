@@ -10,6 +10,7 @@ const {takeoffDxf}=require('../lib/mmc-ai/dxf-takeoff');
 const {classifyLayer,summarizeByDiscipline}=require('../lib/mmc-ai/discipline-layer-classifier');
 const {proposeDisciplineQuantities}=require('../lib/mmc-ai/discipline-quantity-rules');
 const {extractPdfTextPoppler}=require('../lib/mmc-ai/pdf-poppler-text');
+const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
 const {parseStructuralScheduleText}=require('../lib/mmc-ai/pdf-structural-takeoff');
 const router=express.Router();
 router.use(A.requireAuth);
@@ -29,10 +30,30 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/pdf',wrap(async(
  if(!Buffer.isBuffer(raw)||raw.length!==Number(doc.size_bytes))throw E.validation('فشل التحقق من حجم المستند المخزن.');
  const actualHash=crypto.createHash('sha256').update(raw).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
  if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash))throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
- let extracted,result;
+ let extracted,result,ocrResult=null,textSource='native';
  try{extracted=await extractPdfTextPoppler(raw);}catch(err){throw E.validation(err.message||'تعذر استخراج نص PDF.');}
- if(extracted.status!=='partial_text_extracted')throw E.validation('لم يُعثر على طبقة نص قابلة للقراءة. إذا كان PDF ممسوحاً ضوئياً، يلزم OCR ومعايرة قبل الحصر؛ لم تُنشأ كميات.');
- try{result=parseStructuralScheduleText(extracted.text);}catch(err){throw E.validation(err.message||'صيغة جدول PDF غير مدعومة؛ لم تُنشأ كميات.');}
+ // Native PDF text is attempted first. If it is absent OR does not contain a supported
+ // schedule, run OCR on the actual pages before failing closed. OCR text alone is never
+ // treated as geometry or as proof of a quantity: the strict schedule parser must pass.
+ let nativeError=null;
+ if(extracted.status==='partial_text_extracted'){
+  try{result=parseStructuralScheduleText(extracted.text);}catch(err){nativeError=err;}
+ }else{
+  nativeError=new Error('No usable native PDF text layer was found.');
+ }
+ if(!result){
+  try{
+   ocrResult=await ocrPdf(raw,{maxPages:20,dpi:160});
+   const ocrText=(ocrResult.pages||[]).map(page=>page.text||'').join('\\f');
+   if(!ocrText.replace(/\\s/g,'').length)throw new Error('OCR did not recognize readable schedule text on the processed pages.');
+   result=parseStructuralScheduleText(ocrText);
+   textSource='ocr';
+  }catch(err){
+   const nativeMessage=nativeError?.message||'Native PDF extraction failed.';
+   const ocrMessage=err?.message||'OCR/schedule parsing failed.';
+   throw E.validation('لم يتم إنشاء كميات. فشل استخراج النص الأصلي: '+nativeMessage+'؛ وفشل OCR أو التحقق من جدول الحصر: '+ocrMessage);
+  }
+ }
  const runId=uid('aitake_'),savedRows=[];
  db.transaction(()=>{
   db.prepare(`INSERT INTO ai_takeoff_runs(id,project_id,document_id,created_by,engine,status,units_json,summary_json,unsupported_json)
@@ -41,9 +62,9 @@ router.post('/projects/:projectId/documents/:documentId/takeoff/pdf',wrap(async(
    VALUES(?,?,?,?,?,?,?,?)`);
   for(const row of result.rows){const itemId=uid('aitem_');add.run(itemId,runId,row.entityIndex,row.entity,row.layer,row.quantity,row.unit,JSON.stringify(row.detail));savedRows.push({...row,id:itemId,review_status:'needs_review'});}
   db.prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
-   VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_structural_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,textEngine:extracted.engine,pages:extracted.pageCount,items:result.rows.length}));
+   VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'pdf_structural_takeoff_created','takeoff_run',runId,JSON.stringify({documentId:doc.id,engine:result.engine,textEngine:extracted.engine,textSource,ocrEngine:ocrResult?.engine||null,ocrPages:ocrResult?.pagesProcessed||0,pages:extracted.pageCount||ocrResult?.totalPages||null,items:result.rows.length}));
  })();
- res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,textEngine:extracted.engine,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
+ res.status(201).json({run:{id:runId,project_id:doc.project_id,document_id:doc.id,engine:result.engine,textEngine:extracted.engine,textSource,ocr:ocrResult?{engine:ocrResult.engine,pagesProcessed:ocrResult.pagesProcessed,totalPages:ocrResult.totalPages,characterCount:ocrResult.characterCount}:null,status:'needs_review',units:result.units,summary:result.summary,unsupported:result.unsupported,limitations:result.limitations,items:savedRows}});
 }));
 router.post('/projects/:projectId/documents/:documentId/takeoff/dxf',wrap(async(req,res)=>{
  const m=requireMember(req);
