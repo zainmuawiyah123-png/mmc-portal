@@ -98,7 +98,12 @@ function extractDxfDimensions(pairs, metresPerUnit) {
       ? rawMeasurement * metresPerUnit : null;
     const start = extensionStart;
     const end = extensionEnd;
-    const geometricLength = start && end ? pointDistance(start, end) : null;
+    const geometricLength = start && end
+      ? (dimensionType === 1
+        ? pointDistance(start, end)
+        : Math.abs((end.x - start.x) * Math.cos(first(entity, 50, 0) * Math.PI / 180) +
+          (end.y - start.y) * Math.sin(first(entity, 50, 0) * Math.PI / 180)))
+      : null;
     dimensions.push({
       id: 'dxf-dimension-' + index,
       sourceHandle: entity.pairs.find(p => p.code === 5)?.value || null,
