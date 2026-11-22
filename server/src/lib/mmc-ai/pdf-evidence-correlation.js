@@ -26,6 +26,21 @@ function correlatePdfTextWithVectorGeometry({ textLines = [], geometry, viewBox,
   const pageAspect=rotated?1/rawPageAspect:rawPageAspect;
   const aspectDifference=Math.abs(svgAspect/pageAspect-1);
   if(aspectDifference>0.025){
+    const reciprocalDifference=Math.abs(svgAspect/(1/pageAspect)-1);
+    if(reciprocalDifference<=0.025 && rotation===0){
+      // Some PDF vector exporters swap the SVG width/height axes without
+      // recording the corresponding page rotation. Test both quarter-turns
+      // against actual text-to-geometry proximity; never guess on aspect ratio alone.
+      const candidates=[90,270].map(candidateRotation=>correlatePdfTextWithVectorGeometry({
+        textLines,geometry,viewBox,pageWidthPt,pageHeightPt,pageRotationDegrees:candidateRotation,maxDistancePx
+      }));
+      const scored=candidates.map(result=>({result,score:(result.associations||[]).reduce((sum,item)=>sum+(item.nearbyVectorPaths?.length||0),0)}));
+      scored.sort((a,b)=>b.score-a.score);
+      if(scored[0].score>0 && (scored.length===1 || scored[0].score>scored[1].score)){
+        return {...scored[0].result,orientationInference:'reciprocal_svg_aspect_confirmed_by_unique_text_geometry_proximity',orientationScores:scored.map(item=>({rotation:item.result.pageRotationDegrees,score:item.score}))};
+      }
+      return {status:'coordinate_orientation_ambiguous',pageAspect:Number(pageAspect.toFixed(6)),rawPageAspect:Number(rawPageAspect.toFixed(6)),svgAspect:Number(svgAspect.toFixed(6)),pageRotationDegrees:rotation,orientationScores:scored.map(item=>({rotation:item.result.pageRotationDegrees,score:item.score})),associations:[],limitations:['SVG width/height axes appear swapped relative to the PDF page. Both 90° and 270° mappings were tested; neither produced a uniquely supported text-to-geometry alignment.']};
+    }
     return {status:'coordinate_spaces_not_aligned',pageAspect:Number(pageAspect.toFixed(6)),rawPageAspect:Number(rawPageAspect.toFixed(6)),svgAspect:Number(svgAspect.toFixed(6)),pageRotationDegrees:rotation,aspectDifference:Number(aspectDifference.toFixed(6)),associations:[],limitations:['PDF page orientation and SVG geometry aspect ratios differ by more than 2.5%; spatial associations were withheld.']};
   }
   const targetWidth=2000,targetHeight=targetWidth/pageAspect;
