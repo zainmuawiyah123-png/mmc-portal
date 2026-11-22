@@ -9,7 +9,7 @@ const countValue = value => {
   if (!Number.isInteger(value) || value <= 0) throw new TypeError('count must be a positive integer');
   return value;
 };
-const mmToM = value => positive(value, 'dimensionMm') / 1000;
+const mmToM = (value, name = 'dimensionMm') => positive(value, name) / 1000;
 
 /**
  * Generic, evidence-led measurement kernels.
@@ -38,20 +38,20 @@ function measureConfirmedElement(element) {
 
   switch (element.measurement) {
     case 'linear': {
-      const length = mmToM(g.lengthMm);
+      const length = mmToM(g.lengthMm, 'lengthMm');
       unit = 'm'; each = length; formula = length + ' m';
       dimensions = { lengthM: round(length) };
       break;
     }
     case 'rectangular_area': {
-      const length = mmToM(g.lengthMm), width = mmToM(g.widthMm);
+      const length = mmToM(g.lengthMm), width = mmToM(g.widthMm, 'widthMm');
       unit = 'm2'; each = length * width;
       formula = length + ' × ' + width + ' m';
       dimensions = { lengthM: round(length), widthM: round(width) };
       break;
     }
     case 'prismatic_volume': {
-      const length = mmToM(g.lengthMm), width = mmToM(g.widthMm), height = mmToM(g.heightMm);
+      const length = mmToM(g.lengthMm), width = mmToM(g.widthMm), height = mmToM(g.heightMm, 'heightMm');
       const gross = length * width * height;
       const deductions = g.deductionsM3 ?? 0;
       if (!Number.isFinite(deductions) || deductions < 0 || deductions >= gross) {
