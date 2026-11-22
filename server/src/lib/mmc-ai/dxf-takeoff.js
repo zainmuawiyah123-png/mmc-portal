@@ -45,6 +45,37 @@ function readHeaderUnits(pairs) {
   return 0;
 }
 
+function extractDxfTextAnnotations(pairs, metresPerUnit) {
+  const entities = entitiesFrom(pairs);
+  const annotations = [];
+  for (let index = 0; index < entities.length; index++) {
+    const entity = entities[index];
+    if (!['TEXT', 'MTEXT', 'ATTRIB', 'ATTDEF', 'DIMENSION'].includes(entity.type)) continue;
+    const x = first(entity, 10, NaN), y = first(entity, 20, NaN);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    let rawText = '';
+    if (entity.type === 'MTEXT') {
+      rawText = entity.pairs.filter(p => p.code === 3 || p.code === 1).map(p => p.value).join('');
+    } else {
+      rawText = entity.pairs.find(p => p.code === 1)?.value || '';
+    }
+    rawText = String(rawText).replace(/\\P/g, ' ').replace(/\\[A-Za-z][^;]*;/g, '').replace(/[{}]/g, '').trim();
+    if (!rawText) continue;
+    const height = Math.max(0.001, first(entity, 40, 2.5) * metresPerUnit);
+    annotations.push({
+      id: 'dxf-text-' + index,
+      page: 1,
+      text: rawText,
+      box: { left: x * metresPerUnit, top: y * metresPerUnit, width: Math.max(height, rawText.length * height * 0.5), height },
+      confidence: 100,
+      source: 'DXF ' + entity.type,
+      layer: layerOf(entity),
+      insertionPoint: { x: x * metresPerUnit, y: y * metresPerUnit }
+    });
+  }
+  return annotations;
+}
+
 function entitiesFrom(pairs) {
   let section = '', inEntities = false, current = null;
   const entities = [];
@@ -246,6 +277,7 @@ function takeoffDxf(text, options = {}) {
     throw new Error('Drawing units are undefined. Set a verified metresPerUnit scale before measuring.');
   }
   const sourceEntities = entitiesFrom(pairs);
+  const textAnnotations = extractDxfTextAnnotations(pairs, metresPerUnit);
   const blockExpansion = expandBlockInserts(sourceEntities, blocksFrom(pairs));
   const entities = blockExpansion.entities;
   const rows = [];
@@ -319,9 +351,9 @@ function takeoffDxf(text, options = {}) {
       totalLength_m: rows.reduce((s, r) => s + (r.quantity || 0), 0),
       totalClosedArea_m2: rows.reduce((s, r) => s + (r.area_m2 || 0), 0)
     },
-    byLayer, unsupported, rows,
+    byLayer, unsupported, rows, textAnnotations,
     limitations: ['Nested blocks, xrefs and block arrays are not expanded', 'No hatch or spline area extraction', 'No automatic drawing-scale inference', 'No BOQ classification', 'Requires engineer review before contractual use']
   };
 }
 
-module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
+module.exports = { takeoffDxf, parsePairs, readHeaderUnits, entitiesFrom, extractDxfTextAnnotations, blocksFrom, expandBlockInserts, polylineMetrics, UNIT_TO_METRE };
