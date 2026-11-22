@@ -237,3 +237,21 @@ test('reports mismatched native dimension value instead of trusting it', () => {
   assert.equal(result.dimensions[0].measuredMetres, 4.5);
   assert.equal(result.dimensions[0].geometryAgreement, false);
 });
+
+test('creates measured area schedule only for closed polylines on explicit quantity layers', () => {
+  const slab = ['0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3'].join('\\n');
+  const unknown = ['0','LWPOLYLINE','8','MISC','70','1','10','10','20','10','10','12','20','10','10','12','20','12','10','10','20','12'].join('\\n');
+  const result = takeoffDxf(dxf(slab + '\\n' + unknown));
+  assert.equal(result.measuredSchedule.length, 1);
+  assert.equal(result.measuredSchedule[0].item, 'Horizontal slab/roof footprint area');
+  assert.equal(result.measuredSchedule[0].quantity, 12);
+  assert.equal(result.measuredSchedule[0].unit, 'm2');
+  assert.equal(result.measuredSchedule[0].status, 'measured_area_not_concrete_volume');
+});
+test('does not infer concrete volume from a measured slab footprint', () => {
+  const slab = ['0','LWPOLYLINE','8','SLAB','70','1','10','0','20','0','10','4','20','0','10','4','20','3','10','0','20','3'].join('\\n');
+  const result = takeoffDxf(dxf(slab));
+  assert.equal(result.measuredSchedule[0].quantity, 12);
+  assert.equal(result.measuredSchedule[0].unit, 'm2');
+  assert.ok(!('volume_m3' in result.measuredSchedule[0]));
+});
