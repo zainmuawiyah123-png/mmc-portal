@@ -16,7 +16,7 @@ const {ocrPdf}=require('../lib/mmc-ai/ocr-engine');
 const {inspectPdfVectorPage}=require('../lib/mmc-ai/pdf-pdf-vector-extract');
 const {inspectPdfPageEvidence}=require('../lib/mmc-ai/pdf-page-evidence');
 const {correlatePdfTextWithVectorGeometry}=require('../lib/mmc-ai/pdf-evidence-correlation');
-const {deriveScaleCandidates}=require('../lib/mmc-ai/pdf-quantity-candidates');
+const {deriveScaleCandidates,applyConfirmedPageScale}=require('../lib/mmc-ai/pdf-quantity-candidates');
 const router=express.Router();
 const MAX_BYTES=25*1024*1024;
 const EXT_MIME={'.pdf':'application/pdf','.dxf':'application/dxf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.glb':'model/gltf-binary'};
@@ -308,4 +308,45 @@ router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(re
  FROM ai_documents WHERE id=?`).get(id);
  res.status(201).json({document:doc});
 }));
+/**
+ * Produces auditable metric measurements for raw PDF vector paths only after
+ * an explicit page-scale confirmation. It deliberately does not label paths
+ * as walls/slabs/pipes or create BOQ quantities.
+ */
+router.post('/projects/:projectId/documents/:documentId/measure/vector-geometry',wrap(async(req,res)=>{
+ const m=member(req.params.projectId,req.user.id);
+ if(!m||m.status!=='active') throw E.notFound('المشروع غير موجود.');
+ if(!canUpload(m.role)) throw E.forbidden('لا تملك صلاحية تشغيل القياس الهندسي.');
+ const db=getDB(),doc=db.prepare('SELECT * FROM ai_documents WHERE id=? AND project_id=?').get(req.params.documentId,req.params.projectId);
+ if(!doc) throw E.notFound('المستند غير موجود.');
+ if(doc.file_ext!=='.pdf') throw E.validation('قياس هندسة PDF متاح لملفات PDF فقط.');
+ const pageNumber=Number(req.body?.pageNumber||1);
+ const mmPerDrawingUnit=Number(req.body?.mmPerDrawingUnit);
+ const confirmationNote=String(req.body?.confirmationNote||'').trim();
+ if(!Number.isInteger(pageNumber)||pageNumber<1||pageNumber>100) throw E.validation('رقم الصفحة يجب أن يكون بين 1 و100.');
+ if(!Number.isFinite(mmPerDrawingUnit)||mmPerDrawingUnit<=0||mmPerDrawingUnit>100000) throw E.validation('أدخل معامل مقياس موجباً بالملليمتر لكل وحدة رسم.');
+ if(confirmationNote.length<8) throw E.validation('اكتب مرجع البعد أو المقياس الذي تم التحقق منه قبل اعتماد القياس.');
+ const store=storage.getStorage();
+ if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
+ const bytes=await store.get(doc.storage_key);
+ if(!Buffer.isBuffer(bytes)||bytes.length!==Number(doc.size_bytes)) throw E.validation('فشل التحقق من حجم المستند المخزن.');
+ const actualHash=crypto.createHash('sha256').update(bytes).digest(),expectedHash=Buffer.from(String(doc.sha256||''),'hex');
+ if(expectedHash.length!==actualHash.length||!crypto.timingSafeEqual(expectedHash,actualHash)) throw E.validation('فشل التحقق من بصمة SHA-256 للمستند.');
+ let vector;
+ try{vector=await inspectPdfVectorPage(bytes,{pageNumber});}
+ catch(error){
+  if(['PDF_VECTOR_INVALID','PDF_VECTOR_TOO_LARGE','PDF_VECTOR_SVG_MISSING'].includes(error.code)) throw E.validation(error.message);
+  if(error.code==='ENOENT') throw E.validation('محرك pdftocairo غير متوفر في بيئة التشغيل.');
+  throw error;
+ }
+ const result=applyConfirmedPageScale({geometry:vector.geometry,mmPerDrawingUnit,confirmedBy:'user',confirmationNote});
+ const analysisId=uid('aidan_');
+ db.prepare('INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)')
+  .run(analysisId,doc.project_id,doc.id,req.user.id,'pdf_confirmed_vector_measurements',JSON.stringify({pageNumber,vectorStatus:vector.status,result}));
+ db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
+  .run(uid('aial_'),doc.project_id,req.user.id,'pdf_vector_measurements_created','document',doc.id,JSON.stringify({analysisId,pageNumber,mmPerDrawingUnit,pathCount:result.paths.length,confirmationNote}));
+ res.setHeader('Cache-Control','no-store');
+ res.json({analysisId,documentId:doc.id,pageNumber,result,notice:'هذه قياسات مترية لمسارات الرسم فقط. لم يتم تصنيفها كجدران أو بلاطات أو خدمات، ولم تُحوّل إلى كميات BOQ أو BIM.'});
+}));
+
 module.exports=router;
