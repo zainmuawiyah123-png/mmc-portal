@@ -56,8 +56,8 @@ router.get('/projects/:projectId/documents/:documentId/download',wrap(async(req,
  if(!(await store.exists(doc.storage_key))) throw E.notFound('الملف غير موجود في التخزين.');
  getDB().prepare(`INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json)
  VALUES(?,?,?,?,?,?,?)`).run(uid('aial_'),doc.project_id,req.user.id,'document_downloaded','document',doc.id,JSON.stringify({sha256:doc.sha256}));
- const inline=req.query.inline==='1'&&['.glb','.pdf'].includes(doc.file_ext);
- const inlineMime=doc.file_ext==='.pdf'?'application/pdf':'model/gltf-binary';
+ const inline=req.query.inline==='1'&&['.glb','.pdf','.png','.jpg','.jpeg'].includes(doc.file_ext);
+ const inlineMime=doc.file_ext==='.glb'?'model/gltf-binary':(doc.mime_type||'application/octet-stream');
  res.setHeader('Content-Type',inline?inlineMime:'application/octet-stream');
  res.setHeader('Content-Disposition',(inline?'inline':'attachment')+'; filename="'+encodeURIComponent(doc.original_name)+'"');
  res.setHeader('Content-Length',String(doc.size_bytes));
