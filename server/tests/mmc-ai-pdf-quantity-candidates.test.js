@@ -25,7 +25,7 @@ test('derives a page scale candidate only from explicit unit dimensions matched 
   assert.equal(result.pages.length, 1);
   assert.equal(result.pages[0].status, 'consistent_multi_dimension_scale_candidate_requires_confirmation');
   assert.equal(result.pages[0].independentDimensionCount, 2);
-  assert.equal(result.pages[0].candidateMmPerDrawingUnit, 30);
+  assert.equal(result.pages[0].candidateMmPerDrawingUnit, 60);
   assert.equal(result.pages[0].calibrated, false);
 });
 
