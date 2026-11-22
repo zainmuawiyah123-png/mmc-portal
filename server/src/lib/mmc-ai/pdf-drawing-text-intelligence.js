@@ -171,8 +171,11 @@ function centerOf(box) {
   return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
 }
 function spatialDistance(a, b) {
-  const ca = centerOf(a), cb = centerOf(b);
-  return Math.hypot(ca.x - cb.x, ca.y - cb.y);
+  const aRight = a.left + a.width, aBottom = a.top + a.height;
+  const bRight = b.left + b.width, bBottom = b.top + b.height;
+  const dx = Math.max(0, a.left - bRight, b.left - aRight);
+  const dy = Math.max(0, a.top - bBottom, b.top - aBottom);
+  return Math.hypot(dx, dy);
 }
 function extractElementTag(text) {
   const match = String(text || '').match(/\b(?:B|BM|C|COL|F|FOOTING|S|SL|W|D|DB|AHU|FCU|VAV|P|MH|FH|SP)-?\s*\d{1,4}[A-Z]?\b/i);
