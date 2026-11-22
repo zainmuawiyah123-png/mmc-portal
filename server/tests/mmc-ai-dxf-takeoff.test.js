@@ -166,3 +166,22 @@ test('rejects non-numeric block circle center coordinates', () => {
   const insert = ['0','INSERT','2','TEST_BLOCK','10','0','20','0'].join('\n');
   assert.throws(() => takeoffDxf(dxfWithBlock(block, insert)), /non-numeric geometry/i);
 });
+
+
+test('preserves source handles and exact geometry for BIM handoff', () => {
+  const ent = [
+    '0','LINE','5','A10','8','WALL_AXIS','10','1','20','2','11','4','21','6',
+    '0','CIRCLE','5','A11','8','PIPE_CENTER','10','5','20','6','40','0.5'
+  ].join('\\n');
+  const result = takeoffDxf(dxf(ent));
+  assert.equal(result.rows[0].sourceHandle, 'A10');
+  assert.deepEqual(result.rows[0].geometry, {
+    type: 'line', start: { x: 1, y: 2 }, end: { x: 4, y: 6 }
+  });
+  assert.equal(result.rows[1].sourceHandle, 'A11');
+  assert.deepEqual(result.rows[1].geometry, {
+    type: 'circle', center: { x: 5, y: 6 }, radius: 0.5
+  });
+  assert.equal(result.rows[0].quantity, 5);
+  assert.ok(Math.abs(result.rows[1].area_m2 - Math.PI * 0.25) < 1e-10);
+});
