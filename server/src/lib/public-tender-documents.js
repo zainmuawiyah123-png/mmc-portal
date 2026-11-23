@@ -131,6 +131,10 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let current = new URL(String(rawUrl));
+  // TED's /pdf endpoint serves the actual PDF; /pdfs may serve an HTML viewer.
+  if (String(sourceKey).toLowerCase() === 'ted') {
+    current.pathname = current.pathname.replace(/\/pdfs?\/?$/i, '/pdf');
+  }
   let tedEmptyRetries = 0;
   // TED exposes both unsigned (/pdf) and signed (/pdfs) direct links.
   // If one representation returns an empty CMS response, try the other format
@@ -207,6 +211,19 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         throw appError(502, 'DOCUMENT_UPSTREAM_ERROR', 'تعذّر جلب الملف من المصدر الرسمي الآن.');
       }
 
+      const responseMime = String(response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (String(sourceKey).toLowerCase() === 'ted' && responseMime &&
+          !['application/pdf', 'application/x-pdf', 'application/octet-stream', 'binary/octet-stream'].includes(responseMime)) {
+        await cancelBody(response);
+        if (moveToTedFallback()) {
+          console.warn('[public-document] TED endpoint returned non-PDF content; trying official PDF endpoint', JSON.stringify({
+            status: response.status, contentType: responseMime, url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
+        throw appError(415, 'UNSUPPORTED_MEDIA_TYPE', 'أعاد TED صفحة HTML بدلاً من ملف PDF.');
+      }
       const type = fileInfo(current.toString(), response.headers.get('content-type') || '', sourceKey);
       const declaredLength = Number(response.headers.get('content-length'));
       if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
@@ -283,6 +300,13 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
       // Never trust a .pdf URL or MIME header by itself. Reject HTML/login pages
       // and any response that does not contain a real PDF header near the start.
       if (type.ext === '.pdf' && !buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED response lacked PDF signature; trying official alternate endpoint', JSON.stringify({
+            url: current.origin + current.pathname, receivedBytes: size
+          }));
+          redirects--;
+          continue;
+        }
         throw appError(415, 'UNSUPPORTED_MEDIA_TYPE', 'لم يُرجع المصدر ملف PDF صالحاً؛ قد تكون الاستجابة صفحة HTML أو صفحة تسجيل دخول.');
       }
       return {
