@@ -156,8 +156,10 @@ router.get('/contractor/opportunities/:id', (req,res) => {
   const documents=db.prepare(`
     SELECT id,label,availability,document_url,storage_key,downloaded_at
     FROM tender_opportunity_public_documents
-    WHERE opportunity_id=? ORDER BY created_at,id
-  `).all(row.id).map(doc=>({
+    WHERE opportunity_id=?
+      AND (? <> 'ted' OR lower(document_url) LIKE '%/pdf' OR lower(document_url) LIKE '%/pdf?%')
+    ORDER BY created_at,id
+  `).all(row.id,row.source_key).map(doc=>({
     id:doc.id,label:doc.label,availability:doc.availability,
     downloadUrl:doc.availability==='public-source-link' && isAllowedPublicDocumentUrl(row.source_key,doc.document_url)
       ? '/api/public/contractor/opportunities/'+encodeURIComponent(row.id)+'/documents/'+encodeURIComponent(doc.id)+'/download' : null,
