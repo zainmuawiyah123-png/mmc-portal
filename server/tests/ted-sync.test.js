@@ -56,6 +56,13 @@ test('TED notice links contain exactly one canonical PDF URL',()=>{
  assert.equal(links[0].format,'pdf');
 });
 
+
+test('TED notice links prefer API-provided PDF URL in official language',()=>{
+ const links=noticeLinks({links:{html:'https://ted.europa.eu/en/notice/806685-2026/html',pdf:'https://ted.europa.eu/de/notice/806685-2026/pdf',signed:'https://ted.europa.eu/de/notice/806685-2026/pdfs'}},'806685-2026','de');
+ assert.equal(links.length,1);
+ assert.equal(links[0].url,'https://ted.europa.eu/de/notice/806685-2026/pdf');
+});
+
 test('TED downloader accepts a real PDF even when the upstream MIME is generic',async()=>{
  const originalFetch=global.fetch;
  const bytes=Buffer.from('%PDF-1.7\\n1 0 obj\\n<<>>\\nendobj\\n');
