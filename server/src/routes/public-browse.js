@@ -186,6 +186,31 @@ router.get('/contractor/opportunities/:id', (req,res) => {
 });
 
 
+// HEAD is a metadata-only preflight. Express otherwise falls back to the GET handler,
+// which would fetch the TED PDF once for HEAD and again for the actual download.
+router.head('/contractor/opportunities/:id/documents/:documentId/download', async (req,res,next) => {
+  try {
+    const db=getDB();
+    const doc=db.prepare(`
+      SELECT d.id,d.label,d.availability,d.document_url,o.source_key,o.status
+      FROM tender_opportunity_public_documents d
+      JOIN tender_opportunities o ON o.id=d.opportunity_id
+      WHERE d.id=? AND o.id=? AND o.status IN ('open','closed')
+    `).get(req.params.documentId,req.params.id);
+    if(!doc) return res.status(404).end();
+    if(doc.availability!=='public-source-link' || !isAllowedPublicDocumentUrl(doc.source_key,doc.document_url)) return res.status(403).end();
+    if(String(doc.source_key).toLowerCase()!=='ted') return next();
+    const filename=safeDocumentFilename(doc.label,doc.document_url,'application/pdf');
+    const fallback=filename.replace(/[^\\x20-\\x7e]/g,'_').replace(/["\\\\]/g,'_').slice(0,140)||'tender-notice.pdf';
+    const encoded=encodeURIComponent(filename).replace(/[!'()*]/g,ch=>'%'+ch.charCodeAt(0).toString(16).toUpperCase());
+    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Disposition',`attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`);
+    res.setHeader('X-Content-Type-Options','nosniff');
+    res.setHeader('Cache-Control','no-store');
+    return res.status(200).end();
+  } catch(err) { next(err); }
+});
+
 // Public-source documents may be downloaded without an MMC account.
 // Only published notices and explicitly public, allow-listed source URLs are eligible.
 router.get('/contractor/opportunities/:id/documents/:documentId/download', async (req,res,next) => {
