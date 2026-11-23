@@ -131,6 +131,7 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let current = new URL(String(rawUrl));
+  let tedEmptyRetries = 0;
 
   try {
     for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
@@ -180,6 +181,19 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         throw appError(413, 'DOCUMENT_TOO_LARGE', 'حجم وثيقة المصدر يتجاوز الحد المسموح في MMC.');
       }
       if (!response.body) {
+        if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
+          tedEmptyRetries++;
+          console.warn('[public-document] TED empty response; retrying once', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            contentEncoding: response.headers.get('content-encoding') || null,
+            retry: tedEmptyRetries,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
         if (String(sourceKey).toLowerCase() === 'ted') {
           console.warn('[public-document] TED response has no body', JSON.stringify({
             status: response.status,
@@ -203,6 +217,20 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         chunks.push(buffer);
       }
       if (!size) {
+        if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
+          tedEmptyRetries++;
+          console.warn('[public-document] TED response body is empty; retrying once', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            contentEncoding: response.headers.get('content-encoding') || null,
+            receivedBytes: size,
+            retry: tedEmptyRetries,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
         if (String(sourceKey).toLowerCase() === 'ted') {
           console.warn('[public-document] TED response body is empty', JSON.stringify({
             status: response.status,
