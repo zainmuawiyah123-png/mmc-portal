@@ -71,7 +71,10 @@ function isAllowedPublicDocumentUrl(sourceKey, rawUrl) {
 
 function urlExtension(rawUrl) {
   try {
-    const pathname = decodeURIComponent(new URL(rawUrl).pathname).toLowerCase();
+    const parsed = new URL(rawUrl);
+    const pathname = decodeURIComponent(parsed.pathname).toLowerCase();
+    const host = parsed.hostname.toLowerCase();
+    if ((host === 'ted.europa.eu' || host.endsWith('.ted.europa.eu')) && /\/(?:pdf|pdfs)\/?$/.test(pathname)) return '.pdf';
     const match = pathname.match(/\.([a-z0-9]{1,8})$/);
     if (!match) return '';
     const ext = '.' + match[1];
@@ -81,10 +84,15 @@ function urlExtension(rawUrl) {
   }
 }
 
-function fileInfo(rawUrl, rawMime = '') {
+function fileInfo(rawUrl, rawMime = '', sourceKey = '') {
   const mime = String(rawMime || '').split(';')[0].trim().toLowerCase();
   const fromMime = MIME_EXT[mime] || '';
   const fromUrl = urlExtension(rawUrl);
+  // For TED's /pdf endpoint, URL format is authoritative only as a candidate;
+  // the response body is verified against the PDF signature before returning.
+  if (String(sourceKey).toLowerCase() === 'ted' && fromUrl === '.pdf') {
+    return { mime: 'application/pdf', ext: '.pdf' };
+  }
   let ext = fromMime || fromUrl;
   if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
     throw appError(415, 'UNSUPPORTED_MEDIA_TYPE', 'المرفق ليس من أنواع الملفات المسموح بتنزيلها عبر MMC.');
@@ -165,7 +173,7 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         throw appError(502, 'DOCUMENT_UPSTREAM_ERROR', 'تعذّر جلب الملف من المصدر الرسمي الآن.');
       }
 
-      const type = fileInfo(current.toString(), response.headers.get('content-type') || '');
+      const type = fileInfo(current.toString(), response.headers.get('content-type') || '', sourceKey);
       const declaredLength = Number(response.headers.get('content-length'));
       if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
         await cancelBody(response);
@@ -186,6 +194,11 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
       }
       if (!size) throw appError(502, 'DOCUMENT_EMPTY', 'الملف المستلم من المصدر فارغ.');
       const buffer = Buffer.concat(chunks, size);
+      // Never trust a .pdf URL or MIME header by itself. Reject HTML/login pages
+      // and any response that does not contain a real PDF header near the start.
+      if (type.ext === '.pdf' && !buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+        throw appError(415, 'UNSUPPORTED_MEDIA_TYPE', 'لم يُرجع المصدر ملف PDF صالحاً؛ قد تكون الاستجابة صفحة HTML أو صفحة تسجيل دخول.');
+      }
       return {
         buffer,
         mime: type.mime,
