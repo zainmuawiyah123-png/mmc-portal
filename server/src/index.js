@@ -289,52 +289,6 @@ function start() {
       console.log('  صحة التخزين  : ✗ خطأ في التهيئة — ' + e.message);
     }
 
-    // Temporary isolated TED endpoint comparison on Frankfurt preview only.
-    if (process.env.RENDER_SERVICE_ID === 'srv-dc1uvr6c6qcc73bumrdg') {
-      setTimeout(async () => {
-        for (const path of ['/pdfs', '/pdf']) {
-          const url = 'https://ted.europa.eu/en/notice/800271-2026' + path;
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 25000);
-          try {
-            const response = await fetch(url, {
-              method: 'GET', redirect: 'manual',
-              headers: {
-                Accept: 'application/pdf,application/zip,application/msword,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.*,image/*,text/csv,text/plain,application/octet-stream;q=0.8',
-                'User-Agent': 'Mozilla/5.0 (compatible; MMC-Tender-Directory/1.0)'
-              },
-              signal: controller.signal
-            });
-            let bytes = 0;
-            let prefix = Buffer.alloc(0);
-            if (response.body) {
-              const reader = response.body.getReader();
-              try {
-                while (true) {
-                  const part = await reader.read();
-                  if (part.done) break;
-                  const chunk = Buffer.from(part.value);
-                  bytes += chunk.length;
-                  if (prefix.length < 1024) prefix = Buffer.concat([prefix, chunk.subarray(0, 1024-prefix.length)]);
-                  if (bytes > 25*1024*1024) { await reader.cancel(); break; }
-                }
-              } finally { try { reader.releaseLock(); } catch (_) {} }
-            }
-            console.log('[TED-PATH-COMPARE] ' + JSON.stringify({
-              path, status: response.status,
-              contentType: response.headers.get('content-type'),
-              contentLength: response.headers.get('content-length'),
-              bytes, pdfSignature: prefix.includes(Buffer.from('%PDF-')),
-              server: response.headers.get('server'),
-              via: response.headers.get('via')
-            }));
-          } catch (error) {
-            console.warn('[TED-PATH-COMPARE] ' + JSON.stringify({path,error:error.message}));
-          } finally { clearTimeout(timeout); }
-        }
-      }, 2500).unref();
-    }
-
     require('./lib/scheduler').startScheduler();
     // Rebuild preview tender directory from all configured public feeds on every
     // service start. This is independent of the legacy TED-only startup flag.
