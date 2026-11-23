@@ -69,7 +69,8 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
 });
 
 test('MMCUI-03 — دليل العطاءات الخارجية متاح للمقاول والاستشاري وغير مربوط ببوابة المشتريات', () => {
-  assert.match(contractorPortal, /\.\.\/\.\.\/bid\/market\.html/);
+  assert.ok(contractorPortal.includes("API.request('GET','/public/contractor/opportunities')"));
+  assert.ok(contractorPortal.includes('سوق العطاءات الخارجية'));
   assert.doesNotMatch(procurementPortal, /tender-opportunities\/index\.html/);
 });
 
