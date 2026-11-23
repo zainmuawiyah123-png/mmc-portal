@@ -289,7 +289,14 @@ function start() {
       console.log('  صحة التخزين  : ✗ خطأ في التهيئة — ' + e.message);
     }
 
-    require('./lib/scheduler').startScheduler();\n    if (process.env.TED_SYNC_ON_START === 'true') {\n      setTimeout(async () => {\n        const started = Date.now();\n        try { const result = await require('./lib/ted-sync').syncTED({days:90,pages:8,rows:100}); require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:true,...result}); console.log('[TED] startup import complete: '+JSON.stringify(result)); }\n        catch (err) { require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:false,error:err.message}); console.error('[TED] startup import failed:',err.message); }\n      }, 3000).unref();\n    }
+    require('./lib/scheduler').startScheduler();
+    if (process.env.TED_SYNC_ON_START === 'true') {
+      setTimeout(async () => {
+        const started = Date.now();
+        try { const result = await require('./lib/ted-sync').syncTED({days:90,pages:8,rows:100}); require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:true,...result}); console.log('[TED] startup import complete: '+JSON.stringify(result)); }
+        catch (err) { require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:false,error:err.message}); console.error('[TED] startup import failed:',err.message); }
+      }, 3000).unref();
+    }
 
     console.log('  البوابة      : http://localhost:' + config.PORT + '/portal/pt-9f3c7a1e5b2d/login.html');
     console.log('  الملفات      : ' + (config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5')));
