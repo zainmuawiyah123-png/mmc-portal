@@ -62,29 +62,10 @@ function officialPortalLinks(row){
  const seen=new Set();return links.filter(x=>{if(seen.has(x.url))return false;seen.add(x.url);return true;}).slice(0,20);
 }
 function noticeLinks(row,publicationNumber){
+ // TED's notice PDF is a single representation of the notice, not a set of
+ // independently attached procurement files. Keep one canonical PDF action.
  const base='https://ted.europa.eu/en/notice/'+encodeURIComponent(publicationNumber);
- const found=[
-  {title:'Official TED notice PDF',url:base+'/pdf'},
-  {title:'Official TED notice HTML',url:base+'/html'},
-  {title:'Official TED notice XML',url:base+'/xml'}
- ];
- const walk=(value,label='Tender document',depth=0)=>{
-  if(depth>5||value==null)return;
-  if(typeof value==='string'){
-   if(/^https:\/\/(?:[^/]+\.)?ted\.europa\.eu\//i.test(value)||/^https:\/\/api\.ted\.europa\.eu\//i.test(value))found.push({title:label,url:value});
-   return;
-  }
-  if(Array.isArray(value)){value.forEach((x,i)=>walk(x,label+' '+(i+1),depth+1));return;}
-  if(typeof value==='object'){
-   for(const [key,item] of Object.entries(value)){
-    const nextLabel=/pdf/i.test(key)?'Official TED PDF':/xml/i.test(key)?'Official TED XML':/html/i.test(key)?'Official TED HTML':label;
-    walk(item,nextLabel,depth+1);
-   }
-  }
- };
- walk(row.links);
- const seen=new Set();
- return found.filter(x=>{if(seen.has(x.url))return false;seen.add(x.url);return true;}).slice(0,30);
+ return [{title:'Official TED notice PDF',url:base+'/pdf',format:'pdf'}];
 }
 function normalizeTEDNotice(row,now=Date.now()){
  if(!row||typeof row!=='object')return null;
