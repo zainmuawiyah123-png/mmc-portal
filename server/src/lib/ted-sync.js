@@ -164,7 +164,7 @@ async function syncTED({days=45,pages=5,rows=100}={}){
  let token=null,received=0,pagesFetched=0;
  const mappedById=new Map();
  for(let page=0;page<Math.min(20,Math.max(1,pages));page++){
-  const body={query,fields:FIELDS,limit:pageSize,scope:'ALL',paginationMode:'ITERATION'};
+  const body={query,fields:FIELDS,limit:pageSize,scope:'ALL',paginationMode:'ITERATION',onlyLatestVersions:true};
   if(token)body.iterationNextToken=token;
   const payload=await postSearch(body);
   const values=Array.isArray(payload.notices)?payload.notices:[];
