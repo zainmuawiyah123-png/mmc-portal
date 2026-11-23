@@ -314,6 +314,9 @@ test('OPP-28 — تفاصيل سوق العطاءات تعرض مرفقات MMC 
   assert.ok(market.includes("method:'HEAD'"));
   assert.ok(market.includes("window.location.href=link.href"));
   assert.ok(market.includes('data.documents||[]'));
+  const publicBrowse = fs.readFileSync(path.join(__dirname, '../src/routes/public-browse.js'), 'utf8');
+  assert.ok(publicBrowse.includes("router.head('/contractor/opportunities/:id/documents/:documentId/download'"));
+  assert.ok(publicBrowse.includes("String(doc.source_key).toLowerCase()!=='ted'"));
   assert.ok(route.includes("router.post('/admin/sync/jprc'"));
   assert.ok(route.includes("router.post('/admin/sync/nepco'"));
   assert.ok(route.includes("router.post('/admin/import/jpmc-curated'"));
