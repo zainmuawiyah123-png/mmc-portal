@@ -71,7 +71,10 @@ function isAllowedPublicDocumentUrl(sourceKey, rawUrl) {
 
 function urlExtension(rawUrl) {
   try {
-    const pathname = decodeURIComponent(new URL(rawUrl).pathname).toLowerCase();
+    const parsed = new URL(rawUrl);
+    const pathname = decodeURIComponent(parsed.pathname).toLowerCase();
+    const host = parsed.hostname.toLowerCase();
+    if ((host === 'ted.europa.eu' || host.endsWith('.ted.europa.eu')) && /\/(?:pdf|pdfs)\/?$/.test(pathname)) return '.pdf';
     const match = pathname.match(/\.([a-z0-9]{1,8})$/);
     if (!match) return '';
     const ext = '.' + match[1];
