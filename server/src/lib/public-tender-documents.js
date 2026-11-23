@@ -137,7 +137,7 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
   // and the English rendition before reporting DOCUMENT_EMPTY.
   const tedFallbackUrls = [];
   if (String(sourceKey).toLowerCase() === 'ted') {
-    const match = current.pathname.match(/^\\/([a-z]{2})\\/notice\\/([^/]+)\\/(pdf|pdfs)$/i);
+    const match = current.pathname.match(/^\/([a-z]{2})\/notice\/([^/]+)\/(pdf|pdfs)$/i);
     if (match) {
       const [, language, publicationNumber, format] = match;
       const otherFormat = format.toLowerCase() === 'pdf' ? 'pdfs' : 'pdf';
