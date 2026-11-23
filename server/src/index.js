@@ -289,6 +289,24 @@ function start() {
       console.log('  صحة التخزين  : ✗ خطأ في التهيئة — ' + e.message);
     }
 
+    // One-shot end-to-end downloader test on Frankfurt preview only.
+    if (process.env.RENDER_SERVICE_ID === 'srv-dc1uvr6c6qcc73bumrdg') {
+      setTimeout(async () => {
+        try {
+          const { downloadPublicDocument } = require('./lib/public-tender-documents');
+          const result = await downloadPublicDocument('ted', 'https://ted.europa.eu/en/notice/800271-2026/pdfs');
+          console.log('[TED-DOWNLOADER-TEST] ' + JSON.stringify({
+            ok: true, bytes: result.buffer.length, mime: result.mime,
+            extension: result.extension,
+            pdfSignature: result.buffer.subarray(0, 1024).includes(Buffer.from('%PDF-')),
+            finalUrl: result.finalUrl
+          }));
+        } catch (error) {
+          console.error('[TED-DOWNLOADER-TEST] ' + JSON.stringify({ok:false,code:error.code,message:error.message}));
+        }
+      }, 2500).unref();
+    }
+
     require('./lib/scheduler').startScheduler();
     // Rebuild preview tender directory from all configured public feeds on every
     // service start. This is independent of the legacy TED-only startup flag.
