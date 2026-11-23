@@ -131,6 +131,7 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let current = new URL(String(rawUrl));
+  let tedEmptyRetries = 0;
 
   try {
     for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
@@ -179,7 +180,22 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         await cancelBody(response);
         throw appError(413, 'DOCUMENT_TOO_LARGE', 'حجم وثيقة المصدر يتجاوز الحد المسموح في MMC.');
       }
-      if (!response.body) throw appError(502, 'DOCUMENT_EMPTY', 'لم يُرجع المصدر محتوى الملف.');
+      if (!response.body) {
+        if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
+          tedEmptyRetries++;
+          console.warn('[public-document] TED empty response; retrying once', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            contentEncoding: response.headers.get('content-encoding') || null,
+            retry: tedEmptyRetries,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
+        throw appError(502, 'DOCUMENT_EMPTY', 'لم يُرجع المصدر محتوى الملف.');
+      }
 
       const chunks = [];
       let size = 0;
@@ -192,7 +208,23 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         }
         chunks.push(buffer);
       }
-      if (!size) throw appError(502, 'DOCUMENT_EMPTY', 'الملف المستلم من المصدر فارغ.');
+      if (!size) {
+        if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
+          tedEmptyRetries++;
+          console.warn('[public-document] TED response body is empty; retrying once', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            contentEncoding: response.headers.get('content-encoding') || null,
+            receivedBytes: size,
+            retry: tedEmptyRetries,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
+        throw appError(502, 'DOCUMENT_EMPTY', 'الملف المستلم من المصدر فارغ.');
+      }
       const buffer = Buffer.concat(chunks, size);
       // Never trust a .pdf URL or MIME header by itself. Reject HTML/login pages
       // and any response that does not contain a real PDF header near the start.
