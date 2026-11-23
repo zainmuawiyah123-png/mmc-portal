@@ -131,7 +131,39 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let current = new URL(String(rawUrl));
+  // TED's /pdf endpoint serves the actual PDF; /pdfs may serve an HTML viewer.
+  if (String(sourceKey).toLowerCase() === 'ted') {
+    current.pathname = current.pathname.replace(/\/pdfs?\/?$/i, '/pdf');
+  }
   let tedEmptyRetries = 0;
+  // TED exposes both unsigned (/pdf) and signed (/pdfs) direct links.
+  // If one representation returns an empty CMS response, try the other format
+  // and the English rendition before reporting DOCUMENT_EMPTY.
+  const tedFallbackUrls = [];
+  if (String(sourceKey).toLowerCase() === 'ted') {
+    const match = current.pathname.match(/^\/([a-z]{2})\/notice\/([^/]+)\/(pdf|pdfs)$/i);
+    if (match) {
+      const [, language, publicationNumber, format] = match;
+      const otherFormat = format.toLowerCase() === 'pdf' ? 'pdfs' : 'pdf';
+      for (const candidate of [
+        `https://ted.europa.eu/${language}/notice/${publicationNumber}/${otherFormat}`,
+        `https://ted.europa.eu/en/notice/${publicationNumber}/pdf`,
+        `https://ted.europa.eu/en/notice/${publicationNumber}/pdfs`
+      ]) {
+        if (candidate !== current.toString() && !tedFallbackUrls.includes(candidate)) tedFallbackUrls.push(candidate);
+      }
+    }
+  }
+  const moveToTedFallback = () => {
+    while (tedFallbackUrls.length) {
+      const candidate = tedFallbackUrls.shift();
+      if (isAllowedPublicDocumentUrl('ted', candidate)) {
+        current = new URL(candidate);
+        return true;
+      }
+    }
+    return false;
+  };
 
   try {
     for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
@@ -167,6 +199,11 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
       }
       if (response.status === 404) {
         await cancelBody(response);
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED PDF format unavailable; trying official alternate link', JSON.stringify({ url: current.origin + current.pathname }));
+          redirects--;
+          continue;
+        }
         throw appError(404, 'DOCUMENT_NO_LONGER_AVAILABLE', 'الملف غير متاح حالياً على المصدر الرسمي.');
       }
       if (!response.ok) {
@@ -174,6 +211,19 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         throw appError(502, 'DOCUMENT_UPSTREAM_ERROR', 'تعذّر جلب الملف من المصدر الرسمي الآن.');
       }
 
+      const responseMime = String(response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (String(sourceKey).toLowerCase() === 'ted' && responseMime &&
+          !['application/pdf', 'application/x-pdf', 'application/octet-stream', 'binary/octet-stream'].includes(responseMime)) {
+        await cancelBody(response);
+        if (moveToTedFallback()) {
+          console.warn('[public-document] TED endpoint returned non-PDF content; trying official PDF endpoint', JSON.stringify({
+            status: response.status, contentType: responseMime, url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
+        throw appError(415, 'UNSUPPORTED_MEDIA_TYPE', 'أعاد TED صفحة HTML بدلاً من ملف PDF.');
+      }
       const type = fileInfo(current.toString(), response.headers.get('content-type') || '', sourceKey);
       const declaredLength = Number(response.headers.get('content-length'));
       if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
@@ -181,6 +231,16 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         throw appError(413, 'DOCUMENT_TOO_LARGE', 'حجم وثيقة المصدر يتجاوز الحد المسموح في MMC.');
       }
       if (!response.body) {
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED returned an empty response; trying official alternate PDF link', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
         if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
           tedEmptyRetries++;
           console.warn('[public-document] TED empty response; retrying once', JSON.stringify({
@@ -193,14 +253,6 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
           }));
           redirects--;
           continue;
-        }
-        if (String(sourceKey).toLowerCase() === 'ted') {
-          console.warn('[public-document] TED response has no body', JSON.stringify({
-            status: response.status,
-            contentType: response.headers.get('content-type') || null,
-            contentLength: response.headers.get('content-length') || null,
-            url: current.origin + current.pathname
-          }));
         }
         throw appError(502, 'DOCUMENT_EMPTY', 'لم يُرجع المصدر محتوى الملف.');
       }
@@ -217,6 +269,17 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         chunks.push(buffer);
       }
       if (!size) {
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED returned zero bytes; trying official alternate PDF link', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            receivedBytes: size,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
         if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
           tedEmptyRetries++;
           console.warn('[public-document] TED response body is empty; retrying once', JSON.stringify({
@@ -231,29 +294,18 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
           redirects--;
           continue;
         }
-        if (String(sourceKey).toLowerCase() === 'ted') {
-          console.warn('[public-document] TED response body is empty', JSON.stringify({
-            status: response.status,
-            contentType: response.headers.get('content-type') || null,
-            contentLength: response.headers.get('content-length') || null,
-            contentEncoding: response.headers.get('content-encoding') || null,
-            url: current.origin + current.pathname
-          }));
-        }
         throw appError(502, 'DOCUMENT_EMPTY', 'الملف المستلم من المصدر فارغ.');
       }
       const buffer = Buffer.concat(chunks, size);
       // Never trust a .pdf URL or MIME header by itself. Reject HTML/login pages
       // and any response that does not contain a real PDF header near the start.
       if (type.ext === '.pdf' && !buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
-        if (String(sourceKey).toLowerCase() === 'ted') {
-          console.warn('[public-document] TED response is not a PDF signature', JSON.stringify({
-            status: response.status,
-            contentType: response.headers.get('content-type') || null,
-            contentLength: response.headers.get('content-length') || null,
-            receivedBytes: size,
-            url: current.origin + current.pathname
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED response lacked PDF signature; trying official alternate endpoint', JSON.stringify({
+            url: current.origin + current.pathname, receivedBytes: size
           }));
+          redirects--;
+          continue;
         }
         throw appError(415, 'UNSUPPORTED_MEDIA_TYPE', 'لم يُرجع المصدر ملف PDF صالحاً؛ قد تكون الاستجابة صفحة HTML أو صفحة تسجيل دخول.');
       }
