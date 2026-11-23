@@ -350,7 +350,7 @@ function start() {
               pdfSignature: isPdf,
               url: testUrl
             }));
-            if (isPdf) break;
+            // Continue to compare the browser-like request even after a valid PDF.
           } catch (error) {
             console.warn('[TED-PDF-DIAG] ' + JSON.stringify({ service: 'frankfurt-preview', attempt: attempt.name, error: error.message }));
           } finally {
