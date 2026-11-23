@@ -153,13 +153,20 @@ router.get('/contractor/opportunities/:id', (req,res) => {
   if(!row) return res.status(404).json({error:{code:'NOT_FOUND',message:'العطاء غير موجود أو غير منشور.'}});
   let details={};
   try { details=row.details_json?JSON.parse(row.details_json):{}; } catch (_) { details={}; }
+  // TED notice representations are not separate tender attachments. Show only
+  // the one canonical English PDF URL; historical syncs may have stored several
+  // duplicate PDF/HTML/XML representation links. This filters presentation only
+  // and does not delete or rewrite any existing document records.
+  const tedPdfUrl=row.source_key==='ted'
+    ? 'https://ted.europa.eu/en/notice/'+encodeURIComponent(row.tender_number||'')+'/pdf'
+    : '';
   const documents=db.prepare(`
     SELECT id,label,availability,document_url,storage_key,downloaded_at
     FROM tender_opportunity_public_documents
     WHERE opportunity_id=?
-      AND (? <> 'ted' OR lower(document_url) LIKE '%/pdf' OR lower(document_url) LIKE '%/pdf?%')
+      AND (? <> 'ted' OR document_url=?)
     ORDER BY created_at,id
-  `).all(row.id,row.source_key).map(doc=>({
+  `).all(row.id,row.source_key,tedPdfUrl).map(doc=>({
     id:doc.id,label:doc.label,availability:doc.availability,
     downloadUrl:doc.availability==='public-source-link' && isAllowedPublicDocumentUrl(row.source_key,doc.document_url)
       ? '/api/public/contractor/opportunities/'+encodeURIComponent(row.id)+'/documents/'+encodeURIComponent(doc.id)+'/download' : null,
