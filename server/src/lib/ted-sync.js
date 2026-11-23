@@ -41,7 +41,7 @@ function isoDate(value){
 }
 function countryCode(value){
  const raw=firstText(value).toUpperCase();
- const map={AUT:'AT',BEL:'BE',BGR:'BG',HRV:'HR',CYP:'CY',CZE:'CZ',DNK:'DK',EST:'EE',FIN:'FI',FRA:'FR',DEU:'DE',GRC:'GR',HUN:'HU',IRL:'IE',ITA:'IT',LVA:'LV',LTU:'LT',LUX:'LU',MLT:'MT',NLD:'NL',POL:'PL',PRT:'PT',ROU:'RO',SVK:'SK',SVN:'SI',ESP:'ES',SWE:'SE',ISL:'IS',LIE:'LI',NOR:'NO'};
+ const map={AUT:'AT',BEL:'BE',BGR:'BG',HRV:'HR',CYP:'CY',CZE:'CZ',DNK:'DK',EST:'EE',FIN:'FI',FRA:'FR',DEU:'DE',GRC:'GR',HUN:'HU',IRL:'IE',ITA:'IT',LVA:'LV',LTU:'LT',LUX:'LU',MLT:'MT',NLD:'NL',POL:'PL',PRT:'PT',ROU:'RO',SVK:'SK',SVN:'SI',ESP:'ES',SWE:'SE',ISL:'IS',LIE:'LI',NOR:'NO',ALB:'AL',AND:'AD',ARM:'AM',AZE:'AZ',BIH:'BA',BLR:'BY',CHE:'CH',GBR:'GB',GEO:'GE',MDA:'MD',MCO:'MC',MNE:'ME',MKD:'MK',SMR:'SM',SRB:'RS',TUR:'TR',UKR:'UA',VAT:'VA',XKX:'XK'};
  if(/^[A-Z]{2}$/.test(raw))return raw;
  return map[raw]||'INT';
 }
