@@ -24,6 +24,7 @@ const SOURCE_HOSTS = Object.freeze({
   joneps: ['joneps.gov.jo'],
   ungm: ['ungm.org'],
   worldbank: ['worldbank.org'],
+  ted: ['ted.europa.eu','api.ted.europa.eu'],
   findatender: ['find-tender.service.gov.uk'],
   contractsfinder: ['contractsfinder.service.gov.uk'],
   sell2wales: ['sell2wales.gov.wales','api.sell2wales.gov.wales'],

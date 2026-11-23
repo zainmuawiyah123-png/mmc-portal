@@ -5,7 +5,7 @@ const express = require('express');
 const { getDB } = require('../db');
 const router = express.Router();
 const clean = (v, n=120) => String(v == null ? '' : v).trim().slice(0,n);
-const { isAllowedPublicDocumentUrl } = require('../lib/public-tender-documents');
+const { isAllowedPublicDocumentUrl, downloadPublicDocument, safeDocumentFilename } = require('../lib/public-tender-documents');
 const ammanToday = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman'}).format(new Date());
 
 router.get('/procurement/tenders', (req,res) => {
@@ -88,9 +88,10 @@ router.get('/contractor/opportunities', (req,res) => {
            source_url,application_url,status,language,source_key,imported_at
     FROM tender_opportunities WHERE ${where}
     ORDER BY CASE WHEN status='open' THEN 0 ELSE 1 END, COALESCE(closing_at,'9999-12-31') ASC, imported_at DESC
-    LIMIT 500
+    LIMIT 2000
   `).all(...values);
-  res.setHeader('Cache-Control','public, max-age=60');
+  res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma','no-cache');
   res.json({opportunities:rows.map(r=>({
     id:r.id,title:r.title,authority:r.authority,country:r.country,sector:r.sector,
     tenderNumber:r.tender_number,summary:r.summary,publishedAt:r.published_at,
@@ -153,12 +154,14 @@ router.get('/contractor/opportunities/:id', (req,res) => {
   let details={};
   try { details=row.details_json?JSON.parse(row.details_json):{}; } catch (_) { details={}; }
   const documents=db.prepare(`
-    SELECT id,label,availability,document_url
+    SELECT id,label,availability,document_url,storage_key,downloaded_at
     FROM tender_opportunity_public_documents
     WHERE opportunity_id=? ORDER BY created_at,id
   `).all(row.id).map(doc=>({
     id:doc.id,label:doc.label,availability:doc.availability,
-    documentUrl:doc.availability==='public-source-link' && isAllowedPublicDocumentUrl(row.source_key,doc.document_url) ? doc.document_url : null
+    downloadUrl:doc.availability==='public-source-link' && isAllowedPublicDocumentUrl(row.source_key,doc.document_url)
+      ? '/api/public/contractor/opportunities/'+encodeURIComponent(row.id)+'/documents/'+encodeURIComponent(doc.id)+'/download' : null,
+    cached:Boolean(doc.storage_key),downloadedAt:doc.downloaded_at?new Date(doc.downloaded_at*1000).toISOString():null
   }));
   res.setHeader('Cache-Control','public, max-age=30');
   res.json({
@@ -170,6 +173,35 @@ router.get('/contractor/opportunities/:id', (req,res) => {
     },
     details,documents
   });
+});
+
+
+// Public-source documents may be downloaded without an MMC account.
+// Only published notices and explicitly public, allow-listed source URLs are eligible.
+router.get('/contractor/opportunities/:id/documents/:documentId/download', async (req,res,next) => {
+  try {
+    const db=getDB();
+    const doc=db.prepare(`
+      SELECT d.id,d.label,d.availability,d.document_url,o.source_key,o.status
+      FROM tender_opportunity_public_documents d
+      JOIN tender_opportunities o ON o.id=d.opportunity_id
+      WHERE d.id=? AND o.id=? AND o.status IN ('open','closed')
+    `).get(req.params.documentId,req.params.id);
+    if(!doc) return res.status(404).json({error:{code:'NOT_FOUND',message:'وثيقة الإعلان غير موجودة أو غير منشورة.'}});
+    if(doc.availability!=='public-source-link' || !isAllowedPublicDocumentUrl(doc.source_key,doc.document_url)) {
+      return res.status(403).json({error:{code:'DOCUMENT_NOT_PUBLIC',message:'هذه الوثيقة ليست ملفاً عاماً متاحاً للتنزيل دون تسجيل.'}});
+    }
+    const fetched=await downloadPublicDocument(doc.source_key,doc.document_url);
+    const filename=safeDocumentFilename(doc.label,fetched.finalUrl,fetched.mime);
+    const fallback=filename.replace(/[^\\x20-\\x7e]/g,'_').replace(/["\\\\]/g,'_').slice(0,140)||'tender-notice';
+    const encoded=encodeURIComponent(filename).replace(/[!'()*]/g,ch=>'%'+ch.charCodeAt(0).toString(16).toUpperCase());
+    res.setHeader('Content-Type',fetched.mime||'application/octet-stream');
+    res.setHeader('Content-Length',String(fetched.buffer.length));
+    res.setHeader('Content-Disposition',`attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`);
+    res.setHeader('X-Content-Type-Options','nosniff');
+    res.setHeader('Cache-Control','public, max-age=300');
+    res.send(fetched.buffer);
+  } catch(err) { next(err); }
 });
 
 module.exports = router;

@@ -79,7 +79,7 @@ router.get('/feed', A.requireAuth, A.requireRole(...MARKET_ROLES), wrap(async (r
   stats:{open:openN(), closingSoon:openN('closing_at IS NOT NULL AND closing_at<=?',ymd(7)), newThisWeek:openN('imported_at>=?',Math.floor(Date.now()/1000)-7*86400),
    saved:db.prepare('SELECT COUNT(*) n FROM opportunity_saved WHERE user_id=?').get(me).n},
   openBySource:group('source_key'), openByCountry:group('country'),
-  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','austender','vendorpanel-australia','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof'],
+  connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','austender','vendorpanel-australia','findatender','contractsfinder','pcs','sell2wales','ted','etimad-saudi','uae-mof'],
 	 lastSyncBySource:Object.fromEntries(last.map(r=>[r.source_key,new Date(r.t*1000).toISOString()]))});
 }));
 
@@ -267,6 +267,12 @@ router.post('/admin/sync/vendorpanel-australia', wrap(async(req,res)=>{
 router.post('/admin/sync/austender', wrap(async(req,res)=>{
  const result=await runAndRecordSync('austender',()=>require('../lib/austender-sync').syncAusTender());
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'austender',added:result.added,updated:result.updated,received:result.received}});
+ res.json({ok:true,...result});
+}));
+
+router.post('/admin/sync/ted', wrap(async(req,res)=>{
+ const result=await runAndRecordSync('ted',()=>require('../lib/ted-sync').syncTED({days:90,pages:8,rows:100}));
+ audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'ted',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
 }));
 

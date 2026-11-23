@@ -290,6 +290,25 @@ function start() {
     }
 
     require('./lib/scheduler').startScheduler();
+    // Rebuild preview tender directory from all configured public feeds on every
+    // service start. This is independent of the legacy TED-only startup flag.
+    setTimeout(async () => {
+      const scheduler = require('./lib/scheduler');
+      // Run Jordan + Australia + global feeds first. UK endpoints can be slow
+      // and must not hold back every other country after a preview restart.
+      try {
+        const general = await scheduler.runOpportunitySyncJob();
+        console.log('[international-startup] general feeds complete: '+JSON.stringify(general));
+      } catch (err) {
+        console.error('[international-startup] general feeds failed:', err.message);
+      }
+      try {
+        const uk = await scheduler.runUKOpportunitySyncJob();
+        console.log('[international-startup] UK feeds complete: '+JSON.stringify(uk));
+      } catch (err) {
+        console.error('[international-startup] UK feeds failed:', err.message);
+      }
+    }, 5000).unref();
 
     console.log('  البوابة      : http://localhost:' + config.PORT + '/portal/pt-9f3c7a1e5b2d/login.html');
     console.log('  الملفات      : ' + (config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5')));
