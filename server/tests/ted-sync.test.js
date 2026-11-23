@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {normalizeTEDNotice,firstText,noticeLinks}=require('../src/lib/ted-sync');
+const {normalizeTEDNotice,firstText,tedLanguageCode,noticeLinks}=require('../src/lib/ted-sync');
 const {downloadPublicDocument}=require('../src/lib/public-tender-documents');
 
 test('TED notice is normalized with one canonical PDF representation and a separate official notice URL',()=>{
@@ -11,6 +11,7 @@ test('TED notice is normalized with one canonical PDF representation and a separ
   'notice-title':{'eng':'A02 Nordumfahrung Klagenfurt - E&M Wartung und Inspektion'},
   'buyer-name':{'eng':'Autobahnen- und Schnellstraßen-Finanzierungs-Aktiengesellschaft'},
   'buyer-country':'AUT',
+  'official-language':'DEU',
   'classification-cpv':['50000000'],
   'deadline-receipt-tender-date-lot':['2026-11-24'],
   'notice-type':'cn-standard',
@@ -23,7 +24,10 @@ test('TED notice is normalized with one canonical PDF representation and a separ
  assert.equal(item.status,'open');
  assert.equal(item.documents.length,1);
  assert.equal(item.documents[0].format,'pdf');
- assert.equal(item.documents[0].url,'https://ted.europa.eu/en/notice/806685-2026/pdf');
+ assert.equal(item.documents[0].url,'https://ted.europa.eu/de/notice/806685-2026/pdf');
+ assert.equal(item.details.officialLanguage,'de');
+ assert.equal(item.language,'de');
+ assert.equal(item.sourceUrl,'https://ted.europa.eu/de/notice/-/detail/806685-2026');
  assert.equal(item.details.officialLinks.length,1);
  assert.equal(item.sourceUrl,'https://ted.europa.eu/en/notice/806685-2026');
 });
@@ -38,11 +42,17 @@ test('TED text fields support language maps and nested arrays',()=>{
  assert.equal(firstText([null,{'eng':'Nested title'}]),'Nested title');
 });
 
+test('TED official language codes map to TED URL language prefixes',()=>{
+ assert.equal(tedLanguageCode('DEU'),'de');
+ assert.equal(tedLanguageCode('ENG'),'en');
+ assert.equal(tedLanguageCode('FRA'),'fr');
+});
+
 test('TED notice links contain exactly one canonical PDF URL',()=>{
- const links=noticeLinks({},'806685-2026');
+ const links=noticeLinks({},'806685-2026','de');
  assert.equal(links.length,1);
  assert.equal(links[0].title,'Official TED notice PDF');
- assert.equal(links[0].url,'https://ted.europa.eu/en/notice/806685-2026/pdf');
+ assert.equal(links[0].url,'https://ted.europa.eu/de/notice/806685-2026/pdf');
  assert.equal(links[0].format,'pdf');
 });
 
