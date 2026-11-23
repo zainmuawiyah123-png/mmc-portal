@@ -343,6 +343,33 @@ function start() {
             pdfSignature: result.buffer.subarray(0, 1024).includes(Buffer.from('%PDF-')),
             finalUrl: result.finalUrl
           }));
+          // Exercise the authenticated relay HTTP route from inside the Frankfurt
+          // service. This verifies the same POST contract production will call.
+          const relayToken = String(process.env.TED_RELAY_TOKEN || '');
+          if (!relayToken) throw new Error('TED_RELAY_TOKEN is not configured');
+          const relayResponse = await fetch('http://127.0.0.1:' + config.PORT + '/api/internal/ted-relay', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + relayToken,
+              'Content-Type': 'application/json',
+              'Accept': 'application/pdf'
+            },
+            body: JSON.stringify({ url: 'https://ted.europa.eu/en/notice/800271-2026/pdfs' }),
+            signal: AbortSignal.timeout(35000)
+          });
+          const relayBytes = Buffer.from(await relayResponse.arrayBuffer());
+          const relayIsPdf = relayResponse.headers.get('content-type') === 'application/pdf' &&
+            relayBytes.subarray(0, 1024).includes(Buffer.from('%PDF-'));
+          console.log('[TED-RELAY-SELF-TEST] ' + JSON.stringify({
+            ok: relayResponse.status === 200 && relayIsPdf,
+            status: relayResponse.status,
+            mime: relayResponse.headers.get('content-type'),
+            bytes: relayBytes.length,
+            pdfSignature: relayIsPdf
+          }));
+          if (!relayResponse.ok || !relayIsPdf) {
+            throw new Error('Authenticated TED relay self-test did not return a verified PDF');
+          }
         } catch (error) {
           console.error('[TED-DOWNLOADER-TEST] ' + JSON.stringify({ok:false,code:error.code,message:error.message}));
         }
