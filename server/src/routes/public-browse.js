@@ -226,7 +226,60 @@ router.get('/contractor/opportunities/:id/documents/:documentId/download', async
     if(doc.availability!=='public-source-link' || !isAllowedPublicDocumentUrl(doc.source_key,doc.document_url)) {
       return res.status(403).json({error:{code:'DOCUMENT_NOT_PUBLIC',message:'هذه الوثيقة ليست ملفاً عاماً متاحاً للتنزيل دون تسجيل.'}});
     }
-    const fetched=await downloadPublicDocument(doc.source_key,doc.document_url);
+    let fetched;
+    if (String(doc.source_key).toLowerCase() === 'ted') {
+      const relayUrl = String(process.env.TED_PDF_RELAY_URL || '');
+      const relayToken = String(process.env.TED_PDF_RELAY_TOKEN || '');
+      const expectedRelayUrl = 'https://mmc-international-tenders-preview.onrender.com/api/internal/ted-relay';
+      if (relayUrl !== expectedRelayUrl || !relayToken) {
+        const error = new Error('خدمة تمرير وثائق TED غير مهيأة في الإنتاج.');
+        error.status = 503;
+        error.code = 'TED_RELAY_NOT_CONFIGURED';
+        throw error;
+      }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45000);
+      try {
+        const relayResponse = await fetch(relayUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + relayToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/pdf'
+          },
+          body: JSON.stringify({ url: doc.document_url }),
+          signal: controller.signal
+        });
+        if (!relayResponse.ok) {
+          const relayError = new Error('تعذّر جلب وثيقة TED عبر خدمة الربط الآمنة.');
+          relayError.status = relayResponse.status === 401 ? 503 : 502;
+          relayError.code = 'TED_RELAY_UPSTREAM_FAILED';
+          throw relayError;
+        }
+        const mime = String(relayResponse.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+        const buffer = Buffer.from(await relayResponse.arrayBuffer());
+        if (mime !== 'application/pdf' || !buffer.length ||
+            !buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+          const error = new Error('لم تُرجع خدمة TED ملف PDF صالحاً.');
+          error.status = 502;
+          error.code = 'TED_RELAY_INVALID_PDF';
+          throw error;
+        }
+        fetched = { buffer, mime: 'application/pdf', finalUrl: doc.document_url };
+      } catch (error) {
+        if (error && error.name === 'AbortError') {
+          const timeoutError = new Error('انتهت مهلة الاتصال بخدمة وثائق TED.');
+          timeoutError.status = 504;
+          timeoutError.code = 'TED_RELAY_TIMEOUT';
+          throw timeoutError;
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
+    } else {
+      fetched = await downloadPublicDocument(doc.source_key,doc.document_url);
+    }
     const filename=safeDocumentFilename(doc.label,fetched.finalUrl,fetched.mime);
     const fallback=filename.replace(/[^\\x20-\\x7e]/g,'_').replace(/["\\\\]/g,'_').slice(0,140)||'tender-notice';
     const encoded=encodeURIComponent(filename).replace(/[!'()*]/g,ch=>'%'+ch.charCodeAt(0).toString(16).toUpperCase());
