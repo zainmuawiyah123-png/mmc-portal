@@ -329,10 +329,12 @@ test('OPP-09 — تفاصيل العطاء والوثائق العامة تُع�
   assert.ok(tenderDirectory.includes('data-opportunity-detail'));
   assert.ok(tenderDirectory.includes('showOpportunityDetails'));
   assert.ok(tenderDirectory.includes('data-doc-download'));
-  assert.ok(tenderDirectory.includes('Download via MMC (public file)'));
+  assert.ok(tenderDirectory.includes('Download via MMC (official TED file)'));
   assert.match(tenderDirectory,/href="'\+esc\(doc\.downloadUrl\)\+'" download data-doc-download/);
   assert.ok(tenderDirectory.includes("method:'HEAD'"));
-  assert.ok(tenderDirectory.includes('payload.error?.message'));
+  assert.ok(tenderDirectory.includes("headers:{Accept:'application/pdf'}"));
+  assert.ok(tenderDirectory.includes("contentType==='application/pdf'||contentType==='application/octet-stream'"));
+  assert.ok(tenderDirectory.includes('The server returned a JSON error instead of a PDF.'));
   assert.ok(tenderDirectory.includes('window.location.href=link.href'));
   assert.ok(!tenderDirectory.includes('URL.createObjectURL'));
   assert.ok(!tenderDirectory.includes('a.href=url'));
