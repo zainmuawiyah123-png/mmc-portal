@@ -10,7 +10,7 @@ const API_URL='https://api.ted.europa.eu/v3/notices/search';
 const PAGE_SIZE=100;
 const FIELDS=[
  'publication-number','publication-date','notice-title','buyer-name',
- 'buyer-country','official-language','classification-cpv','place-of-performance',
+ 'buyer-country','document-official-language-lot','document-official-language-part','classification-cpv','place-of-performance',
  'deadline-receipt-tender-date-lot','deadline-receipt-request-date-lot',
  'notice-type','procedure-type','estimated-value-proc','estimated-value-cur-proc',
  'document-url-lot','document-url-part','document-restricted-url-lot','document-restricted-url-part',
@@ -85,7 +85,7 @@ function normalizeTEDNotice(row,now=Date.now()){
  const buyer=firstText(row['buyer-name'])||'EU public contracting authority';
  const buyerCountry=countryCode(row['buyer-country']);
  const performance=flattenValues(row['place-of-performance']).filter(Boolean).slice(0,12).join(' · ');
- const officialLanguage=tedLanguageCode(row['official-language']);
+ const officialLanguage=tedLanguageCode(row['document-official-language-lot']||row['document-official-language-part']);
  const type=firstText(row['notice-type']);
  const procedure=firstText(row['procedure-type']);
  const value=firstText(row['estimated-value-proc']);
