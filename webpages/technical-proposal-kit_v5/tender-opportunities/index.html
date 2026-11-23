@@ -158,23 +158,11 @@
     (docRows?'<ul>'+docRows+'</ul>':'<p class="muted">'+(en?'No direct public attachment was found in the source record. Official copies may require vendor registration or purchase.':'لم يتضمن سجل المصدر مرفقاً عاماً مباشراً. قد تتطلب النسخة الرسمية التسجيل كمورد أو شراء الوثائق.')+'</p>')+
     '<p class="muted">'+(en?'MMC saves a publicly downloadable file to the configured platform storage on its first download. It does not bypass vendor registration or document fees.':'يحفظ MMC الملف العام في مساحة تخزين المنصة عند أول تنزيل، ولا يتجاوز تسجيل المورد أو رسوم الوثائق.')+'</p>'+
     '<p><a href="'+esc(op.sourceUrl||o.sourceUrl)+'" target="_blank" rel="noopener">'+(en?'Official source notice ↗':'الإعلان لدى المصدر الرسمي ↗')+'</a></p>';
-   panel.querySelectorAll('[data-doc-download]').forEach(link=>link.addEventListener('click',async e=>{
-    e.preventDefault();if(link.getAttribute('aria-disabled')==='true')return;
+   panel.querySelectorAll('[data-doc-download]').forEach(link=>link.addEventListener('click',()=>{
     const status=document.getElementById(link.getAttribute('data-doc-status'));
-    link.setAttribute('aria-disabled','true');
-    if(status)status.textContent=en?'Checking the public file...':'جارٍ التحقق من الملف العام...';
-    try{
-     const probe=await fetch(link.href,{method:'HEAD',credentials:'same-origin'});
-     const type=probe.headers.get('content-type')||'',disposition=probe.headers.get('content-disposition')||'';
-     if(!probe.ok||/application\/json|text\/html/i.test(type)||!/attachment/i.test(disposition)){
-      const response=await fetch(link.href,{credentials:'same-origin'});let payload={};try{payload=await response.json();}catch(_){}
-      throw new Error(payload.error?.message||(en?'The file is unavailable or requires access from the source':'الملف غير متاح أو يتطلب صلاحية من المصدر'));
-     }
-     if(status)status.textContent=en?'Starting the download from MMC...':'بدأ التنزيل من MMC...';
-     window.location.href=link.href;
-     setTimeout(()=>link.removeAttribute('aria-disabled'),5000);
-    }catch(err){if(status)status.textContent=err.message;link.removeAttribute('aria-disabled');}
+    if(status)status.textContent=en?'Opening the public file...':'جارٍ فتح الملف العام...';
    }));
+
   }catch(err){panel.textContent=err.message;}
  }
  window.reloadTenderList=load;
