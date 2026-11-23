@@ -295,6 +295,26 @@ function start() {
         const started = Date.now();
         try { const result = await require('./lib/ted-sync').syncTED({days:90,pages:8,rows:100}); require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:true,...result}); console.log('[TED] startup import complete: '+JSON.stringify(result)); }
         catch (err) { require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:false,error:err.message}); console.error('[TED] startup import failed:',err.message); }
+
+        const runStartupSource = async (source, fn) => {
+          const sourceStarted = Date.now();
+          try {
+            const result = await fn();
+            require('./lib/scheduler').persistOpportunitySync(source, sourceStarted, {ok:true,...result});
+            console.log('[international-startup] '+source+' import complete: '+JSON.stringify(result));
+          } catch (err) {
+            require('./lib/scheduler').persistOpportunitySync(source, sourceStarted, {ok:false,error:err.message});
+            console.error('[international-startup] '+source+' import failed:', err.message);
+          }
+        };
+        try {
+          await require('./lib/scheduler').runUKOpportunitySyncJob();
+        } catch (err) {
+          console.error('[international-startup] UK source cycle failed:', err.message);
+        }
+        await runStartupSource('apc', () => require('./lib/apc-sync').syncAPC());
+        await runStartupSource('austender', () => require('./lib/austender-sync').syncAusTender());
+        await runStartupSource('vendorpanel-australia', () => require('./lib/vendorpanel-australia-sync').syncVendorPanelAustralia());
       }, 3000).unref();
     }
 
