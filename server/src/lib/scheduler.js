@@ -117,6 +117,7 @@ async function runOpportunitySyncJob() {
   await runSource('nepco',()=>require('./nepco-sync').syncNEPCO());
   await runSource('jpmc',()=>require('./jpmc-curated-sync').syncJPMCCurated());
   await runSource('worldbank',()=>require('./opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
+  await runSource('ted',()=>require('./ted-sync').syncTED({days:45,pages:5,rows:100}));
   if(config.UNGM_ACCESS_TOKEN) await runSource('ungm',()=>require('./ungm-sync').syncUNGM({accessToken:config.UNGM_ACCESS_TOKEN,rows:100,pages:5}));
   else { results.ungm={ok:false,skipped:true,error:'UNGM_ACCESS_TOKEN is not configured'}; persistOpportunitySync('ungm',Date.now(),results.ungm); }
   const ms=Date.now()-started;
