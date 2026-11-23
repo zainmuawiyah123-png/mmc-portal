@@ -179,7 +179,17 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         await cancelBody(response);
         throw appError(413, 'DOCUMENT_TOO_LARGE', 'حجم وثيقة المصدر يتجاوز الحد المسموح في MMC.');
       }
-      if (!response.body) throw appError(502, 'DOCUMENT_EMPTY', 'لم يُرجع المصدر محتوى الملف.');
+      if (!response.body) {
+        if (String(sourceKey).toLowerCase() === 'ted') {
+          console.warn('[public-document] TED response has no body', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            url: current.origin + current.pathname
+          }));
+        }
+        throw appError(502, 'DOCUMENT_EMPTY', 'لم يُرجع المصدر محتوى الملف.');
+      }
 
       const chunks = [];
       let size = 0;
@@ -192,11 +202,31 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         }
         chunks.push(buffer);
       }
-      if (!size) throw appError(502, 'DOCUMENT_EMPTY', 'الملف المستلم من المصدر فارغ.');
+      if (!size) {
+        if (String(sourceKey).toLowerCase() === 'ted') {
+          console.warn('[public-document] TED response body is empty', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            contentEncoding: response.headers.get('content-encoding') || null,
+            url: current.origin + current.pathname
+          }));
+        }
+        throw appError(502, 'DOCUMENT_EMPTY', 'الملف المستلم من المصدر فارغ.');
+      }
       const buffer = Buffer.concat(chunks, size);
       // Never trust a .pdf URL or MIME header by itself. Reject HTML/login pages
       // and any response that does not contain a real PDF header near the start.
       if (type.ext === '.pdf' && !buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+        if (String(sourceKey).toLowerCase() === 'ted') {
+          console.warn('[public-document] TED response is not a PDF signature', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            receivedBytes: size,
+            url: current.origin + current.pathname
+          }));
+        }
         throw appError(415, 'UNSUPPORTED_MEDIA_TYPE', 'لم يُرجع المصدر ملف PDF صالحاً؛ قد تكون الاستجابة صفحة HTML أو صفحة تسجيل دخول.');
       }
       return {
