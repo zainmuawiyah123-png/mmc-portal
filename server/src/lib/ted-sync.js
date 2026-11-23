@@ -128,18 +128,18 @@ async function postSearch(body,{timeoutMs=60000,attempts=4}={}){
 }
 function saveTEDRows(notices){
  const db=getDB();
- const upsert=db.prepare(\`INSERT INTO tender_opportunities
+ const upsert=db.prepare(`INSERT INTO tender_opportunities
  (id,source_key,external_id,title,authority,country,sector,tender_number,summary,published_at,closing_at,source_url,application_url,status,language,details_json)
  VALUES (@rowId,'ted',@externalId,@title,@authority,@country,@sector,@tenderNumber,@summary,@publishedAt,@closingAt,@sourceUrl,@applicationUrl,@status,@language,@detailsJson)
  ON CONFLICT(source_key,external_id) DO UPDATE SET
  title=excluded.title,authority=excluded.authority,country=excluded.country,sector=excluded.sector,
  tender_number=excluded.tender_number,summary=excluded.summary,published_at=excluded.published_at,
  closing_at=excluded.closing_at,source_url=excluded.source_url,application_url=excluded.application_url,
- status=excluded.status,language=excluded.language,details_json=excluded.details_json,updated_at=unixepoch()\`);
- const addDoc=db.prepare(\`INSERT INTO tender_opportunity_public_documents
+ status=excluded.status,language=excluded.language,details_json=excluded.details_json,updated_at=unixepoch()`);
+ const addDoc=db.prepare(`INSERT INTO tender_opportunity_public_documents
  (id,opportunity_id,label,document_url,availability)
  VALUES (@id,@opportunityId,@label,@url,'public-source-link')
- ON CONFLICT(opportunity_id,document_url) DO UPDATE SET label=excluded.label\`);
+ ON CONFLICT(opportunity_id,document_url) DO UPDATE SET label=excluded.label`);
  const tx=db.transaction(items=>{
   let added=0,updated=0,documents=0;
   for(const item of items){
