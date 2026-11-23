@@ -73,6 +73,29 @@ function createApp() {
   /* ---------------- API ---------------- */
   // Strictly read-only, sanitized public listings; protected routers remain unchanged.
   app.use('/api/public', publicBrowseRoutes);
+
+  // Preview-only TED relay endpoint: fixed public notice, no database writes.
+  // This validates the Frankfurt relay response without changing production.
+  if (process.env.RENDER_SERVICE_ID === 'srv-dc1uvr6c6qcc73bumrdg') {
+    app.get('/api/public/ted-relay-test', async (req, res) => {
+      try {
+        const { downloadPublicDocument } = require('./lib/public-tender-documents');
+        const file = await downloadPublicDocument('ted', 'https://ted.europa.eu/en/notice/800271-2026/pdf');
+        if (!file.buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+          return res.status(502).json({ error: { code: 'TED_RELAY_INVALID_PDF' } });
+        }
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="TED-800271-2026.pdf"');
+        res.setHeader('Content-Length', String(file.buffer.length));
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-MMC-TED-Final-URL', file.finalUrl);
+        return res.status(200).send(file.buffer);
+      } catch (error) {
+        console.error('[TED-RELAY-TEST] ' + JSON.stringify({ code: error.code || 'ERROR', message: error.message }));
+        return res.status(error.status || 502).json({ error: { code: error.code || 'TED_RELAY_FAILED', message: error.message } });
+      }
+    });
+  }
   app.get('/api/health', (req, res) => {
     const db = require('./db').getDB();
     const users = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
