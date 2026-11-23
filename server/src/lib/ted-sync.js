@@ -10,7 +10,7 @@ const API_URL='https://api.ted.europa.eu/v3/notices/search';
 const PAGE_SIZE=100;
 const FIELDS=[
  'publication-number','publication-date','notice-title','buyer-name',
- 'buyer-country','classification-cpv','place-of-performance',
+ 'buyer-country','official-language','classification-cpv','place-of-performance',
  'deadline-receipt-tender-date-lot','deadline-receipt-request-date-lot',
  'notice-type','procedure-type','estimated-value-proc','estimated-value-cur-proc',
  'document-url-lot','document-url-part','document-restricted-url-lot','document-restricted-url-part',
@@ -61,10 +61,15 @@ function officialPortalLinks(row){
  ];
  const seen=new Set();return links.filter(x=>{if(seen.has(x.url))return false;seen.add(x.url);return true;}).slice(0,20);
 }
-function noticeLinks(row,publicationNumber){
- // TED's notice PDF is a single representation of the notice, not a set of
- // independently attached procurement files. Keep one canonical PDF action.
- const base='https://ted.europa.eu/en/notice/'+encodeURIComponent(publicationNumber);
+function tedLanguageCode(value){
+ const raw=firstText(value).trim().toUpperCase();
+ if(/^[A-Z]{2}$/.test(raw))return raw.toLowerCase();
+ const map={"ENG":"en","DEU":"de","FRA":"fr","NLD":"nl","ELL":"el","ITA":"it","SPA":"es","POR":"pt","POL":"pl","CES":"cs","SLK":"sk","SLV":"sl","HRV":"hr","HUN":"hu","RON":"ro","BUL":"bg","DAN":"da","SWE":"sv","FIN":"fi","EST":"et","LAV":"lv","LIT":"lt","MLT":"mt","GLE":"ga"};
+ return map[raw]||'en';
+}
+function noticeLinks(row,publicationNumber,language='en'){
+ // TED direct links are language-specific; use the notice's official language.
+ const base='https://ted.europa.eu/'+language+'/notice/'+encodeURIComponent(publicationNumber);
  return [{title:'Official TED notice PDF',url:base+'/pdf',format:'pdf'}];
 }
 function normalizeTEDNotice(row,now=Date.now()){
@@ -80,18 +85,19 @@ function normalizeTEDNotice(row,now=Date.now()){
  const buyer=firstText(row['buyer-name'])||'EU public contracting authority';
  const buyerCountry=countryCode(row['buyer-country']);
  const performance=flattenValues(row['place-of-performance']).filter(Boolean).slice(0,12).join(' · ');
+ const officialLanguage=tedLanguageCode(row['official-language']);
  const type=firstText(row['notice-type']);
  const procedure=firstText(row['procedure-type']);
  const value=firstText(row['estimated-value-proc']);
  const currency=firstText(row['estimated-value-cur-proc']);
  const expired=closing ? new Date(closing).getTime()<now : false;
- const docs=noticeLinks(row,publicationNumber);
+ const docs=noticeLinks(row,publicationNumber,officialLanguage);
  const procurementDocuments=officialPortalLinks(row);
  const submissionUrls=flattenValues(row['submission-url-lot']).map(safeOfficialHttps).filter(Boolean);
- const sourceUrl='https://ted.europa.eu/en/notice/'+encodeURIComponent(publicationNumber);
+ const sourceUrl='https://ted.europa.eu/'+officialLanguage+'/notice/-/detail/'+encodeURIComponent(publicationNumber);
  const details={
   source:'TED – Tenders Electronic Daily',
-  publicationNumber,publicationDate:published,noticeType:type,procedureType:procedure,
+  publicationNumber,publicationDate:published,officialLanguage,noticeType:type,procedureType:procedure,
   buyerName:buyer,buyerCountry,classificationCPV:cpv||null,
   placeOfPerformance:performance||null,estimatedValue:value||null,
   estimatedValueCurrency:currency||null,
@@ -105,7 +111,7 @@ function normalizeTEDNotice(row,now=Date.now()){
   sector:cpv||null,tenderNumber:publicationNumber,
   summary:[type,procedure,performance].filter(Boolean).join(' · ')||null,
   publishedAt:published,closingAt:closing,sourceUrl,applicationUrl:null,
-  status:expired?'closed':'open',language:'en',details,documents:docs
+  status:expired?'closed':'open',language:officialLanguage,details,documents:docs
  };
 }
 async function postSearch(body,{timeoutMs=60000,attempts=4}={}){
@@ -183,4 +189,4 @@ async function syncTED({days=45,pages=5,rows=100}={}){
  const counts=saveTEDRows(mapped);
  return {...counts,received,normalized:mapped.length,source:'ted',pages:pagesFetched,query};
 }
-module.exports={FIELDS,firstText,normalizeTEDNotice,noticeLinks,syncTED};
+module.exports={FIELDS,firstText,tedLanguageCode,normalizeTEDNotice,noticeLinks,syncTED};
