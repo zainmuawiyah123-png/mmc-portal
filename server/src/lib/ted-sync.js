@@ -12,7 +12,9 @@ const FIELDS=[
  'publication-number','publication-date','notice-title','buyer-name',
  'buyer-country','classification-cpv','place-of-performance',
  'deadline-receipt-tender-date-lot','deadline-receipt-request-date-lot',
- 'notice-type','procedure-type','estimated-value-proc','estimated-value-cur-proc'
+ 'notice-type','procedure-type','estimated-value-proc','estimated-value-cur-proc',
+ 'document-url-lot','document-url-part','document-restricted-url-lot','document-restricted-url-part',
+ 'submission-url-lot'
 ];
 const clean=(v,n=3000)=>String(v==null?'':v).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,n);
 function firstText(value){
@@ -45,8 +47,27 @@ function countryCode(value){
  if(/^[A-Z]{2}$/.test(raw))return raw;
  return map[raw]||'INT';
 }
-function noticeLinks(row){
- const found=[];
+function safeOfficialHttps(value){
+  const raw=clean(value,2000);
+  try{const url=new URL(raw);if(url.protocol!=='https:'||url.username||url.password||(url.port&&url.port!=='443'))return null;return url.toString();}catch(_){return null;}
+}
+function officialPortalLinks(row){
+ const collect=(key,label,access)=>flattenValues(row[key]).map(safeOfficialHttps).filter(Boolean).map(url=>({title:label,url,access}));
+ const links=[
+  ...collect('document-url-lot','Official procurement documents','public'),
+  ...collect('document-url-part','Official procurement documents','public'),
+  ...collect('document-restricted-url-lot','Restricted procurement documents','restricted'),
+  ...collect('document-restricted-url-part','Restricted procurement documents','restricted')
+ ];
+ const seen=new Set();return links.filter(x=>{if(seen.has(x.url))return false;seen.add(x.url);return true;}).slice(0,20);
+}
+function noticeLinks(row,publicationNumber){
+ const base='https://ted.europa.eu/en/notice/'+encodeURIComponent(publicationNumber);
+ const found=[
+  {title:'Official TED notice PDF',url:base+'/pdf'},
+  {title:'Official TED notice HTML',url:base+'/html'},
+  {title:'Official TED notice XML',url:base+'/xml'}
+ ];
  const walk=(value,label='Tender document',depth=0)=>{
   if(depth>5||value==null)return;
   if(typeof value==='string'){
@@ -83,8 +104,10 @@ function normalizeTEDNotice(row,now=Date.now()){
  const value=firstText(row['estimated-value-proc']);
  const currency=firstText(row['estimated-value-cur-proc']);
  const expired=closing ? new Date(closing).getTime()<now : false;
- const docs=noticeLinks(row);
- const sourceUrl='https://ted.europa.eu/en/notice/-/detail/'+encodeURIComponent(publicationNumber);
+ const docs=noticeLinks(row,publicationNumber);
+ const procurementDocuments=officialPortalLinks(row);
+ const submissionUrls=flattenValues(row['submission-url-lot']).map(safeOfficialHttps).filter(Boolean);
+ const sourceUrl='https://ted.europa.eu/en/notice/'+encodeURIComponent(publicationNumber);
  const details={
   source:'TED – Tenders Electronic Daily',
   publicationNumber,publicationDate:published,noticeType:type,procedureType:procedure,
@@ -92,7 +115,9 @@ function normalizeTEDNotice(row,now=Date.now()){
   placeOfPerformance:performance||null,estimatedValue:value||null,
   estimatedValueCurrency:currency||null,
   deadlines:deadlines,
-  officialLinks:docs
+  officialLinks:docs,
+  procurementDocuments,
+  submissionUrl:submissionUrls[0]||null
  };
  return {
   id:publicationNumber,title,authority:buyer,country:buyerCountry,
