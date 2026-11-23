@@ -74,24 +74,33 @@ function createApp() {
   // Strictly read-only, sanitized public listings; protected routers remain unchanged.
   app.use('/api/public', publicBrowseRoutes);
 
-  // Preview-only TED relay endpoint: fixed public notice, no database writes.
-  // This validates the Frankfurt relay response without changing production.
+  // Authenticated Frankfurt TED relay. Accept only official TED URLs and return verified PDF bytes.
   if (process.env.RENDER_SERVICE_ID === 'srv-dc1uvr6c6qcc73bumrdg') {
-    app.get('/api/public/ted-relay-test', async (req, res) => {
+    app.post('/api/internal/ted-relay', async (req, res) => {
+      const configuredToken = String(process.env.TED_RELAY_TOKEN || '');
+      const suppliedToken = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+      if (!configuredToken || suppliedToken.length !== configuredToken.length ||
+          !require('crypto').timingSafeEqual(Buffer.from(suppliedToken), Buffer.from(configuredToken))) {
+        return res.status(401).json({ error: { code: 'TED_RELAY_UNAUTHORIZED' } });
+      }
       try {
-        const { downloadPublicDocument } = require('./lib/public-tender-documents');
-        const file = await downloadPublicDocument('ted', 'https://ted.europa.eu/en/notice/800271-2026/pdf');
-        if (!file.buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+        const { isAllowedPublicDocumentUrl, downloadPublicDocument } = require('./lib/public-tender-documents');
+        const sourceUrl = String(req.body && req.body.url || '');
+        if (!isAllowedPublicDocumentUrl('ted', sourceUrl)) {
+          return res.status(400).json({ error: { code: 'TED_RELAY_URL_NOT_ALLOWED' } });
+        }
+        const file = await downloadPublicDocument('ted', sourceUrl);
+        if (!file.buffer || !file.buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
           return res.status(502).json({ error: { code: 'TED_RELAY_INVALID_PDF' } });
         }
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="TED-800271-2026.pdf"');
+        res.setHeader('Content-Disposition', 'attachment; filename="TED-notice.pdf"');
         res.setHeader('Content-Length', String(file.buffer.length));
         res.setHeader('Cache-Control', 'no-store');
-        res.setHeader('X-MMC-TED-Final-URL', file.finalUrl);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
         return res.status(200).send(file.buffer);
       } catch (error) {
-        console.error('[TED-RELAY-TEST] ' + JSON.stringify({ code: error.code || 'ERROR', message: error.message }));
+        console.error('[TED-RELAY] ' + JSON.stringify({ code: error.code || 'ERROR', message: error.message }));
         return res.status(error.status || 502).json({ error: { code: error.code || 'TED_RELAY_FAILED', message: error.message } });
       }
     });
