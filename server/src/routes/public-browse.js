@@ -153,12 +153,13 @@ router.get('/contractor/opportunities/:id', (req,res) => {
   if(!row) return res.status(404).json({error:{code:'NOT_FOUND',message:'العطاء غير موجود أو غير منشور.'}});
   let details={};
   try { details=row.details_json?JSON.parse(row.details_json):{}; } catch (_) { details={}; }
-  // TED notice representations are not separate tender attachments. Show only
-  // the one canonical English PDF URL; historical syncs may have stored several
-  // duplicate PDF/HTML/XML representation links. This filters presentation only
-  // and does not delete or rewrite any existing document records.
+  // TED notice representations are not separate tender attachments. Use
+  // the canonical PDF URL generated in the notice's official language.
+  // This filters presentation only; stored historical rows are not deleted.
   const tedPdfUrl=row.source_key==='ted'
-    ? 'https://ted.europa.eu/en/notice/'+encodeURIComponent(row.tender_number||'')+'/pdf'
+    ? (Array.isArray(details.officialLinks) && details.officialLinks[0] && details.officialLinks[0].url
+        ? details.officialLinks[0].url
+        : 'https://ted.europa.eu/'+(details.officialLanguage||'en')+'/notice/'+encodeURIComponent(row.tender_number||'')+'/pdf')
     : '';
   const documents=db.prepare(`
     SELECT id,label,availability,document_url,storage_key,downloaded_at
