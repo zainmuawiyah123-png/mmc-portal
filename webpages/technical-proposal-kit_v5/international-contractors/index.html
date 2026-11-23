@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MMC | دليل المقاولين الدولي</title>
+<style>
+:root{--navy:#10263f;--teal:#0f766e;--ink:#182536;--muted:#617184;--line:#dce4eb;--bg:#f4f7fa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.65}
+header{background:linear-gradient(120deg,#10263f,#174b63);color:#fff;padding:24px max(5vw,20px)}
+.wrap{max-width:1100px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{font-weight:800;letter-spacing:.4px}.lang a{color:#fff;border:1px solid #ffffff66;padding:7px 12px;border-radius:8px;text-decoration:none}
+h1{font-size:clamp(27px,4vw,42px);margin:28px 0 8px}.lead{color:#e1edf3;max-width:780px;margin:0 0 12px}
+main{max-width:1100px;margin:28px auto;padding:0 18px}.notice{background:#eaf4f4;border:1px solid #c5e0df;border-radius:12px;padding:14px 16px;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.country{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 5px 18px #10263f0a}
+.country h2{font-size:21px;margin:0 0 5px;color:var(--navy)}.country p{margin:5px 0 14px;color:var(--muted);font-size:14px}
+a.action{display:inline-block;background:var(--teal);color:#fff;text-decoration:none;border-radius:9px;padding:9px 14px;font-weight:700}
+small{display:block;color:var(--muted);margin-top:10px}.tag{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.5px}
+footer{max-width:1100px;margin:28px auto;padding:18px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
+[hidden]{display:none!important}
+body.en{direction:ltr}body.en header{text-align:left}
+@media(max-width:560px){.top{align-items:flex-start}.country{padding:16px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div class="top"><div class="brand">MMC · CONTRACTOR INTELLIGENCE</div><div class="lang"><a href="#" id="toggleLang">English</a></div></div>
+<section id="ar"><h1>دليل المقاولين الدولي</h1><p class="lead">بوابة مستقلة للوصول إلى سجلات ونقابات وهيئات المقاولين الرسمية حسب الدولة. اختر الدولة للانتقال إلى مصدر البحث الرسمي.</p></section>
+<section id="en" hidden><h1>International Contractors Directory</h1><p class="lead">A dedicated gateway to official contractors' associations, licensing authorities and registries by country. Select a country to open its official search source.</p></section>
+</div></header>
+<main>
+<div class="notice" id="noticeAr">تنبيه: هذه الصفحة تربطك بمصادر خارجية رسمية. ظهور الشركة في دليل أو سجل لا يعني تلقائياً أنها مؤهلة لكل مشروع؛ تحقق من الترخيص والتصنيف والنطاق الجغرافي وحالة العضوية مباشرة من الجهة المختصة.</div>
+<div class="notice" id="noticeEn" hidden>Note: This page links to external official sources. A company appearing in a directory does not automatically mean it is qualified for every project. Verify licence, classification, geographic scope and membership status with the relevant authority.</div>
+<div class="grid">
+<article class="country"><div class="tag">JORDAN · JCCA</div><h2>الأردن | Jordan</h2><p id="joAr">نقابة مقاولي الإنشاءات الأردنيين. يحتوي الموقع الرسمي على قاعدة بيانات للمقاولين وخريطة للمقاولين.</p><p id="joEn" hidden>Jordanian Construction Contractors Association. Its official website provides a contractors database and contractor map.</p><a class="action" href="https://jcca.org.jo/" target="_blank" rel="noopener">فتح مصدر النقابة الرسمي ↗</a><small>المصدر: JCCA · بحث وسجل النقابة</small></article>
+<article class="country"><div class="tag">SAUDI ARABIA · SCA</div><h2>السعودية | Saudi Arabia</h2><p id="saAr">منصة مقاول التابعة للهيئة السعودية للمقاولين، للبحث عن منشآت المقاولات المسجلة حسب التخصص والحجم والموقع.</p><p id="saEn" hidden>Muqawil, operated by the Saudi Contractors Authority, searches member contracting establishments by specialty, size and location.</p><a class="action" href="https://muqawil.sa/en/contractors" target="_blank" rel="noopener">فتح بحث المقاولين ↗</a><small>المصدر: Saudi Contractors Authority / Muqawil</small></article>
+<article class="country"><div class="tag">UNITED ARAB EMIRATES</div><h2>الإمارات | UAE</h2><p id="uaeAr">دليل جمعية المقاولين الإماراتية، ويعرض شركات المقاولات والموردين حسب النشاط والإمارة.</p><p id="uaeEn" hidden>UAE Contractors Association directory, listing contractors and construction suppliers by trade and emirate.</p><a class="action" href="https://uaecsd.com/" target="_blank" rel="noopener">فتح دليل المقاولين ↗</a><small>المصدر: UAE Contractors Association directory</small></article>
+<article class="country"><div class="tag">AUSTRALIA · QUEENSLAND</div><h2>أستراليا – كوينزلاند | Queensland</h2><p id="qldAr">هيئة البناء والإنشاءات في كوينزلاند QBCC: البحث عن المقاولين المحليين وسجل تراخيص الشركات والأفراد.</p><p id="qldEn" hidden>Queensland Building and Construction Commission: find local contractors and check company or individual licence records.</p><a class="action" href="https://my.qbcc.qld.gov.au/myQBCC/s/search-a-register" target="_blank" rel="noopener">فتح سجل QBCC ↗</a><small>المصدر: Queensland Building and Construction Commission</small></article>
+<article class="country"><div class="tag">AUSTRALIA · NEW SOUTH WALES</div><h2>أستراليا – نيو ساوث ويلز | NSW</h2><p id="nswAr">سجل حكومة نيو ساوث ويلز للتحقق من رخص المقاولين والحرفيين وحالة الترخيص.</p><p id="nswEn" hidden>NSW Government register to search contractor and tradesperson licences and check their status.</p><a class="action" href="https://verify.licence.nsw.gov.au/home/Trades" target="_blank" rel="noopener">فتح سجل التراخيص ↗</a><small>المصدر: NSW Fair Trading</small></article>
+</div>
+</main>
+<footer id="footAr">MMC International Contractors Directory · روابط المصادر تُراجع وتُحدّث دورياً. الدول التي لم يُعتمد لها مصدر رسمي بعد ستُضاف بعد التحقق.</footer>
+<footer id="footEn" hidden>MMC International Contractors Directory · Source links are reviewed periodically. Additional countries will be added after their official sources are verified.</footer>
+<script>
+const ids=['noticeAr','noticeEn','joAr','joEn','saAr','saEn','uaeAr','uaeEn','qldAr','qldEn','nswAr','nswEn','footAr','footEn'];
+let english=false;
+document.getElementById('toggleLang').addEventListener('click',e=>{e.preventDefault();english=!english;document.body.classList.toggle('en',english);document.documentElement.lang=english?'en':'ar';document.documentElement.dir=english?'ltr':'rtl';document.getElementById('ar').hidden=english;document.getElementById('en').hidden=!english;ids.forEach(id=>document.getElementById(id).hidden=english?!id.endsWith('En'):!id.endsWith('Ar'));e.target.textContent=english?'العربية':'English';});
+</script>
+</body></html>
