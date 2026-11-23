@@ -294,6 +294,16 @@ function start() {
       setTimeout(async () => {
         try {
           const { downloadPublicDocument } = require('./lib/public-tender-documents');
+          const xmlResponse = await fetch('https://ted.europa.eu/en/notice/800271-2026/xml', {
+            headers: { Accept: 'application/xml,text/xml;q=0.9,*/*;q=0.5', 'User-Agent': 'Mozilla/5.0 (compatible; MMC-TenderWise/1.0)' },
+            signal: AbortSignal.timeout(25000)
+          });
+          const xmlBytes = Buffer.from(await xmlResponse.arrayBuffer());
+          console.log('[TED-XML-TEST] ' + JSON.stringify({
+            status: xmlResponse.status, mime: xmlResponse.headers.get('content-type'),
+            bytes: xmlBytes.length, xmlSignature: /^\\s*<\\?xml|^\\s*</.test(xmlBytes.subarray(0,256).toString('utf8')),
+            preview: xmlBytes.subarray(0,100).toString('utf8').replace(/[\\r\\n\\t]+/g,' ').slice(0,100)
+          }));
           const result = await downloadPublicDocument('ted', 'https://ted.europa.eu/en/notice/800271-2026/pdfs');
           console.log('[TED-DOWNLOADER-TEST] ' + JSON.stringify({
             ok: true, bytes: result.buffer.length, mime: result.mime,
