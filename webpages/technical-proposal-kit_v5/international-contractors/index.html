@@ -2,46 +2,103 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MMC | دليل المقاولين الدولي</title>
+<meta name="description" content="MMC International Contractors Directory — official company registers, contractor associations, licensing authorities and public tender sources.">
+<title>MMC | International Contractors Directory</title>
+<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
 <style>
-:root{--navy:#10263f;--teal:#0f766e;--ink:#182536;--muted:#617184;--line:#dce4eb;--bg:#f4f7fa}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.65}
-header{background:linear-gradient(120deg,#10263f,#174b63);color:#fff;padding:24px max(5vw,20px)}
-.wrap{max-width:1100px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{font-weight:800;letter-spacing:.4px}.lang a{color:#fff;border:1px solid #ffffff66;padding:7px 12px;border-radius:8px;text-decoration:none}
-h1{font-size:clamp(27px,4vw,42px);margin:28px 0 8px}.lead{color:#e1edf3;max-width:780px;margin:0 0 12px}
-main{max-width:1100px;margin:28px auto;padding:0 18px}.notice{background:#eaf4f4;border:1px solid #c5e0df;border-radius:12px;padding:14px 16px;margin-bottom:22px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.country{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 5px 18px #10263f0a}
-.country h2{font-size:21px;margin:0 0 5px;color:var(--navy)}.country p{margin:5px 0 14px;color:var(--muted);font-size:14px}
-a.action{display:inline-block;background:var(--teal);color:#fff;text-decoration:none;border-radius:9px;padding:9px 14px;font-weight:700}
-small{display:block;color:var(--muted);margin-top:10px}.tag{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.5px}
-footer{max-width:1100px;margin:28px auto;padding:18px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
-[hidden]{display:none!important}
-body.en{direction:ltr}body.en header{text-align:left}
-@media(max-width:560px){.top{align-items:flex-start}.country{padding:16px}}
+.directory-wrap{max-width:1180px;margin:28px auto;padding:0 18px}
+.hero{background:linear-gradient(135deg,#0d1b2a,#1b2f45);color:#fff;border-radius:12px;padding:28px;margin-bottom:22px;box-shadow:0 4px 18px rgba(13,27,42,.12)}
+.hero .eyebrow{color:#f5c27a;font-size:11px;font-weight:900;letter-spacing:1.3px}
+.hero h1{font-size:clamp(25px,4vw,38px);margin:8px 0;color:#fff}
+.hero p{max-width:850px;color:#d5dee8;margin:0;line-height:1.9}
+.hero .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.hero .meta span{border:1px solid #496078;border-radius:20px;padding:4px 10px;font-size:11px;color:#e6edf5}
+.notice{background:#fff8eb;border:1px solid #f2d29c;border-inline-start:4px solid #b45309;border-radius:9px;padding:14px 16px;margin:18px 0;color:#68420d;line-height:1.8}
+.group{margin:28px 0}.group-head{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:14px}
+.group-head h2{margin:0;font-size:21px;color:var(--ink)}
+.group-head p{margin:0;color:var(--mut);font-size:12px}
+.dir-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:14px}
+.dir-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:17px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;min-height:210px}
+.dir-card .tag{font-size:10px;font-weight:900;letter-spacing:.6px;color:var(--teal);text-transform:uppercase}
+.dir-card h3{margin:0;color:var(--ink);font-size:17px}
+.dir-card p{margin:0;color:var(--mut);font-size:13px;line-height:1.75;flex:1}
+.dir-card .btn{align-self:flex-start;margin-top:5px}
+.dir-card .source-note{font-size:10px;color:#718096;border-top:1px solid var(--line);padding-top:8px}
+.lang-only[hidden]{display:none!important}
+.back-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.footer-note{font-size:12px;color:var(--mut);border-top:1px solid var(--line);padding:18px 0 28px;margin-top:30px}
+@media(max-width:600px){.hero{padding:20px}.dir-card{min-height:0}.group-head h2{font-size:19px}}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-<div class="top"><div class="brand">MMC · CONTRACTOR INTELLIGENCE</div><div class="lang"><a href="#" id="toggleLang">English</a></div></div>
-<section id="ar"><h1>دليل المقاولين الدولي</h1><p class="lead">بوابة مستقلة للوصول إلى سجلات ونقابات وهيئات المقاولين الرسمية حسب الدولة. اختر الدولة للانتقال إلى مصدر البحث الرسمي.</p></section>
-<section id="en" hidden><h1>International Contractors Directory</h1><p class="lead">A dedicated gateway to official contractors' associations, licensing authorities and registries by country. Select a country to open its official search source.</p></section>
-</div></header>
-<main>
-<div class="notice" id="noticeAr">تنبيه: هذه الصفحة تربطك بمصادر خارجية رسمية. ظهور الشركة في دليل أو سجل لا يعني تلقائياً أنها مؤهلة لكل مشروع؛ تحقق من الترخيص والتصنيف والنطاق الجغرافي وحالة العضوية مباشرة من الجهة المختصة.</div>
-<div class="notice" id="noticeEn" hidden>Note: This page links to external official sources. A company appearing in a directory does not automatically mean it is qualified for every project. Verify licence, classification, geographic scope and membership status with the relevant authority.</div>
-<div class="grid">
-<article class="country"><div class="tag">JORDAN · JCCA</div><h2>الأردن | Jordan</h2><p id="joAr">نقابة مقاولي الإنشاءات الأردنيين. يحتوي الموقع الرسمي على قاعدة بيانات للمقاولين وخريطة للمقاولين.</p><p id="joEn" hidden>Jordanian Construction Contractors Association. Its official website provides a contractors database and contractor map.</p><a class="action" href="https://jcca.org.jo/" target="_blank" rel="noopener">فتح مصدر النقابة الرسمي ↗</a><small>المصدر: JCCA · بحث وسجل النقابة</small></article>
-<article class="country"><div class="tag">SAUDI ARABIA · SCA</div><h2>السعودية | Saudi Arabia</h2><p id="saAr">منصة مقاول التابعة للهيئة السعودية للمقاولين، للبحث عن منشآت المقاولات المسجلة حسب التخصص والحجم والموقع.</p><p id="saEn" hidden>Muqawil, operated by the Saudi Contractors Authority, searches member contracting establishments by specialty, size and location.</p><a class="action" href="https://muqawil.sa/en/contractors" target="_blank" rel="noopener">فتح بحث المقاولين ↗</a><small>المصدر: Saudi Contractors Authority / Muqawil</small></article>
-<article class="country"><div class="tag">UNITED ARAB EMIRATES</div><h2>الإمارات | UAE</h2><p id="uaeAr">دليل جمعية المقاولين الإماراتية، ويعرض شركات المقاولات والموردين حسب النشاط والإمارة.</p><p id="uaeEn" hidden>UAE Contractors Association directory, listing contractors and construction suppliers by trade and emirate.</p><a class="action" href="https://uaecsd.com/" target="_blank" rel="noopener">فتح دليل المقاولين ↗</a><small>المصدر: UAE Contractors Association directory</small></article>
-<article class="country"><div class="tag">AUSTRALIA · QUEENSLAND</div><h2>أستراليا – كوينزلاند | Queensland</h2><p id="qldAr">هيئة البناء والإنشاءات في كوينزلاند QBCC: البحث عن المقاولين المحليين وسجل تراخيص الشركات والأفراد.</p><p id="qldEn" hidden>Queensland Building and Construction Commission: find local contractors and check company or individual licence records.</p><a class="action" href="https://my.qbcc.qld.gov.au/myQBCC/s/search-a-register" target="_blank" rel="noopener">فتح سجل QBCC ↗</a><small>المصدر: Queensland Building and Construction Commission</small></article>
-<article class="country"><div class="tag">AUSTRALIA · NEW SOUTH WALES</div><h2>أستراليا – نيو ساوث ويلز | NSW</h2><p id="nswAr">سجل حكومة نيو ساوث ويلز للتحقق من رخص المقاولين والحرفيين وحالة الترخيص.</p><p id="nswEn" hidden>NSW Government register to search contractor and tradesperson licences and check their status.</p><a class="action" href="https://verify.licence.nsw.gov.au/home/Trades" target="_blank" rel="noopener">فتح سجل التراخيص ↗</a><small>المصدر: NSW Fair Trading</small></article>
-</div>
+<header class="p-top">
+ <div class="brand"><span class="mark">M</span><span><b>MMC</b><small>INTERNATIONAL CONTRACTORS DIRECTORY</small></span></div>
+ <div class="spacer"></div>
+ <a class="btn ghost" href="../index.html"><span class="lang-only" data-lang="ar">العودة إلى Proposal Kit</span><span class="lang-only" data-lang="en" hidden>Back to Proposal Kit</span></a>
+ <button class="btn amber" id="languageToggle" type="button">EN</button>
+</header>
+<main class="directory-wrap">
+ <section class="hero">
+  <div class="eyebrow">MMC · GLOBAL VENDOR & CONTRACTOR DISCOVERY</div>
+  <h1><span class="lang-only" data-lang="ar">دليل المقاولين الدولي</span><span class="lang-only" data-lang="en" hidden>International Contractors Directory</span></h1>
+  <p><span class="lang-only" data-lang="ar">بوابة موحدة للوصول إلى سجلات الشركات ونقابات المقاولين وهيئات الترخيص ومصادر المناقصات الرسمية حسب الدولة. اختر الدولة ونوع المصدر للوصول إلى الجهة المختصة.</span><span class="lang-only" data-lang="en" hidden>A unified gateway to company registers, contractors' associations, licensing authorities and official tender sources by country. Select a country and source type to reach the relevant authority.</span></p>
+  <div class="meta"><span>Jordan</span><span>GCC</span><span>United Kingdom</span><span>European Union</span><span>Australia</span></div>
+ </section>
+ <div class="back-row">
+  <div><b><span class="lang-only" data-lang="ar">مصادر رسمية وخارجية</span><span class="lang-only" data-lang="en" hidden>Official external sources</span></b><div class="muted"><span class="lang-only" data-lang="ar">يتم فتح السجل أو المنصة الرسمية في نافذة جديدة.</span><span class="lang-only" data-lang="en" hidden>Official registers and platforms open in a new tab.</span></div></div>
+ </div>
+ <div class="notice">
+  <b><span class="lang-only" data-lang="ar">ملاحظة مهمة حول التحقق:</span><span class="lang-only" data-lang="en" hidden>Important verification note:</span></b>
+  <span class="lang-only" data-lang="ar"> تسجيل الشركة التجاري لا يثبت أنها مقاول مرخص أو مصنف أو مؤهل. كما أن منصة TED مخصصة لإعلانات المشتريات والعطاءات الأوروبية وليست سجلاً للمقاولين. يجب التحقق من الترخيص والتصنيف والخبرة والتأمينات مباشرة من الجهة المختصة في الدولة.</span>
+  <span class="lang-only" data-lang="en" hidden>Company registration does not prove that a business is a licensed, classified or qualified contractor. TED publishes European procurement notices; it is not a contractor register. Always verify licences, classifications, experience and insurance directly with the competent authority.</span>
+ </div>
+ <section class="group">
+  <div class="group-head"><h2><span class="lang-only" data-lang="ar">الأردن ودول الخليج</span><span class="lang-only" data-lang="en" hidden>Jordan & Gulf countries</span></h2><p><span class="lang-only" data-lang="ar">نقابات وسجلات وهيئات رسمية</span><span class="lang-only" data-lang="en" hidden>Official associations and registers</span></p></div>
+  <div class="dir-grid">
+   <article class="dir-card"><div class="tag">JORDAN · JCCA</div><h3>الأردن | Jordan</h3><p><span class="lang-only" data-lang="ar">نقابة مقاولي الإنشاءات الأردنيين؛ مرجع البحث عن شركات المقاولات وبيانات العضوية والتصنيف وفق ما توفره النقابة.</span><span class="lang-only" data-lang="en" hidden>Jordanian Construction Contractors Association — the national reference for contractor companies and available membership and classification information.</span></p><a class="btn amber" href="https://jcca.org.jo/" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">فتح موقع النقابة ↗</span><span class="lang-only" data-lang="en" hidden>Open association ↗</span></a><div class="source-note">Source: JCCA</div></article>
+   <article class="dir-card"><div class="tag">SAUDI ARABIA · SCA</div><h3>السعودية | Saudi Arabia</h3><p><span class="lang-only" data-lang="ar">منصة مقاول التابعة للهيئة السعودية للمقاولين، للبحث عن منشآت المقاولات حسب النشاط والتخصص.</span><span class="lang-only" data-lang="en" hidden>Muqawil, operated by the Saudi Contractors Authority, for searching contracting establishments by activity and specialty.</span></p><a class="btn amber" href="https://muqawil.sa/en/contractors" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">فتح منصة مقاول ↗</span><span class="lang-only" data-lang="en" hidden>Open Muqawil ↗</span></a><div class="source-note">Source: Saudi Contractors Authority</div></article>
+   <article class="dir-card"><div class="tag">UNITED ARAB EMIRATES</div><h3>الإمارات | UAE</h3><p><span class="lang-only" data-lang="ar">جمعية المقاولين الإماراتية؛ دليل شركات المقاولات والجهات العاملة في قطاع الإنشاءات.</span><span class="lang-only" data-lang="en" hidden>UAE Contractors Association — directory of contracting businesses and construction-sector participants.</span></p><a class="btn amber" href="https://uaecsd.com/" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">فتح موقع الجمعية ↗</span><span class="lang-only" data-lang="en" hidden>Open association ↗</span></a><div class="source-note">Source: UAE Contractors Association</div></article>
+  </div>
+ </section>
+ <section class="group">
+  <div class="group-head"><h2><span class="lang-only" data-lang="ar">بريطانيا والمملكة المتحدة</span><span class="lang-only" data-lang="en" hidden>United Kingdom</span></h2><p><span class="lang-only" data-lang="ar">سجل الشركات ومصادر العطاءات الحكومية</span><span class="lang-only" data-lang="en" hidden>Company register and public procurement portals</span></p></div>
+  <div class="dir-grid">
+   <article class="dir-card"><div class="tag">UNITED KINGDOM · COMPANIES HOUSE</div><h3>سجل الشركات البريطاني | Companies House</h3><p><span class="lang-only" data-lang="ar">البحث عن الشركات المسجلة في المملكة المتحدة والتحقق من الاسم والرقم والحالة والعنوان والملفات المقدمة. لا يعد هذا السجل بحد ذاته إثباتاً لترخيص المقاول.</span><span class="lang-only" data-lang="en" hidden>Search UK registered companies and check company name, number, status, registered office and filings. This register alone does not prove contractor licensing.</span></p><a class="btn amber" href="https://find-and-update.company-information.service.gov.uk/" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">البحث في سجل الشركات ↗</span><span class="lang-only" data-lang="en" hidden>Search company register ↗</span></a><div class="source-note">Source: Companies House · GOV.UK</div></article>
+   <article class="dir-card"><div class="tag">UK · FIND A TENDER</div><h3>Find a Tender – بريطانيا</h3><p><span class="lang-only" data-lang="ar">منصة الإعلانات الرسمية لفرص المشتريات العامة والعقود الحكومية في المملكة المتحدة.</span><span class="lang-only" data-lang="en" hidden>Official UK platform for public procurement notices and government contract opportunities.</span></p><a class="btn amber" href="https://www.find-tender.service.gov.uk/Search" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">البحث عن المناقصات ↗</span><span class="lang-only" data-lang="en" hidden>Search tenders ↗</span></a><div class="source-note">Source: UK Government</div></article>
+   <article class="dir-card"><div class="tag">UK · CONTRACTS FINDER</div><h3>Contracts Finder</h3><p><span class="lang-only" data-lang="ar">إعلانات فرص وعقود القطاع العام البريطاني، بما في ذلك فرص الجهات الحكومية والهيئات العامة.</span><span class="lang-only" data-lang="en" hidden>UK public-sector contract opportunities, including notices from government departments and public bodies.</span></p><a class="btn amber" href="https://www.contractsfinder.service.gov.uk/Search" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">فتح Contracts Finder ↗</span><span class="lang-only" data-lang="en" hidden>Open Contracts Finder ↗</span></a><div class="source-note">Source: UK Government</div></article>
+  </div>
+ </section>
+ <section class="group">
+  <div class="group-head"><h2><span class="lang-only" data-lang="ar">أوروبا والاتحاد الأوروبي</span><span class="lang-only" data-lang="en" hidden>Europe & European Union</span></h2><p><span class="lang-only" data-lang="ar">سجلات الشركات الوطنية ومناقصات TED</span><span class="lang-only" data-lang="en" hidden>National company registers and TED procurement notices</span></p></div>
+  <div class="dir-grid">
+   <article class="dir-card"><div class="tag">EUROPE · BRIS</div><h3>سجل الشركات الأوروبي – BRIS</h3><p><span class="lang-only" data-lang="ar">بوابة الاتحاد الأوروبي للبحث عن الشركات عبر سجلات الدول الأعضاء، إضافة إلى آيسلندا وليختنشتاين والنرويج. اختر الدولة داخل البوابة للوصول إلى بيانات السجل الوطني.</span><span class="lang-only" data-lang="en" hidden>EU-wide company search across the interconnected registers of EU Member States, plus Iceland, Liechtenstein and Norway. Select a country within the service to access national register data.</span></p><a class="btn amber" href="https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu_en" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">البحث في سجلات أوروبا ↗</span><span class="lang-only" data-lang="en" hidden>Search European registers ↗</span></a><div class="source-note">Source: European e-Justice Portal · BRIS</div></article>
+   <article class="dir-card"><div class="tag">EU · TED</div><h3>TED – Tenders Electronic Daily</h3><p><span class="lang-only" data-lang="ar">منصة الاتحاد الأوروبي الرسمية لإعلانات المناقصات العامة؛ يمكن البحث حسب الدولة وقطاع الأعمال ومكان تنفيذ العقد وتصنيف CPV. هذه فرص تعاقدية وليست سجلاً لترخيص الشركات.</span><span class="lang-only" data-lang="en" hidden>The EU's official public procurement notice platform. Search by country, business sector, place of performance and CPV classification. These are tender opportunities, not contractor licence records.</span></p><a class="btn amber" href="https://ted.europa.eu/en/search" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">البحث في مناقصات TED ↗</span><span class="lang-only" data-lang="en" hidden>Search TED notices ↗</span></a><div class="source-note">Source: Publications Office of the European Union</div></article>
+   <article class="dir-card"><div class="tag">EU MEMBER STATES</div><h3><span class="lang-only" data-lang="ar">ألمانيا · فرنسا · إيطاليا · إسبانيا</span><span class="lang-only" data-lang="en" hidden>Germany · France · Italy · Spain</span></h3><p><span class="lang-only" data-lang="ar">تتوفر سجلات وطنية مستقلة لكل دولة. استخدم بوابة سجلات الشركات الأوروبية لاختيار الدولة والوصول إلى سجلها الرسمي، ثم تحقق من متطلبات التسجيل المهني أو تصنيف المقاولين محلياً.</span><span class="lang-only" data-lang="en" hidden>Each country maintains its own national register. Use the European company-register gateway to select the country and open its official register, then verify local contractor licensing or classification requirements.</span></p><a class="btn amber" href="https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-eu-countries_en" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">اختيار السجل حسب الدولة ↗</span><span class="lang-only" data-lang="en" hidden>Select a national register ↗</span></a><div class="source-note">Germany · France · Italy · Spain</div></article>
+   <article class="dir-card"><div class="tag">EU MEMBER STATES</div><h3><span class="lang-only" data-lang="ar">هولندا · بلجيكا · أيرلندا · بولندا</span><span class="lang-only" data-lang="en" hidden>Netherlands · Belgium · Ireland · Poland</span></h3><p><span class="lang-only" data-lang="ar">الوصول إلى السجلات الرسمية لهذه الدول عبر دليل سجلات الاتحاد الأوروبي، مع مراعاة أن متطلبات اعتماد المقاولين تختلف من دولة إلى أخرى.</span><span class="lang-only" data-lang="en" hidden>Access the official registers for these countries through the EU register directory. Contractor approval and licensing requirements differ by country.</span></p><a class="btn amber" href="https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-eu-countries_en" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">فتح دليل سجلات الدول ↗</span><span class="lang-only" data-lang="en" hidden>Open country register directory ↗</span></a><div class="source-note">Netherlands · Belgium · Ireland · Poland</div></article>
+  </div>
+ </section>
+ <section class="group">
+  <div class="group-head"><h2><span class="lang-only" data-lang="ar">أستراليا</span><span class="lang-only" data-lang="en" hidden>Australia</span></h2><p><span class="lang-only" data-lang="ar">سجلات تراخيص المقاولين حسب الولاية</span><span class="lang-only" data-lang="en" hidden>Contractor licensing registers by state</span></p></div>
+  <div class="dir-grid">
+   <article class="dir-card"><div class="tag">AUSTRALIA · QUEENSLAND</div><h3>كوينزلاند | Queensland – QBCC</h3><p><span class="lang-only" data-lang="ar">هيئة البناء والإنشاءات في كوينزلاند؛ البحث عن المقاولين والتحقق من تراخيص الشركات والأفراد.</span><span class="lang-only" data-lang="en" hidden>Queensland Building and Construction Commission — find contractors and check company or individual licence records.</span></p><a class="btn amber" href="https://my.qbcc.qld.gov.au/myQBCC/s/search-a-register" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">فتح سجل التراخيص ↗</span><span class="lang-only" data-lang="en" hidden>Open licence register ↗</span></a><div class="source-note">Source: QBCC</div></article>
+   <article class="dir-card"><div class="tag">AUSTRALIA · NEW SOUTH WALES</div><h3>نيو ساوث ويلز | NSW</h3><p><span class="lang-only" data-lang="ar">سجل حكومة الولاية للتحقق من تراخيص المقاولين والحرفيين وحالة الترخيص.</span><span class="lang-only" data-lang="en" hidden>NSW Government register for checking contractor and tradesperson licences and status.</span></p><a class="btn amber" href="https://verify.licence.nsw.gov.au/home/Trades" target="_blank" rel="noopener"><span class="lang-only" data-lang="ar">فتح سجل التراخيص ↗</span><span class="lang-only" data-lang="en" hidden>Open licence register ↗</span></a><div class="source-note">Source: NSW Fair Trading</div></article>
+  </div>
+ </section>
+ <div class="footer-note"><span class="lang-only" data-lang="ar">MMC – دليل المقاولين الدولي. هذه البوابة نقطة وصول للمصادر الخارجية وليست جهة إصدار تراخيص أو اعتماد. سيتم توسيع الدول عند التحقق من روابط الجهات الرسمية.</span><span class="lang-only" data-lang="en" hidden>MMC International Contractors Directory. This portal is a gateway to external sources and does not issue licences or qualifications. Additional countries will be added as their official authority links are verified.</span></div>
 </main>
-<footer id="footAr">MMC International Contractors Directory · روابط المصادر تُراجع وتُحدّث دورياً. الدول التي لم يُعتمد لها مصدر رسمي بعد ستُضاف بعد التحقق.</footer>
-<footer id="footEn" hidden>MMC International Contractors Directory · Source links are reviewed periodically. Additional countries will be added after their official sources are verified.</footer>
 <script>
-const ids=['noticeAr','noticeEn','joAr','joEn','saAr','saEn','uaeAr','uaeEn','qldAr','qldEn','nswAr','nswEn','footAr','footEn'];
-let english=false;
-document.getElementById('toggleLang').addEventListener('click',e=>{e.preventDefault();english=!english;document.body.classList.toggle('en',english);document.documentElement.lang=english?'en':'ar';document.documentElement.dir=english?'ltr':'rtl';document.getElementById('ar').hidden=english;document.getElementById('en').hidden=!english;ids.forEach(id=>document.getElementById(id).hidden=english?!id.endsWith('En'):!id.endsWith('Ar'));e.target.textContent=english?'العربية':'English';});
+(function(){
+ let lang='ar';
+ const toggle=document.getElementById('languageToggle');
+ function setLang(next){
+  lang=next;
+  document.documentElement.lang=lang;
+  document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  document.querySelectorAll('.lang-only').forEach(el=>{el.hidden=el.dataset.lang!==lang;});
+  toggle.textContent=lang==='ar'?'EN':'العربية';
+ }
+ toggle.addEventListener('click',()=>setLang(lang==='ar'?'en':'ar'));
+ setLang('ar');
+})();
 </script>
 </body></html>
