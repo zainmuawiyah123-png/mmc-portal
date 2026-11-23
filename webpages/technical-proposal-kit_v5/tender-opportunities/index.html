@@ -180,7 +180,8 @@
  fetch('/api/auth/me',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(me=>{
   if(me&&(me.user?.role==='admin'||me.role==='admin'))document.getElementById('opp-admin').hidden=false;
  }).catch(()=>{});
- document.getElementById('oa-sync-ted').addEventListener('click',()=>runSourceAction('sync/ted','مزامنة عطاءات TED — الاتحاد الأوروبي'));\n document.getElementById('oa-sync-worldbank').addEventListener('click',async()=>{
+ document.getElementById('oa-sync-ted').addEventListener('click',()=>runSourceAction('sync/ted','مزامنة عطاءات TED — الاتحاد الأوروبي'));
+ document.getElementById('oa-sync-worldbank').addEventListener('click',async()=>{
   const msg=document.getElementById('oa-sync-message');msg.textContent='جارٍ جلب أحدث الإعلانات من البنك الدولي...';
   try{
    const res=await fetch('/api/opportunities/admin/sync/worldbank',{method:'POST',credentials:'same-origin'});
