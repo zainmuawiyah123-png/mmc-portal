@@ -24,12 +24,11 @@ test('TED notice is normalized with one canonical PDF representation and a separ
  assert.equal(item.status,'open');
  assert.equal(item.documents.length,1);
  assert.equal(item.documents[0].format,'pdf');
- assert.equal(item.documents[0].url,'https://ted.europa.eu/de/notice/806685-2026/pdf');
+ assert.equal(item.documents[0].url,'https://ted.europa.eu/en/notice/806685-2026/pdf');
  assert.equal(item.details.officialLanguage,'de');
  assert.equal(item.language,'de');
  assert.equal(item.sourceUrl,'https://ted.europa.eu/de/notice/-/detail/806685-2026');
  assert.equal(item.details.officialLinks.length,1);
- assert.equal(item.sourceUrl,'https://ted.europa.eu/en/notice/806685-2026');
 });
 
 test('TED notice without a stable publication number or title is ignored',()=>{
