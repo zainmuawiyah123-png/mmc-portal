@@ -11,7 +11,7 @@ test('TED notice is normalized with one canonical PDF representation and a separ
   'notice-title':{'eng':'A02 Nordumfahrung Klagenfurt - E&M Wartung und Inspektion'},
   'buyer-name':{'eng':'Autobahnen- und Schnellstraßen-Finanzierungs-Aktiengesellschaft'},
   'buyer-country':'AUT',
-  'official-language':'DEU',
+  'document-official-language-lot':'DEU',
   'classification-cpv':['50000000'],
   'deadline-receipt-tender-date-lot':['2026-11-24'],
   'notice-type':'cn-standard',
