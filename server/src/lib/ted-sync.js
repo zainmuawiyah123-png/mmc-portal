@@ -68,17 +68,26 @@ function tedLanguageCode(value){
  return map[raw]||'en';
 }
 function noticeLinks(row,publicationNumber,language='en'){
- // TED Search API may return the actual direct links for each available
- // language/format. Prefer its official PDF URL instead of guessing a route.
+ // Prefer the direct PDF representation returned by TED Search API.
  const returned=flattenValues(row && row.links).filter(value=>{
   try{
    const url=new URL(value);
-   return url.protocol==='https:' && (url.hostname==='ted.europa.eu'||url.hostname.endsWith('.ted.europa.eu'))
-    && new RegExp('/notice/'+publicationNumber.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\function noticeLinks(row,publicationNumber,language='en'){
- // TED direct links are language-specific; use the notice's official language.
- const base='https://ted.europa.eu/'+language+'/notice/'+encodeURIComponent(publicationNumber);
- return [{title:'Official TED notice PDF',url:base+'/pdf',format:'pdf'}];
-}')+'/(pdf|pdfs)/?
+   if(url.protocol!=='https:' || (url.hostname!=='ted.europa.eu'&&!url.hostname.endsWith('.ted.europa.eu')))return false;
+   const parts=url.pathname.split('/').filter(Boolean);
+   const index=parts.lastIndexOf('notice');
+   return index>=0 && parts[index+1]===String(publicationNumber) && ['pdf','pdfs'].includes(String(parts[index+2]||'').toLowerCase());
+  }catch(_){return false;}
+ });
+ const preferred=returned.find(value=>{
+  try{
+   const parts=new URL(value).pathname.split('/').filter(Boolean);
+   const index=parts.lastIndexOf('notice');
+   return index>0 && parts[index-1].toLowerCase()===String(language||'en').toLowerCase() && parts[index+2].toLowerCase()==='pdf';
+  }catch(_){return false;}
+ });
+ const selected=preferred||returned[0]||('https://ted.europa.eu/'+language+'/notice/'+encodeURIComponent(publicationNumber)+'/pdf');
+ return [{title:'Official TED notice PDF',url:selected,format:'pdf'}];
+}
 function normalizeTEDNotice(row,now=Date.now()){
  if(!row||typeof row!=='object')return null;
  const publicationNumber=clean(row['publication-number'],100);
