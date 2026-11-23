@@ -226,7 +226,45 @@ router.get('/contractor/opportunities/:id/documents/:documentId/download', async
     if(doc.availability!=='public-source-link' || !isAllowedPublicDocumentUrl(doc.source_key,doc.document_url)) {
       return res.status(403).json({error:{code:'DOCUMENT_NOT_PUBLIC',message:'هذه الوثيقة ليست ملفاً عاماً متاحاً للتنزيل دون تسجيل.'}});
     }
-    const fetched=await downloadPublicDocument(doc.source_key,doc.document_url);
+    let fetched;
+    if (doc.source_key === 'ted') {
+      const relayUrl = String(process.env.TED_RELAY_URL || '');
+      const relayToken = String(process.env.TED_RELAY_TOKEN || '');
+      if (!relayUrl || !relayToken) {
+        const error = new Error('خدمة تنزيل TED غير مهيأة حالياً.');
+        error.status = 503;
+        error.code = 'TED_RELAY_NOT_CONFIGURED';
+        throw error;
+      }
+      const relayResponse = await fetch(relayUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + relayToken,
+          'Content-Type': 'application/json',
+          'Accept': 'application/pdf'
+        },
+        body: JSON.stringify({ url: doc.document_url }),
+        signal: AbortSignal.timeout(90000)
+      });
+      const relayBuffer = Buffer.from(await relayResponse.arrayBuffer());
+      if (!relayResponse.ok) {
+        const error = new Error('تعذر جلب ملف PDF من خدمة TED.');
+        error.status = 502;
+        error.code = 'TED_RELAY_UPSTREAM_ERROR';
+        throw error;
+      }
+      if (relayBuffer.length === 0 || relayBuffer.length > 25 * 1024 * 1024 ||
+          relayResponse.headers.get('content-type') !== 'application/pdf' ||
+          !relayBuffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+        const error = new Error('استجابة خدمة TED ليست ملف PDF صالحاً.');
+        error.status = 502;
+        error.code = 'TED_RELAY_INVALID_PDF';
+        throw error;
+      }
+      fetched = { buffer: relayBuffer, mime: 'application/pdf', finalUrl: doc.document_url };
+    } else {
+      fetched = await downloadPublicDocument(doc.source_key,doc.document_url);
+    }
     const filename=safeDocumentFilename(doc.label,fetched.finalUrl,fetched.mime);
     const fallback=filename.replace(/[^\\x20-\\x7e]/g,'_').replace(/["\\\\]/g,'_').slice(0,140)||'tender-notice';
     const encoded=encodeURIComponent(filename).replace(/[!'()*]/g,ch=>'%'+ch.charCodeAt(0).toString(16).toUpperCase());
