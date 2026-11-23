@@ -293,11 +293,20 @@ function start() {
     // Rebuild preview tender directory from all configured public feeds on every
     // service start. This is independent of the legacy TED-only startup flag.
     setTimeout(async () => {
+      const scheduler = require('./lib/scheduler');
+      // Run Jordan + Australia + global feeds first. UK endpoints can be slow
+      // and must not hold back every other country after a preview restart.
       try {
-        const result = await require('./lib/scheduler').runOpportunitySyncCycle();
-        console.log('[international-startup] complete: '+JSON.stringify(result));
+        const general = await scheduler.runOpportunitySyncJob();
+        console.log('[international-startup] general feeds complete: '+JSON.stringify(general));
       } catch (err) {
-        console.error('[international-startup] cycle failed:', err.message);
+        console.error('[international-startup] general feeds failed:', err.message);
+      }
+      try {
+        const uk = await scheduler.runUKOpportunitySyncJob();
+        console.log('[international-startup] UK feeds complete: '+JSON.stringify(uk));
+      } catch (err) {
+        console.error('[international-startup] UK feeds failed:', err.message);
       }
     }, 5000).unref();
 
