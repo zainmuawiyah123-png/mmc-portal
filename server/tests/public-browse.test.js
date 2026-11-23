@@ -26,7 +26,9 @@ test('public browse feeds are readable without a session and return safe collect
  assert.equal(c.status,200);assert.ok(Array.isArray(c.data.opportunities));assert.equal(typeof c.data.count,'number');
  assert.equal(s.status,200);assert.ok(Array.isArray(s.data.requests));assert.equal(typeof s.data.count,'number');
  assert.equal(sf.status,200);assert.ok(Array.isArray(sf.data.tenders));assert.equal(typeof sf.data.count,'number');
- for(const r of [p,c,s,sf])assert.match(r.headers.get('cache-control')||'',/public/);
+ // The contractor opportunities feed is intentionally not cacheable because it is a live market listing.
+ assert.match(c.headers.get('cache-control')||'',/no-store/);
+ for(const r of [p,s,sf])assert.match(r.headers.get('cache-control')||'',/public/);
 });
 test('public browse feeds do not expose protected submission or identity routes',async()=>{
  for(const url of ['/api/public/procurement/tenders','/api/public/contractor/opportunities','/api/public/consulting/requests','/api/public/consulting/firm-tenders']){

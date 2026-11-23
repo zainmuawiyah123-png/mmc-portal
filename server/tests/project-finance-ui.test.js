@@ -69,7 +69,8 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
 });
 
 test('MMCUI-03 — دليل العطاءات الخارجية متاح للمقاول والاستشاري وغير مربوط ببوابة المشتريات', () => {
-  assert.match(contractorPortal, /\.\.\/tender-opportunities\/index\.html/);
+  assert.ok(contractorPortal.includes("API.request('GET','/public/contractor/opportunities')"));
+  assert.ok(contractorPortal.includes('سوق العطاءات الخارجية'));
   assert.doesNotMatch(procurementPortal, /tender-opportunities\/index\.html/);
 });
 
@@ -297,7 +298,7 @@ test('OPP-27 — سوق العطاءات يعرض المصادر المتصلة 
   assert.ok(market.includes("jprc:['مصفاة البترول الأردنية','Jordan Petroleum Refinery']"));
   assert.ok(market.includes("jpmc:['مناجم الفوسفات الأردنية','Jordan Phosphate Mines']"));
   assert.ok(market.includes("nepco:['الكهرباء الوطنية','National Electric Power Company']"));
-  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','austender','findatender','contractsfinder','pcs','sell2wales','etimad-saudi','uae-mof']"));
+  assert.ok(route.includes("connectedSources:['joneps','apc','worldbank','ungm','amman','jprc','jpmc','nepco','austender','vendorpanel-australia','findatender','contractsfinder','pcs','sell2wales','ted','etimad-saudi','uae-mof']"));
   assert.ok(market.includes('https://www.jopetrol.com.jo/ar/modules/tenders'));
   assert.ok(market.includes('https://www.jpmc.com.jo/en/tender'));
   assert.ok(market.includes('https://www.nepco.com.jo/en/Tenders.aspx'));
@@ -308,7 +309,7 @@ test('OPP-27 — سوق العطاءات يعرض المصادر المتصلة 
 test('OPP-28 — تفاصيل سوق العطاءات تعرض مرفقات MMC مع فحص HEAD قبل التنزيل', () => {
   const market = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/market.html'), 'utf8');
   const route = fs.readFileSync(path.join(__dirname, '../src/routes/opportunities.js'), 'utf8');
-  assert.ok(market.includes("API.request('GET',(role==='guest'?'/public/contractor/opportunities/':'/opportunities/')+encodeURIComponent(id))"));
+  assert.ok(market.includes("var detailPath=(role==='guest'?'/public/contractor/opportunities/':'/opportunities/')+encodeURIComponent(id);API.request('GET',detailPath)"));
   assert.ok(market.includes('data-market-doc'));
   assert.ok(market.includes("method:'HEAD'"));
   assert.ok(market.includes("window.location.href=link.href"));
@@ -329,10 +330,12 @@ test('OPP-09 — تفاصيل العطاء والوثائق العامة تُع�
   assert.ok(tenderDirectory.includes('data-opportunity-detail'));
   assert.ok(tenderDirectory.includes('showOpportunityDetails'));
   assert.ok(tenderDirectory.includes('data-doc-download'));
-  assert.ok(tenderDirectory.includes('Download via MMC (public file)'));
+  assert.ok(tenderDirectory.includes('Download via MMC (official TED file)'));
   assert.match(tenderDirectory,/href="'\+esc\(doc\.downloadUrl\)\+'" download data-doc-download/);
   assert.ok(tenderDirectory.includes("method:'HEAD'"));
-  assert.ok(tenderDirectory.includes('payload.error?.message'));
+  assert.ok(tenderDirectory.includes("headers:{Accept:'application/pdf'}"));
+  assert.ok(tenderDirectory.includes("contentType==='application/pdf'||contentType==='application/octet-stream'"));
+  assert.ok(tenderDirectory.includes('The server returned a JSON error instead of a PDF.'));
   assert.ok(tenderDirectory.includes('window.location.href=link.href'));
   assert.ok(!tenderDirectory.includes('URL.createObjectURL'));
   assert.ok(!tenderDirectory.includes('a.href=url'));

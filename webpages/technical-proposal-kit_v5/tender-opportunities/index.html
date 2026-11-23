@@ -158,9 +158,30 @@
     (docRows?'<ul>'+docRows+'</ul>':'<p class="muted">'+(en?'No direct public attachment was found in the source record. Official copies may require vendor registration or purchase.':'لم يتضمن سجل المصدر مرفقاً عاماً مباشراً. قد تتطلب النسخة الرسمية التسجيل كمورد أو شراء الوثائق.')+'</p>')+
     '<p class="muted">'+(en?'MMC saves a publicly downloadable file to the configured platform storage on its first download. It does not bypass vendor registration or document fees.':'يحفظ MMC الملف العام في مساحة تخزين المنصة عند أول تنزيل، ولا يتجاوز تسجيل المورد أو رسوم الوثائق.')+'</p>'+
     '<p><a href="'+esc(op.sourceUrl||o.sourceUrl)+'" target="_blank" rel="noopener">'+(en?'Official source notice ↗':'الإعلان لدى المصدر الرسمي ↗')+'</a></p>';
-   panel.querySelectorAll('[data-doc-download]').forEach(link=>link.addEventListener('click',()=>{
+   panel.querySelectorAll('[data-doc-download]').forEach(link=>link.addEventListener('click',async event=>{
+    event.preventDefault();
     const status=document.getElementById(link.getAttribute('data-doc-status'));
-    if(status)status.textContent=en?'Opening the public file...':'جارٍ فتح الملف العام...';
+    const setStatus=message=>{if(status)status.textContent=message;};
+    setStatus(en?'Checking the file is a valid PDF...':'جارٍ التحقق من أن الملف PDF صالح...');
+    link.setAttribute('aria-busy','true');
+    try{
+     const response=await fetch(link.href,{method:'HEAD',credentials:'same-origin',headers:{Accept:'application/pdf'}});
+     const contentType=String(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+     const disposition=response.headers.get('content-disposition')||'';
+     const isPdfName=/filename\*?=.*\.pdf(?:["']|$)/i.test(disposition);
+     const isPdfType=contentType==='application/pdf'||contentType==='application/octet-stream';
+     if(!response.ok||!isPdfType||!isPdfName){
+      const message=contentType==='application/json'
+       ?(en?'The server returned a JSON error instead of a PDF. Please try again later.':'أعاد الخادم رسالة JSON بدلاً من ملف PDF. يرجى المحاولة لاحقاً.')
+       :(en?'The server response could not be verified as a PDF. Download was stopped.':'تعذّر التحقق من أن استجابة الخادم ملف PDF؛ تم إيقاف التنزيل.');
+      setStatus(message);
+      return;
+     }
+     setStatus(en?'PDF verified. Starting download...':'تم التحقق من PDF. جارٍ بدء التنزيل...');
+     window.location.href=link.href;
+    }catch(error){
+     setStatus(en?'Could not verify the PDF download. Please try again.':'تعذّر التحقق من تنزيل PDF. يرجى المحاولة مجدداً.');
+    }finally{link.removeAttribute('aria-busy');}
    }));
 
   }catch(err){panel.textContent=err.message;}
