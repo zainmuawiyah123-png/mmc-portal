@@ -159,7 +159,7 @@ router.get('/contractor/opportunities/:id', (req,res) => {
   `).all(row.id).map(doc=>({
     id:doc.id,label:doc.label,availability:doc.availability,
     downloadUrl:doc.availability==='public-source-link' && isAllowedPublicDocumentUrl(row.source_key,doc.document_url)
-      ? '/api/opportunities/'+encodeURIComponent(row.id)+'/documents/'+encodeURIComponent(doc.id)+'/download' : null,
+      ? '/api/public/contractor/opportunities/'+encodeURIComponent(row.id)+'/documents/'+encodeURIComponent(doc.id)+'/download' : null,
     cached:Boolean(doc.storage_key),downloadedAt:doc.downloaded_at?new Date(doc.downloaded_at*1000).toISOString():null
   }));
   res.setHeader('Cache-Control','public, max-age=30');
