@@ -1550,7 +1550,7 @@ test('93 — سوق العطاءات: ترقيم، فتح بحسب التاري�
   assert.deepStrictEqual(ids(open), ['mk_1', 'mk_2', 'mk_4'], 'المنتهي بالتاريخ لا يظهر ضمن المفتوحة، والترتيب بالأقرب إغلاقاً وبلا موعد آخراً');
   assert.deepStrictEqual(ids(await call('mkt', 'GET', '/api/opportunities/feed?status=closed&limit=60')).includes('mk_3'), true);
   assert.deepStrictEqual(ids(await call('mkt', 'GET', '/api/opportunities/feed?closing=7&limit=60')), ['mk_1']);
-  assert.deepStrictEqual(ids(await call('mkt', 'GET', '/api/opportunities/feed?sort=new&limit=60')), ['mk_4', 'mk_1', 'mk_2']);
+  assert.deepStrictEqual(ids(await call('mkt', 'GET', '/api/opportunities/feed?sort=new&limit=60')), ['mk_2', 'mk_4', 'mk_1'], 'sort=new يحافظ على تنويع المصادر ثم يرتب داخل النتائج حسب موعد الإغلاق');
   const p1 = await call('mkt', 'GET', '/api/opportunities/feed?limit=1&offset=0'); const p2 = await call('mkt', 'GET', '/api/opportunities/feed?limit=1&offset=1');
   assert.strictEqual(p1.data.count, 1); assert.ok(p1.data.total >= 3 && p1.data.hasMore); assert.notStrictEqual(p1.data.opportunities[0].id, p2.data.opportunities[0].id);
   assert.ok(open.data.stats.closingSoon >= 1 && open.data.stats.newThisWeek >= 2 && open.data.stats.open >= 3);
