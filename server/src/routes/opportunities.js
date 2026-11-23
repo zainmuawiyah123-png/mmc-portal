@@ -270,7 +270,7 @@ router.post('/admin/sync/austender', wrap(async(req,res)=>{
  res.json({ok:true,...result});
 }));
 
-router.post('/admin/sync/worldbank', wrap(async(req,res)=>{
+router.post('/admin/sync/ted', wrap(async(req,res)=>{\n const result=await runAndRecordSync('ted',()=>require('../lib/ted-sync').syncTED({days:90,pages:8,rows:100}));\n audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'ted',added:result.added,updated:result.updated,received:result.received}});\n res.json({ok:true,...result});\n}));\n\nrouter.post('/admin/sync/worldbank', wrap(async(req,res)=>{
  const result=await runAndRecordSync('worldbank',()=>require('../lib/opportunity-sync').syncWorldBank({rows:100,offset:0,pages:5}));
  audit({action:'opportunity_source_sync',entity:'tender_opportunity',userId:req.user.id,ip:req.ip,detail:{source:'worldbank',added:result.added,updated:result.updated,received:result.received}});
  res.json({ok:true,...result});
