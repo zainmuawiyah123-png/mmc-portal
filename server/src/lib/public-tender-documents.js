@@ -132,6 +132,34 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let current = new URL(String(rawUrl));
   let tedEmptyRetries = 0;
+  // TED exposes both unsigned (/pdf) and signed (/pdfs) direct links.
+  // If one representation returns an empty CMS response, try the other format
+  // and the English rendition before reporting DOCUMENT_EMPTY.
+  const tedFallbackUrls = [];
+  if (String(sourceKey).toLowerCase() === 'ted') {
+    const match = current.pathname.match(/^\\/([a-z]{2})\\/notice\\/([^/]+)\\/(pdf|pdfs)$/i);
+    if (match) {
+      const [, language, publicationNumber, format] = match;
+      const otherFormat = format.toLowerCase() === 'pdf' ? 'pdfs' : 'pdf';
+      for (const candidate of [
+        `https://ted.europa.eu/${language}/notice/${publicationNumber}/${otherFormat}`,
+        `https://ted.europa.eu/en/notice/${publicationNumber}/pdf`,
+        `https://ted.europa.eu/en/notice/${publicationNumber}/pdfs`
+      ]) {
+        if (candidate !== current.toString() && !tedFallbackUrls.includes(candidate)) tedFallbackUrls.push(candidate);
+      }
+    }
+  }
+  const moveToTedFallback = () => {
+    while (tedFallbackUrls.length) {
+      const candidate = tedFallbackUrls.shift();
+      if (isAllowedPublicDocumentUrl('ted', candidate)) {
+        current = new URL(candidate);
+        return true;
+      }
+    }
+    return false;
+  };
 
   try {
     for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
@@ -167,6 +195,11 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
       }
       if (response.status === 404) {
         await cancelBody(response);
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED PDF format unavailable; trying official alternate link', JSON.stringify({ url: current.origin + current.pathname }));
+          redirects--;
+          continue;
+        }
         throw appError(404, 'DOCUMENT_NO_LONGER_AVAILABLE', 'الملف غير متاح حالياً على المصدر الرسمي.');
       }
       if (!response.ok) {
@@ -181,6 +214,16 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         throw appError(413, 'DOCUMENT_TOO_LARGE', 'حجم وثيقة المصدر يتجاوز الحد المسموح في MMC.');
       }
       if (!response.body) {
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED returned an empty response; trying official alternate PDF link', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
         if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
           tedEmptyRetries++;
           console.warn('[public-document] TED empty response; retrying once', JSON.stringify({
@@ -209,6 +252,17 @@ async function downloadPublicDocument(sourceKey, rawUrl) {
         chunks.push(buffer);
       }
       if (!size) {
+        if (String(sourceKey).toLowerCase() === 'ted' && moveToTedFallback()) {
+          console.warn('[public-document] TED returned zero bytes; trying official alternate PDF link', JSON.stringify({
+            status: response.status,
+            contentType: response.headers.get('content-type') || null,
+            contentLength: response.headers.get('content-length') || null,
+            receivedBytes: size,
+            url: current.origin + current.pathname
+          }));
+          redirects--;
+          continue;
+        }
         if (String(sourceKey).toLowerCase() === 'ted' && tedEmptyRetries < 1) {
           tedEmptyRetries++;
           console.warn('[public-document] TED response body is empty; retrying once', JSON.stringify({
