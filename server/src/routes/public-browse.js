@@ -88,9 +88,10 @@ router.get('/contractor/opportunities', (req,res) => {
            source_url,application_url,status,language,source_key,imported_at
     FROM tender_opportunities WHERE ${where}
     ORDER BY CASE WHEN status='open' THEN 0 ELSE 1 END, COALESCE(closing_at,'9999-12-31') ASC, imported_at DESC
-    LIMIT 500
+    LIMIT 2000
   `).all(...values);
-  res.setHeader('Cache-Control','public, max-age=60');
+  res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma','no-cache');
   res.json({opportunities:rows.map(r=>({
     id:r.id,title:r.title,authority:r.authority,country:r.country,sector:r.sector,
     tenderNumber:r.tender_number,summary:r.summary,publishedAt:r.published_at,
