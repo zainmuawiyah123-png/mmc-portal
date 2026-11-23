@@ -290,33 +290,16 @@ function start() {
     }
 
     require('./lib/scheduler').startScheduler();
-    if (process.env.TED_SYNC_ON_START === 'true') {
-      setTimeout(async () => {
-        const started = Date.now();
-        try { const result = await require('./lib/ted-sync').syncTED({days:90,pages:8,rows:100}); require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:true,...result}); console.log('[TED] startup import complete: '+JSON.stringify(result)); }
-        catch (err) { require('./lib/scheduler').persistOpportunitySync('ted',started,{ok:false,error:err.message}); console.error('[TED] startup import failed:',err.message); }
-
-        const runStartupSource = async (source, fn) => {
-          const sourceStarted = Date.now();
-          try {
-            const result = await fn();
-            require('./lib/scheduler').persistOpportunitySync(source, sourceStarted, {ok:true,...result});
-            console.log('[international-startup] '+source+' import complete: '+JSON.stringify(result));
-          } catch (err) {
-            require('./lib/scheduler').persistOpportunitySync(source, sourceStarted, {ok:false,error:err.message});
-            console.error('[international-startup] '+source+' import failed:', err.message);
-          }
-        };
-        try {
-          await require('./lib/scheduler').runUKOpportunitySyncJob();
-        } catch (err) {
-          console.error('[international-startup] UK source cycle failed:', err.message);
-        }
-        await runStartupSource('apc', () => require('./lib/apc-sync').syncAPC());
-        await runStartupSource('austender', () => require('./lib/austender-sync').syncAusTender());
-        await runStartupSource('vendorpanel-australia', () => require('./lib/vendorpanel-australia-sync').syncVendorPanelAustralia());
-      }, 3000).unref();
-    }
+    // Rebuild preview tender directory from all configured public feeds on every
+    // service start. This is independent of the legacy TED-only startup flag.
+    setTimeout(async () => {
+      try {
+        const result = await require('./lib/scheduler').runOpportunitySyncCycle();
+        console.log('[international-startup] complete: '+JSON.stringify(result));
+      } catch (err) {
+        console.error('[international-startup] cycle failed:', err.message);
+      }
+    }, 5000).unref();
 
     console.log('  البوابة      : http://localhost:' + config.PORT + '/portal/pt-9f3c7a1e5b2d/login.html');
     console.log('  الملفات      : ' + (config.WEB_ROOT || path.resolve(config.ROOT, '..', 'webpages', 'technical-proposal-kit_v5')));
