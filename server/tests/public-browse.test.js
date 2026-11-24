@@ -61,10 +61,11 @@ test('write and submission operations remain protected for anonymous visitors',a
   assert.ok([401,403,404].includes(r.status),'unexpected anonymous write response '+method+' '+url+': '+r.status);
  }
 });
-test('original portal screens include explicit public browse behavior',async()=>{
- const p=await get('/procurement/'),b=await get('/bid/'),s=await get('/consulting/');
+test('original portal screens and contractor market expose their intended public browse feeds',async()=>{
+ const p=await get('/procurement/'),b=await get('/bid/'),s=await get('/consulting/'),market=await get('/bid/market.html');
  assert.match(p.data,/publicLoad/);assert.ok(p.data.includes('/public/procurement/tenders'));
- assert.match(b.data,/publicLoad/);assert.ok(b.data.includes('/public/contractor/opportunities'));
+ assert.match(b.data,/publicLoad/);assert.ok(b.data.includes('/public/procurement/tenders'));
+ assert.ok(market.data.includes('/public/contractor/opportunities'),'contractor market page must use the public opportunities feed');
  assert.match(s.data,/publicLoad/);assert.ok(s.data.includes('/api/public/consulting/requests'));
 });
 
