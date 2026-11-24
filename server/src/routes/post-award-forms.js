@@ -66,6 +66,7 @@ router.get('/awards', wrap(async (req,res) => {
   if (req.user.role === 'contractor') {
     return res.json({ side:'contractor', awards:db().prepare(`SELECT a.id,a.award_reference,a.contract_reference,a.awarded_at,a.awarded_amount,a.currency,
       t.name tender_name,t.reference tender_reference,t.authority,t.closing,t.notes tender_scope,
+      COALESCE((SELECT group_concat(r.title, ' · ') FROM tender_requirements r WHERE r.tender_id=t.id),'') requirements_summary,
       o.name employer_name,u.name contractor_contact,u.company contractor_company,
       po.po_number,po.delivery_start,po.delivery_end,po.payment_terms,po.total_amount po_amount,po.currency po_currency
       FROM project_awards a JOIN tenders t ON t.id=a.tender_id
