@@ -71,6 +71,15 @@ const registerLimiter = rateLimit({
   }
 });
 
+/** Public presentation entry: issues a session only for the isolated demo buyer. */
+const demoSessionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ error: { code: 'RATE_LIMITED', message: 'تعذّر بدء العرض الآن. حاول بعد قليل.' } })
+});
+
 function publicUser(u) {
   return {
     id: u.id, email: u.email, name: u.name, company: u.company,
@@ -176,6 +185,37 @@ router.post('/login', loginLimiter, wrap(async (req, res) => {
   A.setSessionCookie(res, A.signToken(fresh));
 
   res.json({ user: publicUser(fresh), plan: A.planAndUsage(O.billingUserId(fresh)), message: 'تم تسجيل الدخول.' });
+}));
+
+
+/* ---------------- GET /api/auth/demo-session ---------------- */
+/**
+ * Starts the isolated presentation account without exposing its credentials to the browser.
+ * Enabled only when the service explicitly provisions MMC_DEMO_BUYER_* on its own database.
+ * The destination is fixed to /org/; no caller-supplied redirect is accepted.
+ */
+router.get('/demo-session', demoSessionLimiter, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  if (process.env.MMC_DEMO_BUYER_ENABLED !== 'true') {
+    throw E.notFound('العرض التقديمي غير مفعّل على هذه البيئة.');
+  }
+  const email = String(process.env.MMC_DEMO_BUYER_EMAIL || '').trim().toLowerCase();
+  const company = String(process.env.MMC_DEMO_BUYER_COMPANY || 'MMC Demo Procurement').trim();
+  if (!email || !email.endsWith('.invalid')) throw E.server('إعداد حساب العرض التقديمي غير مكتمل.');
+  const db = getDB();
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  if (!user || user.role !== 'buyer' || user.account_status !== 'active' || user.company !== company) {
+    throw E.notFound('حساب العرض التقديمي غير جاهز.');
+  }
+  const verification = db.prepare('SELECT verified_at FROM email_verifications WHERE user_id = ?').get(user.id);
+  if (verification && !verification.verified_at) throw E.forbidden('حساب العرض التقديمي يحتاج إلى مراجعة الإعداد.');
+  const membership = O.ensureOrg(user);
+  if (!membership || membership.org_name !== company) throw E.forbidden('جهة العرض التقديمي غير معزولة بشكل صحيح.');
+  db.prepare('UPDATE users SET last_login_at = unixepoch() WHERE id = ?').run(user.id);
+  const fresh = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
+  A.setSessionCookie(res, A.signToken(fresh));
+  return res.redirect(302, '/org/');
 }));
 
 /* ---------------- POST /api/auth/logout ---------------- */
