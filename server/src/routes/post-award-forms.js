@@ -65,13 +65,25 @@ function shape(f) {
 router.get('/awards', wrap(async (req,res) => {
   if (req.user.role === 'contractor') {
     return res.json({ side:'contractor', awards:db().prepare(`SELECT a.id,a.award_reference,a.contract_reference,a.awarded_at,a.awarded_amount,a.currency,
-      t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id
+      t.name tender_name,t.reference tender_reference,t.authority,t.closing,t.notes tender_scope,
+      o.name employer_name,u.name contractor_contact,u.company contractor_company,
+      po.po_number,po.delivery_start,po.delivery_end,po.payment_terms,po.total_amount po_amount,po.currency po_currency
+      FROM project_awards a JOIN tenders t ON t.id=a.tender_id
+      LEFT JOIN organizations o ON o.id=a.org_id
+      LEFT JOIN users u ON u.id=a.contractor_user_id
+      LEFT JOIN purchase_orders po ON po.award_id=a.id
       WHERE a.contractor_user_id=? AND a.status='approved' ORDER BY a.awarded_at DESC`).all(req.user.id) });
   }
   if (req.user.role === 'buyer') {
     const m=O.membership(req.user.id); if(!m) return res.json({awards:[]});
     return res.json({side:'reviewer',awards:db().prepare(`SELECT a.id,a.award_reference,a.contract_reference,a.awarded_at,a.awarded_amount,a.currency,
-      t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id
+      t.name tender_name,t.reference tender_reference,t.authority,t.closing,t.notes tender_scope,
+      o.name employer_name,u.name contractor_contact,u.company contractor_company,
+      po.po_number,po.delivery_start,po.delivery_end,po.payment_terms,po.total_amount po_amount,po.currency po_currency
+      FROM project_awards a JOIN tenders t ON t.id=a.tender_id
+      LEFT JOIN organizations o ON o.id=a.org_id
+      LEFT JOIN users u ON u.id=a.contractor_user_id
+      LEFT JOIN purchase_orders po ON po.award_id=a.id
       WHERE a.org_id=? AND a.status='approved' ORDER BY a.awarded_at DESC`).all(m.org_id)});
   }
   throw E.forbidden('هذه المساحة مخصصة للمقاول والجهة المشرفة.');
