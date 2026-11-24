@@ -24,6 +24,7 @@ const verificationRoutes = require('./routes/verification');
 const orgRoutes = require('./routes/org');
 const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
+const postAwardFormsRoutes = require('./routes/post-award-forms');
 const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
 const mmcAiRoutes = require('./routes/mmc-ai');
@@ -110,6 +111,7 @@ function createApp() {
   app.use('/api/org', orgRoutes);
   app.use('/api/requests', requestRoutes);
   app.use('/api/project-finance', projectFinanceRoutes);
+  app.use('/api/post-award', postAwardFormsRoutes);
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
