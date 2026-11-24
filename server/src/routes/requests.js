@@ -79,6 +79,15 @@ function docsOf(requestId) {
     .map((d) => ({ id: d.id, kind: d.kind, name: d.name, size: d.size, uploadedAt: d.uploaded_at, uploader: d.uploader, public: O.PUBLIC_DOC_KINDS.includes(d.kind) }));
 }
 function shape(r, m, u, withDetail) {
+  // Once procurement publishes the RFQ/tender, the requester retains status-only visibility.
+  // Internal tender actions, documents, evaluations and the workflow history remain restricted.
+  if (m.role === 'requester' && r.status === 'published') {
+    return {
+      id: r.id, title: r.title, titleEn: r.title_en || null, status: r.status,
+      createdAt: r.created_at, updatedAt: r.updated_at, tenderIssued: true,
+      actions: [], canEditBasic: false, canEditTech: false, restricted: true
+    };
+  }
   const names = getDB().prepare('SELECT (SELECT name FROM users WHERE id = ?) requester, (SELECT name FROM users WHERE id = ?) assignee').get(r.requester_id, r.assigned_to || '');
   const bk = O.FIDIC_BOOKS[r.fidic_book] || null;
   const out = {
@@ -228,6 +237,7 @@ router.post('/:id/docs', buyerOnly, upload.array('files', 5), wrap(async (req, r
 router.get('/:id/docs/:docId', buyerOnly, wrap(async (req, res) => {
   const m = O.ensureOrg(req.user);
   const r = load(m, req.user, req.params.id);
+  if (m.role === 'requester' && r.status === 'published') throw E.notFound('الوثيقة غير متاحة لهذا الدور بعد إصدار RFQ.');
   const d = getDB().prepare('SELECT * FROM request_docs WHERE id = ? AND request_id = ?').get(req.params.docId, r.id);
   if (!d) throw E.notFound('الوثيقة غير موجودة.');
   const store = d.storage_driver === 's3' ? require('../lib/storage/s3') : require('../lib/storage/local');

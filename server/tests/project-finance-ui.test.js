@@ -52,6 +52,7 @@ test('PFUI-06 — لا توجد روابط أو نماذج تعتمد على loc
 const tenderDirectoryPath = path.join(__dirname, '../../webpages/technical-proposal-kit_v5/tender-opportunities/index.html');
 const tenderDirectory = fs.readFileSync(tenderDirectoryPath, 'utf8');
 const contractorPortal = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/index.html'), 'utf8');
+const contractorMarket = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/bid/market.html'), 'utf8');
 const procurementPortal = fs.readFileSync(path.join(__dirname, '../../webpages/technical-proposal-kit_v5/procurement/index.html'), 'utf8');
 
 test('MMCUI-01 — دليل العطاءات يضم مصادر الأردن والدولية والإقليمية وروابطها الرسمية', () => {
@@ -69,8 +70,9 @@ test('MMCUI-02 — روابط المصادر الخارجية تفتح بأما�
 });
 
 test('MMCUI-03 — دليل العطاءات الخارجية متاح للمقاول والاستشاري وغير مربوط ببوابة المشتريات', () => {
-  assert.ok(contractorPortal.includes("API.request('GET','/public/contractor/opportunities')"));
-  assert.ok(contractorPortal.includes('سوق العطاءات الخارجية'));
+  assert.ok(contractorPortal.includes('href="market.html"'), 'بوابة المقاول يجب أن تقود إلى سوق العطاءات المخصص');
+  assert.ok(contractorMarket.includes("'/public/contractor/opportunities?limit='"), 'سوق المقاول العام يجب أن يستخدم واجهة الفرص العامة');
+  assert.ok(contractorMarket.includes('سوق العطاءات'), 'سوق المقاول يجب أن يكون واضحاً بعنوانه');
   assert.doesNotMatch(procurementPortal, /tender-opportunities\/index\.html/);
 });
 
