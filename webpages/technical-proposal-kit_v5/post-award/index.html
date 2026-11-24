@@ -107,6 +107,40 @@ input:focus,select:focus,textarea:focus{
 .preview-meta{background:#f1f5f8;border-color:#dce4eb}
 .preview-note{background:#fbf6e9;border:1px solid #eadbb9;color:#735b2c}
 @media(max-width:680px){.wrap{margin:16px auto}}
+/* FINAL OVERRIDE — match the shared MMC contractor portal exactly */
+html,body{background:var(--bg)!important;color:var(--ink)!important}
+html[dir="rtl"] body,html[dir="rtl"] body *{font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+html[dir="ltr"] body,html[dir="ltr"] body *{font-family:'Inter','Segoe UI',-apple-system,Arial,sans-serif}
+body{font-size:14px!important;line-height:1.7!important}
+header{background:var(--ink)!important;color:#fff!important;border-bottom:3px solid var(--accent)!important;box-shadow:0 2px 12px rgba(13,27,42,.28)!important}
+header strong{font-size:19px!important;font-weight:800!important;letter-spacing:0!important}
+.wrap{max-width:1180px!important}
+h1{font-size:26px!important;font-weight:900!important;color:var(--ink)!important;letter-spacing:-.5px!important}
+h2{font-size:16px!important;font-weight:900!important;color:var(--ink2)!important;border-inline-start:4px solid var(--accent)!important;padding-inline-start:11px!important}
+p,.muted{color:var(--mut)!important}
+.panel,.item{background:var(--paper)!important;border:1px solid var(--line)!important;border-radius:var(--radius)!important;box-shadow:var(--shadow)!important}
+.item strong{color:var(--ink2)!important}
+button,.btn{font-family:inherit!important;font-size:12.5px!important;font-weight:700!important;border-radius:7px!important;box-shadow:none!important}
+button:not(.light):not(.gold),.btn:not(.light){background:#152a41!important;color:#e6edf5!important}
+button:not(.light):not(.gold):hover,.btn:not(.light):hover{background:#1d3a58!important}
+button.gold{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}
+button.light,.btn.light{background:#fff!important;color:var(--ink)!important;border:1px solid var(--line)!important}
+.field label,.preview-field label{font-size:11px!important;font-weight:800!important;color:var(--ink2)!important}
+input,select,textarea,.preview-field input,.preview-field textarea{font-family:inherit!important;font-size:13.5px!important;color:var(--ink)!important;border:1px solid #c9d3de!important;border-radius:7px!important;background:#fff!important}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;outline:0!important;box-shadow:0 0 0 3px rgba(180,83,9,.12)!important}
+.tag{background:var(--soft)!important;color:var(--mut)!important}
+.notice{background:var(--accent-l)!important;color:var(--accent-d)!important;border-inline-start:4px solid var(--accent)!important}
+.notice.error,.error{background:var(--red-l)!important;color:var(--red)!important;border-inline-start-color:var(--red)!important}
+#template-preview{border-top:4px solid var(--accent)!important}
+.preview-heading{background:var(--ink)!important;border-bottom:3px solid var(--accent)!important}
+.preview-brand{color:#f3c68a!important}
+.preview-meta{background:var(--soft)!important;border-color:var(--line)!important}
+.preview-section h3{color:var(--ink2)!important;background:var(--soft)!important;border-inline-start-color:var(--accent)!important}
+.preview-note{background:var(--accent-l)!important;border:1px solid #f0d3ac!important;color:var(--accent-d)!important}
+.professional-fields{background:var(--soft)!important;border-color:var(--line)!important}
+.professional-fields h3{color:var(--ink2)!important}
+@media(max-width:680px){.wrap{margin:16px auto!important}h1{font-size:21px!important}}
+
 </style></head><body>
 <header><div><strong>MMC | نماذج ما بعد الإحالة وإدارة التنفيذ</strong><small>Post-Award Forms & Project Execution</small></div><div style="margin-inline-start:auto" class="row"><button class="light" id="lang">English</button><a class="btn light" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fpost-award%2F">تسجيل الدخول</a><a class="btn" href="/bid/">بوابة المقاول</a></div></header>
 <main class="wrap">
