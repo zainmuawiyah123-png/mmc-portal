@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نماذج ما بعد الإحالة | MMC</title>
+<link rel="stylesheet" href="../portal/pt-9f3c7a1e5b2d/assets/portal.css">
 <style>
-:root{--navy:#17365d;--gold:#c28a2c;--line:#dce3ec;--muted:#64748b;--bg:#f4f7fb}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,Tahoma,sans-serif;color:#18283b}
+ :root{--navy:#0d1b2a;--gold:#b45309;--line:#dde2e8;--muted:#5b6b7c;--blue:#1e4d7b}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);font-family:inherit;background:var(--bg)}
 header{background:var(--navy);color:white;padding:18px max(20px,calc((100% - 1180px)/2));display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 header strong{font-size:19px}header small{display:block;opacity:.8;margin-top:4px}.wrap{max-width:1180px;margin:24px auto;padding:0 16px}
 .top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
@@ -23,28 +24,26 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 @media print{header,.no-print,#award-list,#archive,#actions{display:none!important}.wrap{max-width:none;margin:0}.panel{box-shadow:none;border:0}.print-head{display:block!important}}
 
 /* MMC contractor workspace visual system */
-:root{--navy:#102b4e;--gold:#d4a34b;--bg:#f3f6fa;--line:#d8e0ea;--muted:#65758b;--ink:#172b43;--blue:#1e4a78}
-body{font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif;background:linear-gradient(180deg,#eef3f8 0,#f7f9fc 240px);color:var(--ink)}
-header{background:linear-gradient(110deg,#0d2542,#173d66 70%,#1d4a72);box-shadow:0 8px 24px #0b223b20;border-bottom:3px solid var(--gold);padding-top:20px;padding-bottom:20px}
+header{background:var(--ink);color:#fff;box-shadow:0 2px 12px rgba(13,27,42,.28);border-bottom:3px solid var(--accent);padding-top:16px;padding-bottom:16px}
 header strong{letter-spacing:.2px;font-size:20px}
 .wrap{max-width:1320px;margin:28px auto}
-.panel{border:1px solid #dce4ed;border-radius:16px;padding:22px;margin:18px 0;box-shadow:0 8px 24px #17365d0b}
-h1{font-size:28px;font-weight:750;color:#102b4e}h2{font-size:19px;font-weight:750;border-inline-start:4px solid var(--gold);padding-inline-start:11px}
-.item{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid #dbe4ee;border-radius:13px;padding:17px;box-shadow:0 3px 12px #10243b08}
-.item strong{color:#17365d;font-size:15px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin:18px 0;box-shadow:var(--shadow)}
+h1{font-size:26px;font-weight:900;color:var(--ink)}h2{font-size:16px;font-weight:900;color:var(--ink);border-inline-start:4px solid var(--accent);padding-inline-start:11px}
+.item{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}
+.item strong{color:var(--ink2);font-size:15px}
 button,.btn{border-radius:9px;font-weight:650;box-shadow:0 2px 5px #10243b12;transition:transform .15s,box-shadow .15s}
 button:hover,.btn:hover{transform:translateY(-1px);box-shadow:0 5px 12px #10243b18}
-button.gold{background:linear-gradient(120deg,#bd8428,#d7a94e);color:#15283d}
-button.light{background:#f0f4f8;color:#183452;border:1px solid #d7e1eb}
-input,select,textarea{border:1px solid #cbd6e2;border-radius:9px;padding:11px 12px;color:#183047;background:#fff;transition:border-color .15s,box-shadow .15s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#4a78a7;box-shadow:0 0 0 3px #4778a51c}
-.field label{font-size:13px;font-weight:700;color:#29435e}
+button.gold{background:var(--accent);color:#fff}
+button.light{background:#fff;color:var(--ink);border:1px solid var(--line)}
+input,select,textarea{border:1px solid #c9d3de;border-radius:7px;padding:10px 12px;color:var(--ink);background:#fff;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(180,83,9,.12)}
+.field label{font-size:11px;font-weight:800;color:var(--ink2)}
 .section-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;color:#9a6c22;text-transform:uppercase}
 .professional-fields{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:18px;border:1px solid #dbe4ee;border-radius:13px;background:#f8fafc}
 .professional-fields h3{grid-column:1/-1;margin:0;color:#17365d;font-size:16px}
 @media(max-width:680px){.professional-fields{grid-template-columns:1fr}}
 
-#template-preview{border-top:4px solid var(--gold)}.preview-heading{background:linear-gradient(115deg,#102b4e,#1d4a72);color:#fff;padding:24px;border-radius:13px 13px 0 0}.preview-heading h2{color:#fff;border:0;padding:0;margin:8px 0;font-size:24px}.preview-heading p{color:#dce7f2;margin:0}.preview-brand{font-size:11px;letter-spacing:.12em;font-weight:800;color:#e8bd70}.preview-meta{display:flex;gap:10px;flex-wrap:wrap;padding:14px;background:#f3f6fa;border:1px solid var(--line)}.preview-meta span{flex:1;min-width:140px;font-size:12px;font-weight:700;color:#29435e}.preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:20px;border:1px solid var(--line);border-top:0;border-radius:0 0 13px 13px}.preview-field{display:flex;flex-direction:column;gap:7px}.preview-field.wide{grid-column:1/-1}.preview-field label{font-size:13px;font-weight:750;color:#29435e}.preview-field input,.preview-field textarea{font:inherit;border:1px solid #cbd6e2;border-radius:9px;padding:12px;width:100%;background:#fff}.preview-field textarea{min-height:100px}.preview-signline{height:45px;border-bottom:1px dashed #9aabbd}.preview-note{padding:12px;color:#78521b;background:#fff7e8;border-radius:8px;margin-top:12px}@media(max-width:680px){.preview-grid{grid-template-columns:1fr}.preview-field.wide{grid-column:auto}}/* MMC ecosystem shared visual identity — post-award workspace */
+#template-preview{border-top:4px solid var(--gold)}.preview-heading{background:var(--ink);color:#fff;padding:24px;border-radius:13px 13px 0 0}.preview-heading h2{color:#fff;border:0;padding:0;margin:8px 0;font-size:24px}.preview-heading p{color:#dce7f2;margin:0}.preview-brand{font-size:11px;letter-spacing:.12em;font-weight:800;color:#f3c68a}.preview-meta{display:flex;gap:10px;flex-wrap:wrap;padding:14px;background:var(--soft);border:1px solid var(--line)}.preview-meta span{flex:1;min-width:140px;font-size:12px;font-weight:700;color:#29435e}.preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:20px;border:1px solid var(--line);border-top:0;border-radius:0 0 13px 13px}.preview-field{display:flex;flex-direction:column;gap:7px}.preview-field.wide{grid-column:1/-1}.preview-field label{font-size:11px;font-weight:800;color:var(--ink2)}.preview-field input,.preview-field textarea{font:inherit;border:1px solid #c9d3de;border-radius:9px;padding:12px;width:100%;background:#fff}.preview-field textarea{min-height:100px}.preview-signline{height:45px;border-bottom:1px dashed #9aabbd}.preview-note{padding:12px;color:#78521b;background:#fff7e8;border-radius:8px;margin-top:12px}@media(max-width:680px){.preview-grid{grid-template-columns:1fr}.preview-field.wide{grid-column:auto}}/* MMC ecosystem shared visual identity — post-award workspace */
 :root{
  --navy:#163653;
  --gold:#c5a15a;
