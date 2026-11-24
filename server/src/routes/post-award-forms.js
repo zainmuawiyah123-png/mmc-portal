@@ -126,7 +126,6 @@ router.post('/forms/:id/submit', wrap(async(req,res)=>{
   if(!['draft','changes_requested'].includes(f.status)) throw E.conflict('النموذج ليس جاهزاً للإرسال.');
   db().transaction(()=>{
     db().prepare("UPDATE post_award_forms SET status='submitted',submitted_at=unixepoch(),updated_at=unixepoch() WHERE id=?").run(f.id);
-    snapshot(f.id,f.revision,JSON.parse(f.content_json||'{}'),'submitted',req.user.id,'إرسال للاعتماد');
     event(f.id,req.user.id,'submitted',f.status,'submitted','إرسال للاعتماد');
   })();
   res.json({form:shape(db().prepare('SELECT * FROM post_award_forms WHERE id=?').get(f.id))});
@@ -141,7 +140,6 @@ router.post('/forms/:id/review', wrap(async(req,res)=>{
   db().transaction(()=>{
     db().prepare('UPDATE post_award_forms SET status=?,reviewed_at=unixepoch(),reviewed_by=?,review_note=?,updated_at=unixepoch() WHERE id=?')
       .run(status,req.user.id,note,f.id);
-    snapshot(f.id,f.revision,JSON.parse(f.content_json||'{}'),status,req.user.id,note);
     event(f.id,req.user.id,'reviewed',f.status,status,note);
   })();
   res.json({form:shape(db().prepare('SELECT * FROM post_award_forms WHERE id=?').get(f.id))});
