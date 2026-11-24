@@ -12,7 +12,7 @@ async function seedDemoBuyer() {
   const password = String(process.env.MMC_DEMO_BUYER_PASSWORD || '');
   const name = String(process.env.MMC_DEMO_BUYER_NAME || 'مدير مشتريات تجريبي').trim();
   const company = String(process.env.MMC_DEMO_BUYER_COMPANY || 'MMC Demo Procurement').trim();
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || password.length < 16) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 16) {
     throw new Error('Demo buyer seed requires a valid email and a password of at least 16 characters.');
   }
 
