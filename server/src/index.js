@@ -24,6 +24,7 @@ const verificationRoutes = require('./routes/verification');
 const orgRoutes = require('./routes/org');
 const requestRoutes = require('./routes/requests');
 const projectFinanceRoutes = require('./routes/project-finance');
+const postAwardFormsRoutes = require('./routes/post-award-forms');
 const opportunitiesRoutes = require('./routes/opportunities');
 const consultingRoutes = require('./routes/consulting');
 const mmcAiRoutes = require('./routes/mmc-ai');
@@ -110,6 +111,7 @@ function createApp() {
   app.use('/api/org', orgRoutes);
   app.use('/api/requests', requestRoutes);
   app.use('/api/project-finance', projectFinanceRoutes);
+  app.use('/api/post-award', postAwardFormsRoutes);
   app.use('/api/opportunities', opportunitiesRoutes);
   app.use('/api/procurement', procurementRoutes);
   app.use('/api/consulting', consultingRoutes);
@@ -213,8 +215,39 @@ function createApp() {
   app.get(['/procurement', '/procurement/', '/procurement/index.html'], (req, res, next) => {
     const A = require('./lib/auth');
     A.requireAuth(req, res, (err) => {
+      // Keep the public read-only preview for visitors, but authenticated buyers
+      // must hold the manager or procurement role to enter the procurement desk.
       if (err) return sendFromWeb('procurement/index.html', res, next);
+      if (req.user.role === 'buyer') {
+        const O = require('./lib/org');
+        const member = O.ensureOrg(req.user);
+        if (!member || !['manager', 'procurement'].includes(member.role)) return res.redirect(302, '/org/');
+      }
       return sendFromWeb('procurement/index.html', res, next);
+    });
+  });
+  app.get('/procurement/committee.html', (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fprocurement%2Fcommittee.html');
+      if (req.user.role === 'buyer') {
+        const O = require('./lib/org');
+        const member = O.ensureOrg(req.user);
+        if (!member || !['manager', 'procurement'].includes(member.role)) return res.redirect(302, '/org/');
+      }
+      return sendFromWeb('procurement/committee.html', res, next);
+    });
+  });
+  app.get(['/project-finance', '/project-finance/', '/project-finance/index.html'], (req, res, next) => {
+    const A = require('./lib/auth');
+    A.requireAuth(req, res, (err) => {
+      if (err) return res.redirect(302, '/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fproject-finance%2F');
+      if (req.user.role === 'buyer') {
+        const O = require('./lib/org');
+        const member = O.ensureOrg(req.user);
+        if (!member || !['manager', 'procurement', 'finance'].includes(member.role)) return res.redirect(302, '/org/');
+      }
+      return sendFromWeb('project-finance/index.html', res, next);
     });
   });
   app.get(['/bid', '/bid/', '/bid/index.html'], (req, res, next) => {

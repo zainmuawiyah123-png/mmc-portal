@@ -1347,6 +1347,56 @@ function upgradeEmailVerification(db) {
   `);
 }
 
+function upgradePostAwardForms(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS post_award_forms (
+      id TEXT PRIMARY KEY,
+      award_id TEXT NOT NULL REFERENCES project_awards(id) ON DELETE CASCADE,
+      contractor_user_id TEXT NOT NULL REFERENCES users(id),
+      org_id TEXT NOT NULL REFERENCES organizations(id),
+      form_type TEXT NOT NULL,
+      form_number TEXT NOT NULL,
+      title TEXT NOT NULL,
+      project_name TEXT,
+      consultant_name TEXT,
+      contractor_logo_data TEXT,
+      consultant_logo_data TEXT,
+      content_json TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'draft',
+      revision INTEGER NOT NULL DEFAULT 1,
+      submitted_at INTEGER,
+      reviewed_at INTEGER,
+      reviewed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      review_note TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_post_award_forms_award ON post_award_forms(award_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_post_award_forms_contractor ON post_award_forms(contractor_user_id, updated_at DESC);
+    CREATE TABLE IF NOT EXISTS post_award_form_revisions (
+      id TEXT PRIMARY KEY,
+      form_id TEXT NOT NULL REFERENCES post_award_forms(id) ON DELETE CASCADE,
+      revision INTEGER NOT NULL,
+      content_json TEXT NOT NULL,
+      status TEXT NOT NULL,
+      changed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      note TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(form_id, revision)
+    );
+    CREATE TABLE IF NOT EXISTS post_award_form_events (
+      id TEXT PRIMARY KEY,
+      form_id TEXT NOT NULL REFERENCES post_award_forms(id) ON DELETE CASCADE,
+      actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL,
+      from_status TEXT,
+      to_status TEXT,
+      note TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -1389,6 +1439,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeConsultingContractTracking(db);
   upgradeMmcAiProjects(db);
   upgradeEmailVerification(db);
+  upgradePostAwardForms(db);
 
   return db;
 }

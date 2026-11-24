@@ -82,6 +82,25 @@
    ].join('');
    const description=t.description||o.summary||'';
    content.innerHTML='<h2>'+esc(o.title||label('تفاصيل العطاء','Tender details'))+'</h2><p>'+esc(description)+'</p><div class="mmc-detail-grid">'+cells+'</div><h3>'+label('وثائق العطاء المتاحة','Available tender documents')+'</h3><div class="mmc-doc-list">'+(docs.length?docs.map(x=>'<a href="'+esc(x.downloadUrl||x.documentUrl||'#')+'" '+(x.downloadUrl?'':'target="_blank" rel="noopener"')+'>'+esc(x.label||'Tender document')+(x.cached?' · '+label('نسخة محفوظة في MMC','Cached in MMC'):'')+'</a>').join(''):'<p>'+label('لا توجد وثائق عامة مرفقة من المصدر حتى الآن. قد تتطلب الوثائق التسجيل أو الشراء من الجهة.','No public documents are attached yet. Documents may require registration or purchase from the authority.')+'</p>')+'</div><div class="mmc-detail-actions">'+(o.sourceUrl?'<a class="btn" href="'+esc(o.sourceUrl)+'" target="_blank" rel="noopener">'+label('الإعلان الرسمي','Official notice')+' ↗</a>':'')+(o.applicationUrl?'<a class="btn" href="'+esc(o.applicationUrl)+'" target="_blank" rel="noopener">'+label('التقديم الرسمي','Official submission')+' ↗</a>':'')+'</div>';
+   const prep=document.createElement('button');prep.type='button';prep.className='btn';prep.textContent=label('اختر هذا العطاء وجهّز العرض','Select this tender & prepare proposal');
+   prep.addEventListener('click',async function(){
+    prep.disabled=true;prep.textContent=label('جارٍ فتح ملف تجهيز العرض...','Opening proposal workspace...');
+    try{
+     const body={name:(o.tenderNumber&&String(o.title||'').indexOf(o.tenderNumber)<0?o.tenderNumber+' - ':'')+(o.title||label('عطاء دولي','International tender')),authority:o.authority||buyer.name||null,closing:/^\\d{4}-\\d{2}-\\d{2}/.test(o.closingAt||'')?o.closingAt.slice(0,10):null,notes:'المصدر الدولي: '+(o.sourceKey||'')+' | الدولة: '+(o.country||'')+' | رقم العطاء: '+(o.tenderNumber||t.id||'-')+' | الرابط الرسمي: '+(o.sourceUrl||'')};
+     const listRes=await fetch('/api/tenders',{credentials:'include'});const list=await listRes.json();
+     if(!listRes.ok)throw new Error(list.error?.message||label('يرجى تسجيل الدخول بحساب المقاول أولاً.','Please sign in with a contractor account first.'));
+     const rows=list.tenders||[];const existing=rows.filter(x=>x.name===body.name&&(!body.authority||x.authority===body.authority)).slice(-1)[0];let tid=existing&&existing.id;
+     if(!tid){const response=await fetch('/api/tenders',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)});
+      const saved=await response.json();if(!response.ok)throw new Error(saved.error?.message||label('تعذر حفظ العطاء.','Unable to save tender.'));
+      const tender=saved.tender||saved;tid=tender.id;
+      if(!tid){const lr=await fetch('/api/tenders',{credentials:'include'});const refreshed=await lr.json();const match=(refreshed.tenders||[]).filter(x=>x.name===body.name&&(!body.authority||x.authority===body.authority)).slice(-1)[0];tid=match&&match.id;}
+     }
+     if(!tid)throw new Error(label('تم حفظ العطاء لكن تعذر فتح ملفه تلقائياً. افتح ملفاتي واختر العطاء المحفوظ.','Tender saved, but its workspace could not be opened automatically. Open My Files and select it.'));
+     const qs=new URLSearchParams({t:tid,name:o.title||'',authority:o.authority||buyer.name||'',ref:o.tenderNumber||t.id||'',country:o.country||'',source:o.sourceKey||'',closing:o.closingAt||'',notice:o.sourceUrl||''});
+     location.href='../portal/pt-9f3c7a1e5b2d/prepare.html?'+qs.toString();
+    }catch(err){prep.disabled=false;prep.textContent=label('اختر هذا العطاء وجهّز العرض','Select this tender & prepare proposal');alert(err.message);}
+   });
+   const actions=content.querySelector('.mmc-detail-actions');if(actions)actions.prepend(prep);
   }catch(e){content.innerHTML='<p>'+esc(e.message)+'</p>';}
  }
  document.addEventListener('click',e=>{
