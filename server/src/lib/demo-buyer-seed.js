@@ -50,6 +50,7 @@ async function seedDemoBuyer() {
 }
 
 async function seedDemoTeam(db, orgId, managerUser, auth) {
+  const { uid } = require('../db');
   const members = [
     { key: 'requester', name: 'مسؤول طلب الخدمة', email: 'requester@mmc-demo.invalid', role: 'requester' },
     { key: 'projects', name: 'مدير دائرة المشاريع', email: 'projects@mmc-demo.invalid', role: 'projects' },
@@ -94,7 +95,6 @@ function seedDemoRequests(db, orgId, managerUser) {
       VALUES (?,?,?,?,?,?,?)`)
       .run('demo_evt_' + s.id, s.id, managerUser.id, s.action, s.from, s.to, 'حدث تجريبي لشرح مسار الطلب');
   }
-}
 }
 
 module.exports = { seedDemoBuyer };
