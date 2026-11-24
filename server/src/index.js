@@ -276,6 +276,10 @@ function start() {
   fs.mkdirSync(config.UPLOAD_DIR, { recursive: true });
   fs.mkdirSync(config.BACKUP_DIR, { recursive: true });
   migrate(config.DB_PATH);              // idempotent
+  // Opt-in demo buyer is seeded only on the isolated preview service.
+  require('./lib/demo-buyer-seed').seedDemoBuyer().catch((err) => {
+    console.error('[demo] buyer seed failed:', err.message);
+  });
 
   // The verified GAM snapshot is curated in source control; import it after
   // migrations so new deployments populate the tender directory automatically.
