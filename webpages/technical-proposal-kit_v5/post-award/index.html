@@ -29,13 +29,18 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <h2 data-ar="مكتبة النماذج المتاحة" data-en="Available Form Templates">مكتبة النماذج المتاحة</h2>
 <p class="muted" data-ar="هذه مكتبة النماذج التي ستُستخدم داخل كل مشروع تمت إحالته. اختر المشروع بعد تسجيل الدخول لإنشاء نموذج محفوظ في أرشيفه." data-en="These templates are available for each awarded project. Sign in and choose an awarded project to create and archive a form.">هذه مكتبة النماذج التي ستُستخدم داخل كل مشروع تمت إحالته. اختر المشروع بعد تسجيل الدخول لإنشاء نموذج محفوظ في أرشيفه.</p>
 <div class="cards" id="template-cards">
-<div class="item"><strong>اعتماد المواد والمخططات والعينات</strong><div class="muted">Material Submittal · Shop Drawings · Sample Approval</div></div>
-<div class="item"><strong>تقارير سير العمل والتقدم</strong><div class="muted">Daily · Weekly · Monthly Progress Reports</div></div>
-<div class="item"><strong>الفحص والاستلام</strong><div class="muted">Inspection Request · Work Acceptance · Handover</div></div>
-<div class="item"><strong>الاستفسارات والمراسلات الفنية</strong><div class="muted">RFI · Site Meeting · Delay Notice</div></div>
-<div class="item"><strong>الملاحظات والأعمال المتبقية</strong><div class="muted">Snag List · Corrective Actions</div></div>
+<div class="item"><strong>اعتماد المواد والمخططات والعينات</strong><div class="muted">Material Submittal · Shop Drawings · Sample Approval</div><button class="light" data-preview="material_submittal">معاينة النماذج</button></div>
+<div class="item"><strong>تقارير سير العمل والتقدم</strong><div class="muted">Daily · Weekly · Monthly Progress Reports</div><button class="light" data-preview="daily_report">معاينة النماذج</button></div>
+<div class="item"><strong>الفحص والاستلام</strong><div class="muted">Inspection Request · Work Acceptance · Handover</div><button class="light" data-preview="inspection_request">معاينة النماذج</button></div>
+<div class="item"><strong>الاستفسارات والمراسلات الفنية</strong><div class="muted">RFI · Site Meeting · Delay Notice</div><button class="light" data-preview="rfi">معاينة النماذج</button></div>
+<div class="item"><strong>الملاحظات والأعمال المتبقية</strong><div class="muted">Snag List · Corrective Actions</div><button class="light" data-preview="snag_list">معاينة النماذج</button></div>
 </div>
 <div class="notice">ملاحظة: إنشاء نموذج وحفظه وإرساله يتطلب تسجيل الدخول واختيار مشروع إحالة مرتبط بحسابك.</div>
+</section>
+<section class="panel hidden" id="template-preview">
+<div class="top"><div><h2 id="preview-title">معاينة النموذج</h2><div class="muted">نموذج تجريبي للعرض والتجربة — لا يتم حفظ البيانات في هذه المعاينة</div></div><button class="light" id="close-preview">إغلاق المعاينة</button></div>
+<div class="grid" id="preview-fields"></div>
+<div class="row no-print" style="margin-top:14px"><button class="light" onclick="window.print()">طباعة المعاينة</button><a class="btn" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fpost-award%2F">تسجيل الدخول للحفظ الرسمي</a></div>
 </section>
 <section class="panel" id="award-list"><h2 data-ar="المشاريع التي تمت إحالتها" data-en="Awarded projects">المشاريع التي تمت إحالتها</h2><div id="awards" class="cards">جارٍ تحميل المشاريع...</div></section>
 <section class="panel hidden" id="workspace"><div class="top"><div><h2 id="project-title">المشروع</h2><div class="muted" id="project-meta"></div></div><div class="row"><button class="gold" id="new-form">+ نموذج جديد / New form</button><button class="light" id="back">العودة للمشاريع</button></div></div>
@@ -77,5 +82,15 @@ async function history(id){try{const j=await call('/forms/'+id+'/history');msg('
 async function review(status){if(!current)return;try{const j=await call('/forms/'+current.id+'/review',{method:'POST',body:JSON.stringify({status,note:$('review-note').value})});fill(j.form);await loadForms();msg('تم حفظ قرار المراجعة.')}catch(e){msg(e.message,true)}}
 ['contractor','consultant'].forEach(k=>$(k+'-logo').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;if(file.size>500000){msg('حجم الشعار يجب ألا يتجاوز 500 كيلوبايت.',true);return}const rd=new FileReader();rd.onload=()=>{logos[k]=rd.result;$(k+'-preview').src=rd.result;$(k+'-preview').classList.remove('hidden')};rd.readAsDataURL(file)}));
 $('save').onclick=()=>save(false);$('submit').onclick=()=>save(true);$('print').onclick=()=>window.print();$('filter').oninput=renderForms;$('new-form').onclick=()=>{fresh();$('save').disabled=side!=='contractor';$('submit').disabled=side!=='contractor';$('workspace').scrollIntoView({behavior:'smooth'})};$('back').onclick=()=>{ $('workspace').classList.add('hidden');$('archive').classList.add('hidden');$('award-list').classList.remove('hidden');fresh()};$('approve').onclick=()=>review('approved');$('changes').onclick=()=>review('changes_requested');$('reject').onclick=()=>review('rejected');$('lang').onclick=()=>{lang=lang==='ar'?'en':'ar';document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.documentElement.lang=lang;$('lang').textContent=lang==='ar'?'English':'العربية';document.querySelectorAll('[data-ar][data-en]').forEach(x=>x.textContent=x.dataset[lang])};
+const previewDefs={
+material_submittal:{title:'طلب اعتماد مواد / Material Submittal',fields:['رقم النموذج','التاريخ','اسم المشروع','المقاول','الاستشاري / الجهة المشرفة','اسم المادة','الشركة المصنعة','بلد المنشأ','المواصفات والمرجع','الموقع أو البند المستخدم فيه','المرفقات المطلوبة','ملاحظات المقاول','قرار الاستشاري','ملاحظات الاستشاري']},
+daily_report:{title:'تقرير سير العمل اليومي / Daily Site Report',fields:['رقم التقرير','التاريخ','اسم المشروع','حالة الطقس','عدد العمال','المهندسون والمشرفون','المعدات والآليات','الأعمال المنفذة اليوم','المواد المستلمة','الفحوصات والاختبارات','المعوقات والتأخيرات','تعليمات الاستشاري','خطة العمل لليوم التالي','إعداد المقاول','اعتماد الاستشاري']},
+inspection_request:{title:'طلب فحص واستلام أعمال / Inspection Request',fields:['رقم الطلب','تاريخ الطلب','تاريخ ووقت الفحص المقترح','المشروع','الموقع / المحور / الطابق','وصف الأعمال المطلوب فحصها','مرجع المخططات والمواصفات','نسبة الإنجاز','قائمة الفحوصات','المرفقات والصور','نتيجة الفحص','ملاحظات الاستشاري','اسم وتوقيع المقاول','اسم وتوقيع المفتش']},
+rfi:{title:'طلب معلومات فنية / Request for Information',fields:['رقم RFI','التاريخ','المشروع','الموضوع','مرجع المخطط أو المواصفة','الموقع','وصف الاستفسار','سبب طلب التوضيح','الأثر المحتمل على الوقت أو التكلفة','المرفقات والرسومات','رد الاستشاري','تاريخ الرد','حالة الطلب']},
+snag_list:{title:'قائمة الملاحظات والأعمال المتبقية / Snag List',fields:['رقم القائمة','التاريخ','المشروع','المبنى / المنطقة / الطابق','رقم الملاحظة','وصف الملاحظة','الموقع التفصيلي','الجهة المسؤولة','الإجراء التصحيحي المطلوب','تاريخ الاستحقاق','صورة قبل المعالجة','صورة بعد المعالجة','حالة الإغلاق','اعتماد الاستشاري']}
+};
+function showPreview(type){const d=previewDefs[type]||previewDefs.material_submittal;$('preview-title').textContent=d.title;$('preview-fields').innerHTML=d.fields.map((name,i)=>'<div class="field '+(i===d.fields.length-1?'wide':'')+'"><label>'+esc(name)+'</label>'+(name.includes('ملاحظات')||name.includes('وصف')||name.includes('الإجراء')||name.includes('الأعمال المنفذة')||name.includes('المرفقات')||name.includes('الفحوصات')?'<textarea placeholder="'+esc(name)+'"></textarea>':'<input placeholder="'+esc(name)+'">')+'</div>').join('');$('template-preview').classList.remove('hidden');$('template-preview').scrollIntoView({behavior:'smooth'});}
+document.querySelectorAll('[data-preview]').forEach(b=>b.onclick=()=>showPreview(b.dataset.preview));
+$('close-preview').onclick=()=>$('template-preview').classList.add('hidden');
 init();
 </script></body></html>
