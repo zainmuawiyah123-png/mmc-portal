@@ -64,13 +64,13 @@ function shape(f) {
 }
 router.get('/awards', wrap(async (req,res) => {
   if (req.user.role === 'contractor') {
-    return res.json({ awards:db().prepare(`SELECT a.id,a.award_reference,a.contract_reference,a.awarded_at,a.awarded_amount,a.currency,
+    return res.json({ side:'contractor', awards:db().prepare(`SELECT a.id,a.award_reference,a.contract_reference,a.awarded_at,a.awarded_amount,a.currency,
       t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id
       WHERE a.contractor_user_id=? AND a.status='approved' ORDER BY a.awarded_at DESC`).all(req.user.id) });
   }
   if (req.user.role === 'buyer') {
     const m=O.membership(req.user.id); if(!m) return res.json({awards:[]});
-    return res.json({awards:db().prepare(`SELECT a.id,a.award_reference,a.contract_reference,a.awarded_at,a.awarded_amount,a.currency,
+    return res.json({side:'reviewer',awards:db().prepare(`SELECT a.id,a.award_reference,a.contract_reference,a.awarded_at,a.awarded_amount,a.currency,
       t.name tender_name FROM project_awards a JOIN tenders t ON t.id=a.tender_id
       WHERE a.org_id=? AND a.status='approved' ORDER BY a.awarded_at DESC`).all(m.org_id)});
   }
