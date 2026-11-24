@@ -112,18 +112,50 @@ inspection_request:{title:'طلب فحص واستلام أعمال / Inspection 
 rfi:{title:'طلب معلومات فنية / Request for Information',fields:['رقم RFI','التاريخ','المشروع','الموضوع','مرجع المخطط أو المواصفة','الموقع','وصف الاستفسار','سبب طلب التوضيح','الأثر المحتمل على الوقت أو التكلفة','المرفقات والرسومات','رد الاستشاري','تاريخ الرد','حالة الطلب']},
 snag_list:{title:'قائمة الملاحظات والأعمال المتبقية / Snag List',fields:['رقم القائمة','التاريخ','المشروع','المبنى / المنطقة / الطابق','رقم الملاحظة','وصف الملاحظة','الموقع التفصيلي','الجهة المسؤولة','الإجراء التصحيحي المطلوب','تاريخ الاستحقاق','صورة قبل المعالجة','صورة بعد المعالجة','حالة الإغلاق','اعتماد الاستشاري']}
 };
+let activePreviewType=null;
 function showPreview(type){
- const defs={
- daily_report:{ar:'تقرير الموقع اليومي',en:'Daily Site Report',fields:[
- ['رقم التقرير','Report Number','text'],['التاريخ','Date','date'],['اسم المشروع','Project Name','text'],['حالة الطقس','Weather Conditions','text'],['عدد العمال','Total Workforce','number'],['المهندسون والمشرفون','Engineers & Supervisors','area'],['المعدات والآليات','Plant & Equipment','area'],['الأعمال المنفذة اليوم','Work Executed Today','area'],['المواد المستلمة','Materials Received','area'],['الفحوصات والاختبارات','Inspections & Tests','area'],['المعوقات والتأخيرات','Constraints & Delays','area'],['تعليمات الاستشاري','Consultant Instructions','area'],['خطة العمل لليوم التالي','Next Day Work Plan','area'],['إعداد المقاول','Prepared by Contractor','sign'],['اعتماد الاستشاري','Consultant Approval','sign']]},
- material_submittal:{ar:'طلب اعتماد مواد',en:'Material Submittal',fields:[['رقم النموذج','Form Number','text'],['التاريخ','Date','date'],['اسم المشروع','Project Name','text'],['اسم المادة','Material Name','text'],['الشركة المصنعة','Manufacturer','text'],['بلد المنشأ','Country of Origin','text'],['مرجع المواصفات','Specification Reference','text'],['ملاحظات فنية','Technical Notes','area'],['قرار الاستشاري','Consultant Decision','area']]},
- inspection_request:{ar:'طلب فحص واستلام أعمال',en:'Inspection Request',fields:[['رقم الطلب','Request Number','text'],['تاريخ الطلب','Request Date','date'],['موعد الفحص','Inspection Date','date'],['المشروع','Project','text'],['الموقع','Location','text'],['وصف الأعمال المطلوب فحصها','Work to Be Inspected','area'],['مرجع المخططات والمواصفات','Drawing & Specification References','area'],['قائمة الفحوصات','Inspection Checklist','area'],['نتيجة الفحص','Inspection Result','area'],['ملاحظات الاستشاري','Consultant Comments','area']]}
+ activePreviewType=type;
+ const titles={
+ material_submittal:['طلب اعتماد مواد','Material Submittal'],
+ shop_drawing:['اعتماد مخططات تنفيذية','Shop Drawing Submission'],
+ sample_approval:['اعتماد عينة','Sample Approval'],
+ daily_report:['تقرير الموقع اليومي','Daily Site Report'],
+ weekly_report:['تقرير التقدم الأسبوعي','Weekly Progress Report'],
+ monthly_report:['التقرير الشهري','Monthly Progress Report'],
+ inspection_request:['طلب فحص واستلام أعمال','Inspection Request'],
+ work_acceptance:['استلام الأعمال','Work Acceptance'],
+ rfi:['طلب معلومات فنية','Request for Information (RFI)'],
+ site_meeting:['محضر اجتماع الموقع','Site Meeting Minutes'],
+ snag_list:['قائمة الملاحظات والأعمال المتبقية','Snag & Outstanding Works List'],
+ delay_notice:['إشعار تأخير','Delay Notice'],
+ handover:['محضر الاستلام والتسليم','Handover & Taking-Over']
  };
- const d=defs[type]||defs.daily_report,en=lang==='en',title=d[en?'en':'ar'];
+ const schema=professionalSchema[type]||professionalSchema.material_submittal;
+ const en=lang==='en',title=(titles[type]||titles.material_submittal)[en?1:0];
+ const shared=en?[
+ ['Form Number','text'],['Date','date'],['Project Name','text'],['Contractor','text'],['Consultant / Supervising Engineer','text']
+ ]:[
+ ['رقم النموذج','text'],['التاريخ','date'],['اسم المشروع','text'],['المقاول','text'],['الاستشاري / المهندس المشرف','text']
+ ];
+ const fields=shared.map(([label,kind])=>({label,kind}));
+ schema.fields.forEach(([key,ar,english])=>{
+   const label=en?english:ar;
+   const area=/description|question|reason|notes|checklist|instructions|actions|decisions|agenda|deviation|coordination|compliance|impact|risks|mitigation|records|documents|evidence|tests|defects|outstanding|work|deliveries|milestones|lookahead|recovery|attendees|training|warranties|correctiveAction|closeout/i.test(key);
+   const date=/date|periodFrom|periodTo|dueDate|eventDate|completionDate/i.test(key);
+   fields.push({label,kind:date?'date':area?'area':'text'});
+ });
+ const control=f=>f.kind==='area'
+  ?'<textarea rows="3" placeholder="'+esc(f.label)+'"></textarea>'
+  :'<input type="'+(f.kind==='date'?'date':'text')+'" placeholder="'+esc(f.label)+'">';
  $('preview-title').textContent=title;
- const fields=d.fields.map((f,i)=>{const label=f[en?1:0],wide=f[2]==='area'||f[2]==='sign';let control=f[2]==='area'?'<textarea placeholder="'+esc(label)+'"></textarea>':f[2]==='sign'?'<div class="preview-signline"></div>':'<input type="'+(f[2]==='date'?'date':f[2]==='number'?'number':'text')+'" placeholder="'+esc(label)+'">';return '<div class="preview-field'+(wide?' wide':'')+'"><label>'+esc(label)+'</label>'+control+'</div>'}).join('');
- $('preview-fields').innerHTML='<div class="preview-heading"><div class="preview-brand">MMC | POST-AWARD PROJECT CONTROLS</div><h2>'+esc(title)+'</h2><p>'+(en?'Contractor site record · Consultant review':'سجل متابعة الموقع · مراجعة واعتماد الاستشاري')+'</p></div><div class="preview-meta"><span>'+(en?'FORM REF.':'رقم النموذج')+' : MMC-0001</span><span>'+(en?'REVISION':'المراجعة')+' : 00</span><span>'+(en?'STATUS':'الحالة')+' : '+(en?'Draft':'مسودة')+'</span></div><div class="preview-grid">'+fields+'</div><div class="preview-note">'+(en?'Demonstration only — entries are not saved.':'للعرض والتجربة فقط — لا يتم حفظ البيانات.')+'</div>';
- $('template-preview').classList.remove('hidden');$('template-preview').scrollIntoView({behavior:'smooth'});
+ $('preview-fields').innerHTML=
+  '<div class="preview-heading"><div class="preview-brand">MMC | POST-AWARD PROJECT CONTROLS</div><h2>'+esc(title)+'</h2><p>'+(en?'Contractor project record · Consultant review and approval':'سجل المشروع للمقاول · مراجعة واعتماد الاستشاري')+'</p></div>'+
+  '<div class="preview-meta"><span>'+(en?'FORM REF.':'رقم النموذج')+' : MMC-0001</span><span>'+(en?'REVISION':'المراجعة')+' : 00</span><span>'+(en?'STATUS':'الحالة')+' : '+(en?'Draft':'مسودة')+'</span></div>'+
+  '<div class="preview-grid">'+fields.map(f=>'<div class="preview-field'+(f.kind==='area'?' wide':'')+'"><label>'+esc(f.label)+'</label>'+control(f)+'</div>').join('')+'</div>'+
+  '<div class="preview-note">'+(en?'Demonstration only — entries are not saved.':'للعرض والتجربة فقط — لا يتم حفظ البيانات.')+'</div>'+
+  '<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="light" type="button" onclick="window.print()">'+(en?'Print Preview':'طباعة المعاينة')+'</button><a class="btn primary" href="/portal/pt-9f3c7a1e5b2d/login.html?next=%2Fpost-award%2F">'+(en?'Sign in to Save':'تسجيل الدخول للحفظ الرسمي')+'</a></div>';
+ $('template-preview').classList.remove('hidden');
+ $('template-preview').scrollIntoView({behavior:'smooth'});
 }
 document.querySelectorAll('[data-preview]').forEach(b=>b.onclick=()=>showPreview(b.dataset.preview));
 $('close-preview').onclick=()=>$('template-preview').classList.add('hidden');
@@ -151,7 +183,7 @@ const i18n={
 'اعتماد المواد والمخططات والعينات':'Materials, Shop Drawings & Samples','معاينة النماذج':'Preview templates','تقارير سير العمل والتقدم':'Site & Progress Reports','الفحص والاستلام':'Inspection & Acceptance','الاستفسارات والمراسلات الفنية':'Technical Queries & Correspondence','الملاحظات والأعمال المتبقية':'Snagging & Outstanding Works','ملاحظة: إنشاء نموذج وحفظه وإرساله يتطلب تسجيل الدخول واختيار مشروع إحالة مرتبط بهذا الحساب.':'Note: Sign in and select an awarded project linked to your account to create and submit forms.',
 'معاينة النموذج':'Form Preview','نموذج تجريبي للعرض والتجربة — لا يتم حفظ البيانات في هذه المعاينة':'Preview only — entries here are not saved.','إغلاق المعاينة':'Close Preview','طباعة المعاينة':'Print Preview','تسجيل الدخول للحفظ الرسمي':'Sign in to Save','المشاريع التي تمت إحالتها':'Awarded Projects','جارٍ تحميل المشاريع...':'Loading awarded projects...','المشروع':'Project','نوع النموذج':'Form Type','رقم النموذج / Form No.':'Form Number','اسم المشروع / Project name':'Project Name','الاستشاري أو الجهة المشرفة / Consultant or Supervisor':'Consultant / Supervising Entity','شعار المقاول / Contractor logo':'Contractor Logo','شعار الاستشاري / الجهة المشرفة / Consultant logo':'Consultant / Supervising Entity Logo','عنوان النموذج / Form title':'Form Title','موضوع النموذج / Subject':'Subject','التاريخ / Date':'Date','الموقع / Location':'Location','تفاصيل النموذج / Form details':'Form Details','المواد أو الأعمال أو الملاحظات / Items, works or remarks':'Materials, Works or Remarks','المرفقات / Attachments':'Attachments','حفظ المسودة':'Save Draft','إرسال للاعتماد':'Submit for Review','طباعة / PDF':'Print / PDF','أرشيف نماذج المشروع / Project Form Archive':'Project Forms Archive','بحث بالنوع أو الرقم أو الحالة':'Search type, number or status','مراجعة الجهة المشرفة / Reviewer Decision':'Reviewer Decision','ملاحظات المراجع / Review notes':'Reviewer Notes','اعتماد / Approve':'Approve','طلب تعديل / Request changes':'Request Changes','رفض / Reject':'Reject','العودة للمشاريع':'Back to Projects','فتح المشروع':'Open Project','فتح وتعديل':'Open & Edit','السجل':'History','لا توجد مشاريع محالة مرتبطة بهذا الحساب بعد.':'No awarded projects are linked to this account yet.','لا توجد نماذج محفوظة. اختر نوع النموذج وابدأ بإنشاء أول نموذج.':'No forms saved yet. Select a form type to create the first project record.','تم إرسال النموذج للجهة المشرفة.':'Form submitted to the supervising entity.','تم حفظ النموذج في أرشيف المشروع.':'Draft saved to the project archive.','تم حفظ قرار المراجعة.':'Review decision saved.','تعذر تنفيذ الطلب':'Unable to complete the request','إرسال النموذج للجهة المشرفة.':'Form submitted to the supervising entity.'
 };
-function applyLanguage(){document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';$('lang').textContent=lang==='ar'?'English':'العربية';document.querySelectorAll('[data-ar][data-en]').forEach(x=>x.textContent=x.dataset[lang]);const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while(n=walker.nextNode()){const raw=n.nodeValue.trim();if(i18n[raw])n.nodeValue=n.nodeValue.replace(raw,i18n[raw])}document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{if(el.dataset.arPlaceholder===undefined)el.dataset.arPlaceholder=el.placeholder;const ar=el.dataset.arPlaceholder;if(i18n[ar])el.placeholder=i18n[ar]});if($('type'))renderProfessionalFields($('type').value,collectProfessionalFields())}
+function applyLanguage(){document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';$('lang').textContent=lang==='ar'?'English':'العربية';document.querySelectorAll('[data-ar][data-en]').forEach(x=>x.textContent=x.dataset[lang]);const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while(n=walker.nextNode()){const raw=n.nodeValue.trim();if(i18n[raw])n.nodeValue=n.nodeValue.replace(raw,i18n[raw])}document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{if(el.dataset.arPlaceholder===undefined)el.dataset.arPlaceholder=el.placeholder;const ar=el.dataset.arPlaceholder;if(i18n[ar])el.placeholder=i18n[ar]});if($('type'))renderProfessionalFields($('type').value,collectProfessionalFields());if(activePreviewType&&!$('template-preview').classList.contains('hidden'))showPreview(activePreviewType)}
 $('lang').onclick=()=>{lang=lang==='ar'?'en':'ar';applyLanguage()};
 $('type').addEventListener('change',()=>renderProfessionalFields($('type').value));
 
