@@ -42,14 +42,14 @@ async function seedDemoBuyer() {
 
   const membership = org.ensureOrg(user);
   if (!membership) throw new Error('Could not create or resolve the isolated demo organization.');
-  seedDemoTeam(db, membership.org_id, user, auth);
+  await seedDemoTeam(db, membership.org_id, user, auth);
   seedDemoRequests(db, membership.org_id, user);
 
   console.log('[demo] isolated procurement buyer ready:', email, 'organization:', membership.org_name);
   return { enabled: true, email, organization: membership.org_name };
 }
 
-function seedDemoTeam(db, orgId, managerUser, auth) {
+async function seedDemoTeam(db, orgId, managerUser, auth) {
   const members = [
     { key: 'requester', name: 'مسؤول طلب الخدمة', email: 'requester@mmc-demo.invalid', role: 'requester' },
     { key: 'projects', name: 'مدير دائرة المشاريع', email: 'projects@mmc-demo.invalid', role: 'projects' },
@@ -61,7 +61,7 @@ function seedDemoTeam(db, orgId, managerUser, auth) {
     let row = db.prepare('SELECT id FROM users WHERE email = ?').get(member.email);
     if (!row) {
       const id = uid('usr_demo_');
-      const randomHash = crypto.createHash('sha256').update(crypto.randomBytes(32)).digest('hex');
+      const randomHash = await auth.hashPassword(crypto.randomBytes(32).toString('hex'));
       db.prepare(`INSERT INTO users (id,email,password_hash,name,company,role,country,plan_key,account_status)
         VALUES (?,?,?,?,?,'buyer','JO','free','suspended')`)
         .run(id, member.email, randomHash, member.name, managerUser.company);
