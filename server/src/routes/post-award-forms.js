@@ -72,7 +72,7 @@ router.get('/awards', wrap(async (req,res) => {
       FROM project_awards a JOIN tenders t ON t.id=a.tender_id
       LEFT JOIN organizations o ON o.id=a.org_id
       LEFT JOIN users u ON u.id=a.contractor_user_id
-      LEFT JOIN purchase_orders po ON po.award_id=a.id
+      LEFT JOIN purchase_orders po ON po.id=(SELECT p.id FROM purchase_orders p WHERE p.award_id=a.id ORDER BY p.created_at DESC LIMIT 1)
       WHERE a.contractor_user_id=? AND a.status='approved' ORDER BY a.awarded_at DESC`).all(req.user.id) });
   }
   if (req.user.role === 'buyer') {
