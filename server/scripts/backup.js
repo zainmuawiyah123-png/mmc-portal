@@ -117,7 +117,7 @@ async function main() {
     sha256Gz: gzSum,
     counts: srcCounts,
     schemaVersion: 'v5',
-    storageDriver: config.STORAGE_DRIVER
+    storageDriver: config.BACKUP_S3_ENABLED ? 'backup-s3' : 'local'
   };
   fs.writeFileSync(gzPath + '.json', JSON.stringify(manifest, null, 2));
 
@@ -128,29 +128,40 @@ async function main() {
 
   // ---------- 4) رفع إلى السحابة ----------
   let uploadedKey = null;
-  const shouldUpload = !LOCAL_ONLY && config.STORAGE_DRIVER === 's3' && config.BACKUP_UPLOAD;
+  const shouldUpload = !LOCAL_ONLY && config.BACKUP_UPLOAD && config.BACKUP_S3_ENABLED;
   if (shouldUpload) {
-    const s3 = require('../src/lib/storage/s3');
+    const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+    const required = ['BACKUP_S3_ENDPOINT','BACKUP_S3_BUCKET','BACKUP_S3_ACCESS_KEY_ID','BACKUP_S3_SECRET_ACCESS_KEY'];
+    const missing = required.filter((k) => !config[k]);
+    if (missing.length) throw new Error('إعدادات R2 للنسخ الاحتياطي ناقصة: ' + missing.join(', '));
+    const client = new S3Client({
+      region: config.BACKUP_S3_REGION || 'auto',
+      endpoint: config.BACKUP_S3_ENDPOINT,
+      forcePathStyle: config.BACKUP_S3_FORCE_PATH_STYLE,
+      credentials: { accessKeyId: config.BACKUP_S3_ACCESS_KEY_ID, secretAccessKey: config.BACKUP_S3_SECRET_ACCESS_KEY }
+    });
     const now = new Date();
     const yyyy = String(now.getUTCFullYear());
     const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
     uploadedKey = config.BACKUP_PREFIX + '/' + yyyy + '/' + mm + '/' + gzName;
-
-    const put = await s3.put(uploadedKey, gz, { mime: 'application/octet-stream', originalName: gzName });
-    // تحقق: ننزّل ونقارن التجزئة
-    const back = await s3.get(uploadedKey);
-    const backSum = sha256(back);
-    if (backSum !== gzSum) {
-      throw new Error('نسخة السحابة لا تطابق المحلية (checksum mismatch) — ' + uploadedKey);
-    }
-    console.log('  ✓ رُفعت إلى: ' + uploadedKey + ' (تحقق checksum نجح)');
-    log.steps.push({ step: 'upload', key: uploadedKey, bytes: gz.length, verified: true });
-
-    // نرفع البيان أيضاً
-    await s3.put(uploadedKey + '.json', Buffer.from(JSON.stringify(manifest, null, 2)), { mime: 'application/octet-stream', originalName: gzName + '.json' });
+    const putObject = async (key, body, contentType) => client.send(new PutObjectCommand({
+      Bucket: config.BACKUP_S3_BUCKET, Key: key, Body: body, ContentType: contentType
+    }));
+    const getObject = async (key) => {
+      const res = await client.send(new GetObjectCommand({ Bucket: config.BACKUP_S3_BUCKET, Key: key }));
+      const chunks = [];
+      for await (const chunk of res.Body) chunks.push(chunk);
+      return Buffer.concat(chunks);
+    };
+    await putObject(uploadedKey, gz, 'application/gzip');
+    const backSum = sha256(await getObject(uploadedKey));
+    if (backSum !== gzSum) throw new Error('نسخة R2 لا تطابق الملف المحلي (checksum mismatch) — ' + uploadedKey);
+    await putObject(uploadedKey + '.json', Buffer.from(JSON.stringify(manifest, null, 2)), 'application/json');
+    console.log('  ✓ رُفعت إلى R2: ' + uploadedKey + ' (تحقق checksum نجح)');
+    log.steps.push({ step: 'upload-r2', key: uploadedKey, bytes: gz.length, verified: true });
   } else {
-    console.log('  ↷ لم تُرفع للسحابة (' +
-      (LOCAL_ONLY ? '--local-only' : 'STORAGE_DRIVER=' + config.STORAGE_DRIVER) + ') — النسخة محلية فقط');
+    console.log('  ↷ لم تُرفع إلى R2 (' +
+      (LOCAL_ONLY ? '--local-only' : !config.BACKUP_UPLOAD ? 'BACKUP_UPLOAD=false' : 'BACKUP_S3_ENABLED=false') + ') — النسخة محلية فقط');
   }
 
   // ---------- 5) سياسة الاستبقاء ----------
@@ -184,7 +195,7 @@ async function main() {
     const { getDB } = require('../src/db');
     const { audit } = require('../src/lib/audit');
     audit({
-      action: 'backup', entity: 'db', entityId: gzName, actor: 'system', driver: config.STORAGE_DRIVER,
+      action: 'backup', entity: 'db', entityId: gzName, actor: 'system', driver: config.BACKUP_S3_ENABLED ? 'backup-s3' : 'local',
       detail: { bytes: gz.length, durationMs, uploadedKey, counts: srcCounts, sha256: gzSum }
     });
   } catch (_) {}
