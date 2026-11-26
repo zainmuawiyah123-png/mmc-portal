@@ -40,8 +40,13 @@ const TABLES = ['users', 'plans', 'subscriptions', 'tenders', 'files', 'requests
 
 function countRows(db) {
   const out = {};
-  for (const t of TABLES) {
-    try { out[t] = db.prepare('SELECT COUNT(*) AS n FROM ' + t).get().n; }
+  // احصاء جميع جداول التطبيق، بما فيها جداول MMC AI، وليس مجموعة جزئية فقط.
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();
+  for (const row of tables) {
+    const t = row.name;
+    // اقتباس اسم الجدول كمعرّف SQLite مع حماية علامات الاقتباس.
+    const quoted = '"' + String(t).replace(/"/g, '""') + '"';
+    try { out[t] = db.prepare('SELECT COUNT(*) AS n FROM ' + quoted).get().n; }
     catch (_) { out[t] = null; }
   }
   return out;
@@ -88,7 +93,10 @@ async function main() {
   copy.close();
   src.close();
 
-  const countsMatch = TABLES.every((t) => srcCounts[t] === copyCounts[t]);
+  const sourceTables = Object.keys(srcCounts).sort();
+  const copyTables = Object.keys(copyCounts).sort();
+  const countsMatch = sourceTables.length === copyTables.length &&
+    sourceTables.every((t, i) => t === copyTables[i] && srcCounts[t] === copyCounts[t]);
   console.log('  ' + (integrityOk ? '✓' : '✗') + ' integrity_check: ' + (integrity.integrity_check || JSON.stringify(integrity)));
   console.log('  ' + (countsMatch ? '✓' : '✗') + ' عدّ الصفوف مطابق بين الأصل والنسخة');
   log.steps.push({ step: 'verify', integrityOk, countsMatch, counts: srcCounts });
@@ -117,7 +125,7 @@ async function main() {
     sha256Gz: gzSum,
     counts: srcCounts,
     schemaVersion: 'v5',
-    storageDriver: config.BACKUP_S3_ENABLED ? 'backup-s3' : 'local'
+    storageDriver: 'pending'
   };
   fs.writeFileSync(gzPath + '.json', JSON.stringify(manifest, null, 2));
 
@@ -156,10 +164,12 @@ async function main() {
     await putObject(uploadedKey, gz, 'application/gzip');
     const backSum = sha256(await getObject(uploadedKey));
     if (backSum !== gzSum) throw new Error('نسخة R2 لا تطابق الملف المحلي (checksum mismatch) — ' + uploadedKey);
+    manifest.storageDriver = 'backup-s3';
     await putObject(uploadedKey + '.json', Buffer.from(JSON.stringify(manifest, null, 2)), 'application/json');
     console.log('  ✓ رُفعت إلى R2: ' + uploadedKey + ' (تحقق checksum نجح)');
     log.steps.push({ step: 'upload-r2', key: uploadedKey, bytes: gz.length, verified: true });
   } else {
+    manifest.storageDriver = 'local';
     console.log('  ↷ لم تُرفع إلى R2 (' +
       (LOCAL_ONLY ? '--local-only' : !config.BACKUP_UPLOAD ? 'BACKUP_UPLOAD=false' : 'BACKUP_S3_ENABLED=false') + ') — النسخة محلية فقط');
   }
@@ -195,7 +205,7 @@ async function main() {
     const { getDB } = require('../src/db');
     const { audit } = require('../src/lib/audit');
     audit({
-      action: 'backup', entity: 'db', entityId: gzName, actor: 'system', driver: config.BACKUP_S3_ENABLED ? 'backup-s3' : 'local',
+      action: 'backup', entity: 'db', entityId: gzName, actor: 'system', driver: uploadedKey ? 'backup-s3' : 'local',
       detail: { bytes: gz.length, durationMs, uploadedKey, counts: srcCounts, sha256: gzSum }
     });
   } catch (_) {}
