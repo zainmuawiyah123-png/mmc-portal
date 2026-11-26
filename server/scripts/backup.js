@@ -46,8 +46,7 @@ function countRows(db) {
     const t = row.name;
     // اقتباس اسم الجدول كمعرّف SQLite مع حماية علامات الاقتباس.
     const quoted = '"' + String(t).replace(/"/g, '""') + '"';
-    try { out[t] = db.prepare('SELECT COUNT(*) AS n FROM ' + quoted).get().n; }
-    catch (_) { out[t] = null; }
+    out[t] = db.prepare('SELECT COUNT(*) AS n FROM ' + quoted).get().n;
   }
   return out;
 }
