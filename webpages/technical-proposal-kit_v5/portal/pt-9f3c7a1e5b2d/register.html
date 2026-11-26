@@ -80,6 +80,14 @@
           </button>
         </form>
 
+        <section id="otpPanel" hidden style="margin-top:18px">
+          <h2><span data-ar="تأكيد البريد الإلكتروني" data-en="Verify your email">تأكيد البريد الإلكتروني</span></h2>
+          <p><span data-ar="أدخل الرمز المكوّن من 6 أرقام الذي أرسلناه إلى بريد العمل." data-en="Enter the 6-digit code sent to your work email.">أدخل الرمز المكوّن من 6 أرقام الذي أرسلناه إلى بريد العمل.</span></p>
+          <div class="field"><label for="otpCode"><span data-ar="رمز التحقق" data-en="Verification code">رمز التحقق</span></label><input id="otpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr" placeholder="000000"></div>
+          <button type="button" class="auth-submit" id="verifyBtn"><span data-ar="تأكيد البريد" data-en="Verify email">تأكيد البريد</span></button>
+          <button type="button" id="resendBtn" style="margin-top:10px;width:100%"><span data-ar="إعادة إرسال الرمز" data-en="Resend code">إعادة إرسال الرمز</span></button>
+        </section>
+
         <div class="auth-foot">
           <span data-ar="لديك حساب بالفعل؟" data-en="Already have an account?">لديك حساب بالفعل؟</span>
           <a href="login.html"><span data-ar="سجّل الدخول" data-en="Sign in">سجّل الدخول</span></a>
@@ -113,6 +121,9 @@
   var alertBox=document.getElementById('alert');
   var btn=document.getElementById('submitBtn');
   var defaultLabel='<span data-ar="إنشاء الحساب" data-en="Create account">إنشاء الحساب</span>';
+  var otpPanel=document.getElementById('otpPanel'); var registeredEmail=''; var verifyBtn=document.getElementById('verifyBtn'); var resendBtn=document.getElementById('resendBtn');
+  verifyBtn.addEventListener('click',function(){var code=document.getElementById('otpCode').value.trim();verifyBtn.disabled=true;API.verifyEmail({email:registeredEmail,code:code}).then(function(){otpPanel.hidden=true;showAlert(T('تم تأكيد البريد بنجاح. طلب حسابك الآن قيد مراجعة MMC، وسيُفتح الدخول بعد اعتماد الإدارة.','Email verified. Your account is now pending MMC review; sign-in opens after administrator approval.'),'ok');}).catch(function(err){showAlert(err.message||T('تعذّر التحقق من الرمز.','Could not verify the code.'),'err');}).finally(function(){verifyBtn.disabled=false;});});
+  resendBtn.addEventListener('click',function(){resendBtn.disabled=true;API.resendVerification({email:registeredEmail}).then(function(){showAlert(T('تم إرسال رمز جديد. تحقق من البريد الوارد والرسائل غير المرغوب فيها.','A new code was sent. Check your inbox and spam folder.'),'ok');}).catch(function(err){showAlert(err.message||T('تعذّرت إعادة الإرسال.','Could not resend the code.'),'err');}).finally(function(){resendBtn.disabled=false;});});
 
   function showAlert(msg,kind){ alertBox.textContent=msg; alertBox.className='auth-alert on '+(kind||'err'); }
   function hideAlert(){ alertBox.className='auth-alert'; }
@@ -152,10 +163,7 @@
     btn.disabled=true;
     btn.innerHTML='<span class="spinner"></span>'+T('جارٍ إنشاء الحساب…','Creating account…');
 
-    API.register({name:name, email:email, password:p1, company:company||undefined, role:role, country:country}).then(function(res){
-      showAlert(T('تم إنشاء الحساب. جارٍ التحويل إلى لوحة التحكم…','Account created. Redirecting to your dashboard…'),'ok');
-      var qp=new URLSearchParams(location.search).get('plan')||'';var dest=(res.user&&res.user.role==='buyer')?(/^proc_[a-z]+$/.test(qp)?'billing.html?plan='+qp:'../../procurement/index.html'):'index.html';setTimeout(function(){ location.replace(dest); }, 500);
-    }).catch(function(err){
+    API.register({name:name, email:email, password:p1, company:company||undefined, role:role, country:country}).then(function(res){registeredEmail=res.email||email.toLowerCase();form.hidden=true;otpPanel.hidden=false;showAlert(res.mailSent?T('أرسلنا رمز التحقق إلى بريد العمل. أدخله لتأكيد البريد، ثم يخضع الحساب لمراجعة MMC.','A verification code was sent to your work email. Enter it to verify the address; MMC review follows.'):T('تم حفظ طلبك، لكن تعذّر إرسال الرمز. أعد المحاولة بعد قليل.','Your request was saved, but the code could not be sent. Please retry shortly.'),res.mailSent?'ok':'err');}).catch(function(err){
       btn.disabled=false; btn.innerHTML=defaultLabel;
       if(err.code==='CONFLICT'){
         showAlert(T('هذا البريد مسجّل بالفعل. سجّل الدخول بدلاً من ذلك.','This email is already registered. Sign in instead.'),'err');
