@@ -157,12 +157,12 @@ if (config.IS_PROD && config.IS_DEFAULT_SECRET) {
 
 /* البريد الإلكتروني (SMTP). بلا MAIL_HOST تُسجَّل الرسائل في email_outbox بحالة skipped ولا تُرسل. MAIL_HOST=json للاختبار فقط. */
 config.MAIL = {
-  host: v('MAIL_HOST', ''),
-  port: Number(v('MAIL_PORT', 587)),
-  secure: String(v('MAIL_SECURE', 'false')).toLowerCase() === 'true',
-  user: v('MAIL_USER', ''),
+  host: v('MAIL_HOST', 'smtp.ipage.com'),
+  port: Number(v('MAIL_PORT', 465)),
+  secure: String(v('MAIL_SECURE', 'true')).toLowerCase() === 'true',
+  user: v('MAIL_USER', 'm.madadha@mrc-jordan.com'),
   pass: v('MAIL_PASS', ''),
-  from: v('MAIL_FROM', ''),
+  from: v('MAIL_FROM', 'm.madadha@mrc-jordan.com'),
   adminNotify: v('ADMIN_NOTIFY_EMAIL', ''),
   publicUrl: v('PUBLIC_URL', '').replace(/\/+$/, '')
 };
