@@ -264,52 +264,9 @@ async function applyRetention() {
     } catch (_) {}
   }
 
-  // نفس السياسة على السحابة
+  // لا نطبّق حذفاً سحابياً هنا: وجهة R2 مستقلة عن مشغّل ملفات المشاريع.
+  // تُدار سياسة الاستبقاء السحابية في مهمة مستقلة بعد اختبارها على bucket النسخ فقط.
   const cloudDeleted = [];
-  if (config.STORAGE_DRIVER === 's3' && config.BACKUP_UPLOAD) {
-    try {
-      const s3 = require('../src/lib/storage/s3');
-      const { ListObjectsV2Command, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
-      // نجمع كل المفاتيح تحت البادئة ثم نطبّق نفس قاعدة الإبقاء على أسمائها
-      const all = [];
-      let token;
-      for (let g = 0; g < 50; g++) {
-        const res = await listCloud(s3, token);
-        all.push(...res.objects);
-        if (!res.isTruncated) break;
-        token = res.nextToken;
-      }
-      const keepNames = new Set();
-      const parsed = all
-        .map((o) => {
-          const m = o.Key.match(/portal-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.db\.gz$/);
-          return m ? { key: o.Key, name: m[0], date: new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])) } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.date - a.date);
-
-      parsed.slice(0, config.BACKUP_KEEP_DAILY).forEach((o) => keepNames.add(o.name));
-      const sw = new Set();
-      for (const o of parsed) {
-        const wk = isoWeek(o.date);
-        if (!sw.has(wk)) { sw.add(wk); if (sw.size <= config.BACKUP_KEEP_WEEKLY) keepNames.add(o.name); }
-      }
-      const sm = new Set();
-      for (const o of parsed) {
-        const mo = o.date.getUTCFullYear() + '-' + String(o.date.getUTCMonth() + 1).padStart(2, '0');
-        if (!sm.has(mo)) { sm.add(mo); if (sm.size <= config.BACKUP_KEEP_MONTHLY) keepNames.add(o.name); }
-      }
-      const drop = parsed.filter((o) => !keepNames.has(o.name)).map((o) => o.key);
-      for (let i = 0; i < drop.length; i += 900) {
-        const batch = drop.slice(i, i + 900);
-        if (!batch.length) continue;
-        await deleteCloudBatch(s3, batch);
-        cloudDeleted.push(...batch);
-      }
-    } catch (e) {
-      console.warn('  ! تعذّر تطبيق الاستبقاء على السحابة:', e.message);
-    }
-  }
 
   return { local: deleted, cloud: cloudDeleted };
 }
