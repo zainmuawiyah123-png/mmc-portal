@@ -102,3 +102,27 @@ A connection-string-only switch is ruled out. The current app has synchronous be
 Do not expose the application tables to the public Supabase Data API. The Node server should connect server-side using a private database connection string stored only in Render environment variables. No Supabase service-role or database password may be committed to the repository or exposed to browser code. RLS/grants must be designed explicitly if any tables are exposed later.
 
 Supabase documentation checked for connection options confirms that direct Postgres connections suit long-lived backend services, while the shared session pooler is the IPv4 alternative; the transaction pooler does not support prepared statements. The existing Render service is in Frankfurt and Supabase is in eu-central-1, so the final connection method must be checked for network compatibility and latency before configuration. Free-tier Supabase projects should be backed up with regular logical exports; automatic daily backups are a paid-plan feature.
+
+
+## Existing safe SQLite backup utility (verified in source)
+
+The repository already contains `server/scripts/backup.js`. It uses SQLite `VACUUM INTO` rather than copying a live database file, runs `PRAGMA integrity_check`, compares row counts for its tracked tables, compresses the result, and records SHA-256 checksums. This is the preferred first capture method for the current running SQLite database.
+
+Important limitation: the backup utility uploads off-instance only when `STORAGE_DRIVER=s3` and `BACKUP_UPLOAD=true`, with valid S3-compatible endpoint/bucket/credentials. Otherwise it leaves the backup under `BACKUP_DIR` on the same instance. The Dockerfile sets `BACKUP_DIR=/data/backups`, but the service currently has no confirmed persistent disk; a local backup alone is not a durable off-instance copy.
+
+### Operator capture procedure (Render Shell, staging only)
+
+1. Open the Shell for the existing `mmc-ai-staging` instance (do not create a new instance/service).
+2. Run `cd /app/server && node scripts/backup.js --no-retention`.
+3. Read the output carefully. A usable recovery capture requires a successful `integrity_check`, matching row counts, and a line confirming a cloud upload with checksum verification. If it says local-only, stop: the backup is still on the temporary instance and has not been secured off-instance.
+4. Do not run restore, do not change `DB_PATH`, and do not redeploy during this capture.
+
+This command does not change application data or replace the active database; it creates a backup. It may fail if the temporary filesystem has insufficient free space. The current connector does not provide Shell/SSH execution, so the command must be run by the account owner in Render's dashboard.
+
+## Supabase target recheck (read-only)
+
+As of this audit pass, project `ajnjwyrqcfwqwpnyfhgv` still reports no tables in `public`, no migration history, and no security/performance advisor lints. No SQL or schema changes have been made. Supabase's current docs confirm direct Postgres connectivity is intended for long-lived backends; the shared session pooler is the IPv4 alternative. Free-tier projects should be backed up with regular logical exports; automatic daily database backups are a paid-plan feature.
+
+## Next implementation boundary
+
+Do not begin the Postgres schema import until the live SQLite backup is verified off-instance. The initial code migration should be a separate PR and a dual-database staging branch, with a complete repository inventory and tests; it must not be deployed to the current Render service until the auth/OTP, organization/legal verification, subscriptions, procurement, file metadata, and MMC AI project/takeoff flows all pass against PostgreSQL. Preserve the current production/legal verification checks unchanged.
