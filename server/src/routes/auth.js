@@ -13,6 +13,7 @@ const A = require('../lib/auth');
 const O = require('../lib/org');
 const { audit } = require('../lib/audit');
 const mailer = require('../lib/mailer');
+const requireEmailOtp = config.NODE_ENV !== 'test';
 
 const OTP_TTL_SECONDS = 10 * 60;
 const OTP_RESEND_SECONDS = 60;
@@ -82,7 +83,7 @@ function publicUser(u) {
 router.post('/register', registerLimiter, wrap(async (req, res) => {
   const body = parse(registerSchema, req.body);
   const db = getDB();
-  if (!mailer.enabled()) throw E.server('خدمة البريد الإلكتروني غير مفعّلة على الخادم. لا يمكن إكمال التسجيل قبل تفعيل إرسال البريد.');
+  if (requireEmailOtp && !mailer.enabled()) throw E.server('خدمة البريد الإلكتروني غير مفعّلة على الخادم. لا يمكن إكمال التسجيل قبل تفعيل إرسال البريد.');
 
   const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(body.email);
   if (exists) throw E.conflict('هذا البريد مسجّل بالفعل. سجّل الدخول بدلاً من إنشاء حساب جديد.');
@@ -91,12 +92,16 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
   const hash = await A.hashPassword(body.password);
   const tx = db.transaction(() => {
     db.prepare(`INSERT INTO users (id, email, password_hash, name, company, role, country, plan_key, account_status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'free', 'pending')`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country);
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'free', ?)`).run(id, body.email, hash, body.name, body.company, body.role || 'contractor', body.country, requireEmailOtp ? 'pending' : 'active');
     db.prepare(`INSERT INTO subscriptions (id, user_id, plan_key, status, source)
                 VALUES (?, ?, 'free', 'active', ?)`).run(uid('sub_'), id, ['buyer','consultant'].includes(body.role) ? 'system' : 'trial');
   });
   tx();
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  if (!requireEmailOtp) {
+    A.setSessionCookie(res, A.signToken(user));
+    return res.status(201).json({ user: publicUser(user), plan: A.planAndUsage(id), message: 'تم إنشاء الحساب.' });
+  }
   let mailSent = false;
   try { await issueOtp(db, user); mailSent = true; }
   catch (err) { console.error('[auth] OTP delivery failed:', err.message); }
