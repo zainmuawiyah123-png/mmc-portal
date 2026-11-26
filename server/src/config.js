@@ -88,6 +88,14 @@ const config = {
   BACKUP_KEEP_MONTHLY: Number(v('BACKUP_KEEP_MONTHLY', 12)),
   /** رفع النسخة إلى السحابة (يحتاج STORAGE_DRIVER=s3 أو يبقى محلياً فقط) */
   BACKUP_UPLOAD: v('BACKUP_UPLOAD', 'true') === 'true',
+  /** وجهة مستقلة لنسخ قاعدة البيانات؛ لا تغيّر مشغّل ملفات المشاريع */
+  BACKUP_S3_ENABLED: v('BACKUP_S3_ENABLED', 'false') === 'true',
+  BACKUP_S3_ENDPOINT: v('BACKUP_S3_ENDPOINT', ''),
+  BACKUP_S3_REGION: v('BACKUP_S3_REGION', 'auto'),
+  BACKUP_S3_BUCKET: v('BACKUP_S3_BUCKET', ''),
+  BACKUP_S3_ACCESS_KEY_ID: v('BACKUP_S3_ACCESS_KEY_ID', ''),
+  BACKUP_S3_SECRET_ACCESS_KEY: v('BACKUP_S3_SECRET_ACCESS_KEY', ''),
+  BACKUP_S3_FORCE_PATH_STYLE: v('BACKUP_S3_FORCE_PATH_STYLE', 'true') === 'true',
 
   /* ============ الجدولة ============ */
   /** تعطيل كل المهام المجدولة بمتغير واحد */
