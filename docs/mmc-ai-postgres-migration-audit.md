@@ -60,3 +60,45 @@ The resend handler's source confirms the user-facing message: it executes `SELEC
 - Render service is Free and its current database path is `/tmp/mmc-ai-staging.db`. A persistent Render disk is not currently evidenced in service metadata; a paid disk would require explicit user approval.
 - The existing Supabase Postgres project is a no-cost candidate within its current Free tier, but this app cannot switch to it by environment variable alone. A full staged data-layer migration remains necessary.
 - Before implementing the PostgreSQL refactor, preserve a snapshot of any accessible SQLite database and establish a staging backup/restore test.
+
+
+## Expanded source-code inventory (read-only audit)
+
+The current source contains:
+- 88 `CREATE TABLE IF NOT EXISTS` declarations.
+- 98 `CREATE INDEX IF NOT EXISTS` declarations.
+- 30 ordered upgrade functions in `server/src/migrate.js`.
+- 19 occurrences of `PRAGMA`, 17 table-introspection uses of `PRAGMA table_info`, 20 `ALTER TABLE` statements, 118 uses of SQLite `unixepoch()`, and 2 references to `sqlite_master`.
+- The migration module itself contains 52 `db.exec()`, 30 `db.prepare()`, and 3 `db.transaction()` calls.
+
+The synchronous database API is not confined to authentication. It is used across the core procurement and finance routes, consultant marketplace, organization and verification flows, plus MMC AI projects, documents, takeoff, BOQ, schedule, BIM, risks, claims/contracts, Primavera P6, and MS Project. A staged conversion must cover these modules rather than only the OTP endpoints.
+
+### Runtime service state rechecked
+
+Render service metadata currently reports:
+- Plan: `free`
+- Region: `frankfurt`
+- Runtime: Docker
+- One instance
+- Branch: `mmc-bim-review-integration`
+- Auto deploy: `no`
+- SSH address is exposed in service metadata, but the available Render connector has no shell/SSH execution or file-download operation.
+
+The service's latest startup log identifies `/tmp/mmc-ai-staging.db` as the live database path. The metadata does not show an attached persistent disk. I have not attempted to create a cron job or a second service as a way to copy this file: a separate Render instance would have a different temporary filesystem and would not safely capture the running instance's SQLite file.
+
+### Backup gate — do not proceed until resolved
+
+The current connector cannot read or export the SQLite file from the running container. The old database may already have been lost by an instance replacement, but the logs alone cannot establish that. Before any database path or schema change:
+1. Access the existing service instance through Render's own Shell/SSH facility, if available for this service.
+2. Check whether `/tmp/mmc-ai-staging.db` exists and inspect its size and SQLite integrity.
+3. If present, create a consistent SQLite backup using SQLite's backup mechanism (not a raw copy of a live WAL database), then transfer it securely off the instance.
+4. If the file is absent or empty, record that fact and do not pretend that the earlier registration can be recovered.
+5. Only then decide how to import recoverable records and how to switch the staging service to PostgreSQL.
+
+### Migration architecture decision
+
+A connection-string-only switch is ruled out. The current app has synchronous better-sqlite3 call sites in many modules. The safe long-term design is a staged asynchronous repository/data-access layer, beginning with authentication and email verification, then shared user/org/subscription functions, then procurement and MMC AI feature groups. Each stage needs tests and canary verification against a separate staging database. Keep SQLite tests available until feature parity is demonstrated.
+
+Do not expose the application tables to the public Supabase Data API. The Node server should connect server-side using a private database connection string stored only in Render environment variables. No Supabase service-role or database password may be committed to the repository or exposed to browser code. RLS/grants must be designed explicitly if any tables are exposed later.
+
+Supabase documentation checked for connection options confirms that direct Postgres connections suit long-lived backend services, while the shared session pooler is the IPv4 alternative; the transaction pooler does not support prepared statements. The existing Render service is in Frankfurt and Supabase is in eu-central-1, so the final connection method must be checked for network compatibility and latency before configuration. Free-tier Supabase projects should be backed up with regular logical exports; automatic daily backups are a paid-plan feature.
