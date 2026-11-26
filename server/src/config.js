@@ -119,7 +119,7 @@ config.PAYMENT = {
 /* البريد الإلكتروني (SMTP). بلا MAIL_HOST تُسجَّل الرسائل في email_outbox بحالة skipped ولا تُرسل. MAIL_HOST=json للاختبار فقط. */
 config.MAIL = {
   resendApiKey: v('RESEND_API_KEY', ''),
-  host: v('MAIL_HOST', 'smtp.ipage.com'),
+  host: v('MAIL_HOST', ''),
   port: Number(v('MAIL_PORT', 465)),
   secure: String(v('MAIL_SECURE', 'true')).toLowerCase() === 'true',
   user: v('MAIL_USER', 'm.madadha@mrc-jordan.com'),
