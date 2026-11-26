@@ -39,3 +39,24 @@ Existing project: `mmc-ai-storage` (project ref `ajnjwyrqcfwqwpnyfhgv`), region 
 - No confirmed recoverable copy of the old SQLite file has been located yet.
 - Full SQL call-site inventory and PostgreSQL DDL have not yet been completed.
 - No database, application code, Render environment, or deployment has been modified by this audit.
+
+
+## Additional runtime evidence (2026-11-26)
+
+Render service metadata confirms:
+- Service `mmc-ai-staging` is on the Free plan, in Frankfurt, with one instance.
+- The service is currently configured to deploy from `mmc-bim-review-integration`.
+- The latest successful deployment on 2026-11-26 started a new instance.
+- Startup logs from that instance explicitly report: `[migrate] قاعدة البيانات: /tmp/mmc-ai-staging.db` and then list the schema tables and report migration success.
+
+This is decisive evidence that the running service is currently opening SQLite at `/tmp/mmc-ai-staging.db`, not at a persistent mounted volume. A `/tmp` path is instance-local temporary storage and is not a safe database location for a service that can be redeployed or restarted. The latest logs show schema initialization, but do not by themselves prove the exact moment or cause that a particular registration row disappeared.
+
+The resend handler's source confirms the user-facing message: it executes `SELECT id,email FROM users WHERE email=?` and returns `طلب التسجيل غير موجود.` when that query finds no row. Registration inserts the user and subscription transactionally before attempting OTP delivery. Therefore, the observed error means the database currently queried by the resend handler has no matching user row; it is not an SMTP/Resend delivery error.
+
+### Immediate safe correction plan
+
+- Do not ask the user to register again until persistence is corrected.
+- Do not change the current service's database path blindly: the old temporary file may still be present in the running instance, and changing paths could make its records inaccessible. First take a safe copy/export of the current database if the platform permits it.
+- Render service is Free and its current database path is `/tmp/mmc-ai-staging.db`. A persistent Render disk is not currently evidenced in service metadata; a paid disk would require explicit user approval.
+- The existing Supabase Postgres project is a no-cost candidate within its current Free tier, but this app cannot switch to it by environment variable alone. A full staged data-layer migration remains necessary.
+- Before implementing the PostgreSQL refactor, preserve a snapshot of any accessible SQLite database and establish a staging backup/restore test.
