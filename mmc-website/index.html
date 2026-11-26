@@ -52,6 +52,9 @@ body[dir=rtl] .hero-inner{direction:rtl}body[dir=rtl] .hero:before{background:li
 .hero .btn.light{background:rgba(255,255,255,.94);color:#102b45;border-color:#d4dee7}
 .hero .hero-video{box-shadow:0 24px 60px #102b4526;border-color:#ffffffb8}
 @media(prefers-reduced-motion:no-preference){.hero:before{background-attachment:scroll}}
+
+/* Fine-tune hero image: slightly richer contrast while keeping the light look */
+.hero:before{background:linear-gradient(90deg,rgba(250,252,254,.68) 0%,rgba(250,252,254,.54) 48%,rgba(250,252,254,.34) 100%),url('https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=2000&q=90') center center/cover no-repeat !important;opacity:1 !important}
 </style>
 </head>
 <body>
