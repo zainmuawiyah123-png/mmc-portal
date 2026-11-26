@@ -129,6 +129,8 @@ config.MAIL = {
   user: v('MAIL_USER', 'm.madadha@mrc-jordan.com'),
   pass: v('MAIL_PASS', ''),
   from: v('MAIL_FROM', 'm.madadha@mrc-jordan.com'),
+  relayUrl: v('MAIL_RELAY_URL', ''),
+  relayToken: v('MAIL_RELAY_TOKEN', ''),
   adminNotify: v('ADMIN_NOTIFY_EMAIL', ''),
   publicUrl: v('PUBLIC_URL', '').replace(/\/+$/, '')
 };
