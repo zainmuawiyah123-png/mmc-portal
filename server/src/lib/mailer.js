@@ -52,6 +52,17 @@ async function sendOne(id) {
   }
 }
 
+
+/** إرسال فوري لرموز الأمان مع انتظار نتيجة مزود البريد. */
+async function notifyNow(to, subject, text) {
+  const addr = clean(to, 254);
+  if (!EMAIL_RE.test(addr) || !enabled()) return { id: null, sent: false };
+  const id = uid('mail_');
+  getDB().prepare(`INSERT INTO email_outbox (id,to_email,subject,body,status) VALUES (?,?,?,?,?)`)
+    .run(id, addr, clean(subject, 200), String(text || '').slice(0, 8000), 'pending');
+  return { id, sent: await sendOne(id) };
+}
+
 /** يعيد محاولة الرسائل المعلّقة/الفاشلة (يُستدعى من المجدول) */
 async function flush(limit = 25) {
   if (!enabled()) return { sent: 0, skipped: true };
@@ -66,4 +77,4 @@ const userEmail = (userId) => (getDB().prepare('SELECT email FROM users WHERE id
 /** إشعار لمستخدم بمعرّفه */
 function notifyUser(userId, subject, text) { const e = userEmail(userId); return e ? notify(e, subject, text) : null; }
 
-module.exports = { notify, notifyUser, flush, sendOne, enabled, link, EMAIL_RE };
+module.exports = { notify, notifyNow, notifyUser, flush, sendOne, enabled, link, EMAIL_RE };
