@@ -10,7 +10,7 @@ const { getDB, uid } = require('../db');
 const EMAIL_RE = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 let transport = null;
 
-function enabled() { return !!(config.MAIL.resendApiKey || config.MAIL.host); }
+function enabled() { return !!(config.MAIL.relayUrl && config.MAIL.relayToken) || !!(config.MAIL.resendApiKey || config.MAIL.host); }
 
 /** إرسال عبر HTTPS API؛ لا يعتمد على منافذ SMTP المحظورة في Render Free. */
 async function sendViaResend(message, apiKey = config.MAIL.resendApiKey, fetchImpl = globalThis.fetch) {
@@ -30,6 +30,23 @@ async function sendViaResend(message, apiKey = config.MAIL.resendApiKey, fetchIm
   }
   return payload;
 }
+/** إرسال OTP عبر وسيط HTTPS على استضافة iPage لتجاوز حظر SMTP من Render Free. */
+async function sendViaIpageRelay(message, relayUrl = config.MAIL.relayUrl, relayToken = config.MAIL.relayToken, fetchImpl = globalThis.fetch) {
+  if (!relayUrl || !relayToken) throw new Error('MAIL_RELAY_URL / MAIL_RELAY_TOKEN are not configured');
+  if (typeof fetchImpl !== 'function') throw new Error('HTTPS fetch is unavailable');
+  const response = await fetchImpl(relayUrl, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + relayToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: Array.isArray(message.to) ? message.to[0] : message.to, subject: message.subject, text: message.text }),
+    signal: AbortSignal.timeout(20000)
+  });
+  let payload = {}; try { payload = await response.json(); } catch (_) {}
+  if (!response.ok || payload.ok !== true || payload.provider_accepted !== true) {
+    throw new Error('iPage relay rejected the email (HTTP ' + response.status + ', ' + String(payload.error || 'unknown_error') + ')');
+  }
+  return payload;
+}
+
 function getTransport() {
   if (transport) return transport;
   const nodemailer = require('nodemailer');
@@ -73,7 +90,8 @@ async function sendOne(id) {
   db.prepare('UPDATE email_outbox SET attempts=attempts+1 WHERE id=?').run(id);
   try {
     const message = { from: config.MAIL.from || config.MAIL.user || 'no-reply@localhost', to: [row.to_email], subject: row.subject, text: row.body };
-    if (config.MAIL.resendApiKey) await sendViaResend(message);
+    if (config.MAIL.relayUrl && config.MAIL.relayToken) await sendViaIpageRelay(message);
+    else if (config.MAIL.resendApiKey) await sendViaResend(message);
     else await getTransport().sendMail({ ...message, to: row.to_email });
     db.prepare("UPDATE email_outbox SET status='sent', sent_at=unixepoch(), error=NULL WHERE id=?").run(id);
     return true;
@@ -98,4 +116,4 @@ const userEmail = (userId) => (getDB().prepare('SELECT email FROM users WHERE id
 /** إشعار لمستخدم بمعرّفه */
 function notifyUser(userId, subject, text) { const e = userEmail(userId); return e ? notify(e, subject, text) : null; }
 
-module.exports = { notify, notifyNow, notifyUser, flush, sendOne, enabled, link, EMAIL_RE, sendViaResend };
+module.exports = { notify, notifyNow, notifyUser, flush, sendOne, enabled, link, EMAIL_RE, sendViaResend , sendViaIpageRelay };
