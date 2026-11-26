@@ -51,11 +51,11 @@ async function runBackupJob() {
     const { stdout } = await run(process.execPath, [scriptPath], {
       cwd: root, timeout: 10 * 60 * 1000, env: process.env
     });
-    const m = stdout.match(/portal-\\d{8}-\\d{6}\\.db\\.gz/);
+    const m = stdout.match(/portal-\d{8}-\d{6}\.db\.gz/);
     if (!m) throw new Error('Backup script did not report a completed archive.');
 
     // When R2 is enabled, test restore from the object downloaded from R2 itself.
-    const cloudMatch = stdout.match(/رُفعت إلى R2:\\s+(\\S+)/);
+    const cloudMatch = stdout.match(/رُفعت إلى R2:\s+(\S+)/);
     const useR2 = config.BACKUP_S3_ENABLED && config.BACKUP_UPLOAD;
     let restoreFile = m[0];
     let r2TempFile = null;
