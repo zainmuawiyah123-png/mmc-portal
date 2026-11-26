@@ -187,6 +187,17 @@ html[dir="rtl"] .consult-side{direction:rtl;text-align:right}
   try{const r=await fetch('/api/consulting/firms/me/documents',{method:'POST',credentials:'same-origin',body:data});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||'تعذر رفع الوثائق');msg.textContent=d.message||'تم رفع الوثائق.';form.reset();await loadFirmDocuments();}catch(err){showError(err);}
  });
  $('#firmForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),data={};for(const [k,v] of f.entries())data[k]=String(v).trim();data.specializations=data.specializations.split(',').map(x=>x.trim()).filter(Boolean);try{const d=await api('/consulting/firms',{method:'POST',body:JSON.stringify(data)});msg.textContent=d.message;$('#register').hidden=true;await load();}catch(err){showError(err);}});
+ async function publicJson(url){
+  const response=await fetch(url,{credentials:'same-origin',headers:{'Accept':'application/json'}});
+  const contentType=(response.headers.get('content-type')||'').toLowerCase();
+  const body=await response.text();
+  if(!contentType.includes('application/json')){
+   throw new Error('Public API returned a non-JSON response (HTTP '+response.status+'). Please check the server API route.');
+  }
+  let data;try{data=JSON.parse(body);}catch(_){throw new Error('The public API returned invalid JSON (HTTP '+response.status+').');}
+  if(!response.ok)throw new Error(data.error?.message||'Public API request failed (HTTP '+response.status+').');
+  return data;
+ }
  async function publicLoad(){
   $('#user').textContent='وضع المشاهدة العامة';
   $('#logout').hidden=true;
@@ -200,18 +211,20 @@ html[dir="rtl"] .consult-side{direction:rtl;text-align:right}
   });
   $('#market').hidden=false;$('#firmTenderMarket').hidden=false;
   try{
-   const r=await fetch('/api/public/consulting/requests',{credentials:'same-origin'}),d=await r.json();
-   if(!r.ok)throw new Error(d.error?.message||'تعذر تحميل الفرص');
+   const d=await publicJson('/api/public/consulting/requests');
    const box=$('#requests');box.replaceChildren();
    if(!d.requests?.length)box.append(node('p','لا توجد طلبات استشارية منشورة حالياً.','muted'));
    d.requests.forEach(x=>{const card=node('article',undefined,'request');card.append(node('h3',(x.reference||'')+' · '+x.title));card.append(node('p',[x.country,x.location,disciplineLabel(x.discipline)].filter(Boolean).join(' · ')));card.append(node('p',x.description||''));if(x.scope?.length)card.append(node('p','نطاق العمل: '+x.scope.join('، ')));card.append(node('p','آخر موعد: '+(x.closing_at?new Date(x.closing_at*1000).toLocaleDateString('ar-JO'):'غير محدد')+' · '+(x.currency||'')+' '+(x.budget_min??'—')+' – '+(x.budget_max??'—')));const a=node('a','تسجيل الدخول لتقديم عرض','btn amber');a.href='/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/';card.append(a);box.append(card);});
-   const fr=await fetch('/api/public/consulting/firm-tenders',{credentials:'same-origin'}),fd=await fr.json();
-   if(!fr.ok)throw new Error(fd.error?.message||'تعذر تحميل سوق المكاتب');
+   const fd=await publicJson('/api/public/consulting/firm-tenders');
    const fb=$('#firmTenderMarketList');fb.replaceChildren();
    if(!fd.tenders?.length)fb.append(node('p','لا توجد عطاءات فرعية منشورة حالياً.','muted'));
    fd.tenders.forEach(x=>{const card=node('article',undefined,'request');card.append(node('h3',(x.reference||'')+' · '+x.title));card.append(node('p','المكتب الناشر: '+x.publisherName+' · '+x.country+' · '+disciplineLabel(x.discipline)));card.append(node('p',x.description||''));if(x.scope?.length)card.append(node('p','نطاق العمل: '+x.scope.join('، ')));card.append(node('p','الميزانية: '+(x.currency||'')+' '+(x.budgetMin??'—')+' – '+(x.budgetMax??'—')+' · آخر موعد: '+(x.closingAt?new Date(x.closingAt*1000).toLocaleDateString('ar-JO'):'غير محدد')));const a=node('a','تسجيل الدخول لتقديم عرض','btn amber');a.href='/portal/pt-9f3c7a1e5b2d/login.html?next=/consulting/';card.append(a);fb.append(card);});
    $('#statOpen').textContent=String((d.count||0)+(fd.count||0));$('#statProposals').textContent='—';$('#statContracts').textContent='—';
-  }catch(e){showError(e);}
+  }catch(e){
+   $('#statOpen').textContent='0';$('#statProposals').textContent='—';$('#statContracts').textContent='—';
+   const box=$('#message');box.textContent=e.message||'Unable to load public consulting data.';
+   box.classList.add('status');
+  }
  }
  load().catch(publicLoad);$('#logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{location.href='/portal/pt-9f3c7a1e5b2d/login.html';}});
 })();
@@ -394,6 +407,7 @@ html[dir="rtl"] .consult-side{direction:rtl;text-align:right}
   "مخرج فني": "Technical Deliverable",
   "تقرير": "Report"
 });
+ Object.assign(dict, {"تسجيل الدخول":"Sign in","تسجيل الدخول ببريد العمل.":"Sign in with your work email.","يتطلب عرض بيانات المكتب وإدارة العروض والوثائق والعقود تسجيل الدخول ببريد العمل.":"Viewing office details and managing proposals, documents and contracts requires signing in with your work email.","تسجيل الدخول / إنشاء حساب":"Sign in / Create Account","تسجيل الدخول لتقديم عرض":"Sign in to submit a proposal","يمكنك تصفح الفرص المنشورة وأقسام بوابة المكاتب الاستشارية. تتطلب إدارة المكتب وتقديم العروض والوثائق والعقود تسجيل الدخول ببريد العمل.":"You can browse published opportunities and consulting office sections. Managing the office, submitting proposals, and accessing documents and contracts requires signing in with your work email.","نطاق العمل: ":"Scope of Work: ","آخر موعد: ":"Closing Date: ","غير محدد":"Not specified","المكتب الناشر: ":"Published by: ","الميزانية: ":"Budget: ","التصميم الهندسي":"Engineering Design","الإشراف الموقعي":"Site Supervision","إدارة المشاريع":"Project Management","حصر الكميات":"Quantity Surveying","الجيوتقنية":"Geotechnical Engineering","الدراسات البيئية":"Environmental Studies","الطرق والنقل":"Roads & Transport","المياه والصرف الصحي":"Water & Wastewater","العمارة":"Architecture","خدمات استشارية أخرى":"Other Consulting Services","تعذر تحميل الفرص":"Unable to load consulting opportunities","تعذر تحميل سوق المكاتب":"Unable to load consulting firms market","جارٍ تحميل بيانات الحساب…":"Loading account data…","وضع المشاهدة العامة":"Public Preview Mode","تم استلام ملف المكتب. لن تتاح خدمات السوق قبل اكتمال التحقق القانوني.":"The office profile has been received. Market services will remain unavailable until legal verification is complete.","هذا الحساب مرتبط مسبقاً بملف مكتب استشاري.":"This account is already linked to a consulting office profile.","الاسم القانوني للمكتب مطلوب.":"The legal office name is required.","الدولة غير مدعومة حالياً.":"This country is not currently supported.","رقم التسجيل القانوني غير صالح.":"The legal registration number is invalid.","البريد الرسمي غير صالح.":"The official email is invalid.","رقم الهاتف الرسمي غير صالح.":"The official phone number is invalid.","بيانات التواصل غير صالحة.":"The contact details are invalid.","تم تحديث الملف التعريفي.":"The office profile has been updated.","تم رفع الوثائق.":"Documents uploaded.","هذه الخدمة مخصصة لحسابات المكاتب الاستشارية.":"This service is for consulting office accounts only.","يجب تسجيل المكتب واستكمال التحقق القانوني قبل دخول سوق الخدمات.":"The office must be registered and legally verified before accessing the consulting services market.","لا توجد عضوية مكتب استشاري فعالة لهذا الحساب.":"This account has no active consulting office membership."});
  function getLang(){try{return localStorage.getItem(KEY)||'ar'}catch(e){return 'ar'}}
  function translateText(t,lang){
    if(!t||t.nodeType!==Node.TEXT_NODE)return;
