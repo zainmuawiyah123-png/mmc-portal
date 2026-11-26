@@ -1,0 +1,25 @@
+name: MMC iPage OTP relay checks
+on:
+  push:
+    branches: ["relay-unified/international-tenders"]
+    paths: ["server/src/config.js", "server/src/lib/mailer.js", "server/tests/mailer-ipage-relay.test.js", ".github/workflows/mmc-ipage-relay-checks.yml"]
+  pull_request:
+    paths: ["server/src/config.js", "server/src/lib/mailer.js", "server/tests/mailer-ipage-relay.test.js", ".github/workflows/mmc-ipage-relay-checks.yml"]
+permissions:
+  contents: read
+jobs:
+  relay-unit-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: node --check src/lib/mailer.js && node --check src/config.js
+      - run: node --test tests/mailer-ipage-relay.test.js tests/mailer-resend.test.js
