@@ -1328,6 +1328,12 @@ function upgradeMmcAiProjects(db) {
 
 /** جدول تحقق ملكية البريد للحسابات الجديدة فقط؛ لا يغيّر الحسابات القديمة. */
 function upgradeEmailVerification(db) {
+  const columns = new Set(db.prepare('PRAGMA table_info(users)').all().map((c) => c.name));
+  const add = (name, definition) => { if (!columns.has(name)) db.exec('ALTER TABLE users ADD COLUMN ' + name + ' ' + definition); };
+  add('account_status', "TEXT NOT NULL DEFAULT 'active'");
+  add('account_status_note', 'TEXT');
+  add('account_reviewed_by', 'TEXT');
+  add('account_reviewed_at', 'INTEGER');
   db.exec(`
     CREATE TABLE IF NOT EXISTS email_verifications (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
