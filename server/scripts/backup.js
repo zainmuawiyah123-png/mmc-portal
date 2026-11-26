@@ -172,6 +172,8 @@ async function main() {
     console.log('  ↷ لم تُرفع إلى R2 (' +
       (LOCAL_ONLY ? '--local-only' : !config.BACKUP_UPLOAD ? 'BACKUP_UPLOAD=false' : 'BACKUP_S3_ENABLED=false') + ') — النسخة محلية فقط');
   }
+  // حدّث البيان المحلي بعد تحديد وجهة التخزين النهائية.
+  fs.writeFileSync(gzPath + '.json', JSON.stringify(manifest, null, 2));
 
   // ---------- 5) سياسة الاستبقاء ----------
   let pruned = { local: [], cloud: [] };
