@@ -641,6 +641,31 @@ function upgradeTenderOpportunities(db) {
   `);
 }
 
+/** Mail outbox + email ownership verification for new accounts. */
+function upgradeEmailVerification(db) {
+  const columns = new Set(db.prepare('PRAGMA table_info(users)').all().map((c) => c.name));
+  const add = (name, definition) => { if (!columns.has(name)) db.exec('ALTER TABLE users ADD COLUMN ' + name + ' ' + definition); };
+  add('account_status', "TEXT NOT NULL DEFAULT 'active'");
+  add('account_status_note', 'TEXT');
+  add('account_reviewed_by', 'TEXT');
+  add('account_reviewed_at', 'INTEGER');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_outbox (
+      id TEXT PRIMARY KEY, to_email TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+      error TEXT, created_at INTEGER NOT NULL DEFAULT (unixepoch()), sent_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_outbox_status ON email_outbox(status, created_at);
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at INTEGER NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0, last_sent_at INTEGER NOT NULL, verified_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email);
+  `);
+}
+
 function migrate(dbPath = config.DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -670,6 +695,7 @@ function migrate(dbPath = config.DB_PATH) {
   upgradeOpportunitySyncRuns(db);
   upgradeV5(db);
 
+  upgradeEmailVerification(db);
   return db;
 }
 
