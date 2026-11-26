@@ -22,7 +22,7 @@ const Database = require('better-sqlite3');
 
 process.chdir(path.resolve(__dirname, '..'));
 const config = require('../src/config');
-const { TABLES } = require('./backup');
+const { countRows } = require('./backup');
 
 function arg(name, dflt) {
   const hit = process.argv.find((a) => a.startsWith('--' + name));
@@ -147,11 +147,7 @@ async function main() {
   const integrityOk = (integrity.integrity_check || integrity['integrity_check']) === 'ok';
   console.log('  ' + (integrityOk ? '✓' : '✗') + ' integrity_check: ' + (integrity.integrity_check || JSON.stringify(integrity)));
 
-  const actual = {};
-  for (const t of TABLES) {
-    try { actual[t] = db.prepare('SELECT COUNT(*) AS n FROM ' + t).get().n; }
-    catch (_) { actual[t] = null; }
-  }
+  const actual = countRows(db);
   const userTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map((r) => r.name);
   db.close();
 
@@ -161,14 +157,21 @@ async function main() {
   console.log('  ' + '─'.repeat(52));
 
   let allMatch = true;
-  for (const t of TABLES) {
-    const expect = manifest && manifest.counts ? manifest.counts[t] : null;
+  const expectedCounts = manifest && manifest.counts ? manifest.counts : null;
+  const expectedTables = expectedCounts ? Object.keys(expectedCounts).sort() : [];
+  const actualTables = Object.keys(actual).sort();
+  if (expectedCounts && (expectedTables.length !== actualTables.length || expectedTables.some((t, i) => t !== actualTables[i]))) {
+    allMatch = false;
+    console.log('  ✗ أسماء الجداول لا تطابق البيان');
+  }
+  for (const t of (expectedCounts ? expectedTables : actualTables)) {
+    const expect = expectedCounts ? expectedCounts[t] : null;
     const got = actual[t];
-    const ok = expect === null || expect === undefined ? (got !== null) : expect === got;
+    const ok = expectedCounts ? expect === got : got !== null && got !== undefined;
     if (!ok) allMatch = false;
-    console.log('  ' + t.padEnd(18) +
+    console.log('  ' + t.padEnd(32) +
       String(expect === null || expect === undefined ? '—' : expect).padStart(10) +
-      String(got === null ? '—' : got).padStart(12) + '  ' + (ok ? '✓ مطابق' : '✗ مختلف'));
+      String(got === null || got === undefined ? '—' : got).padStart(12) + '  ' + (ok ? '✓ مطابق' : '✗ مختلف'));
   }
 
   console.log('');

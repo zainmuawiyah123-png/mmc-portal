@@ -23,6 +23,23 @@ function record(entry) {
   console.log('[scheduler] ' + line.trim());
 }
 
+async function downloadR2Object(key) {
+  const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+  const required = ['BACKUP_S3_ENDPOINT','BACKUP_S3_BUCKET','BACKUP_S3_ACCESS_KEY_ID','BACKUP_S3_SECRET_ACCESS_KEY'];
+  const missing = required.filter((k) => !config[k]);
+  if (missing.length) throw new Error('إعدادات تنزيل نسخة R2 ناقصة: ' + missing.join(', '));
+  const client = new S3Client({
+    region: config.BACKUP_S3_REGION || 'auto',
+    endpoint: config.BACKUP_S3_ENDPOINT,
+    forcePathStyle: config.BACKUP_S3_FORCE_PATH_STYLE,
+    credentials: { accessKeyId: config.BACKUP_S3_ACCESS_KEY_ID, secretAccessKey: config.BACKUP_S3_SECRET_ACCESS_KEY }
+  });
+  const response = await client.send(new GetObjectCommand({ Bucket: config.BACKUP_S3_BUCKET, Key: key }));
+  const chunks = [];
+  for await (const chunk of response.Body) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
 async function runBackupJob() {
   const started = Date.now();
   try {
@@ -37,26 +54,46 @@ async function runBackupJob() {
     const m = stdout.match(/portal-\d{8}-\d{6}\.db\.gz/);
     if (!m) throw new Error('Backup script did not report a completed archive.');
 
+    // When R2 is enabled, test restore from the object downloaded from R2 itself.
+    const cloudMatch = stdout.match(/رُفعت إلى R2:\s+(\S+)/);
+    const useR2 = config.BACKUP_S3_ENABLED && config.BACKUP_UPLOAD;
+    let restoreFile = m[0];
+    let r2TempFile = null;
+    if (useR2) {
+      if (!cloudMatch) throw new Error('Backup was expected in R2, but the upload key was not reported.');
+      const key = cloudMatch[1];
+      const [archive, manifest] = await Promise.all([
+        downloadR2Object(key),
+        downloadR2Object(key + '.json')
+      ]);
+      r2TempFile = path.join(config.BACKUP_DIR, '.r2-restore-test-' + Date.now() + '-' + m[0]);
+      require('fs').writeFileSync(r2TempFile, archive);
+      require('fs').writeFileSync(r2TempFile + '.json', manifest);
+      restoreFile = r2TempFile;
+    }
+
     // Restore into a separate temporary database; never replace the live DB.
     const restoreScript = path.resolve(root, 'scripts', 'restore.js');
     const testPath = path.join(config.BACKUP_DIR, '.restore-test-' + Date.now() + '.db');
     try {
       const { stdout: restoreOut } = await run(process.execPath,
-        [restoreScript, '--file=' + m[0], '--to=' + testPath],
+        [restoreScript, '--file=' + restoreFile, '--to=' + testPath],
         { cwd: root, timeout: 10 * 60 * 1000, env: process.env });
       if (!/الاستعادة ناجحة والبيانات سليمة/.test(restoreOut)) {
         throw new Error('Restore verification did not report a healthy restored database.');
       }
     } finally {
-      try { require('fs').unlinkSync(testPath); } catch (_) {}
-      try { require('fs').unlinkSync(testPath + '-wal'); } catch (_) {}
-      try { require('fs').unlinkSync(testPath + '-shm'); } catch (_) {}
+      const fs = require('fs');
+      for (const file of [testPath, testPath + '-wal', testPath + '-shm',
+        r2TempFile, r2TempFile && r2TempFile + '.json']) {
+        if (file) { try { fs.unlinkSync(file); } catch (_) {} }
+      }
     }
 
     const ms = Date.now() - started;
     record({ at: new Date().toISOString(), job: 'backup', ok: true, ms,
-      message: m[0] + ' | cloud checksum verified by backup script | restore test passed' });
-    return { ok: true, name: m[0], restoreTest: true, ms };
+      message: m[0] + (useR2 ? ' | downloaded from R2 | SHA-256 and table counts verified | restore test passed' : ' | local archive | restore test passed') });
+    return { ok: true, name: m[0], restoreTest: true, restoreSource: useR2 ? 'r2' : 'local', ms };
   } catch (err) {
     const ms = Date.now() - started;
     record({ at: new Date().toISOString(), job: 'backup', ok: false, ms,
