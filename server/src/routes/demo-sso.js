@@ -21,7 +21,7 @@ router.post('/handoff',limiter,wrap(async(req,res)=>{
   const byId=db.prepare('SELECT id,email,role FROM users WHERE id=?').get(id),byEmail=db.prepare('SELECT id FROM users WHERE lower(email)=lower(?)').get(ALLOWED_EMAIL);
   if((byId&&(String(byId.email).toLowerCase()!==ALLOWED_EMAIL||byId.role!=='contractor'))||(byEmail&&byEmail.id!==id))throw E.conflict('Demo identity conflicts with an existing account');
   if(!byId)db.prepare("INSERT INTO users(id,email,password_hash,name,company,role,country,plan_key) VALUES(?,?,?,?,?,'contractor','JO','free')").run(id,ALLOWED_EMAIL,'!demo-sso-only:'+crypto.randomBytes(48).toString('hex'),'MMC Demo Presenter','MMC DEMO — Isolated MMC AI Workspace');
-  db.prepare('UPDATE users SET last_login_at=unixepoch() WHERE id=?').run(id);return A.loadUser(id);
+  db.prepare('UPDATE users SET last_login_at=unixepoch() WHERE id=?').run(id);return db.prepare('SELECT id,email FROM users WHERE id=?').get(id);
  }).immediate();
  A.setSessionCookie(res,A.signToken(user));res.setHeader('Cache-Control','no-store');res.json({ok:true,demo:true,redirect:DESTINATION});
 }));
