@@ -99,19 +99,20 @@ function presenterDemoIds() {
   return {
     presenter: 'demo_presenter_' + h.slice(0, 24),
     buyer: 'demo_procurement_' + h.slice(0, 20),
+    consultant: 'demo_consultant_' + h.slice(0, 20),
     org: 'demo_org_procurement_' + h.slice(0, 16),
     verification: 'demo_verification_procurement_' + h.slice(0, 12)
   };
 }
 function ticketIdentity(req) {
   const ids = presenterDemoIds();
-  if (req.user && req.user.id === ids.buyer) return A.loadUser(ids.presenter);
+  if (req.user && [ids.buyer, ids.consultant].includes(req.user.id)) return A.loadUser(ids.presenter);
   return req.user;
 }
 function assertDemoIdentity(req) {
   const ids = presenterDemoIds();
   const email = String(req.user && req.user.email || '').toLowerCase();
-  if (email !== ALLOWED_EMAIL && req.user.id !== ids.buyer) {
+  if (email !== ALLOWED_EMAIL && ![ids.buyer, ids.consultant].includes(req.user.id)) {
     throw E.forbidden('This account is not authorized for the MMC demo workspace.');
   }
   if (req.user.role === 'admin') throw E.forbidden('Admin accounts cannot use the demo workspace switch.');
@@ -177,6 +178,36 @@ router.post('/switch-procurement', A.requireAuth, wrap(async (req, res) => {
   res.json({ ok: true, redirect: '/org/' });
 }));
 
+
+function ensureDemoConsultantIdentity() {
+  const db = getDB();
+  const ids = presenterDemoIds();
+  const email = 'consultant-presenter@mmc-demo.invalid';
+  return db.transaction(() => {
+    const byId = db.prepare('SELECT id,email,role FROM users WHERE id=?').get(ids.consultant);
+    const byEmail = db.prepare('SELECT id FROM users WHERE lower(email)=lower(?)').get(email);
+    if ((byId && (byId.email !== email || byId.role !== 'consultant')) ||
+        (byEmail && byEmail.id !== ids.consultant)) {
+      throw E.conflict('The isolated demo consultant identity conflicts with an existing account.');
+    }
+    if (!byId) {
+      db.prepare("INSERT INTO users(id,email,password_hash,name,company,role,country,plan_key,account_status) VALUES(?,?,?,?,?,'consultant','JO','free','active')")
+        .run(ids.consultant, email, '!demo-sso-only:' + crypto.randomBytes(48).toString('hex'),
+          'MMC Demo Consultant', 'MMC DEMO — Sample Consulting Office');
+    }
+    return db.prepare('SELECT * FROM users WHERE id=?').get(ids.consultant);
+  })();
+}
+
+router.post('/switch-consultant', A.requireAuth, wrap(async (req, res) => {
+  if (!config.DEMO_MODE) throw E.notFound('Not found');
+  assertDemoIdentity(req);
+  const identity = ensureDemoConsultantIdentity();
+  A.setSessionCookie(res, A.signToken(identity));
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, redirect: '/consulting/' });
+}));
+
 router.post('/switch-contractor', A.requireAuth, wrap(async (req, res) => {
   if (!config.DEMO_MODE) throw E.notFound('Not found');
   assertDemoIdentity(req);
@@ -213,7 +244,7 @@ router.get('/ai-handoff', A.requireAuth, wrap(async (req, res) => {
     throw E.forbidden('This account is not authorized for the demo presenter.');
   }
   const ticket = issueDemoTicket({
-    user: req.user, audience: 'mmc-ai-staging', secret: config.DEMO_SSO_SECRET
+    user: presenter, audience: 'mmc-ai-staging', secret: config.DEMO_SSO_SECRET
   });
   const target = 'https://mmc-ai-staging.onrender.com/api/demo-sso/handoff#ticket=' + encodeURIComponent(ticket);
   res.setHeader('Cache-Control', 'no-store');
