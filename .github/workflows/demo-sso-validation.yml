@@ -1,0 +1,35 @@
+name: MMC Demo SSO validation
+
+on:
+  push:
+    branches:
+      - feature/mmc-ai-demo-sso
+  pull_request:
+    branches:
+      - mmc-bim-review-integration
+    paths:
+      - "server/src/lib/demo-sso.js"
+      - "server/src/routes/demo-sso.js"
+      - "server/tests/demo-sso.test.js"
+      - "server/package.json"
+      - "server/package-lock.json"
+      - ".github/workflows/demo-sso-validation.yml"
+
+jobs:
+  demo-sso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install server dependencies
+        run: npm ci
+        working-directory: server
+      - name: Run isolated demo SSO tests
+        run: npm run test:demo-sso
+        working-directory: server
