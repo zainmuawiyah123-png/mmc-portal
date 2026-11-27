@@ -43,6 +43,11 @@ document.getElementById('login').addEventListener('submit', async (event) => {
 </script></body></html>`;
 }
 
+router.get('/presenter-enabled', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ enabled: !!(config.DEMO_MODE && config.DEMO_PRESENTER_ACCESS_KEY) });
+});
+
 router.get('/presenter-login', (req, res) => {
   if (!config.DEMO_MODE || !config.DEMO_PRESENTER_ACCESS_KEY) return res.sendStatus(404);
   res.setHeader('Cache-Control', 'no-store');
