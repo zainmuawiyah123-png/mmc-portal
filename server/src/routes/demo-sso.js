@@ -17,7 +17,7 @@ router.post('/ai-ticket', A.requireAuth, wrap(async (req, res) => {
     user: req.user, audience: 'mmc-ai-staging', secret: config.DEMO_SSO_SECRET
   });
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ ticket, expiresIn: 90, destination: 'https://mmc-ai-staging.onrender.com/api/demo-sso/exchange' });
+  res.json({ ticket, expiresIn: 90, destination: 'https://mmc-ai-staging.onrender.com/api/demo-sso/handoff' });
 }));
 
 router.get('/ai-handoff', A.requireAuth, wrap(async (req, res) => {
