@@ -70,6 +70,20 @@
     </div>
   </section>
 
+
+  <section id="mmcDemoWorkspace" class="portal-gateway" style="display:none;margin:18px 0 28px;border:2px solid #b45309;border-radius:12px;padding:18px;background:#fffaf2">
+    <h2 class="sec">MMC DEMO PRESENTER · Unified Workspace</h2>
+    <p class="small">One presentation account. Switch workspaces without signing in again. All sample records are isolated DEMO data.</p>
+    <div class="cards">
+      <a class="card" href="/bid/"><div class="k">CONTRACTOR WORKSPACE</div><div class="ttl">Contractor Portal</div><div class="d">Open the contractor experience and tender submissions.</div></a>
+      <button class="card" id="demoProcurement" type="button" style="text-align:inherit;cursor:pointer"><div class="k">PROCUREMENT WORKSPACE</div><div class="ttl">Procurement &amp; Organization</div><div class="d">Switch to the sample buyer identity to create requests and manage the organization team.</div></button>
+      <a class="card" href="/consulting/"><div class="k">CONSULTANT WORKSPACE</div><div class="ttl">Consultant Portal</div><div class="d">Open the consultant office workspace.</div></a>
+      <a class="card" href="/api/demo-sso/vendor-handoff"><div class="k">VENDOR &amp; SERVICE PROVIDER REGISTRY</div><div class="ttl">Vendor Registry</div><div class="d">Open the separate registry preview using secure demo handoff.</div></a>
+      <a class="card" href="/api/demo-sso/ai-handoff"><div class="k">MMC AI CONSTRUCTION INTELLIGENCE</div><div class="ttl">MMC AI</div><div class="d">Open drawing analysis, takeoff, BIM and project intelligence preview.</div></a>
+    </div>
+    <p style="margin:14px 0 0"><button id="demoContractor" class="btn amber" type="button">Return to Contractor Workspace</button> <span id="demoWorkspaceStatus" class="small" role="status"></span></p>
+  </section>
+
   <div class="callout">
     <strong>Start here.</strong> Both editions carry the same thirteen documents and the same arithmetic. Choose a
     language below, then follow the documents in order — the usage guide (TP-G2) explains the sequence and the
@@ -322,5 +336,26 @@
 </div>
 
 <script src="assets/en.js"></script>
+
+<script>
+(function(){
+  var panel=document.getElementById('mmcDemoWorkspace');
+  if(!panel)return;
+  var status=document.getElementById('demoWorkspaceStatus');
+  function switchRole(path){
+    status.textContent='Switching workspace…';
+    fetch('/api/demo-sso/'+path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
+      .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error&&d.error.message||'Unable to switch workspace');return d;});})
+      .then(function(d){location.href=d.redirect;})
+      .catch(function(e){status.textContent=e.message;});
+  }
+  fetch('/api/demo-sso/presenter-status',{credentials:'same-origin',cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('not a demo presenter');return r.json();})
+    .then(function(){panel.style.display='block';});
+  document.getElementById('demoProcurement').addEventListener('click',function(){switchRole('switch-procurement');});
+  document.getElementById('demoContractor').addEventListener('click',function(){switchRole('switch-contractor');});
+})();
+</script>
+
 </body>
 </html>
