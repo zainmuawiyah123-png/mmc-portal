@@ -85,7 +85,7 @@ router.post('/presenter-login', presenterLoginLimiter, wrap(async (req, res) => 
 
   A.setSessionCookie(res, A.signToken(identity));
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ ok: true, demo: true, user: { email: ALLOWED_EMAIL, name: identity.name }, redirect: '/portal/pt-9f3c7a1e5b2d/' });
+  res.json({ ok: true, demo: true, user: { email: ALLOWED_EMAIL, name: identity.name }, redirect: '/' });
 }));
 
 
