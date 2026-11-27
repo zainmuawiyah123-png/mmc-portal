@@ -47,6 +47,7 @@ jobs:
           done
           find "$DEST" -type f | sort > website/mmc-website/parent-company/assets/project-photos/PHOTO-INVENTORY.txt
           echo "Collected $(find "$DEST" -type f ! -name PHOTO-INVENTORY.txt | wc -l) image files"
+          python -m pip install --quiet pillow
           python - <<'PY'
           from PIL import Image, ImageOps, ImageDraw
           from pathlib import Path
