@@ -166,7 +166,7 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  try{extraction=extractPdfText(bytes);}catch(err){throw E.validation(err.message||'تعذر استخراج النص من PDF.');}
  let pageEvidence=null,pageEvidenceError=null,vectorEvidence=null,vectorEvidenceError=null,correlation=null,correlationSource=null;
  try{
-  pageEvidence=await inspectPdfPageEvidence(bytes,{documentId:doc.id,maxPages:1});
+  pageEvidence=await inspectPdfPageEvidence(bytes,{documentId:doc.id,maxPages:Math.min(20,Math.max(1,Number(req.body?.maxPages)||20))});
   const page=pageEvidence.pages[0];
   if(page){
    extraction.nativeSpatialWords=(page.nativeTextEvidence||[]).map(word=>({text:word.text,box:word.box}));
@@ -179,7 +179,10 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  catch(error){vectorEvidenceError=error.message||'PDF vector extraction failed';}
  let ocr=null;
  const nativeWordCount=extraction.nativeSpatialWords?.length||0;
- const shouldOcr=nativeWordCount<8||extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
+ const hasPagesWithoutNativeText=(pageEvidence?.pages||[]).some(page=>(page.nativeTextWordCount||0)<8);
+ // Engineering PDFs may contain a small native text layer (stamps/date) while their dimensions and callouts are encoded as glyph outlines or poorly mapped fonts. Treat sparse page text as an OCR trigger, not only completely empty pages.
+ const hasSparseDrawingText=(pageEvidence?.pages||[]).some(page=>(page.nativeTextWordCount||0)<250);
+ const shouldOcr=nativeWordCount<8||hasPagesWithoutNativeText||hasSparseDrawingText||extraction.characterCount<40||(extraction.diagnostics?.imageXObjectCalls||0)>0;
  if(shouldOcr){
   try{
    ocr=await ocrPdf(bytes,{maxPages:req.body?.maxPages||20,dpi:req.body?.dpi||180});
@@ -198,34 +201,86 @@ router.post('/projects/:projectId/documents/:documentId/analyze/drawing-text',wr
  if(page&&vectorEvidence?.svgViewBox){
   try{
    let lines=[];
+   const firstOcrPage=ocr?.pages?.find(item=>Number(item.page)===page.pageNumber);
    if((extraction.nativeSpatialWords||[]).length>=8){
     lines=require('../lib/mmc-ai/pdf-drawing-text-intelligence').spatialNativeLines(extraction.nativeSpatialWords,{
      pageNumber:page.pageNumber,pageWidth:page.bboxWidthPt,pageHeight:page.bboxHeightPt
     });
     correlationSource='native_pdf_text_bbox';
-   }else if(ocr?.pages?.[0]?.words?.length){
-    lines=require('../lib/mmc-ai/pdf-evidence-correlation').spatialOcrLines(ocr.pages[0].words,{
+   }else if(firstOcrPage?.words?.length){
+    lines=require('../lib/mmc-ai/pdf-evidence-correlation').spatialOcrLines(firstOcrPage.words,{
      pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
     });
     correlationSource='tesseract_ocr_word_boxes';
    }
    if(lines.length)correlation=correlatePdfTextWithVectorGeometry({
     textLines:lines,geometry:vectorEvidence.geometry,viewBox:vectorEvidence.svgViewBox,
-    pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt
+    pageWidthPt:page.bboxWidthPt,pageHeightPt:page.bboxHeightPt,pageRotationDegrees:page.rotationDegrees||0
    });
    else correlation={status:'no_spatial_text_available',textLineCount:0,matchedTextLineCount:0,associations:[],limitations:['Neither native PDF text coordinates nor OCR word boxes were available for spatial matching.']};
   }catch(error){vectorEvidenceError=error.message||'Vector/text spatial matching failed';}
  }else if(!page) correlation={status:'page_evidence_unavailable',textLineCount:0,matchedTextLineCount:0,associations:[],limitations:['PDF page dimensions or native page evidence could not be read.']};
+ const pageAnalyses=[];
+ const spatialHelper=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
+ if(pageEvidence?.pages?.length){
+  const nativeHelper=require('../lib/mmc-ai/pdf-drawing-text-intelligence');
+  const correlationHelper=require('../lib/mmc-ai/pdf-evidence-correlation');
+  for(const pageRecord of pageEvidence.pages){
+   const pageNo=pageRecord.pageNumber;
+   let pageVector=pageNo===1?vectorEvidence:null;
+   let pageVectorError=pageNo===1?vectorEvidenceError:null;
+   if(!pageVector&&!pageVectorError){
+    try{pageVector=await inspectPdfVectorPage(bytes,{pageNumber:pageNo});}
+    catch(error){pageVectorError=error.message||'PDF vector extraction failed';}
+   }
+   let pageLines=[];
+   let pageTextSource=null;
+   const ocrPage=ocr?.pages?.find(item=>Number(item.page)===pageNo);
+   if((pageRecord.nativeTextEvidence||[]).length>=8&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
+    // Native PDF glyph positions preserve precise dimension callouts; OCR remains available for pages with sparse native text.
+    pageLines=nativeHelper.spatialNativeLines(pageRecord.nativeTextEvidence.map(word=>({text:word.text,box:word.box})),{
+     pageNumber:pageNo,pageWidth:pageRecord.bboxWidthPt,pageHeight:pageRecord.bboxHeightPt
+    });
+    pageTextSource='native_pdf_text_bbox';
+   }else if(ocrPage?.words?.length&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt){
+    pageLines=correlationHelper.spatialOcrLines(ocrPage.words,{pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt});
+    pageTextSource='tesseract_ocr_word_boxes';
+   }
+   let spatialEngineeringEvidence=null;
+   if(pageLines.length){try{spatialEngineeringEvidence=spatialHelper.analyzeSpatialPageEvidence(pageLines,{pageBounds:pageRecord.bboxWidthPt>0&&pageRecord.bboxHeightPt>0?{width:2000,height:2000*pageRecord.bboxHeightPt/pageRecord.bboxWidthPt}:null});}catch(error){spatialEngineeringEvidence={status:'spatial_evidence_failed',error:error.message};}}
+   let pageCorrelation=null;
+   if(pageVector?.svgViewBox&&pageRecord.bboxWidthPt&&pageRecord.bboxHeightPt&&pageLines.length){
+    try{pageCorrelation=correlationHelper.correlatePdfTextWithVectorGeometry({
+     textLines:pageLines,geometry:pageVector.geometry,viewBox:pageVector.svgViewBox,
+     pageWidthPt:pageRecord.bboxWidthPt,pageHeightPt:pageRecord.bboxHeightPt,pageRotationDegrees:pageRecord.rotationDegrees||0
+    });}catch(error){pageCorrelation={status:'correlation_failed',error:error.message,associations:[],matchedTextLineCount:0};}
+   }else{
+    pageCorrelation={status:pageLines.length?'vector_geometry_unavailable':'no_spatial_text_available',
+     associations:[],textLineCount:pageLines.length,matchedTextLineCount:0,
+     limitations:['Page-level text/vector evidence was incomplete; no engineering measurement was inferred.']};
+   }
+   pageAnalyses.push({
+    pageNumber:pageNo,nativeTextWordCount:pageRecord.nativeTextWordCount||0,
+    vectorEvidence:pageVector?{pathCount:pageVector.geometry.pathCount,
+     closedPathCount:pageVector.geometry.paths.filter(item=>item.closed).length,
+     svgViewBox:pageVector.svgViewBox,status:pageVector.status}:null,
+    vectorEvidenceError:pageVectorError,textSource:pageTextSource,
+    spatialCorrelation:pageCorrelation,
+    spatialEngineeringEvidence,
+    measurementEligible:false,scaleCalibrated:false,bimGenerated:false
+   });
+  }
+ }
  const analysis=analyzePdfDrawingText(extraction,{documentId:doc.id,revision:doc.revision||null,sheetOrPage:doc.sheet_number||doc.original_name});
  const analysisId=uid('aidan_');
- const persisted={analysis,ocr,pageEvidence:pageEvidence?{engine:pageEvidence.engine,totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,pages:pageEvidence.pages}:null,pageEvidenceError,vectorEvidence,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,extractionSummary:{engine:extraction.engine||null,pageCount:extraction.pageCount??null,characterCount:extraction.characterCount??0,ocrPerformed:extraction.ocrPerformed===true,nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0}};
+ const persisted={analysis,ocr,pageEvidence:pageEvidence?{engine:pageEvidence.engine,totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,pages:pageEvidence.pages}:null,pageAnalyses,pageEvidenceError,vectorEvidence,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,extractionSummary:{engine:extraction.engine||null,pageCount:extraction.pageCount??null,characterCount:extraction.characterCount??0,ocrPerformed:extraction.ocrPerformed===true,nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0}};
  db.prepare('INSERT INTO ai_document_analyses(id,project_id,document_id,created_by,analysis_type,result_json) VALUES(?,?,?,?,?,?)')
   .run(analysisId,doc.project_id,doc.id,req.user.id,'pdf_drawing_text',JSON.stringify(persisted));
  db.prepare('INSERT INTO ai_audit_log(id,project_id,actor_user_id,action,entity_type,entity_id,detail_json) VALUES(?,?,?,?,?,?,?)')
   .run(uid('aial_'),doc.project_id,req.user.id,'pdf_drawing_text_analysis_completed','document',doc.id,
-   JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed',nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0,spatialTextSource:correlationSource,spatialMatches:correlation?.matchedTextLineCount||0,spatialStatus:correlation?.status||null}));
+   JSON.stringify({status:analysis.status,evidenceCount:analysis.evidence.evidenceCount,conflictCount:analysis.conflicts.length,ocrStatus:ocr?.status||'not_needed',nativeSpatialWordCount:extraction.nativeSpatialWords?.length||0,spatialTextSource:correlationSource,spatialMatches:correlation?.matchedTextLineCount||0,spatialStatus:correlation?.status||null,pagesProcessed:pageAnalyses.length,pageVectorPages:pageAnalyses.filter(item=>item.vectorEvidence).length,spatialEvidencePages:pageAnalyses.filter(item=>item.spatialEngineeringEvidence).length,spatialElementCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.elements?.length||0),0),spatialDimensionCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.dimensions?.length||0),0)}));
  res.setHeader('Cache-Control','no-store');
- res.json({analysisId,documentId:doc.id,analysis,ocr,pageEvidence:pageEvidence?{totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,nativeTextWordCount:pageEvidence.pages?.[0]?.nativeTextWordCount||0}:null,pageEvidenceError,vectorEvidence:vectorEvidence?{pageNumber:vectorEvidence.pageNumber,pathCount:vectorEvidence.geometry.pathCount,closedPathCount:vectorEvidence.geometry.paths.filter(p=>p.closed).length,svgViewBox:vectorEvidence.svgViewBox}:null,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,notice:'تم ربط النصوص ذات الإحداثيات مع مسارات الصفحة الأولى مكانياً كمرشحات مراجعة فقط. لا ينتج هذا الربط قياسات أو كميات أو مقياساً معتمداً.'});
+ res.json({analysisId,documentId:doc.id,analysis,ocr,pageEvidence:pageEvidence?{engine:pageEvidence.engine,totalPageCount:pageEvidence.totalPageCount,pagesProcessed:pageEvidence.pagesProcessed,pageLimit:pageEvidence.pageLimit,truncatedAtPageLimit:pageEvidence.truncatedAtPageLimit,nativeTextWordCount:pageEvidence.pages?.[0]?.nativeTextWordCount||0}:null,pageEvidenceError,vectorEvidence:vectorEvidence?{pageNumber:vectorEvidence.pageNumber,pathCount:vectorEvidence.geometry.pathCount,closedPathCount:vectorEvidence.geometry.paths.filter(p=>p.closed).length,svgViewBox:vectorEvidence.svgViewBox}:null,vectorEvidenceError,spatialCorrelation:correlation,spatialCorrelationSource:correlationSource,pageAnalyses,pagesProcessed:pageAnalyses.length,totalPdfPages:pageEvidence?.totalPageCount??analysis.metadata?.extractedPageCount??null,truncatedAtPageLimit:pageEvidence?.truncatedAtPageLimit===true,ocrPagesProcessed:ocr?.pagesProcessed||0,ocrFailedPages:(ocr?.pages||[]).filter(item=>item.status==='ocr_page_failed').map(item=>({page:item.page,error:item.error||null})),pageProcessingSummary:pageAnalyses.map(item=>({page:item.pageNumber,nativeTextWords:item.nativeTextWordCount||0,textSource:item.textSource||null,vectorPaths:item.vectorEvidence?.pathCount||0,ocrStatus:ocr?.pages?.find(p=>p.page===item.pageNumber)?.status||'not_run',elements:item.spatialEngineeringEvidence?.elements?.length||0,dimensions:item.spatialEngineeringEvidence?.dimensions?.length||0,correlationStatus:item.spatialCorrelation?.status||null})),spatialEvidenceSummary:{pagesWithEvidence:pageAnalyses.filter(item=>item.spatialEngineeringEvidence).length,elementCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.elements?.length||0),0),dimensionCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.dimensions?.length||0),0),explicitRebarCalloutCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.explicitRebarTakeoffCandidates?.length||0),0),explicitRebarTheoreticalMassKg:Number(pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.explicitRebarTakeoffCandidates||[]).reduce((subtotal,candidate)=>subtotal+(candidate.theoreticalMassKg||0),0),0).toFixed(2)),titleBlockCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.titleBlockCandidates?.length||0),0),scaleCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.scaleCandidates?.length||0),0),detailReferenceCandidates:pageAnalyses.reduce((sum,item)=>sum+(item.spatialEngineeringEvidence?.detailReferenceCandidates?.length||0),0)},notice:'تم فحص الصفحات المعالجة وربط النصوص ذات الإحداثيات مع مسارات كل صفحة كمرشحات مراجعة فقط. لم يتم اعتماد مقياس أو تصنيف العناصر أو إنتاج كميات أو نموذج BIM.'});
 }));
 
 router.post('/projects/:projectId/documents',upload.single('file'),wrap(async(req,res)=>{

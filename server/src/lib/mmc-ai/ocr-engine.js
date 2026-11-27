@@ -45,6 +45,13 @@ async function runTesseractWithFallback(imagePath, options = {}) {
   });
 }
 
+function assignOcrPageNumber(words, pageNumber) {
+  if (!Array.isArray(words) || !Number.isInteger(pageNumber) || pageNumber < 1) {
+    throw new TypeError('OCR words and a positive page number are required');
+  }
+  return words.map(word => ({ ...word, page: pageNumber }));
+}
+
 function parseTesseractTsv(tsv) {
   const lines = String(tsv || '').split(/\r?\n/);
   const words = [];
@@ -180,7 +187,7 @@ async function ocrPdf(input, options = {}) {
       const parsed = parseTesseractTsv(attempt.stdout);
       pages.push({
         page: index + 1, text: parsed.text, wordCount: parsed.wordCount,
-        averageConfidence: parsed.averageConfidence, words: parsed.words,
+        averageConfidence: parsed.averageConfidence, words: assignOcrPageNumber(parsed.words, index + 1),
         status: parsed.wordCount ? 'ocr_text_extracted' : 'ocr_no_text_found',
         pageSegmentationMode: attempt.psm, fallbackUsed: attempt.fallbackUsed,
         warnings: attempt.warnings
@@ -291,4 +298,4 @@ async function ocrImage(input, options = {}) {
   }
 }
 
-module.exports = { ocrPdf, ocrImage, parseTesseractTsv, parsePdfPageCount, inspectOcrRuntime, inspectImageOcrRuntime, runTesseractWithFallback };
+module.exports = { ocrPdf, ocrImage, parseTesseractTsv, assignOcrPageNumber, parsePdfPageCount, inspectOcrRuntime, inspectImageOcrRuntime, runTesseractWithFallback };

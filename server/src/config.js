@@ -49,6 +49,8 @@ const config = {
   UPLOAD_DIR: v('UPLOAD_DIR', path.join(ROOT, 'uploads')),
 
   JWT_SECRET: v('JWT_SECRET', 'dev-insecure-secret-CHANGE-ME'),
+  DEMO_MODE: v('DEMO_MODE', 'false') === 'true',
+  DEMO_SSO_SECRET: v('DEMO_SSO_SECRET', ''),
   REQUIRE_ORG_VERIFICATION: v('REQUIRE_ORG_VERIFICATION', 'true') !== 'false',
   VERIFICATION_DAYS: Number(v('VERIFICATION_DAYS', 365)),
   JWT_TTL: v('JWT_TTL', '7d'),
@@ -88,10 +90,22 @@ const config = {
   BACKUP_KEEP_MONTHLY: Number(v('BACKUP_KEEP_MONTHLY', 12)),
   /** رفع النسخة إلى السحابة (يحتاج STORAGE_DRIVER=s3 أو يبقى محلياً فقط) */
   BACKUP_UPLOAD: v('BACKUP_UPLOAD', 'true') === 'true',
+  /** وجهة مستقلة لنسخ قاعدة البيانات؛ لا تغيّر مشغّل ملفات المشاريع */
+  BACKUP_S3_ENABLED: v('BACKUP_S3_ENABLED', 'false') === 'true',
+  BACKUP_S3_ENDPOINT: v('BACKUP_S3_ENDPOINT', ''),
+  BACKUP_S3_REGION: v('BACKUP_S3_REGION', 'auto'),
+  BACKUP_S3_BUCKET: v('BACKUP_S3_BUCKET', ''),
+  BACKUP_S3_ACCESS_KEY_ID: v('BACKUP_S3_ACCESS_KEY_ID', ''),
+  BACKUP_S3_SECRET_ACCESS_KEY: v('BACKUP_S3_SECRET_ACCESS_KEY', ''),
+  BACKUP_S3_FORCE_PATH_STYLE: v('BACKUP_S3_FORCE_PATH_STYLE', 'true') === 'true',
 
   /* ============ الجدولة ============ */
   /** تعطيل كل المهام المجدولة بمتغير واحد */
   SCHEDULER_ENABLED: v('SCHEDULER_ENABLED', 'false') === 'true',
+  /** جدولة النسخ الاحتياطي مستقلة عن انتهاء الاشتراكات */
+  BACKUP_SCHEDULER_ENABLED: v('BACKUP_SCHEDULER_ENABLED', 'false') === 'true',
+  /** تنفيذ نسخة احتياطية واحدة بعد الإقلاع لاختبار النسخ والاستعادة */
+  BACKUP_RUN_ON_START: v('BACKUP_RUN_ON_START', 'false') === 'true',
   /** تعبير cron للنسخ الاحتياطي — افتراضي: 02:30 كل يوم */
   BACKUP_CRON: v('BACKUP_CRON', '30 2 * * *'),
   /** فحص الاشتراكات المنتهية يومياً — افتراضي 03:00 بتوقيت المنطقة */
@@ -120,11 +134,11 @@ config.PAYMENT = {
 config.MAIL = {
   resendApiKey: v('RESEND_API_KEY', ''),
   host: v('MAIL_HOST', ''),
-  port: Number(v('MAIL_PORT', 587)),
-  secure: String(v('MAIL_SECURE', 'false')).toLowerCase() === 'true',
-  user: v('MAIL_USER', ''),
+  port: Number(v('MAIL_PORT', 465)),
+  secure: String(v('MAIL_SECURE', 'true')).toLowerCase() === 'true',
+  user: v('MAIL_USER', 'm.madadha@mrc-jordan.com'),
   pass: v('MAIL_PASS', ''),
-  from: v('MAIL_FROM', ''),
+  from: v('MAIL_FROM', 'm.madadha@mrc-jordan.com'),
   adminNotify: v('ADMIN_NOTIFY_EMAIL', ''),
   publicUrl: v('PUBLIC_URL', '').replace(/\/+$/, '')
 };

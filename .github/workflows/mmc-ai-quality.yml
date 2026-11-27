@@ -5,6 +5,7 @@ on:
     branches:
       - feature/mmc-ai-construction-intelligence
       - feature/mmc-ai-boq-import-foundation
+      - mmc-bim-review-integration
   pull_request:
     branches:
       - main
@@ -42,6 +43,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Install Poppler for real PDF extraction tests
-        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-ara python3-pil
       - name: Run MMC AI regression suite
         run: npm run test:mmc-ai

@@ -23,6 +23,23 @@ function record(entry) {
   console.log('[scheduler] ' + line.trim());
 }
 
+async function downloadR2Object(key) {
+  const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+  const required = ['BACKUP_S3_ENDPOINT','BACKUP_S3_BUCKET','BACKUP_S3_ACCESS_KEY_ID','BACKUP_S3_SECRET_ACCESS_KEY'];
+  const missing = required.filter((k) => !config[k]);
+  if (missing.length) throw new Error('إعدادات تنزيل نسخة R2 ناقصة: ' + missing.join(', '));
+  const client = new S3Client({
+    region: config.BACKUP_S3_REGION || 'auto',
+    endpoint: config.BACKUP_S3_ENDPOINT,
+    forcePathStyle: config.BACKUP_S3_FORCE_PATH_STYLE,
+    credentials: { accessKeyId: config.BACKUP_S3_ACCESS_KEY_ID, secretAccessKey: config.BACKUP_S3_SECRET_ACCESS_KEY }
+  });
+  const response = await client.send(new GetObjectCommand({ Bucket: config.BACKUP_S3_BUCKET, Key: key }));
+  const chunks = [];
+  for await (const chunk of response.Body) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
 async function runBackupJob() {
   const started = Date.now();
   try {
@@ -34,11 +51,49 @@ async function runBackupJob() {
     const { stdout } = await run(process.execPath, [scriptPath], {
       cwd: root, timeout: 10 * 60 * 1000, env: process.env
     });
-    const ms = Date.now() - started;
     const m = stdout.match(/portal-\d{8}-\d{6}\.db\.gz/);
+    if (!m) throw new Error('Backup script did not report a completed archive.');
+
+    // When R2 is enabled, test restore from the object downloaded from R2 itself.
+    const cloudMatch = stdout.match(/رُفعت إلى R2:\s+(\S+)/);
+    const useR2 = config.BACKUP_S3_ENABLED && config.BACKUP_UPLOAD;
+    let restoreFile = m[0];
+    let r2TempFile = null;
+    if (useR2) {
+      if (!cloudMatch) throw new Error('Backup was expected in R2, but the upload key was not reported.');
+      const key = cloudMatch[1];
+      const [archive, manifest] = await Promise.all([
+        downloadR2Object(key),
+        downloadR2Object(key + '.json')
+      ]);
+      r2TempFile = path.join(config.BACKUP_DIR, '.r2-restore-test-' + Date.now() + '-' + m[0]);
+      require('fs').writeFileSync(r2TempFile, archive);
+      require('fs').writeFileSync(r2TempFile + '.json', manifest);
+      restoreFile = r2TempFile;
+    }
+
+    // Restore into a separate temporary database; never replace the live DB.
+    const restoreScript = path.resolve(root, 'scripts', 'restore.js');
+    const testPath = path.join(config.BACKUP_DIR, '.restore-test-' + Date.now() + '.db');
+    try {
+      const { stdout: restoreOut } = await run(process.execPath,
+        [restoreScript, '--file=' + restoreFile, '--to=' + testPath],
+        { cwd: root, timeout: 10 * 60 * 1000, env: process.env });
+      if (!/الاستعادة ناجحة والبيانات سليمة/.test(restoreOut)) {
+        throw new Error('Restore verification did not report a healthy restored database.');
+      }
+    } finally {
+      const fs = require('fs');
+      for (const file of [testPath, testPath + '-wal', testPath + '-shm',
+        r2TempFile, r2TempFile && r2TempFile + '.json']) {
+        if (file) { try { fs.unlinkSync(file); } catch (_) {} }
+      }
+    }
+
+    const ms = Date.now() - started;
     record({ at: new Date().toISOString(), job: 'backup', ok: true, ms,
-      message: m ? m[0] : 'done' });
-    return { ok: true, name: m ? m[0] : null, ms };
+      message: m[0] + (useR2 ? ' | downloaded from R2 | SHA-256 and table counts verified | restore test passed' : ' | local archive | restore test passed') });
+    return { ok: true, name: m[0], restoreTest: true, restoreSource: useR2 ? 'r2' : 'local', ms };
   } catch (err) {
     const ms = Date.now() - started;
     record({ at: new Date().toISOString(), job: 'backup', ok: false, ms,
@@ -166,11 +221,13 @@ async function runOpportunitySyncCycle() {
 }
 
 function startScheduler() {
-  if (!config.SCHEDULER_ENABLED && !config.OPPORTUNITY_SYNC_ENABLED) {
-    console.log('[scheduler] معطّل (SCHEDULER_ENABLED=false)');
-    return { enabled: false, opportunitySyncEnabled: false, jobs: [] };
+  const backupEnabled = config.BACKUP_SCHEDULER_ENABLED || config.SCHEDULER_ENABLED;
+  if (!backupEnabled && !config.SCHEDULER_ENABLED && !config.OPPORTUNITY_SYNC_ENABLED) {
+    console.log('[scheduler] معطّل (لا توجد مهام مجدولة مفعّلة)');
+    return { enabled: false, opportunitySyncEnabled: false, backupEnabled: false, jobs: [] };
   }
-  if ((config.SCHEDULER_ENABLED && (!cron.validate(config.BACKUP_CRON) || !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON))) ||
+  if ((backupEnabled && !cron.validate(config.BACKUP_CRON)) ||
+      (config.SCHEDULER_ENABLED && !cron.validate(config.SUBSCRIPTION_EXPIRY_CRON)) ||
       (config.OPPORTUNITY_SYNC_ENABLED && !cron.validate(config.OPPORTUNITY_SYNC_CRON))) {
     console.error('[scheduler] تعبير cron غير صالح — لم تُجدول المهام');
     return { enabled: false, jobs: [], error: 'invalid cron' };
@@ -180,11 +237,18 @@ function startScheduler() {
     _jobs.push(cron.schedule(expression,callback,{timezone:config.BACKUP_TZ,name}));
     _jobNames.push(name);jobs.push(name);
   };
-  if (config.SCHEDULER_ENABLED) {
+  if (backupEnabled) {
     addJob('db-backup',config.BACKUP_CRON,()=>{
       console.log('[scheduler] بدء النسخة الاحتياطية المجدولة...');
       runBackupJob().catch((e)=>console.error('[scheduler] خطأ النسخ:',e.message));
     });
+    console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
+    if (config.BACKUP_RUN_ON_START) {
+      setTimeout(()=>runBackupJob().catch((e)=>console.error('[scheduler] نسخة الإقلاع:',e.message)),15000).unref();
+      console.log('[scheduler] ✓ نسخة تحقق واحدة بعد الإقلاع مفعّلة');
+    }
+  }
+  if (config.SCHEDULER_ENABLED) {
     addJob('subscription-expiry',config.SUBSCRIPTION_EXPIRY_CRON,()=>{
       console.log('[scheduler] فحص الاشتراكات المنتهية...');
       runSubscriptionExpiryJob();
@@ -198,22 +262,19 @@ function startScheduler() {
       addJob('mail-outbox','*/10 * * * *',()=>{require('./mailer').flush().catch((e)=>console.error('[scheduler] البريد:',e.message));});
       console.log('[scheduler] ✓ إعادة إرسال البريد المعلّق كل 10 دقائق');
     }
+    console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
   }
   if (config.OPPORTUNITY_SYNC_ENABLED) {
     addJob('opportunity-sync',config.OPPORTUNITY_SYNC_CRON,()=>{
       console.log('[scheduler] بدء دورة مزامنة العطاءات (بريطانيا ثم بقية المصادر)...');
       runOpportunitySyncCycle().catch(e=>console.error('[scheduler] دورة مزامنة العطاءات:',e.message));
     });
-    // تشغيل أولي واحد ومتسلسل بعد الإقلاع؛ يمنع تداخل مجموعتي المصادر.
     setTimeout(()=>runOpportunitySyncCycle().catch(e=>console.error('[scheduler] دورة المزامنة الأولية:',e.message)),25000).unref();
     console.log('[scheduler] ✓ دورة مزامنة العطاءات مجدولة: "'+config.OPPORTUNITY_SYNC_CRON+'" ('+config.BACKUP_TZ+')');
   }
-  if (config.SCHEDULER_ENABLED) {
-    console.log('[scheduler] ✓ النسخة الاحتياطية مجدولة: "' + config.BACKUP_CRON + '" (' + config.BACKUP_TZ + ')');
-    console.log('[scheduler] ✓ انتهاء الاشتراكات مجدول: "' + config.SUBSCRIPTION_EXPIRY_CRON + '" (' + config.BACKUP_TZ + ')');
-  }
   _jobNames = jobs;
   return { enabled: true, jobs, cron: config.BACKUP_CRON,
+    backupEnabled, subscriptionExpiryEnabled: config.SCHEDULER_ENABLED,
     subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON,
     opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED,
     opportunitySyncCron: config.OPPORTUNITY_SYNC_CRON, tz: config.BACKUP_TZ };
@@ -227,7 +288,7 @@ function stopScheduler() {
 }
 
 function schedulerStatus() {
-  return { enabled: config.SCHEDULER_ENABLED, cron: config.BACKUP_CRON,
+  return { enabled: config.SCHEDULER_ENABLED, backupEnabled: config.BACKUP_SCHEDULER_ENABLED || config.SCHEDULER_ENABLED, cron: config.BACKUP_CRON,
     subscriptionExpiryCron: config.SUBSCRIPTION_EXPIRY_CRON, timezone: config.BACKUP_TZ,
     opportunitySyncEnabled: config.OPPORTUNITY_SYNC_ENABLED, jobs: _jobNames.slice(),
     active: _jobs.length > 0, running: _jobs.length, lastRun: _lastRun };

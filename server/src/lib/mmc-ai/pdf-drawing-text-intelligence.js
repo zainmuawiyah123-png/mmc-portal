@@ -105,6 +105,10 @@ function extractSpatialDimensionCandidates(lines) {
   const number = '[0-9٠-٩۰-۹]+(?:[.,٫][0-9٠-٩۰-۹]+)?';
   const unit = '(?:mm|cm|m|مم|سم|م)';
   const patterns = [
+    { kind: 'dimension_triplet',
+      regex: new RegExp('(' + number + ')\\s*(' + unit + ')?\\s*[x×]\\s*(' + number + ')\\s*(' + unit + ')?\\s*[x×]\\s*(' + number + ')\\s*(' + unit + ')?', 'giu'),
+      values: m => [engineeringNumber(m[1]), engineeringNumber(m[3]), engineeringNumber(m[5])],
+      units: m => { const shared = m[2] || m[4] || m[6] || null; return [m[2] || shared, m[4] || shared, m[6] || shared].map(value => value ? normalizeEngineeringUnit(value) : null); } },
     { kind: 'explicit_length', regex: new RegExp('(' + number + ')\\s*(' + unit + ')(?![\\p{L}])', 'giu'),
       values: m => [engineeringNumber(m[1])], units: m => [normalizeEngineeringUnit(m[2])] },
     { kind: 'dimension_pair', regex: new RegExp('(' + number + ')\\s*[x×]\\s*(' + number + ')(?:\\s*(' + unit + '))?', 'giu'),
@@ -112,10 +116,13 @@ function extractSpatialDimensionCandidates(lines) {
       units: m => [m[3] ? normalizeEngineeringUnit(m[3]) : null, m[3] ? normalizeEngineeringUnit(m[3]) : null] }
   ];
   for (const line of lines) {
+    const tripletRanges = [];
     for (const pattern of patterns) {
       pattern.regex.lastIndex = 0;
       let match;
       while ((match = pattern.regex.exec(line.text))) {
+        if (pattern.kind === 'dimension_pair' && tripletRanges.some(range => match.index < range.end && match.index + match[0].length > range.start)) continue;
+        if (pattern.kind === 'dimension_triplet') tripletRanges.push({start:match.index,end:match.index+match[0].length});
         const raw = clean(match[0]);
         const matchedWords = (line.wordBoxes || []).filter(word =>
           word.start < match.index + match[0].length && word.end > match.index);
@@ -203,6 +210,50 @@ function extractReinforcementCallouts(text) {
     });
   }
   return results;
+}
+
+function extractExplicitRebarTakeoffCandidates(lines) {
+  if (!Array.isArray(lines)) return [];
+  const candidates = [];
+  const pattern = /(?:^|[^\d])(?:T|Y)?\s*(\d{1,3})\s*(?:Ø|Φ|⌀|T)\s*(\d{1,2})\s*L\s*=?\s*(\d+(?:[.,]\d+)?)\s*(mm|cm|m)\b/giu;
+  const unitToM = { mm: 0.001, cm: 0.01, m: 1 };
+  for (const line of lines) {
+    const source = normalizeEngineeringNumerals(line?.text || '');
+    pattern.lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(source))) {
+      const barCount = Number(match[1]);
+      const diameterMm = Number(match[2]);
+      const statedLength = engineeringNumber(match[3]);
+      const lengthUnit = String(match[4] || '').toLowerCase();
+      const lengthPerBarM = statedLength * (unitToM[lengthUnit] || 0);
+      if (!Number.isInteger(barCount) || barCount < 1 || barCount > 500 ||
+          !Number.isInteger(diameterMm) || diameterMm < 6 || diameterMm > 50 ||
+          !positiveEngineeringLength(lengthPerBarM) || lengthPerBarM > 100) continue;
+      const totalLengthM = barCount * lengthPerBarM;
+      const unitMassKgPerM = diameterMm * diameterMm / 162;
+      candidates.push({
+        page: Number.isInteger(line.page) ? line.page : null,
+        raw: clean(match[0]),
+        barCount,
+        diameterMm,
+        lengthPerBarM: Number(lengthPerBarM.toFixed(4)),
+        totalLengthM: Number(totalLengthM.toFixed(4)),
+        nominalUnitMassKgPerM: Number(unitMassKgPerM.toFixed(6)),
+        theoreticalMassKg: Number((totalLengthM * unitMassKgPerM).toFixed(2)),
+        formula: `${barCount} × ${lengthPerBarM} m × (${diameterMm}² / 162)`,
+        box: line.box || null,
+        ocrConfidence: Number.isFinite(line.confidence) ? line.confidence : null,
+        status: 'explicit_callout_calculated_candidate_requires_visual_confirmation',
+        measurementEligible: false,
+        source: 'explicit bar count, diameter and cut length from drawing text; laps, bends, anchorage and waste excluded'
+      });
+    }
+  }
+  return candidates.slice(0, 2000);
+}
+function positiveEngineeringLength(value) {
+  return Number.isFinite(value) && value > 0;
 }
 
 function inferElementFamily(tag) {
@@ -349,6 +400,58 @@ function spatialNativeLines(words, options = {}) {
   }).sort((a,b)=>a.box.top-b.box.top||a.box.left-b.box.left).slice(0,5000);
 }
 
+function analyzeSpatialPageEvidence(lines, options = {}) {
+  const dimensions = extractSpatialDimensionCandidates(lines);
+  const elements = buildSpatialElementCandidates(lines, dimensions, options);
+  const explicitRebarTakeoffCandidates = extractExplicitRebarTakeoffCandidates(lines);
+  // Page edges must come from the PDF page box, never from the text extent.
+  const pageBounds = options.pageBounds && Number.isFinite(options.pageBounds.width) &&
+    Number.isFinite(options.pageBounds.height) && options.pageBounds.width > 0 && options.pageBounds.height > 0
+    ? options.pageBounds : null;
+  const titleBlockPatterns = /\b(?:SCALE|DRAWING|DWG|SHEET|REV(?:ISION)?|PROJECT|DESIGNED|CHECKED|APPROVED|DATE|DRAWN)\b|مقياس|لوحة|مشروع|مراجعة/i;
+  const titleBlockCandidates = pageBounds ? lines.filter(line => {
+    if (!line.box || !titleBlockPatterns.test(line.text)) return false;
+    const cx = (line.box.left + line.box.width / 2) / pageBounds.width;
+    const cy = (line.box.top + line.box.height / 2) / pageBounds.height;
+    return (cx >= 0.55 && cy >= 0.65) || cy >= 0.82;
+  }).slice(0, 120).map(line => ({
+    page: line.page, text: line.text, box: line.box,
+    confidence: line.confidence ?? null,
+    regionCandidate: 'lower_or_lower_right_title_block',
+    status: 'title_block_location_candidate_requires_visual_verification'
+  })) : [];
+  const scaleCandidates = lines.filter(line =>
+    /\b(?:SCALE|SCL)\s*[:=\-]?\s*(?:1\s*:\s*\d+(?:\.\d+)?|NTS|NOT\s+TO\s+SCALE|AS\s+NOTED)\b|مقياس\s*[:=\-]?\s*\d+\s*[:/]\s*\d+/i.test(line.text)
+  ).slice(0, 80).map(line => ({
+    page: line.page, raw: line.text, box: line.box,
+    confidence: line.confidence ?? null,
+    status: 'scale_notation_candidate_not_applied_to_geometry'
+  }));
+  const detailReferenceCandidates = lines.filter(line =>
+    /\b(?:DETAIL|SECTION|ELEVATION|TYPICAL|REF(?:ERENCE)?)\s*(?:NO\.?|#)?\s*[A-Z]?\d{1,3}[A-Z]?\b|تفصيل|قطاع|واجهة/i.test(line.text)
+  ).slice(0, 200).map(line => ({
+    page: line.page, raw: line.text, box: line.box,
+    confidence: line.confidence ?? null,
+    status: 'cross_sheet_or_viewport_reference_unresolved'
+  }));
+  return {
+    textLineCount: lines.length,
+    dimensions,
+    elements,
+    explicitRebarTakeoffCandidates,
+    titleBlockCandidates,
+    scaleCandidates,
+    detailReferenceCandidates,
+    limitations: [
+      'Spatial labels and nearby dimensions are candidates, not verified engineering objects.',
+      pageBounds ? 'Title-block regions are inferred from page-relative text positions and require visual confirmation.' : 'Title-block location was not inferred because reliable page bounds were unavailable.',
+      'Scale notation is not calibrated against a known dimension and is not applied to vector geometry.',
+      'Detail references are extracted but not linked to other sheets or viewports.',
+      'No quantity or BIM geometry is generated by this evidence pass.'
+    ]
+  };
+}
+
 function analyzePdfDrawingText(extraction, document = {}) {
   if (!extraction || typeof extraction.text !== 'string') {
     throw new TypeError('PDF text extraction result is required');
@@ -475,4 +578,4 @@ function analyzePdfDrawingText(extraction, document = {}) {
     ]
   };
 }
-module.exports = { analyzePdfDrawingText, spatialOcrLines, spatialNativeLines, classifySpatialOcrAnnotations, buildSpatialElementCandidates };
+module.exports = { analyzePdfDrawingText, spatialOcrLines, spatialNativeLines, classifySpatialOcrAnnotations, extractSpatialDimensionCandidates, extractExplicitRebarTakeoffCandidates, buildSpatialElementCandidates, analyzeSpatialPageEvidence };

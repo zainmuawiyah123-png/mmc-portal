@@ -506,7 +506,7 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
   </div></section>
   <div class="lower">
    <section class="panel" id="takeoff"><div class="panelhead"><h2>Quantity Takeoff Register</h2><span>QUANTITY TAKEOFF</span></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Unit</th><th>Quantity</th><th>Status</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;color:#8998a8;padding:28px">No verified quantities yet. Results will appear here when the measurement engine and engineering verification are enabled.</td></tr></tbody></table></div></section>
-   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
+   <section class="panel"><div class="panelhead"><h2>Project Documents & Drawings</h2><span>SECURE PROJECT DOCUMENTS</span></div><div class="uploadbox"><label class="drop" for="drawingFile"><div class="cloud">⇧</div><strong>Upload a drawing or document to the current project</strong><small>PDF · DXF · PNG · JPG<br>Up to 25 MB · Private project storage</small><input id="drawingFile" type="file" accept=".pdf,.dxf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden></label><div class="filemsg" id="filemsg"></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn primary" id="openBimStudio">Open BIM Studio</button><span class="note" style="margin:0">Opens a separate drawing reading and BIM workspace.</span></div><div id="projectDocuments" style="margin-top:14px"><p class="note">Select a project to view its documents.</p></div><p class="note">Secure upload and storage are available. Uploaded documents are marked “Received”; automated analysis is not claimed until PDF/DXF processing and measurement calibration are complete.</p></div></section>
   </div>
 
 <section id="plans" aria-labelledby="plansTitle">
@@ -1113,8 +1113,8 @@ table td{background:#fff!important;color:#1b2f45!important;border-color:var(--li
       const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Drawing analysis failed.');
       const analysis=data.analysis||{},meta=analysis.metadata||{},evidence=analysis.evidence||{},ocr=data.ocr||{},output=document.getElementById('takeoffResult');output.replaceChildren();
       const heading=document.createElement('strong');heading.textContent='Drawing Reading Evidence — Not a Quantity Takeoff';heading.style.cssText='display:block;color:#31536f;margin-bottom:8px';
-      const summary=document.createElement('p');summary.textContent='Status: '+analysis.status+' · Pages: '+(meta.extractedPageCount??'Unknown')+' · Evidence clues: '+(evidence.evidenceCount??0)+' · OCR: '+(ocr.status||'Not required');
-      const clues=document.createElement('pre');clues.textContent=JSON.stringify({sheetCandidates:meta.textualSheetNumberCandidates||[],revisionCandidates:meta.textualRevisionCandidates||[],scaleCandidates:meta.textualScaleCandidates||[],explicitDimensions:meta.explicitDimensionCallouts||[],nativeSpatialDimensions:(meta.nativeSpatialDimensionCandidates||[]).slice(0,40),nativeSpatialElements:(meta.nativeSpatialElementCandidates||[]).slice(0,40),OCRWords:meta.ocrWordCount||0,OCRConfidence:meta.ocrAverageConfidence??null,firstPage: data.pageEvidence||null,vectorPage: data.vectorEvidence||null,spatialCorrelation:data.spatialCorrelation||null,correlationErrors:{page:data.pageEvidenceError||null,vector:data.vectorEvidenceError||null}},null,2);clues.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;background:#f7f9fb;padding:10px;border-radius:7px;font-size:11px;line-height:1.7';
+      const summary=document.createElement('p');summary.textContent='Status: '+analysis.status+' · PDF pages: '+(data.totalPdfPages??data.pageEvidence?.totalPageCount??meta.extractedPageCount??'Unknown')+' · Pages processed: '+(data.pagesProcessed??data.pageEvidence?.pagesProcessed??0)+' · OCR pages: '+(data.ocrPagesProcessed??ocr.pagesProcessed??0)+' · Evidence clues: '+(evidence.evidenceCount??0)+' · OCR: '+(ocr.status||'Not required')+(data.truncatedAtPageLimit?' · WARNING: page limit reached; remaining pages were not analyzed.':'');
+      const clues=document.createElement('pre');clues.textContent=JSON.stringify({sheetCandidates:meta.textualSheetNumberCandidates||[],revisionCandidates:meta.textualRevisionCandidates||[],scaleCandidates:meta.textualScaleCandidates||[],explicitDimensions:meta.explicitDimensionCallouts||[],nativeSpatialDimensions:(meta.nativeSpatialDimensionCandidates||[]).slice(0,40),nativeSpatialElements:(meta.nativeSpatialElementCandidates||[]).slice(0,40),explicitRebarTakeoffCandidates:(data.pageAnalyses||[]).flatMap(p=>(p.spatialEngineeringEvidence?.explicitRebarTakeoffCandidates||[])),spatialEvidenceSummary:data.spatialEvidenceSummary||null,pageProcessingSummary:data.pageProcessingSummary||[],ocrFailedPages:data.ocrFailedPages||[],truncatedAtPageLimit:data.truncatedAtPageLimit===true,pageAnalyses:(data.pageAnalyses||[]).map(p=>({pageNumber:p.pageNumber,textSource:p.textSource,vectorEvidence:p.vectorEvidence,explicitRebarCandidates:p.spatialEngineeringEvidence?.explicitRebarTakeoffCandidates||[]})),OCRWords:meta.ocrWordCount||0,OCRConfidence:meta.ocrAverageConfidence??null,firstPage: data.pageEvidence||null,vectorPage: data.vectorEvidence||null,spatialCorrelation:data.spatialCorrelation||null,correlationErrors:{page:data.pageEvidenceError||null,vector:data.vectorEvidenceError||null}},null,2);clues.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;background:#f7f9fb;padding:10px;border-radius:7px;font-size:11px;line-height:1.7';
       const unresolved=document.createElement('ul');unresolved.style.cssText='font-size:11px;color:#9a5b12;line-height:1.8';for(const item of (analysis.unresolved||[])){const li=document.createElement('li');li.textContent=item;unresolved.appendChild(li);}
       const note=document.createElement('p');note.textContent='Saved analysis ID: '+data.analysisId+' · No quantities or 3D model were generated. Scale and geometry remain unverified.';
       output.append(heading,summary,clues,unresolved,note);await loadExecutiveDashboard(id);notify('Drawing text, page geometry and spatial evidence saved; no quantities were assumed.');
@@ -1210,6 +1210,16 @@ pdfTake.type='button';pdfTake.textContent='PDF Concrete + Rebar Takeoff (Pilot)'
   }catch(e){const p=document.createElement('p');p.className='note';p.textContent=e.message;host.appendChild(p);}
  }
  const originalSelectProject=selectProject;
+ document.getElementById('openBimStudio').addEventListener('click',()=>{
+  const select=document.getElementById('projectSelect');
+  const id=activeProject?.project_id||activeProject?.id||select?.value||'';
+  const name=activeProject?.name||select?.selectedOptions?.[0]?.textContent||'Current project';
+  const query=new URLSearchParams();
+  if(id)query.set('projectId',id);
+  if(name)query.set('projectName',name);
+  const url='/mmc-bim-studio/'+(query.toString()?'?'+query.toString():'');
+  window.location.assign(url);
+ });
  document.getElementById('drawingFile').addEventListener('change',async e=>{
   const file=e.target.files&&e.target.files[0];if(!file)return;
   const box=document.getElementById('filemsg');box.style.display='block';
@@ -1309,6 +1319,7 @@ pdfTake.type='button';pdfTake.textContent='PDF Concrete + Rebar Takeoff (Pilot)'
  let current='en';
  const ar={
   'Dashboard':'لوحة التحكم','Engineering Drawings':'المخططات الهندسية','Quantity Takeoff':'حصر الكميات',
+  'Open BIM Studio':'فتح BIM Studio','Opens a separate drawing reading and BIM workspace.':'يفتح مساحة مستقلة لقراءة المخططات وBIM.',
   'BOQ & Cost Estimate':'جدول الكميات والتكلفة','BIM Models':'نماذج BIM','Project Schedule':'البرنامج الزمني',
   'Contracts & Claims':'العقود والمطالبات','Risks & Reports':'المخاطر والتقارير','WORKSPACE':'مساحة العمل',
   'MANAGEMENT':'الإدارة','Projects':'المشاريع','Team & Permissions':'الفريق والصلاحيات','Settings':'الإعدادات',
