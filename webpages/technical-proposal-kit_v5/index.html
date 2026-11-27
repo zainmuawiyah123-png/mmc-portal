@@ -355,6 +355,16 @@
   document.getElementById('demoProcurement').addEventListener('click',function(){switchRole('switch-procurement');});
   document.getElementById('demoContractorCard').addEventListener('click',function(){switchRole('switch-contractor');});
   document.getElementById('demoContractor').addEventListener('click',function(){switchRole('switch-contractor');});
+
+  var aiLink=panel.querySelector('a[href="/api/demo-sso/ai-handoff"]');
+  if(aiLink)aiLink.addEventListener('click',function(ev){
+    ev.preventDefault();status.textContent='Opening MMC AI…';
+    fetch('/api/demo-sso/ai-ticket',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
+      .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error&&d.error.message||'Unable to open MMC AI');return d;});})
+      .then(function(d){location.href=d.destination+'#ticket='+encodeURIComponent(d.ticket);})
+      .catch(function(e){status.textContent=e.message;});
+  });
+
 })();
 </script>
 
