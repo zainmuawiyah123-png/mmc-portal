@@ -1,0 +1,62 @@
+name: Import parent company project photos
+on:
+  push:
+    branches:
+      - preview/mmc-hero-instagram-reel
+    paths:
+      - '.github/workflows/import-company-photos.yml'
+      - 'photo-import-trigger.txt'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import-photos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout website branch
+        uses: actions/checkout@v4
+        with:
+          ref: preview/mmc-hero-instagram-reel
+          path: website
+      - name: Checkout photo archive branch
+        uses: actions/checkout@v4
+        with:
+          ref: company/parent-company-website
+          path: photo-source
+          sparse-checkout: |
+            archive (7).zip
+            archive (8).zip
+      - name: Extract and collect original project images
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="website/mmc-website/parent-company/assets/project-photos"
+          mkdir -p "$DEST"
+          unzip -oq "photo-source/archive (7).zip" -d /tmp/archive7
+          unzip -oq "photo-source/archive (8).zip" -d /tmp/archive8
+          find /tmp/archive7 /tmp/archive8 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.avif' \) -print0 |
+          while IFS= read -r -d '' file; do
+            if [[ "$file" == /tmp/archive7/* ]]; then prefix="archive7"; else prefix="archive8"; fi
+            base="$(basename "$file" | tr ' ' '-' | tr -cd '[:alnum:]._-')"
+            target="$DEST/${prefix}_${base}"
+            if [[ -e "$target" ]]; then
+              hash="$(sha256sum "$file" | cut -c1-10)"
+              target="$DEST/${prefix}_${hash}_${base}"
+            fi
+            cp "$file" "$target"
+          done
+          find "$DEST" -type f | sort > website/mmc-website/parent-company/assets/project-photos/PHOTO-INVENTORY.txt
+          echo "Collected $(find "$DEST" -type f ! -name PHOTO-INVENTORY.txt | wc -l) image files"
+      - name: Commit imported photos
+        working-directory: website
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mmc-website/parent-company/assets/project-photos
+          if git diff --cached --quiet; then
+            echo "No photo changes to commit"
+          else
+            git commit -m "Import parent company project photos from archives"
+            git push origin HEAD:preview/mmc-hero-instagram-reel
+          fi
