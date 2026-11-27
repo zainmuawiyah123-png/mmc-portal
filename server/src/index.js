@@ -14,6 +14,7 @@ const { migrate } = require('./migrate');
 const { errorHandler } = require('./lib/errors');
 
 const authRoutes = require('./routes/auth');
+const demoSsoRoutes = require('./routes/demo-sso');
 const publicBrowseRoutes = require('./routes/public-browse');
 const { router: tenderRoutes } = require('./routes/tenders');
 const fileRoutes = require('./routes/files');
@@ -103,6 +104,7 @@ function createApp() {
   });
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/demo-sso', demoSsoRoutes);
   app.use('/api/tenders', tenderRoutes);
   app.use('/api', fileRoutes);
   app.use('/api', accountRoutes);
