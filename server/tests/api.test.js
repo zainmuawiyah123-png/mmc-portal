@@ -839,7 +839,7 @@ test('66 — لا نشر قبل التوثيق؛ الطلب والمراجعة �
     assert.strictEqual(ok.status, 201);
     assert.strictEqual(getDB().prepare('SELECT financial_currency c FROM bid_submissions WHERE id=?').get(ok.data.submissionId).c, 'KWD');
     const bidCurrencies = require('../src/lib/org').BID_CURRENCIES;
-    assert.ok(bidCurrencies.includes('GBP') && bidCurrencies.includes('EUR'), 'GBP and EUR must be accepted bid currencies');
+    assert.ok(bidCurrencies.includes('AUD') && bidCurrencies.includes('GBP') && bidCurrencies.includes('EUR'), 'AUD, GBP and EUR must be accepted bid currencies');
     // سحب التوثيق: يختفي العطاء ويُمنع التقديم
     assert.strictEqual((await call('vadm', 'POST', '/api/verification/admin/' + row.id + '/revoke', { body: { note: 'شكوى موثّقة' } })).status, 200);
     assert.ok(!(await call('vc', 'GET', '/api/procurement/open-tenders')).data.tenders.some((t) => t.id === pub.data.tender.id));
