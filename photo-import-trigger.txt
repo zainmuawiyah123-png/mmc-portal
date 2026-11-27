@@ -1,1 +1,1 @@
-Trigger import of the two company project photo archives into the parent company website assets directory.
+Trigger photo import and contact sheet build.
