@@ -54,7 +54,7 @@
   </div>
 
   
-  <section class="portal-gateway" aria-labelledby="demoPresenterEntryTitle" style="margin:18px 0 26px;border:2px solid #b45309;border-radius:12px;padding:18px;background:#fffaf2">
+  <section id="demoPresenterEntry" class="portal-gateway" aria-labelledby="demoPresenterEntryTitle" style="display:none;margin:18px 0 26px;border:2px solid #b45309;border-radius:12px;padding:18px;background:#fffaf2">
     <div class="k" style="color:#92400e;font-weight:900;letter-spacing:.08em">PRIVATE PRESENTATION ACCESS</div>
     <h2 id="demoPresenterEntryTitle" class="sec" style="margin-top:6px">MMC Demo Presenter</h2>
     <p class="small">Dedicated demonstration account · One sign-in to access the MMC workspaces. Sample data only.</p>
@@ -357,9 +357,15 @@
       .then(function(d){location.href=d.redirect;})
       .catch(function(e){status.textContent=e.message;});
   }
+  var entry=document.getElementById('demoPresenterEntry');
+  fetch('/api/demo-sso/presenter-enabled',{credentials:'same-origin',cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('Unable to check demo availability');return r.json();})
+    .then(function(d){if(entry&&d.enabled)entry.style.display='block';})
+    .catch(function(){if(entry)entry.style.display='none';});
   fetch('/api/demo-sso/presenter-status',{credentials:'same-origin',cache:'no-store'})
     .then(function(r){if(!r.ok)throw new Error('not a demo presenter');return r.json();})
-    .then(function(){panel.style.display='block';});
+    .then(function(){panel.style.display='block';})
+    .catch(function(){panel.style.display='none';});
   document.getElementById('demoProcurement').addEventListener('click',function(){switchRole('switch-procurement');});
   document.getElementById('demoContractorCard').addEventListener('click',function(){switchRole('switch-contractor');});
   document.getElementById('demoConsultantCard').addEventListener('click',function(){switchRole('switch-consultant');});
