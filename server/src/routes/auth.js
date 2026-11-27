@@ -112,7 +112,7 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
       dateStyle: 'medium',
       timeStyle: 'short'
     });
-    const reviewUrl = mailer.link('/'); 
+    const reviewUrl = mailer.link('/admin/'); 
     const adminBody = [
       'تم استلام طلب تسجيل جديد على منصة MMC ويحتاج إلى مراجعة الإدارة.',
       '',
