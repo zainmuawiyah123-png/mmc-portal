@@ -1,0 +1,38 @@
+name: MMC Demo Presenter Validation
+
+on:
+  push:
+    branches:
+      - feature/mmc-demo-presenter
+  pull_request:
+    branches:
+      - feature/mmc-public-browse-original
+    paths:
+      - "server/src/routes/demo-sso.js"
+      - "server/src/config.js"
+      - "server/src/lib/demo-sso.js"
+      - "server/tests/**"
+      - "server/package.json"
+      - ".github/workflows/demo-presenter-validation.yml"
+
+jobs:
+  presenter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - name: Syntax-check demo presenter routes and configuration
+        run: |
+          node --check src/routes/demo-sso.js
+          node --check src/config.js
+          node --check src/lib/demo-sso.js
+      - name: Run server authentication and API tests
+        run: npm test

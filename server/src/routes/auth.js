@@ -97,6 +97,48 @@ router.post('/register', registerLimiter, wrap(async (req, res) => {
   });
   tx();
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+
+  // Notify MMC administration once for each genuinely new account request.
+  // This is independent of OTP delivery and never changes the pending status.
+  if (config.MAIL.adminNotify) {
+    const roleLabels = {
+      buyer: 'جهة مشتريات',
+      consultant: 'مكتب استشاري',
+      contractor: 'مقاول',
+      admin: 'مدير'
+    };
+    const registeredAt = new Date(Number(user.created_at) * 1000).toLocaleString('ar-JO', {
+      timeZone: 'Asia/Amman',
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+    const reviewUrl = mailer.link('/admin/'); 
+    const adminBody = [
+      'تم استلام طلب تسجيل جديد على منصة MMC ويحتاج إلى مراجعة الإدارة.',
+      '',
+      'اسم المستخدم: ' + (user.name || '—'),
+      'البريد الإلكتروني: ' + user.email,
+      'الشركة / المكتب: ' + (user.company || '—'),
+      'نوع البوابة: ' + (roleLabels[user.role] || user.role || '—'),
+      'الدولة: ' + (user.country || 'JO'),
+      'تاريخ التسجيل: ' + registeredAt,
+      'الحالة الحالية: قيد المراجعة',
+      '',
+      'يرجى تسجيل الدخول إلى لوحة إدارة MMC لمراجعة بيانات الشركة واتخاذ قرار الاعتماد.',
+      reviewUrl ? 'رابط المنصة: ' + reviewUrl : ''
+    ].filter(Boolean).join('\\n');
+    const notificationId = mailer.notify(
+      config.MAIL.adminNotify,
+      'MMC | طلب تسجيل شركة جديد بانتظار المراجعة',
+      adminBody
+    );
+    if (!notificationId) {
+      console.error('[auth] Admin registration notification could not be queued for:', user.email);
+    }
+  } else {
+    console.error('[auth] ADMIN_NOTIFY_EMAIL is not configured; registration notification was not sent.');
+  }
+
   let mailSent = false;
   try { await issueOtp(db, user); mailSent = true; }
   catch (err) { console.error('[auth] OTP delivery failed:', err.message); }

@@ -49,6 +49,9 @@ const config = {
   UPLOAD_DIR: v('UPLOAD_DIR', path.join(ROOT, 'uploads')),
 
   JWT_SECRET: v('JWT_SECRET', 'dev-insecure-secret-CHANGE-ME'),
+  DEMO_MODE: v('DEMO_MODE', 'false') === 'true',
+  DEMO_SSO_SECRET: v('DEMO_SSO_SECRET', ''),
+  DEMO_PRESENTER_ACCESS_KEY: v('DEMO_PRESENTER_ACCESS_KEY', ''),
   REQUIRE_ORG_VERIFICATION: v('REQUIRE_ORG_VERIFICATION', 'true') !== 'false',
   VERIFICATION_DAYS: Number(v('VERIFICATION_DAYS', 365)),
   JWT_TTL: v('JWT_TTL', '7d'),

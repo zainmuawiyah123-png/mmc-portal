@@ -53,6 +53,14 @@
     </div>
   </div>
 
+  
+  <section id="demoPresenterEntry" class="portal-gateway" aria-labelledby="demoPresenterEntryTitle" style="display:none;margin:18px 0 26px;border:2px solid #b45309;border-radius:12px;padding:18px;background:#fffaf2">
+    <div class="k" style="color:#92400e;font-weight:900;letter-spacing:.08em">PRIVATE PRESENTATION ACCESS</div>
+    <h2 id="demoPresenterEntryTitle" class="sec" style="margin-top:6px">MMC Demo Presenter</h2>
+    <p class="small">Dedicated demonstration account · One sign-in to access the MMC workspaces. Sample data only.</p>
+    <a class="btn amber" href="/api/demo-sso/presenter-login" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;font-weight:800">Open MMC Demo Presenter · دخول حساب العرض</a>
+  </section>
+
 
   <section class="portal-gateway" style="margin:28px 0">
     <h2 class="sec"><span class="num">00</span> System portals before launch</h2>
@@ -68,6 +76,20 @@
       <a class="card" href="portal/pt-9f3c7a1e5b2d/login.html?next=../../admin/index.html"><div class="k">ADMIN PORTAL</div><div class="ttl">Administration portal</div><div class="d">Review payment receipts, approve or reject invoices and activate plans with an expiry date.</div></a>
       
     </div>
+  </section>
+
+
+  <section id="mmcDemoWorkspace" class="portal-gateway" style="display:none;margin:18px 0 28px;border:2px solid #b45309;border-radius:12px;padding:18px;background:#fffaf2">
+    <h2 class="sec">MMC DEMO PRESENTER · Unified Workspace</h2>
+    <p class="small">One presentation account. Switch workspaces without signing in again. All sample records are isolated DEMO data.</p>
+    <div class="cards">
+      <button class="card" id="demoContractorCard" type="button" style="text-align:inherit;cursor:pointer"><div class="k">CONTRACTOR WORKSPACE</div><div class="ttl">Contractor Portal</div><div class="d">Switch back to the contractor identity and open tender submissions.</div></button>
+      <button class="card" id="demoProcurement" type="button" style="text-align:inherit;cursor:pointer"><div class="k">PROCUREMENT WORKSPACE</div><div class="ttl">Procurement &amp; Organization</div><div class="d">Switch to the sample buyer identity to create requests and manage the organization team.</div></button>
+      <button class="card" id="demoConsultantCard" type="button" style="text-align:inherit;cursor:pointer"><div class="k">CONSULTANT WORKSPACE</div><div class="ttl">Consultant Portal</div><div class="d">Switch to the isolated consultant demo identity and open the consulting office workspace.</div></button>
+      <a class="card" href="/api/demo-sso/vendor-handoff"><div class="k">VENDOR &amp; SERVICE PROVIDER REGISTRY</div><div class="ttl">Vendor Registry</div><div class="d">Open the separate registry preview using secure demo handoff.</div></a>
+      <a class="card" href="/api/demo-sso/ai-handoff"><div class="k">MMC AI CONSTRUCTION INTELLIGENCE</div><div class="ttl">MMC AI</div><div class="d">Open drawing analysis, takeoff, BIM and project intelligence preview.</div></a>
+    </div>
+    <p style="margin:14px 0 0"><button id="demoContractor" class="btn amber" type="button">Return to Contractor Workspace</button> <span id="demoWorkspaceStatus" class="small" role="status"></span></p>
   </section>
 
   <div class="callout">
@@ -322,5 +344,44 @@
 </div>
 
 <script src="assets/en.js"></script>
+
+<script>
+(function(){
+  var panel=document.getElementById('mmcDemoWorkspace');
+  if(!panel)return;
+  var status=document.getElementById('demoWorkspaceStatus');
+  function switchRole(path){
+    status.textContent='Switching workspace…';
+    fetch('/api/demo-sso/'+path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
+      .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error&&d.error.message||'Unable to switch workspace');return d;});})
+      .then(function(d){location.href=d.redirect;})
+      .catch(function(e){status.textContent=e.message;});
+  }
+  var entry=document.getElementById('demoPresenterEntry');
+  fetch('/api/demo-sso/presenter-enabled',{credentials:'same-origin',cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('Unable to check demo availability');return r.json();})
+    .then(function(d){if(entry&&d.enabled)entry.style.display='block';})
+    .catch(function(){if(entry)entry.style.display='none';});
+  fetch('/api/demo-sso/presenter-status',{credentials:'same-origin',cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('not a demo presenter');return r.json();})
+    .then(function(){panel.style.display='block';})
+    .catch(function(){panel.style.display='none';});
+  document.getElementById('demoProcurement').addEventListener('click',function(){switchRole('switch-procurement');});
+  document.getElementById('demoContractorCard').addEventListener('click',function(){switchRole('switch-contractor');});
+  document.getElementById('demoConsultantCard').addEventListener('click',function(){switchRole('switch-consultant');});
+  document.getElementById('demoContractor').addEventListener('click',function(){switchRole('switch-contractor');});
+
+  var aiLink=panel.querySelector('a[href="/api/demo-sso/ai-handoff"]');
+  if(aiLink)aiLink.addEventListener('click',function(ev){
+    ev.preventDefault();status.textContent='Opening MMC AI…';
+    fetch('/api/demo-sso/ai-ticket',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
+      .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error&&d.error.message||'Unable to open MMC AI');return d;});})
+      .then(function(d){location.href=d.destination+'#ticket='+encodeURIComponent(d.ticket);})
+      .catch(function(e){status.textContent=e.message;});
+  });
+
+})();
+</script>
+
 </body>
 </html>
