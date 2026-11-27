@@ -50,4 +50,32 @@ router.post('/exchange', wrap(async (req, res) => {
   res.json({ ok: true, demo: true, projectId: identity.projectId, redirect: '/mmc-ai/' });
 }));
 
+router.get('/handoff', (req, res) => {
+  if (!config.DEMO_MODE || !config.DEMO_SSO_SECRET) return res.sendStatus(404);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'");
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>MMC AI Demo Sign-in</title></head><body><p id="status">Securing your demo session…</p><script>
+  (async function () {
+    const status = document.getElementById('status');
+    const params = new URLSearchParams(location.hash.slice(1));
+    const ticket = params.get('ticket');
+    history.replaceState(null, '', location.pathname);
+    if (!ticket || ticket.length > 4096) { status.textContent = 'The demo sign-in link is invalid. Return to MMC Portal and try again.'; return; }
+    try {
+      const response = await fetch('/api/demo-sso/exchange', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error('exchange failed');
+      location.replace('/mmc-ai/');
+    } catch (_) {
+      status.textContent = 'Unable to open the demo session. Return to MMC Portal and start again.';
+    }
+  })();
+  </script></body></html>`);
+});
+
 module.exports = router;
