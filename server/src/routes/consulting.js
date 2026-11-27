@@ -101,7 +101,7 @@ function requireVerifiedRequester(req){const e=requireRequester(req);if(e.verifi
 function requireFirmMember(req){requireConsultant(req);const f=firmFor(req.user.id);if(!f||f.member_status!=='active')throw E.forbidden('لا توجد عضوية مكتب استشاري فعالة لهذا الحساب.');return f;}
 function requireVerifiedFirm(req){const f=requireFirmMember(req);if(f.verification_status!=='verified')throw E.forbidden('يجب تسجيل المكتب واستكمال التحقق القانوني قبل دخول سوق الخدمات.');return f;}
 function marketEvent(userId,type,id,action,detail){getDB().prepare(`INSERT INTO consulting_market_events (id,actor_user_id,entity_type,entity_id,action,detail_json) VALUES (?,?,?,?,?,?)`).run(uid('cme_'),userId,type,id,action,detail?JSON.stringify(detail):null);}
-const marketCurrency=['USD','JOD','SAR','AED'];
+const marketCurrency=['USD','JOD','SAR','AED','AUD'];
 const requesterConsultingDisciplines=['هندسة مدنية','هندسة إنشائية','تصميم معماري','هندسة ميكانيكية','هندسة كهربائية','الإشراف الهندسي','إدارة المشاريع','حصر الكميات','الجيوتقنية','الدراسات البيئية','الطرق والنقل','المياه والصرف الصحي','التخطيط الحضري','مسح الأراضي','خدمات استشارية أخرى','Civil Engineering'];
 
 router.get('/requester/me',wrap(async(req,res)=>{if(req.user.role!=='buyer')throw E.forbidden('هذه الوظيفة مخصصة للجهات الطالبة.');const e=requesterFor(req.user.id);res.setHeader('Cache-Control','no-store');res.json({requester:e?{id:e.id,legalName:e.legal_name,country:e.country,registrationNumber:e.registration_number,contactEmail:e.contact_email,contactPhone:e.contact_phone,verificationStatus:e.verification_status,verificationNote:e.verification_note}:null});}));
