@@ -60,7 +60,7 @@ router.post('/handoff', handoffLimiter, wrap(async (req, res) => {
           'MMC Demo Presenter', 'MMC DEMO — Isolated Vendor Registry Workspace');
     }
     db.prepare('UPDATE users SET last_login_at=unixepoch() WHERE id=?').run(userId);
-    return A.loadUser(userId);
+    return db.prepare('SELECT id,email FROM users WHERE id=?').get(userId);
   }).immediate();
   A.setSessionCookie(res, A.signToken(identity));
   res.setHeader('Cache-Control', 'no-store');
