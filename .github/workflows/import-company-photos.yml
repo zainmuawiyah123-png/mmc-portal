@@ -47,6 +47,9 @@ jobs:
           done
           find "$DEST" -type f | sort > website/mmc-website/parent-company/assets/project-photos/PHOTO-INVENTORY.txt
           echo "Collected $(find "$DEST" -type f ! -name PHOTO-INVENTORY.txt | wc -l) image files"
+          unzip -Z1 "photo-source/archive (7).zip" > /tmp/archive7-file-list.txt
+          unzip -Z1 "photo-source/archive (8).zip" > /tmp/archive8-file-list.txt
+          { echo "=== archive (7).zip ==="; cat /tmp/archive7-file-list.txt; echo "=== archive (8).zip ==="; cat /tmp/archive8-file-list.txt; } > /tmp/archive-original-paths.txt
           python -m pip install --quiet pillow
           python - <<'PY'
           from PIL import Image, ImageOps, ImageDraw
@@ -77,7 +80,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: company-photo-contact-sheet
-          path: /tmp/company-photo-contact-sheet.jpg
+          path: |
+            /tmp/company-photo-contact-sheet.jpg
+            /tmp/archive-original-paths.txt
       - name: Commit imported photos
         working-directory: website
         run: |
