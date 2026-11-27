@@ -77,7 +77,7 @@
     <div class="cards">
       <button class="card" id="demoContractorCard" type="button" style="text-align:inherit;cursor:pointer"><div class="k">CONTRACTOR WORKSPACE</div><div class="ttl">Contractor Portal</div><div class="d">Switch back to the contractor identity and open tender submissions.</div></button>
       <button class="card" id="demoProcurement" type="button" style="text-align:inherit;cursor:pointer"><div class="k">PROCUREMENT WORKSPACE</div><div class="ttl">Procurement &amp; Organization</div><div class="d">Switch to the sample buyer identity to create requests and manage the organization team.</div></button>
-      <a class="card" href="/consulting/"><div class="k">CONSULTANT WORKSPACE</div><div class="ttl">Consultant Portal</div><div class="d">Open the consultant office workspace.</div></a>
+      <button class="card" id="demoConsultantCard" type="button" style="text-align:inherit;cursor:pointer"><div class="k">CONSULTANT WORKSPACE</div><div class="ttl">Consultant Portal</div><div class="d">Switch to the isolated consultant demo identity and open the consulting office workspace.</div></button>
       <a class="card" href="/api/demo-sso/vendor-handoff"><div class="k">VENDOR &amp; SERVICE PROVIDER REGISTRY</div><div class="ttl">Vendor Registry</div><div class="d">Open the separate registry preview using secure demo handoff.</div></a>
       <a class="card" href="/api/demo-sso/ai-handoff"><div class="k">MMC AI CONSTRUCTION INTELLIGENCE</div><div class="ttl">MMC AI</div><div class="d">Open drawing analysis, takeoff, BIM and project intelligence preview.</div></a>
     </div>
@@ -354,6 +354,7 @@
     .then(function(){panel.style.display='block';});
   document.getElementById('demoProcurement').addEventListener('click',function(){switchRole('switch-procurement');});
   document.getElementById('demoContractorCard').addEventListener('click',function(){switchRole('switch-contractor');});
+  document.getElementById('demoConsultantCard').addEventListener('click',function(){switchRole('switch-consultant');});
   document.getElementById('demoContractor').addEventListener('click',function(){switchRole('switch-contractor');});
 
   var aiLink=panel.querySelector('a[href="/api/demo-sso/ai-handoff"]');
