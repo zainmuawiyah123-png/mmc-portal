@@ -37,7 +37,7 @@ document.getElementById('login').addEventListener('submit', async (event) => {
     });
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error('Access denied. Check the key and try again.');
-    location.replace('/portal/pt-9f3c7a1e5b2d/');
+    location.replace('/');
   } catch (error) { status.textContent = error.message || 'Unable to sign in.'; }
 });
 </script></body></html>`;
@@ -86,6 +86,103 @@ router.post('/presenter-login', presenterLoginLimiter, wrap(async (req, res) => 
   A.setSessionCookie(res, A.signToken(identity));
   res.setHeader('Cache-Control', 'no-store');
   res.json({ ok: true, demo: true, user: { email: ALLOWED_EMAIL, name: identity.name }, redirect: '/portal/pt-9f3c7a1e5b2d/' });
+}));
+
+
+/*
+ * DEMO-only procurement workspace. This synthetic buyer and organization
+ * are provisioned only in the isolated preview database; no LIVE verification
+ * policy or production identity is changed.
+ */
+function presenterDemoIds() {
+  const h = crypto.createHash('sha256').update(ALLOWED_EMAIL).digest('hex');
+  return {
+    presenter: 'demo_presenter_' + h.slice(0, 24),
+    buyer: 'demo_procurement_' + h.slice(0, 20),
+    org: 'demo_org_procurement_' + h.slice(0, 16),
+    verification: 'demo_verification_procurement_' + h.slice(0, 12)
+  };
+}
+function assertDemoIdentity(req) {
+  const ids = presenterDemoIds();
+  const email = String(req.user && req.user.email || '').toLowerCase();
+  if (email !== ALLOWED_EMAIL && req.user.id !== ids.buyer) {
+    throw E.forbidden('This account is not authorized for the MMC demo workspace.');
+  }
+  if (req.user.role === 'admin') throw E.forbidden('Admin accounts cannot use the demo workspace switch.');
+}
+function ensureDemoProcurementIdentity() {
+  const db = getDB();
+  const ids = presenterDemoIds();
+  const now = Math.floor(Date.now() / 1000);
+  return db.transaction(() => {
+    const buyer = db.prepare('SELECT id,email,role FROM users WHERE id=?').get(ids.buyer);
+    const emailOwner = db.prepare('SELECT id FROM users WHERE lower(email)=lower(?)').get('procurement-presenter@mmc-demo.invalid');
+    if ((buyer && (buyer.email !== 'procurement-presenter@mmc-demo.invalid' || buyer.role !== 'buyer')) ||
+        (emailOwner && emailOwner.id !== ids.buyer)) {
+      throw E.conflict('The isolated demo procurement identity conflicts with an existing account.');
+    }
+    if (!buyer) {
+      db.prepare("INSERT INTO users(id,email,password_hash,name,company,role,country,plan_key,account_status) VALUES(?,?,?,?,?,'buyer','JO','free','active')")
+        .run(ids.buyer, 'procurement-presenter@mmc-demo.invalid',
+          '!demo-sso-only:' + crypto.randomBytes(48).toString('hex'),
+          'MMC Demo Procurement Manager', 'MMC DEMO — Sample Procurement Organization');
+    }
+    const org = db.prepare('SELECT id,created_by FROM organizations WHERE id=?').get(ids.org);
+    if (org && org.created_by !== ids.buyer) throw E.conflict('The demo organization is not owned by its isolated buyer identity.');
+    if (!org) {
+      db.prepare('INSERT INTO organizations(id,name,created_by,require_approval,country) VALUES(?,?,?,0,?)')
+        .run(ids.org, 'MMC DEMO — Sample Procurement Organization', ids.buyer, 'JO');
+    }
+    const member = db.prepare('SELECT org_id FROM org_members WHERE user_id=?').get(ids.buyer);
+    if (member && member.org_id !== ids.org) throw E.conflict('The demo buyer already belongs to another organization.');
+    if (!member) db.prepare("INSERT INTO org_members(org_id,user_id,role) VALUES(?,?,'manager')").run(ids.org, ids.buyer);
+
+    /* Synthetic demo-only fixture. It is not a real-world legal verification. */
+    const verification = db.prepare('SELECT id,user_id,org_id FROM org_verifications WHERE id=? OR user_id=? OR org_id=?')
+      .get(ids.verification, ids.buyer, ids.org);
+    if (verification && (verification.id !== ids.verification || verification.user_id !== ids.buyer || verification.org_id !== ids.org)) {
+      throw E.conflict('The demo verification fixture conflicts with another organization record.');
+    }
+    if (!verification) {
+      db.prepare("INSERT INTO org_verifications(id,user_id,org_id,org_name,org_type,country,reg_number,official_phone,official_email,status,review_note,verified_at,expires_at,reviewed_at,submitted_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,'verified',?,?,?,?,?,?)")
+        .run(ids.verification, ids.buyer, ids.org, 'MMC DEMO — Sample Procurement Organization',
+          'company', 'JO', 'DEMO-NOT-A-LEGAL-REGISTRATION', '+962600000000',
+          'procurement-presenter@mmc-demo.invalid',
+          'DEMO ONLY — synthetic fixture for isolated presentation; not a legal verification.',
+          now, now + 365 * 86400, now, now, now);
+    }
+    return db.prepare('SELECT * FROM users WHERE id=?').get(ids.buyer);
+  }).immediate();
+}
+
+router.get('/presenter-status', A.requireAuth, wrap(async (req, res) => {
+  if (!config.DEMO_MODE) throw E.notFound('Not found');
+  assertDemoIdentity(req);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ demo: true, role: req.user.role, name: req.user.name, email: req.user.email });
+}));
+
+router.post('/switch-procurement', A.requireAuth, wrap(async (req, res) => {
+  if (!config.DEMO_MODE) throw E.notFound('Not found');
+  assertDemoIdentity(req);
+  const identity = ensureDemoProcurementIdentity();
+  A.setSessionCookie(res, A.signToken(identity));
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, redirect: '/org/' });
+}));
+
+router.post('/switch-contractor', A.requireAuth, wrap(async (req, res) => {
+  if (!config.DEMO_MODE) throw E.notFound('Not found');
+  assertDemoIdentity(req);
+  const ids = presenterDemoIds();
+  const identity = A.loadUser(ids.presenter);
+  if (!identity || String(identity.email).toLowerCase() !== ALLOWED_EMAIL || identity.role !== 'contractor') {
+    throw E.conflict('The MMC demo presenter contractor identity is not available.');
+  }
+  A.setSessionCookie(res, A.signToken(identity));
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, redirect: '/bid/' });
 }));
 
 // This issuer is enabled only on explicitly isolated preview environments.
