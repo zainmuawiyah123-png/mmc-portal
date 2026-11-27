@@ -103,6 +103,11 @@ function presenterDemoIds() {
     verification: 'demo_verification_procurement_' + h.slice(0, 12)
   };
 }
+function ticketIdentity(req) {
+  const ids = presenterDemoIds();
+  if (req.user && req.user.id === ids.buyer) return A.loadUser(ids.presenter);
+  return req.user;
+}
 function assertDemoIdentity(req) {
   const ids = presenterDemoIds();
   const email = String(req.user && req.user.email || '').toLowerCase();
@@ -188,11 +193,13 @@ router.post('/switch-contractor', A.requireAuth, wrap(async (req, res) => {
 // This issuer is enabled only on explicitly isolated preview environments.
 router.post('/ai-ticket', A.requireAuth, wrap(async (req, res) => {
   if (!config.DEMO_MODE || !config.DEMO_SSO_SECRET) throw E.notFound('Not found');
-  if (String(req.user.email || '').toLowerCase() !== ALLOWED_EMAIL || req.user.role === 'admin') {
+  assertDemoIdentity(req);
+  const presenter = ticketIdentity(req);
+  if (!presenter || String(presenter.email || '').toLowerCase() !== ALLOWED_EMAIL || presenter.role === 'admin') {
     throw E.forbidden('This account is not authorized for the demo presenter.');
   }
   const ticket = issueDemoTicket({
-    user: req.user, audience: 'mmc-ai-staging', secret: config.DEMO_SSO_SECRET
+    user: presenter, audience: 'mmc-ai-staging', secret: config.DEMO_SSO_SECRET
   });
   res.setHeader('Cache-Control', 'no-store');
   res.json({ ticket, expiresIn: 90, destination: 'https://mmc-ai-staging.onrender.com/api/demo-sso/handoff' });
@@ -200,7 +207,9 @@ router.post('/ai-ticket', A.requireAuth, wrap(async (req, res) => {
 
 router.get('/ai-handoff', A.requireAuth, wrap(async (req, res) => {
   if (!config.DEMO_MODE || !config.DEMO_SSO_SECRET) throw E.notFound('Not found');
-  if (String(req.user.email || '').toLowerCase() !== ALLOWED_EMAIL || req.user.role === 'admin') {
+  assertDemoIdentity(req);
+  const presenter = ticketIdentity(req);
+  if (!presenter || String(presenter.email || '').toLowerCase() !== ALLOWED_EMAIL || presenter.role === 'admin') {
     throw E.forbidden('This account is not authorized for the demo presenter.');
   }
   const ticket = issueDemoTicket({
@@ -215,10 +224,12 @@ router.get('/ai-handoff', A.requireAuth, wrap(async (req, res) => {
 
 router.get('/vendor-handoff', A.requireAuth, wrap(async (req, res) => {
   if (!config.DEMO_MODE || !config.DEMO_SSO_SECRET) throw E.notFound('Not found');
-  if (String(req.user.email || '').toLowerCase() !== ALLOWED_EMAIL || req.user.role === 'admin') {
+  assertDemoIdentity(req);
+  const presenter = ticketIdentity(req);
+  if (!presenter || String(presenter.email || '').toLowerCase() !== ALLOWED_EMAIL || presenter.role === 'admin') {
     throw E.forbidden('This account is not authorized for the demo presenter.');
   }
-  const ticket = issueDemoTicket({ user: req.user, audience: 'mmc-vendor-registry-preview', secret: config.DEMO_SSO_SECRET });
+  const ticket = issueDemoTicket({ user: presenter, audience: 'mmc-vendor-registry-preview', secret: config.DEMO_SSO_SECRET });
   const target = 'https://mmc-vendor-registry-preview.onrender.com/api/demo-sso/handoff#ticket=' + encodeURIComponent(ticket);
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Referrer-Policy', 'no-referrer');
