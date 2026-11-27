@@ -1,1 +1,1 @@
-Trigger photo import and contact sheet build.
+Generate visual contact sheet with Pillow.
