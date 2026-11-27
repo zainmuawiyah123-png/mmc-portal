@@ -47,6 +47,36 @@ jobs:
           done
           find "$DEST" -type f | sort > website/mmc-website/parent-company/assets/project-photos/PHOTO-INVENTORY.txt
           echo "Collected $(find "$DEST" -type f ! -name PHOTO-INVENTORY.txt | wc -l) image files"
+          python - <<'PY'
+          from PIL import Image, ImageOps, ImageDraw
+          from pathlib import Path
+          import math
+          root=Path("website/mmc-website/parent-company/assets/project-photos")
+          files=sorted(p for p in root.iterdir() if p.suffix.lower() in {".jpg",".jpeg",".png",".webp",".avif"})
+          cell_w,cell_h=240,190
+          cols=4
+          rows=math.ceil(len(files)/cols)
+          sheet=Image.new("RGB",(cols*cell_w,rows*cell_h),"white")
+          draw=ImageDraw.Draw(sheet)
+          for i,p in enumerate(files):
+              try:
+                  im=Image.open(p).convert("RGB")
+                  im.thumbnail((cell_w-12,cell_h-42))
+                  x=(i%cols)*cell_w+(cell_w-im.width)//2
+                  y=(i//cols)*cell_h+5
+                  sheet.paste(im,(x,y))
+                  draw.text(((i%cols)*cell_w+6,(i//cols)*cell_h+cell_h-32),p.name[:34],fill="black")
+              except Exception as e:
+                  draw.text(((i%cols)*cell_w+6,(i//cols)*cell_h+8),f"ERROR {p.name}",fill="red")
+          Path("/tmp").mkdir(exist_ok=True)
+          sheet.save("/tmp/company-photo-contact-sheet.jpg",quality=85)
+          print(f"Contact sheet generated for {len(files)} images")
+          PY
+      - name: Upload visual review sheet
+        uses: actions/upload-artifact@v4
+        with:
+          name: company-photo-contact-sheet
+          path: /tmp/company-photo-contact-sheet.jpg
       - name: Commit imported photos
         working-directory: website
         run: |
