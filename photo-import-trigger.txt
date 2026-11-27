@@ -1,1 +1,1 @@
-Generate visual contact sheet with Pillow.
+Generate archive path manifest for accurate image attribution.
