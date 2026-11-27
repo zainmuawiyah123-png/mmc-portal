@@ -28,7 +28,7 @@ router.get('/ai-handoff', A.requireAuth, wrap(async (req, res) => {
   const ticket = issueDemoTicket({
     user: req.user, audience: 'mmc-ai-staging', secret: config.DEMO_SSO_SECRET
   });
-  const target = 'https://mmc-ai-staging.onrender.com/demo-sso/handoff#ticket=' + encodeURIComponent(ticket);
+  const target = 'https://mmc-ai-staging.onrender.com/api/demo-sso/handoff#ticket=' + encodeURIComponent(ticket);
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'");
