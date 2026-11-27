@@ -75,7 +75,7 @@
     <h2 class="sec">MMC DEMO PRESENTER · Unified Workspace</h2>
     <p class="small">One presentation account. Switch workspaces without signing in again. All sample records are isolated DEMO data.</p>
     <div class="cards">
-      <a class="card" href="/bid/"><div class="k">CONTRACTOR WORKSPACE</div><div class="ttl">Contractor Portal</div><div class="d">Open the contractor experience and tender submissions.</div></a>
+      <button class="card" id="demoContractorCard" type="button" style="text-align:inherit;cursor:pointer"><div class="k">CONTRACTOR WORKSPACE</div><div class="ttl">Contractor Portal</div><div class="d">Switch back to the contractor identity and open tender submissions.</div></button>
       <button class="card" id="demoProcurement" type="button" style="text-align:inherit;cursor:pointer"><div class="k">PROCUREMENT WORKSPACE</div><div class="ttl">Procurement &amp; Organization</div><div class="d">Switch to the sample buyer identity to create requests and manage the organization team.</div></button>
       <a class="card" href="/consulting/"><div class="k">CONSULTANT WORKSPACE</div><div class="ttl">Consultant Portal</div><div class="d">Open the consultant office workspace.</div></a>
       <a class="card" href="/api/demo-sso/vendor-handoff"><div class="k">VENDOR &amp; SERVICE PROVIDER REGISTRY</div><div class="ttl">Vendor Registry</div><div class="d">Open the separate registry preview using secure demo handoff.</div></a>
@@ -353,6 +353,7 @@
     .then(function(r){if(!r.ok)throw new Error('not a demo presenter');return r.json();})
     .then(function(){panel.style.display='block';});
   document.getElementById('demoProcurement').addEventListener('click',function(){switchRole('switch-procurement');});
+  document.getElementById('demoContractorCard').addEventListener('click',function(){switchRole('switch-contractor');});
   document.getElementById('demoContractor').addEventListener('click',function(){switchRole('switch-contractor');});
 })();
 </script>
