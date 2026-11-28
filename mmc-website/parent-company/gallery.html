@@ -2,7 +2,16 @@
 <html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>صور من مشاريعنا | Muawiyah Madadha & His Partner</title>
 <style>
 :root{--navy:#10283f;--gold:#b89454;--muted:#687887;--paper:#f5f6f4}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--navy);background:var(--paper)}header{background:#fff;border-bottom:1px solid #e2e7e8}.wrap{width:min(1160px,92%);margin:auto}.nav{height:78px;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{font-weight:800;letter-spacing:.08em;font-size:13px}.brand small{display:block;font-size:9px;color:var(--muted);letter-spacing:.15em;margin-top:5px}.actions{display:flex;gap:10px;align-items:center}.btn{display:inline-block;background:var(--navy);color:#fff;text-decoration:none;padding:11px 17px;font-size:12px}.lang{background:#fff;border:1px solid #d8e0e3;padding:9px 13px;color:var(--navy);cursor:pointer}.hero{padding:55px 0 28px}.kicker{color:var(--gold);font-size:11px;letter-spacing:.17em;font-weight:800;text-transform:uppercase}h1{font-size:clamp(30px,5vw,48px);margin:10px 0;color:var(--navy)}.intro{color:var(--muted);line-height:1.8;max-width:700px;font-size:14px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:20px 0 70px}.photo{margin:0;background:#fff;border:1px solid #e2e7e8;overflow:hidden}.photo img{display:block;width:100%;height:245px;object-fit:cover}.photo figcaption{padding:14px 16px;font-size:13px;font-weight:700;color:var(--navy)}footer{background:var(--navy);color:#fff;padding:24px 0;font-size:11px}@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.photo img{height:210px}}@media(max-width:520px){.grid{grid-template-columns:1fr}.photo img{height:235px}.nav{height:auto;padding:18px 0}}
-</style></head><body><header><div class="wrap nav"><div class="brand">MUAWIYAH MADADHA<small>AND HIS PARTNER · EST. 2008</small></div><div class="actions"><a class="btn" href="index.html" data-en="Back to Home" data-ar="العودة للرئيسية">Back to Home</a><button class="lang" id="langBtn">العربية</button></div></div></header>
+
+/* Arabic presentation: preserve the existing visual identity while applying RTL */
+html[dir="rtl"] body{font-family:Cairo,Arial,sans-serif;text-align:right}
+html[dir="rtl"] .links{direction:rtl}
+html[dir="rtl"] .brand{direction:rtl;letter-spacing:0}
+html[dir="rtl"] .brand small{letter-spacing:0}
+html[dir="rtl"] input,html[dir="rtl"] textarea,html[dir="rtl"] select{direction:rtl;text-align:right}
+html[dir="rtl"] .hero,html[dir="rtl"] .section,html[dir="rtl"] footer{text-align:right}
+html[dir="rtl"] .lang{font-family:Cairo,Arial,sans-serif}
+</style></head><body><header><div class="wrap nav"><div class="brand"><span id="brand-name" data-en="MUAWIYAH MADADHA" data-ar="شركة معاوية المدادحة وشريكه">MUAWIYAH MADADHA</span><small id="brand-subtitle" data-en="AND HIS PARTNER · EST. 2008" data-ar="تأسست عام 2008">AND HIS PARTNER · EST. 2008</small></div><div class="actions"><a class="btn" href="index.html" data-en="Back to Home" data-ar="العودة للرئيسية">Back to Home</a><button class="lang" id="langBtn">العربية</button></div></div></header>
 <main class="wrap"><section class="hero"><div class="kicker" data-en="Our work" data-ar="أعمالنا">Our work</div><h1 data-en="Photos from Our Projects" data-ar="صور من مشاريعنا">Photos from Our Projects</h1><p class="intro" data-en="A selection of additional photographs from our construction, industrial and civil works archive." data-ar="مجموعة مختارة من الصور الإضافية من أرشيف أعمالنا الإنشائية والصناعية والمدنية.">A selection of additional photographs from our construction, industrial and civil works archive.</p></section><section class="grid"><figure class="photo"><img loading="lazy" src="assets/project-photos/archive7_19821.JPG" alt="Structural and civil works"><figcaption data-en="Structural and civil works" data-ar="أعمال إنشائية ومدنية">Structural and civil works</figcaption></figure>
 <figure class="photo"><img loading="lazy" src="assets/project-photos/archive7_IMG-20210227-WA0002.JPG" alt="Industrial site works"><figcaption data-en="Industrial site works" data-ar="أعمال في مواقع صناعية">Industrial site works</figcaption></figure>
 <figure class="photo"><img loading="lazy" src="assets/project-photos/archive7_20294.JPG" alt="Concrete and site works"><figcaption data-en="Concrete and site works" data-ar="أعمال خرسانية وأعمال مواقع">Concrete and site works</figcaption></figure>
@@ -17,4 +26,33 @@
 <figure class="photo"><img loading="lazy" src="assets/project-photos/archive8_IMG-20190124-WA0009.JPG" alt="Construction site works"><figcaption data-en="Construction site works" data-ar="أعمال مواقع إنشائية">Construction site works</figcaption></figure>
 <figure class="photo"><img loading="lazy" src="assets/project-photos/archive8_21334.JPG" alt="Industrial civil works"><figcaption data-en="Industrial civil works" data-ar="أعمال مدنية صناعية">Industrial civil works</figcaption></figure>
 <figure class="photo"><img loading="lazy" src="assets/project-photos/archive8_20987.JPG" alt="Structural construction works"><figcaption data-en="Structural construction works" data-ar="أعمال إنشائية">Structural construction works</figcaption></figure></section></main><footer><div class="wrap">© <span id="year"></span> Muawiyah Madadha & His Partner.</div></footer>
-<script>const btn=document.getElementById('langBtn');let lang='en';function setLang(v){lang=v;document.documentElement.lang=v;document.documentElement.dir=v==='ar'?'rtl':'ltr';document.querySelectorAll('[data-en]').forEach(el=>{if(!el.children.length)el.textContent=el.dataset[v]});btn.textContent=v==='en'?'العربية':'English';document.title=v==='ar'?'صور من مشاريعنا | معاوية المدادحة وشريكه':'Photos from Our Projects | Muawiyah Madadha & His Partner'}btn.addEventListener('click',()=>setLang(lang==='en'?'ar':'en'));document.getElementById('year').textContent=new Date().getFullYear();</script></body></html>
+<script>
+(function(){
+ const langBtn=document.getElementById('langBtn');
+ const descriptions={en:"Muawiyah Madadha & His Partner is a Jordanian contracting company established in 2008, delivering earthworks, building construction, sewerage and infrastructure projects.",ar:"شركة معاوية المدادحة وشريكه، شركة مقاولات أردنية تأسست عام 2008، متخصصة في الأعمال الترابية والإنشاءات والمباني والصرف الصحي والبنية التحتية."};
+ function setLang(next){
+   const lang=next==='ar'?'ar':'en';
+   document.documentElement.lang=lang;
+   document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+   document.querySelectorAll('[data-en][data-ar]').forEach(el=>{
+     if(!el.children.length) el.textContent=el.dataset[lang];
+   });
+   const brandName=document.getElementById('brand-name');
+   const brandSubtitle=document.getElementById('brand-subtitle');
+   if(brandName) brandName.textContent=brandName.dataset[lang];
+   if(brandSubtitle) brandSubtitle.textContent=brandSubtitle.dataset[lang];
+   if(langBtn){langBtn.textContent=lang==='en'?'العربية':'English';langBtn.setAttribute('aria-label',lang==='en'?'Switch to Arabic':'التبديل إلى الإنجليزية');}
+   const heading=document.querySelector('h1');
+   const titleBase=heading?heading.textContent.trim():(lang==='ar'?'شركة معاوية المدادحة وشريكه':'Muawiyah Madadha & His Partner');
+   document.title=titleBase+(lang==='ar'?' | شركة معاوية المدادحة وشريكه':' | Muawiyah Madadha & His Partner');
+   const description=document.getElementById('page-description');
+   if(description) description.setAttribute('content',descriptions[lang]);
+   try{localStorage.setItem('parentCompanyLanguage',lang);}catch(e){}
+ }
+ let saved='en';
+ try{saved=localStorage.getItem('parentCompanyLanguage')||'en';}catch(e){}
+ setLang(saved);
+ if(langBtn) langBtn.addEventListener('click',()=>setLang(document.documentElement.lang==='en'?'ar':'en'));
+ const year=document.getElementById('year');if(year)year.textContent=new Date().getFullYear();
+})();
+</script></body></html>
