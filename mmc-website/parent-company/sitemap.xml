@@ -1,10 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://muawiyah-madadha-partner.onrender.com/</loc></url>
-  <url><loc>https://muawiyah-madadha-partner.onrender.com/about.html</loc></url>
-  <url><loc>https://muawiyah-madadha-partner.onrender.com/services.html</loc></url>
-  <url><loc>https://muawiyah-madadha-partner.onrender.com/projects.html</loc></url>
-  <url><loc>https://muawiyah-madadha-partner.onrender.com/gallery.html</loc></url>
-  <url><loc>https://muawiyah-madadha-partner.onrender.com/leadership.html</loc></url>
-  <url><loc>https://muawiyah-madadha-partner.onrender.com/mmc.html</loc></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/ar/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/about.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/about.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/about.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/about.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/ar/about.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/about.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/about.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/about.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/services.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/services.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/services.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/services.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/ar/services.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/services.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/services.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/services.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/projects.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/projects.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/projects.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/projects.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/ar/projects.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/projects.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/projects.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/projects.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/gallery.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/gallery.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/gallery.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/gallery.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/ar/gallery.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/gallery.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/gallery.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/gallery.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/leadership.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/leadership.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/leadership.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/leadership.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/ar/leadership.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/leadership.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/leadership.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/leadership.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/mmc.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/mmc.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/mmc.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/mmc.html"/>
+  </url>
+  <url>
+    <loc>https://muawiyah-madadha-partner.onrender.com/ar/mmc.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://muawiyah-madadha-partner.onrender.com/mmc.html"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://muawiyah-madadha-partner.onrender.com/ar/mmc.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://muawiyah-madadha-partner.onrender.com/mmc.html"/>
+  </url>
 </urlset>
