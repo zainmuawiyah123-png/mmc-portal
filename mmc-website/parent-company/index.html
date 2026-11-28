@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="google-site-verification" content="Z0opYpuls_fR7h23qlFsWDndqLc2TbVENV0zfWhbrs4" /><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Muawiyah Madadha & His Partner — Jordanian contracting company established in 2008, delivering earthworks, building construction, sewerage and infrastructure works.">
+<meta name="description" content="Muawiyah Madadha & His Partner is a Jordanian contracting company established in 2008, delivering earthworks, building construction, sewerage and infrastructure projects." id="page-description">
 <title>Muawiyah Madadha & His Partner | Contracting & Infrastructure</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -35,13 +35,22 @@ section{padding:92px 0}.section-head{display:flex;align-items:end;justify-conten
 @media(max-width:850px){.photo-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.photo-gallery-grid{grid-template-columns:1fr}.photo-card img{height:230px}}
 
+
+/* Arabic presentation: preserve the existing visual identity while applying RTL */
+html[dir="rtl"] body{font-family:Cairo,Arial,sans-serif;text-align:right}
+html[dir="rtl"] .links{direction:rtl}
+html[dir="rtl"] .brand{direction:rtl;letter-spacing:0}
+html[dir="rtl"] .brand small{letter-spacing:0}
+html[dir="rtl"] input,html[dir="rtl"] textarea,html[dir="rtl"] select{direction:rtl;text-align:right}
+html[dir="rtl"] .hero,html[dir="rtl"] .section,html[dir="rtl"] footer{text-align:right}
+html[dir="rtl"] .lang{font-family:Cairo,Arial,sans-serif}
 </style>
 </head>
 <body>
 <header><div class="wrap nav">
-<a class="brand" href="/index.html"><span class="mark">MM</span><span>MUAWIYAH MADADHA<small>AND HIS PARTNER · EST. 2008</small></span></a>
-<nav class="links"><a href="/index.html" data-en="Home" data-ar="الرئيسية">Home</a><a href="/about.html" data-en="Who We Are" data-ar="من نحن">Who We Are</a><a href="/services.html" data-en="Services" data-ar="خدماتنا">Services</a><a href="/projects.html" data-en="Projects" data-ar="مشاريعنا">Projects</a><a href="/gallery.html" data-en="Gallery" data-ar="معرض الصور">Gallery</a><a href="/leadership.html" data-en="Leadership" data-ar="الإدارة">Leadership</a><a href="/mmc.html">MMC</a></nav>
-<div class="actions"><button class="lang" id="langBtn">العربية</button><button class="menu" onclick="document.querySelector('.links').style.display=document.querySelector('.links').style.display==='flex'?'none':'flex'">MENU</button></div>
+<a class="brand" href="/index.html"><span class="mark">MM</span><span><span id="brand-name" data-en="MUAWIYAH MADADHA" data-ar="شركة معاوية المدادحة وشريكه">MUAWIYAH MADADHA</span><small id="brand-subtitle" data-en="AND HIS PARTNER · EST. 2008" data-ar="تأسست عام 2008">AND HIS PARTNER · EST. 2008</small></span></a>
+<nav class="links"><a href="/index.html" data-en="Home" data-ar="الرئيسية">Home</a><a href="/about.html" data-en="Who We Are" data-ar="من نحن">Who We Are</a><a href="/services.html" data-en="Services" data-ar="خدماتنا">Services</a><a href="/projects.html" data-en="Projects" data-ar="مشاريعنا">Projects</a><a href="/gallery.html" data-en="Gallery" data-ar="معرض الصور">Gallery</a><a href="/leadership.html" data-en="Leadership" data-ar="الإدارة">Leadership</a><a href="/mmc.html" data-en="MMC" data-ar="منظومة MMC">MMC</a></nav>
+<div class="actions"><button class="lang" id="langBtn">العربية</button><button class="menu" data-en="MENU" data-ar="القائمة" onclick="document.querySelector('.links').style.display=document.querySelector('.links').style.display==='flex'?'none':'flex'">MENU</button></div>
 </div></header>
 <main>
 <div class="hero"><div class="wrap hero-grid"><div><div class="eyebrow" data-en="Jordanian Contracting & Infrastructure" data-ar="المقاولات والبنية التحتية · الأردن">Jordanian Contracting & Infrastructure</div>
@@ -62,6 +71,33 @@ section{padding:92px 0}.section-head{display:flex;align-items:end;justify-conten
 </main>
 <footer><div class="wrap"><div class="foot"><div><div class="brand" style="color:white"><span class="mark">MM</span><span>MUAWIYAH MADADHA<small style="color:#aab8c3">AND HIS PARTNER · EST. 2008</small></span></div><p data-en="Jordanian contracting company focused on earthworks, building construction, sewerage works and civil infrastructure." data-ar="شركة مقاولات أردنية متخصصة في الأعمال الترابية والأبنية وأعمال الصرف الصحي والبنية التحتية المدنية.">Jordanian contracting company focused on earthworks, building construction, sewerage works and civil infrastructure.</p></div><div><div class="kicker" data-en="Contact" data-ar="التواصل">Contact</div><p data-en="For business enquiries, contact us by email:" data-ar="للاستفسارات وطلبات الأعمال، يمكنكم التواصل معنا عبر البريد الإلكتروني:">For business enquiries, contact us by email:</p><p><a href="mailto:info@mrc-jordan.com" style="color:#fff;text-decoration:underline">info@mrc-jordan.com</a><br><a href="mailto:i.mmc-jo@outlook.com" style="color:#fff;text-decoration:underline">i.mmc-jo@outlook.com</a></p></div></div><div class="legal">© <span id="year"></span> Muawiyah Madadha & His Partner. <span data-en="All rights reserved." data-ar="جميع الحقوق محفوظة.">All rights reserved.</span></div></div></footer>
 <script>
-const langBtn=document.getElementById('langBtn');let lang='en';function setLang(next){lang=next;document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.querySelectorAll('[data-en]').forEach(el=>{if(!el.children.length)el.textContent=el.dataset[lang]});langBtn.textContent=lang==='en'?'العربية':'English';document.title=lang==='en'?'Muawiyah Madadha & His Partner | Contracting & Infrastructure':'معاوية المدادحة وشريكه | المقاولات والبنية التحتية'}langBtn.addEventListener('click',()=>setLang(lang==='en'?'ar':'en'));document.getElementById('year').textContent=new Date().getFullYear();
+(function(){
+ const langBtn=document.getElementById('langBtn');
+ const descriptions={en:"Muawiyah Madadha & His Partner is a Jordanian contracting company established in 2008, delivering earthworks, building construction, sewerage and infrastructure projects.",ar:"شركة معاوية المدادحة وشريكه، شركة مقاولات أردنية تأسست عام 2008، متخصصة في الأعمال الترابية والإنشاءات والمباني والصرف الصحي والبنية التحتية."};
+ function setLang(next){
+   const lang=next==='ar'?'ar':'en';
+   document.documentElement.lang=lang;
+   document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+   document.querySelectorAll('[data-en][data-ar]').forEach(el=>{
+     if(!el.children.length) el.textContent=el.dataset[lang];
+   });
+   const brandName=document.getElementById('brand-name');
+   const brandSubtitle=document.getElementById('brand-subtitle');
+   if(brandName) brandName.textContent=brandName.dataset[lang];
+   if(brandSubtitle) brandSubtitle.textContent=brandSubtitle.dataset[lang];
+   if(langBtn){langBtn.textContent=lang==='en'?'العربية':'English';langBtn.setAttribute('aria-label',lang==='en'?'Switch to Arabic':'التبديل إلى الإنجليزية');}
+   const heading=document.querySelector('h1');
+   const titleBase=heading?heading.textContent.trim():(lang==='ar'?'شركة معاوية المدادحة وشريكه':'Muawiyah Madadha & His Partner');
+   document.title=titleBase+(lang==='ar'?' | شركة معاوية المدادحة وشريكه':' | Muawiyah Madadha & His Partner');
+   const description=document.getElementById('page-description');
+   if(description) description.setAttribute('content',descriptions[lang]);
+   try{localStorage.setItem('parentCompanyLanguage',lang);}catch(e){}
+ }
+ let saved='en';
+ try{saved=localStorage.getItem('parentCompanyLanguage')||'en';}catch(e){}
+ setLang(saved);
+ if(langBtn) langBtn.addEventListener('click',()=>setLang(document.documentElement.lang==='en'?'ar':'en'));
+ const year=document.getElementById('year');if(year)year.textContent=new Date().getFullYear();
+})();
 </script>
 </body></html>
